@@ -283,7 +283,8 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
             phone=payload.client_phone,
             client_type=payload.client_type,
             cui=payload.client_company_vat if payload.client_type == "juridica" else None,
-            address=payload.client_address
+            address=payload.client_address,
+            preferred_language=payload.client_language
         )
         db.add(client)
         db.flush()

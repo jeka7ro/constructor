@@ -3269,10 +3269,11 @@ def send_work_order_email_route(id: str, payload: SendEmailPayload, db: Session 
         raise HTTPException(status_code=404, detail="Client not found")
 
     from app.services.email_service import send_quote_email
+    effective_lang = wo.client_language or client.preferred_language or 'fr'
     success = send_quote_email(
         to_email=client.email,
         client_name=client.name,
-        client_language=wo.client_language,
+        client_language=effective_lang,
         signing_url=payload.proforma_url,
         pdf_path=None,
         org_id=wo.organization_id,

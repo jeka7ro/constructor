@@ -88,6 +88,10 @@ def _log_email(org_id, wo_id, to_email, client_name, subject, html_content, stat
 
 def send_quote_email(to_email: str, client_name: str, client_language: str, signing_url: str, pdf_path: str = None, org_id: str = None, wo_id: str = None):
     client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
+    if client_language in ['eng', 'english']: client_language = 'en'
+    if client_language in ['ro', 'romana', 'romanian']: client_language = 'ro'
+    if client_language in ['nl', 'dutch']: client_language = 'nl'
+    if client_language in ['fr', 'french']: client_language = 'fr'
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         logger.warning("BREVO_API_KEY is not set. Email not sent.")
@@ -220,6 +224,10 @@ def send_quote_email(to_email: str, client_name: str, client_language: str, sign
 
 def send_planning_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, new_date: str, org_id: str = None, wo_id: str = None):
     client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
+    if client_language in ['eng', 'english']: client_language = 'en'
+    if client_language in ['ro', 'romana', 'romanian']: client_language = 'ro'
+    if client_language in ['nl', 'dutch']: client_language = 'nl'
+    if client_language in ['fr', 'french']: client_language = 'fr'
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         return False
@@ -380,6 +388,10 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
 
 def send_quote_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, discount_pct: float = 0, org_id: str = None, wo_id: str = None):
     client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
+    if client_language in ['eng', 'english']: client_language = 'en'
+    if client_language in ['ro', 'romana', 'romanian']: client_language = 'ro'
+    if client_language in ['nl', 'dutch']: client_language = 'nl'
+    if client_language in ['fr', 'french']: client_language = 'fr'
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         return False
@@ -548,6 +560,10 @@ def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone:
         return False
 def send_chat_notification_email(to_email: str, client_name: str, client_language: str, chat_url: str, org_id: str = None, wo_id: str = None):
     client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
+    if client_language in ['eng', 'english']: client_language = 'en'
+    if client_language in ['ro', 'romana', 'romanian']: client_language = 'ro'
+    if client_language in ['nl', 'dutch']: client_language = 'nl'
+    if client_language in ['fr', 'french']: client_language = 'fr'
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         logger.warning("BREVO_API_KEY is not set. Email not sent.")
@@ -675,6 +691,10 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
 
 def send_order_confirmation_email(to_email: str, client_name: str, client_language: str, signing_url: str, date_str: str, org_id: str = None, wo_id: str = None):
     client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
+    if client_language in ['eng', 'english']: client_language = 'en'
+    if client_language in ['ro', 'romana', 'romanian']: client_language = 'ro'
+    if client_language in ['nl', 'dutch']: client_language = 'nl'
+    if client_language in ['fr', 'french']: client_language = 'fr'
     import os
     from app.services.email_service import _log_email
     brevo_api_key = os.getenv("BREVO_API_KEY")
