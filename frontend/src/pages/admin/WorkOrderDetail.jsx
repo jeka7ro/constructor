@@ -252,6 +252,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [previewDocIndex, setPreviewDocIndex] = useState(null)
     const [showEmailPreview, setShowEmailPreview] = useState(false)
     const [emailPreviewContent, setEmailPreviewContent] = useState('')
+    const [activeTab, setActiveTab] = useState('info');
+    const [isEditingLang, setIsEditingLang] = useState(false);
+    const [editLang, setEditLang] = useState('fr');
     const [showCamera, setShowCamera] = useState(false)
     const [toast, setToast] = useState({ message: null, type: 'success' })
     // Calcul Edit Modal (Estimatif)
@@ -1791,9 +1794,53 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 </div>
                                                 <div>
                                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Langue Client</p>
-                                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase">
-                                                        {wo.client_language || 'FR'}
-                                                    </span>
+                                                    {isEditingLang ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <select
+                                                                value={editLang}
+                                                                onChange={(e) => setEditLang(e.target.value)}
+                                                                className="text-sm bg-white border border-slate-300 rounded px-2 py-1"
+                                                            >
+                                                                <option value="fr">FR</option>
+                                                                <option value="en">EN</option>
+                                                                <option value="nl">NL</option>
+                                                                <option value="ro">RO</option>
+                                                            </select>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await api.put(`/admin/work-orders/${id}`, { client_language: editLang });
+                                                                        wo.client_language = editLang;
+                                                                        setIsEditingLang(false);
+                                                                    } catch (e) {
+                                                                        console.error(e);
+                                                                    }
+                                                                }}
+                                                                className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                                                            >
+                                                                <CheckCircle2 className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setIsEditingLang(false)}
+                                                                className="p-1 bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 group">
+                                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase">
+                                                                {wo.client_language || 'FR'}
+                                                            </span>
+                                                            <button 
+                                                                onClick={() => { setEditLang(wo.client_language || 'fr'); setIsEditingLang(true); }}
+                                                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 transition-opacity"
+                                                                title="Schimbă limba"
+                                                            >
+                                                                <Edit2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
