@@ -171,7 +171,13 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
             effective_lang = payload.language
         elif payload.lang:
             effective_lang = payload.lang
-    effective_lang = str(effective_lang).lower().strip()
+            
+    effective_lang = str(effective_lang).lower().split('-')[0].strip()
+    if effective_lang in ['eng', 'english', 'en']: effective_lang = 'en'
+    elif effective_lang in ['ro', 'romana', 'romanian', 'ro']: effective_lang = 'ro'
+    elif effective_lang in ['nl', 'dutch', 'nl']: effective_lang = 'nl'
+    else: effective_lang = 'fr'
+    payload.client_language = effective_lang
     
     # 2. Find or create Client
     client_name = ""

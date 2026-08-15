@@ -40,6 +40,8 @@ class CalculatorSubmitRequest(BaseModel):
     client_phone: Optional[str] = None
     client_address: Optional[str] = None
     client_language: str = "fr"
+    language: Optional[str] = None
+    lang: Optional[str] = None
     # Work Info
     work_type: str = "new" # "new" or "repair"
     site_address: str
@@ -260,6 +262,21 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         raise HTTPException(status_code=400, detail="Invalid request")
 
     org = get_org_by_domain_or_slug(payload.domain, payload.slug, db)
+    
+    # 1.5 Handle language fallback and normalize
+    effective_lang = payload.client_language
+    if effective_lang == "fr": # if it's the default, check the aliases
+        if getattr(payload, "language", None):
+            effective_lang = payload.language
+        elif getattr(payload, "lang", None):
+            effective_lang = payload.lang
+            
+    effective_lang = str(effective_lang).lower().split('-')[0].strip()
+    if effective_lang in ['eng', 'english', 'en']: effective_lang = 'en'
+    elif effective_lang in ['ro', 'romana', 'romanian', 'ro']: effective_lang = 'ro'
+    elif effective_lang in ['nl', 'dutch', 'nl']: effective_lang = 'nl'
+    else: effective_lang = 'fr'
+    payload.client_language = effective_lang
     
     # 2. Find or create Client
     client_name = ""
