@@ -496,11 +496,13 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
     // Transport (Frais de déplacement) - calculat din TARIFE (pricing settings)
     let truckCost = parseFloat(activePrices.truck_cost || 0);
-    if (truckCost <= 0 && pricingSettings) {
+    // Regulă strictă: Folosim EXCLUSIV distanța unică (one-way) calculată la crearea devizului
+    const actualDistKm = parseFloat(activePrices.distance_km || 0);
+    
+    if (truckCost <= 0 && pricingSettings && actualDistKm > 0) {
         const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
         const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
         const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
-        const distKm = parseFloat(activePrices.distance_km || 0);
         const totalSurface = isInvoiceView && wo.actual_surface_m2 > 0 
             ? parseFloat(wo.actual_surface_m2) 
             : (wo.volumes || []).reduce((sum, v) => {
@@ -508,14 +510,14 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                 if (/chape|sapa|[sșş]ap[aăâ]/i.test(lbl)) return sum + (parseFloat(v.quantity) || 0);
                 return sum;
             }, 0);
-        if (truckFlat > 0 && distKm > distThreshold && totalSurface <= surfThreshold) {
+        if (truckFlat > 0 && actualDistKm > distThreshold && totalSurface <= surfThreshold) {
             truckCost = truckFlat;
         }
     }
     if (truckCost > 0) {
         items.push({
             id: 'transport',
-            desc: `Transport`,
+            desc: `Transport${actualDistKm > 0 ? ` (${Math.round(actualDistKm)} km)` : ''}`,
             qty: 1,
             unit: 'Forfait',
             price: truckCost

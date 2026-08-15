@@ -1,37 +1,27 @@
 import re
 
-file_path = "frontend/src/pages/admin/ProformaView.jsx"
-with open(file_path, "r", encoding="utf-8") as f:
+with open("frontend/src/pages/admin/ProformaView.jsx", "r") as f:
     content = f.read()
 
-# I need to add api import if not present
-if "import api from" not in content:
-    content = content.replace("import { useParams, useNavigate } from 'react-router-dom';", "import { useParams, useNavigate } from 'react-router-dom';\nimport api from '../../services/api';")
-    
-if "import { Printer, ChevronLeft } from 'lucide-react'" in content:
-    content = content.replace("import { Printer, ChevronLeft }", "import { Printer, ChevronLeft, Mail }")
-elif "import { Printer" in content and "Mail" not in content:
-    content = content.replace("import { Printer", "import { Printer, Mail")
+old_truck = """        const distKm = parseFloat(activePrices.distance_km || 0);
+        const totalSurface = (wo.volumes || []).reduce((sum, v) => {
+            const lbl = (v.label || '').toLowerCase();
+            if (/chape|sapa|[sșş]ap[aăâ]/i.test(lbl)) return sum + (parseFloat(v.quantity) || 0);
+            return sum;
+        }, 0);
+        if (truckFlat > 0 && distKm > distThreshold && totalSurface <= surfThreshold) {"""
 
-btn_code = """
-                    <button onClick={async () => {
-                        try {
-                            const res = await api.get(`/admin/work-orders/${id}`);
-                            await api.post(`/admin/work-orders/${id}/send-email`, { proforma_url: `https://davidechape.pontaj.app/public/proforma/${res.data.token}` });
-                            alert('Email trimis cu succes!');
-                        } catch (err) {
-                            alert('Eroare la trimiterea emailului.');
-                        }
-                    }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow transition-colors">
-                        <Mail className="w-4 h-4" />
-                        Trimite Email
-                    </button>
-"""
+new_truck = """        const distKm = parseFloat(activePrices.distance_km || 0);
+        const totalSurface = isInvoiceView && wo.actual_surface_m2 > 0 
+            ? parseFloat(wo.actual_surface_m2) 
+            : (wo.volumes || []).reduce((sum, v) => {
+                const lbl = (v.label || '').toLowerCase();
+                if (/chape|sapa|[sșş]ap[aăâ]/i.test(lbl)) return sum + (parseFloat(v.quantity) || 0);
+                return sum;
+            }, 0);
+        if (truckFlat > 0 && distKm > distThreshold && totalSurface <= surfThreshold) {"""
 
-# Insert next to the Print button
-if "Trimite Email" not in content:
-    content = content.replace("<button onClick={() => window.print()}", btn_code + "\n                    <button onClick={() => window.print()")
+content = content.replace(old_truck, new_truck)
 
-with open(file_path, "w", encoding="utf-8") as f:
+with open("frontend/src/pages/admin/ProformaView.jsx", "w") as f:
     f.write(content)
-print("ProformaView patched")

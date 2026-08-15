@@ -351,24 +351,20 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         // Add Transport (Frais de déplacement)
         let truckCost = parseFloat(wo.prices?.truck_cost || 0);
         
-        let distKm = parseFloat(wo.route_distance_km || 0);
-        if (distKm <= 0 && wo.prices?.distance_km) distKm = parseFloat(wo.prices.distance_km) * 2;
-        if (distKm <= 0 && wo.route_segments?.length > 0) {
-            distKm = (wo.route_segments.reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2;
-        }
-        if (truckCost <= 0 && pricingSettings && distKm > 0) {
+        // Regulă strictă: Folosim EXCLUSIV distanța unică (one-way) calculată la crearea devizului
+        const actualDistKm = parseFloat(wo.prices?.distance_km || 0);
+        if (truckCost <= 0 && pricingSettings && actualDistKm > 0) {
             const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
             const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
             const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
-            const oneWay = distKm > 500 ? distKm : distKm / 2;
             const totalSurface = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
-            if (truckFlat > 0 && oneWay > distThreshold && totalSurface <= surfThreshold) {
+            if (truckFlat > 0 && actualDistKm > distThreshold && totalSurface <= surfThreshold) {
                 truckCost = truckFlat;
             }
         }
         if (truckCost > 0) {
             items.push({
-                desc: `Transport${distKm > 0 ? ` (${Math.round(distKm)} km)` : ''}`,
+                desc: `Transport${actualDistKm > 0 ? ` (${Math.round(actualDistKm)} km)` : ''}`,
                 qty: 1,
                 unit: T.forfait,
                 price: truckCost
