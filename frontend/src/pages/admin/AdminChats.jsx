@@ -556,11 +556,11 @@ export default function AdminChats() {
                                                                             {(activeWo.client_name || '?').charAt(0).toUpperCase()}
                                                                         </span>
                                                                     ) : msg.sender === 'admin' ? (
-                                                                        (tenant?.favicon_url || tenant?.logo_url) ? (
-                                                                            <img src={tenant.favicon_url ? getImageUrl(tenant.favicon_url) : getImageUrl(tenant.logo_url)} alt={tenant?.name || "Company"} className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0 hidden md:block" />
+                                                                        tenant?.favicon_url ? (
+                                                                            <img src={getImageUrl(tenant.favicon_url)} alt={tenant?.name || "Company"} className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0 hidden md:block" />
                                                                         ) : (
-                                                                            <span className="w-5 h-5 rounded-full bg-blue-600 text-white hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">
-                                                                                {(tenant?.name || 'D').charAt(0).toUpperCase()}
+                                                                            <span className="w-5 h-5 rounded-full bg-white text-blue-600 hidden md:flex items-center justify-center font-bold text-[10px] shrink-0 shadow-sm border border-slate-100">
+                                                                                {(tenant?.name || 'DC').substring(0, 2).toUpperCase()}
                                                                             </span>
                                                                         )
                                                                     ) : null}
@@ -777,17 +777,19 @@ export default function AdminChats() {
                                             <button
                                                 type="button"
                                                 onClick={() => fileInputRef.current?.click()}
-                                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
                                                 title="Adaugă atașament"
                                             >
                                                 <Paperclip className="w-5 h-5" />
                                             </button>
+                                            
                                             <input
                                                 type="text"
                                                 value={chatMessage}
                                                 onChange={e => setChatMessage(e.target.value)}
+                                                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                                                 placeholder={t('admin.type_message', 'Tapez votre message...')}
-                                                className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 md:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                                                className="flex-1 min-w-[100px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 md:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
                                             />
                                             <select 
                                                 value={targetLang}
@@ -796,7 +798,7 @@ export default function AdminChats() {
                                                 title="Limbă Traducere (la Client)"
                                             >
                                                 <option value="none">Fără trad.</option>
-                                                <option value="nl">NL</option>
+                                                <option value="nl">NL (Vlaams/Dutch)</option>
                                                 <option value="fr">FR</option>
                                                 <option value="en">EN</option>
                                             </select>

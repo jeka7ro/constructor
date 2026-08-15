@@ -11,6 +11,22 @@ from app.models import Organization, Client, WorkOrder, PricingSetting
 
 router = APIRouter(prefix="/api/public/devis_online", tags=["devis_online"])
 
+class SurfaceItem(BaseModel):
+    id: Optional[str] = None
+    label: Optional[str] = "Chape"
+    surface: float
+    thickness: float
+    has_foil: bool = False
+    has_mesh: bool = False
+    has_duramint: bool = True
+
+class IsolationItem(BaseModel):
+    id: Optional[str] = None
+    label: Optional[str] = "Isolation"
+    type: str = "pur"
+    surface: float
+    thickness: float
+
 class CalculatorSubmitRequest(BaseModel):
     domain: Optional[str] = None
     slug: Optional[str] = None
@@ -27,12 +43,18 @@ class CalculatorSubmitRequest(BaseModel):
     # Work Info
     work_type: str = "new" # "new" or "repair"
     site_address: str
-    surface: float
-    thickness: float
-    # Options
+    
+    # ── Multiple Surfaces ──
+    surfaces: List[SurfaceItem] = []
+    isolations: List[IsolationItem] = []
+    
+    # Legacy fields (kept for backward compatibility during transition)
+    surface: Optional[float] = 0.0
+    thickness: Optional[float] = 0.0
     has_foil: bool = False
     has_mesh: bool = False
-    has_duramint: bool = True # Always included as requested
+    has_duramint: bool = True
+    
     # Scheduling
     approximate_date: Optional[str] = None
     # Security
@@ -44,7 +66,7 @@ class CalculatorSubmitRequest(BaseModel):
     # Custom source override (e.g. 'we-r' for Jordi)
     source: Optional[str] = None
     
-    # ── Isolation (PUR / EPS) ──
+    # ── Legacy Isolation (PUR / EPS) ──
     needs_isolation: bool = False
     isolation_type: Optional[str] = None  # 'pur' or 'eps'
     isolation_surface: Optional[float] = None
@@ -162,17 +184,54 @@ def get_driving_distance_km(origin: str, destination: str) -> float:
 
 def _build_volumes(payload: CalculatorSubmitRequest) -> list:
     """Build volumes array: always Chape, optionally + Isolation PUR/EPS."""
-    volumes = [{
-        "label": "Chape",
-        "quantity": payload.surface,
-        "unit": "m²",
-        "thickness": payload.thickness,
-        "has_foil": payload.has_foil,
-        "has_mesh": payload.has_mesh,
-        "has_duramint": payload.has_duramint
-    }]
+    volumes = []
     
-    if payload.needs_isolation and payload.isolation_type and payload.isolation_surface:
+    # 1. Use multiple surfaces if provided
+    if payload.surfaces and len(payload.surfaces) > 0:
+        for surf in payload.surfaces:
+            volumes.append({
+                "label": surf.label or "Chape",
+                "quantity": surf.surface,
+                "unit": "m²",
+                "thickness": surf.thickness,
+                "has_foil": surf.has_foil,
+                "has_mesh": surf.has_mesh,
+                "has_duramint": surf.has_duramint
+            })
+    else:
+        # Fallback to single surface
+        volumes.append({
+            "label": "Chape",
+            "quantity": payload.surface,
+            "unit": "m²",
+            "thickness": payload.thickness,
+            "has_foil": payload.has_foil,
+            "has_mesh": payload.has_mesh,
+            "has_duramint": payload.has_duramint
+        })
+    
+    # 2. Use multiple isolations if provided
+    if payload.isolations and len(payload.isolations) > 0:
+        for iso in payload.isolations:
+            iso_vol = {
+                "quantity": iso.surface,
+                "thickness": iso.thickness or 3,
+            }
+            if iso.type == "pur":
+                iso_vol["label"] = iso.label or "Isolation PUR"
+                iso_vol["unit"] = "m²"
+                # Keep legacy options per-surface for now if passed, else default
+                iso_vol["pur_aspiration"] = payload.isolation_pur_aspiration
+                iso_vol["pur_niveller"] = payload.isolation_pur_niveller
+                iso_vol["pur_poncage"] = payload.isolation_pur_poncage
+                iso_vol["pur_protection"] = payload.isolation_pur_protection
+            elif iso.type == "eps":
+                iso_vol["label"] = iso.label or "Isolation EPS"
+                iso_vol["unit"] = "m³"
+                iso_vol["volume_m3"] = round(iso.surface * (iso.thickness or 1) / 100, 2)
+            volumes.append(iso_vol)
+    elif payload.needs_isolation and payload.isolation_type and payload.isolation_surface:
+        # Fallback to single isolation
         iso_vol = {
             "quantity": payload.isolation_surface,
             "thickness": payload.isolation_thickness or 3,
@@ -352,7 +411,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     db.commit()
     db.refresh(wo)
     
-    proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+    proforma_url = f"https://davidechape.pontaj.app/confirm/{wo.token}"
 
     from app.services.email_service import send_quote_email, send_admin_new_quote_alert
     from app.services.whatsapp_service import send_whatsapp_message, send_admin_new_quote_whatsapp

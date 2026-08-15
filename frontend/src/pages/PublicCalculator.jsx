@@ -32,6 +32,11 @@ export default function PublicCalculator() {
         client_language: i18n.language || 'fr',
         work_type: 'new',
         site_address: '',
+
+        // Multiple Surfaces
+        surfaces: [{ id: '1', label: 'Chape', surface: '', thickness: '', has_foil: false, has_mesh: false, has_duramint: true }],
+
+        // Legacy compatibility
         surface: '',
         thickness: '',
         has_foil: false,
@@ -156,7 +161,7 @@ export default function PublicCalculator() {
         e.preventDefault();
         setError('');
         if (formData.honeypot) return;
-        if (!formData.surface || parseFloat(formData.surface) <= 0) {
+        if (!formData.surfaces?.[0]?.surface && (!formData.surface || parseFloat(formData.surface) <= 0)) {
             setError(t('workorders.surface_required', 'La surface est obligatoire.'));
             return;
         }
@@ -164,7 +169,19 @@ export default function PublicCalculator() {
         try {
             const domain = window.location.hostname;
             const urlSource = new URLSearchParams(window.location.search).get('source');
-            const res = await publicApi.post('/submit', { ...formData, domain, is_iframe: isIframe, source: urlSource });
+            const submitData = {
+                ...formData,
+                surfaces: formData.surfaces,
+                surface: formData.surface || (formData.surfaces?.[0]?.surface),
+                thickness: formData.thickness || (formData.surfaces?.[0]?.thickness),
+                has_foil: formData.surfaces?.[0]?.has_foil || formData.has_foil,
+                has_mesh: formData.surfaces?.[0]?.has_mesh || formData.has_mesh,
+                has_duramint: formData.surfaces?.[0]?.has_duramint || formData.has_duramint,
+                domain,
+                is_iframe: isIframe,
+                source: urlSource
+            };
+            const res = await publicApi.post('/submit', submitData);
             if (res.data.token) {
                 if (photos.length > 0) {
                     try {
@@ -201,38 +218,64 @@ export default function PublicCalculator() {
     };
 
     const calculateEstimatedPrice = () => {
-        if (!config?.pricing || !formData.surface || parseFloat(formData.surface) <= 0) return 0;
+        if (!config?.pricing || (!formData.surfaces?.length && !formData.surface) || 
+            (formData.surfaces?.length > 0 && parseFloat(formData.surfaces[0].surface || 0) <= 0 && parseFloat(formData.surface || 0) <= 0)) {
+            return 0;
+        }
+        
         const p = config.pricing;
-        const s = parseFloat(formData.surface);
-        const th = parseFloat(formData.thickness || 5);
-        const base = p.base_price_sqm * s;
-        const extraThick = Math.max(0, th - p.standard_thickness_cm);
-        const extraCost = extraThick * p.extra_thickness_price_per_cm * s;
-        const foil = formData.has_foil ? p.plastic_foil_price_sqm * s : 0;
-        const mesh = formData.has_mesh ? p.metal_mesh_price_sqm * s : 0;
+        const surfaces = formData.surfaces?.length > 0 ? formData.surfaces : [{
+            surface: formData.surface,
+            thickness: formData.thickness,
+            has_foil: formData.has_foil,
+            has_mesh: formData.has_mesh,
+            has_duramint: formData.has_duramint
+        }];
+
+        const totalSurface = surfaces.reduce((sum, s) => sum + parseFloat(s.surface || 0), 0);
+        
+        const baseLargeThresh = parseFloat(p.base_large_threshold_sqm || 200);
+        const baseRate = totalSurface > baseLargeThresh ? parseFloat(p.base_price_sqm_large || 12.5) : parseFloat(p.base_price_sqm || 12.5);
+        
+        const stdThick = parseFloat(p.standard_thickness_cm || 5);
+        const extraThresh = parseFloat(p.extra_thickness_large_threshold_sqm || 200);
+        const extraPrice = totalSurface > extraThresh ? parseFloat(p.extra_thickness_price_per_cm_large || 1.25) : parseFloat(p.extra_thickness_price_per_cm || 1.25);
+        
+        const fiberThresh = parseFloat(p.fiber_large_threshold_sqm || 200);
+        const fiberRate = totalSurface > fiberThresh ? parseFloat(p.fiber_price_sqm_large || 2.0) : parseFloat(p.fiber_price_sqm || 2.5);
+
+        let baseCost = 0;
+        let extraCost = 0;
+        let foil = 0;
+        let mesh = 0;
+        let fiber = 0;
+
+        surfaces.forEach(s => {
+            const sArea = parseFloat(s.surface || 0);
+            const sThick = parseFloat(s.thickness || 5);
+            
+            baseCost += baseRate * sArea;
+            extraCost += Math.max(0, sThick - stdThick) * extraPrice * sArea;
+            if (s.has_foil) foil += parseFloat(p.plastic_foil_price_sqm || 1.2) * sArea;
+            if (s.has_mesh) mesh += parseFloat(p.metal_mesh_price_sqm || 2.5) * sArea;
+            if (s.has_duramint !== false) fiber += fiberRate * sArea;
+        });
+
         let hiddenExtra = 0;
-        if (p.surface_thresholds) {
+        if (p.surface_thresholds && totalSurface > 0) {
             p.surface_thresholds.forEach(thresh => {
                 const minS = parseFloat(thresh.min_sqm || 0);
                 const maxS = parseFloat(thresh.max_sqm || 999999);
-                if (s >= minS && s < maxS) hiddenExtra += parseFloat(thresh.extra_charge || 0);
+                if (totalSurface >= minS && totalSurface <= maxS) hiddenExtra += parseFloat(thresh.extra_charge || 0);
             });
         }
         
-        let fiber = 0;
-        if (formData.has_duramint) {
-            const threshold = parseFloat(p.fiber_large_threshold_sqm || 200);
-            if (s <= threshold) {
-                fiber = parseFloat(p.fiber_price_sqm || 2.5) * s;
-            } else {
-                fiber = parseFloat(p.fiber_price_sqm_large || 2.0) * s;
-            }
-        }
-
-        const total = base + extraCost + foil + mesh + fiber + hiddenExtra;
+        const total = baseCost + extraCost + foil + mesh + fiber + hiddenExtra;
+        
         let vatRate = 21;
         if (formData.client_type === 'juridica') vatRate = p.vat_legal_entity;
         else vatRate = formData.work_type === 'repair' ? p.vat_physical_repair : p.vat_physical_new;
+        
         return total * (1 + vatRate / 100);
     };
 
@@ -418,68 +461,138 @@ export default function PublicCalculator() {
                                     </div>
                                 </div>
 
-                                {/* Surface & Épaisseur */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === 'surface' ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
-                                        <input type="number" required min="1" placeholder="120"
-                                            value={formData.surface} onChange={e => {
-                                                setFormData({ ...formData, surface: e.target.value });
-                                                if (errorField === 'surface') { setErrorField(''); setError(''); }
-                                            }}
-                                            className={`w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all ${errorField === 'surface' ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
-                                    </div>
-                                    <div>
-                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === 'thickness' ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
-                                        <input type="number" required min="5" step="0.5" placeholder="5"
-                                            value={formData.thickness} onChange={e => {
-                                                setFormData({ ...formData, thickness: e.target.value });
-                                                if (errorField === 'thickness') { setErrorField(''); setError(''); }
-                                            }}
-                                            className={`w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all ${errorField === 'thickness' ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
-                                    </div>
-                                </div>
+                                {/* Surfaces List */}
+                                <div className="space-y-4">
+                                    {formData.surfaces.map((surf, index) => (
+                                        <div key={surf.id || index} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-4 relative group">
+                                            {/* Remove Button */}
+                                            {formData.surfaces.length > 1 && (
+                                                <button type="button" onClick={() => {
+                                                    const newSurfaces = formData.surfaces.filter((_, i) => i !== index);
+                                                    setFormData({ ...formData, surfaces: newSurfaces });
+                                                }} className="absolute top-3 right-3 text-red-400 hover:text-red-600 p-1 bg-white rounded-md shadow-sm opacity-0 group-hover:opacity-100 transition-opacity border border-red-100">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
 
-                                {/* Options */}
-                                <div className="space-y-2">
-                                    <label className="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">{t('calculator.options', 'Options')}</label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_foil ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-slate-50 hover:border-yellow-200'}`}>
-                                        <div className="flex items-center gap-3">
-                                            <Layers className={`w-5 h-5 ${formData.has_foil ? 'text-yellow-600' : 'text-slate-400'}`} />
-                                            <span className="font-bold text-sm text-slate-900">{t('calculator.foil', 'Film plastique')}</span>
-                                        </div>
-                                        <input type="checkbox" checked={formData.has_foil} onChange={e => setFormData({ ...formData, has_foil: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
-                                    </label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_mesh ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-slate-50 hover:border-yellow-200'}`}>
-                                        <div className="flex items-center gap-3">
-                                            <Grid3x3 className={`w-5 h-5 ${formData.has_mesh ? 'text-yellow-600' : 'text-slate-400'}`} />
-                                            <span className="font-bold text-sm text-slate-900">{t('calculator.mesh', 'Treillis')}</span>
-                                        </div>
-                                        <input type="checkbox" checked={formData.has_mesh} onChange={e => setFormData({ ...formData, has_mesh: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
-                                    </label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all border-yellow-400 bg-yellow-50/50 opacity-80 cursor-not-allowed`} title={t('calculator.duramint_always_included', 'Toujours inclus')}>
-                                        <div className="flex items-center gap-3">
-                                            <Layers className={`w-5 h-5 text-yellow-600`} />
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-sm text-slate-900">{t('calculator.duramint', 'Fibre')}</span>
-                                                <span className="text-[10px] text-yellow-700">{t('calculator.always_included', 'Toujours inclus')}</span>
+                                            {/* Label / Name */}
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('calculator.surface_name', 'Nom (ex: Rez-de-chaussée)')}</label>
+                                                <input type="text" placeholder={t('calculator.surface_name_placeholder', 'Rez-de-chaussée')}
+                                                    value={surf.label || ''} onChange={e => {
+                                                        const newSurfaces = [...formData.surfaces];
+                                                        newSurfaces[index].label = e.target.value;
+                                                        setFormData({ ...formData, surfaces: newSurfaces });
+                                                    }}
+                                                    className="w-full bg-white border-2 border-slate-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-all" />
+                                            </div>
+
+                                            {/* Surface & Épaisseur */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === `surface_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
+                                                    <input type="number" required min="1" placeholder="120"
+                                                        value={surf.surface} onChange={e => {
+                                                            const newSurfaces = [...formData.surfaces];
+                                                            newSurfaces[index].surface = e.target.value;
+                                                            setFormData({ ...formData, surfaces: newSurfaces });
+                                                            if (errorField === `surface_${index}`) { setErrorField(''); setError(''); }
+                                                        }}
+                                                        className={`w-full bg-white border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none transition-all ${errorField === `surface_${index}` ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
+                                                </div>
+                                                <div>
+                                                    <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === `thickness_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
+                                                    <input type="number" required min="5" step="0.5" placeholder="5"
+                                                        value={surf.thickness} onChange={e => {
+                                                            const newSurfaces = [...formData.surfaces];
+                                                            newSurfaces[index].thickness = e.target.value;
+                                                            setFormData({ ...formData, surfaces: newSurfaces });
+                                                            if (errorField === `thickness_${index}`) { setErrorField(''); setError(''); }
+                                                        }}
+                                                        className={`w-full bg-white border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none transition-all ${errorField === `thickness_${index}` ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
+                                                </div>
+                                            </div>
+
+                                            {/* Options */}
+                                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                                <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">{t('calculator.options', 'Options')}</label>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    <label className={`flex items-center justify-between p-2.5 rounded-lg border-2 cursor-pointer transition-all ${surf.has_foil ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-white hover:border-yellow-200'}`}>
+                                                        <div className="flex items-center gap-2">
+                                                            <Layers className={`w-4 h-4 ${surf.has_foil ? 'text-yellow-600' : 'text-slate-400'}`} />
+                                                            <span className="font-bold text-[13px] text-slate-800">{t('calculator.foil', 'Film plastique')}</span>
+                                                        </div>
+                                                        <input type="checkbox" checked={surf.has_foil} onChange={e => {
+                                                            const newSurfaces = [...formData.surfaces];
+                                                            newSurfaces[index].has_foil = e.target.checked;
+                                                            setFormData({ ...formData, surfaces: newSurfaces });
+                                                        }} className="w-3.5 h-3.5 accent-yellow-400" />
+                                                    </label>
+                                                    <label className={`flex items-center justify-between p-2.5 rounded-lg border-2 cursor-pointer transition-all ${surf.has_mesh ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-white hover:border-yellow-200'}`}>
+                                                        <div className="flex items-center gap-2">
+                                                            <Grid3x3 className={`w-4 h-4 ${surf.has_mesh ? 'text-yellow-600' : 'text-slate-400'}`} />
+                                                            <span className="font-bold text-[13px] text-slate-800">{t('calculator.mesh', 'Treillis')}</span>
+                                                        </div>
+                                                        <input type="checkbox" checked={surf.has_mesh} onChange={e => {
+                                                            const newSurfaces = [...formData.surfaces];
+                                                            newSurfaces[index].has_mesh = e.target.checked;
+                                                            setFormData({ ...formData, surfaces: newSurfaces });
+                                                        }} className="w-3.5 h-3.5 accent-yellow-400" />
+                                                    </label>
+                                                    <label className={`flex items-center justify-between p-2.5 rounded-lg border-2 transition-all border-yellow-400 bg-yellow-50/50 opacity-80 cursor-not-allowed sm:col-span-2`} title={t('calculator.duramint_always_included', 'Toujours inclus')}>
+                                                        <div className="flex items-center gap-2">
+                                                            <Layers className="w-4 h-4 text-yellow-600" />
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-[13px] text-slate-800">{t('calculator.duramint', 'Fibre (Duramint)')}</span>
+                                                                <span className="text-[9px] text-yellow-700">{t('calculator.always_included', 'Toujours inclus')}</span>
+                                                            </div>
+                                                        </div>
+                                                        <input type="checkbox" checked={true} readOnly className="w-3.5 h-3.5 accent-yellow-400 cursor-not-allowed" />
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
-                                        <input type="checkbox" checked={true} readOnly className="w-4 h-4 accent-yellow-400 cursor-not-allowed" />
-                                    </label>
+                                    ))}
+
+                                    <button type="button" onClick={() => {
+                                        setFormData({
+                                            ...formData,
+                                            surfaces: [...formData.surfaces, { id: Date.now().toString(), label: '', surface: '', thickness: '', has_foil: false, has_mesh: false, has_duramint: true }]
+                                        });
+                                    }} className="w-full border-2 border-dashed border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2">
+                                        + {t('calculator.add_surface', 'Ajouter une autre surface')}
+                                    </button>
                                 </div>
 
                                 <button type="button" onClick={() => {
-                                    if (!formData.surface || parseFloat(formData.surface) <= 0) {
-                                        setErrorField('surface');
-                                        setError(t('errors.surface_required', 'La surface est obligatoire.'));
-                                        return;
+                                    let hasError = false;
+                                    for (let i = 0; i < formData.surfaces.length; i++) {
+                                        const s = formData.surfaces[i];
+                                        if (!s.surface || parseFloat(s.surface) <= 0) {
+                                            setErrorField(`surface_${i}`);
+                                            setError(t('errors.surface_required', 'La surface est obligatoire.'));
+                                            hasError = true;
+                                            break;
+                                        }
+                                        if (!s.thickness || parseFloat(s.thickness) < 5) {
+                                            setErrorField(`thickness_${i}`);
+                                            setError(t('errors.thickness_min', "L'épaisseur minimale est de 5 cm."));
+                                            hasError = true;
+                                            break;
+                                        }
                                     }
-                                    if (!formData.thickness || parseFloat(formData.thickness) < 5) {
-                                        setErrorField('thickness');
-                                        setError(t('errors.thickness_min', "L'épaisseur minimale est de 5 cm."));
-                                        return;
-                                    }
+                                    if (hasError) return;
+                                    
+                                    // Sync legacy fields for safe fallback
+                                    setFormData({
+                                        ...formData,
+                                        surface: formData.surfaces[0]?.surface || '',
+                                        thickness: formData.surfaces[0]?.thickness || '',
+                                        has_foil: formData.surfaces[0]?.has_foil || false,
+                                        has_mesh: formData.surfaces[0]?.has_mesh || false,
+                                        has_duramint: formData.surfaces[0]?.has_duramint || true,
+                                    });
+                                    
                                     setError(''); setStep(2);
                                 }} className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
                                     {t('calculator.continue', 'Continuer')} <ChevronRight className="w-5 h-5" />

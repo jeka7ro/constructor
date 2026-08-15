@@ -1,10 +1,14 @@
+import sys
 import os
-import psycopg2
-from dotenv import load_dotenv
-
-load_dotenv('backend/.env')
-conn = psycopg2.connect(os.environ['DATABASE_URL'])
-cur = conn.cursor()
-cur.execute("SELECT client_email, client_phone FROM saas_app.work_orders WHERE id = 'bb971555-6d81-4e6d-874f-f9588e9d21ce'")
-row = cur.fetchone()
-print(row if row else "NOT FOUND")
+sys.path.append(os.path.abspath("backend"))
+from app.database import SessionLocal
+from app.models import WorkOrder
+db = SessionLocal()
+wo = db.query(WorkOrder).filter(WorkOrder.is_quote == True).first()
+if wo:
+    print(f"WO ID: {wo.id}")
+    print(f"start_date: {wo.start_date}, type: {type(wo.start_date)}")
+    wo.start_date = "2026-08-28"
+    db.commit()
+    db.refresh(wo)
+    print(f"After string assign: start_date: {wo.start_date}, type: {type(wo.start_date)}")

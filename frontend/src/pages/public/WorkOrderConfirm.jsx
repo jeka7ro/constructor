@@ -977,7 +977,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         <div className="hidden sm:flex gap-1 bg-slate-100 p-1 rounded-lg">
                             {[
                                 { code: 'fr', label: 'FR' },
-                                { code: 'nl', label: 'NL' },
+                                { code: 'nl', label: 'NL (Vlaams)' },
                                 { code: 'en', label: 'EN' }
                             ].map(l => (
                                 <button
@@ -1368,7 +1368,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         <div className="flex gap-1 bg-slate-200/60 p-1 rounded-lg">
                             {[
                                 { code: 'fr', label: 'FR' },
-                                { code: 'nl', label: 'NL' },
+                                { code: 'nl', label: 'NL (Vlaams)' },
                                 { code: 'en', label: 'EN' }
                             ].map(l => (
                                 <button

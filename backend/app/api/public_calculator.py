@@ -10,6 +10,22 @@ from app.models import Organization, Client, WorkOrder, PricingSetting
 
 router = APIRouter(prefix="/api/public/calculator", tags=["public_calculator"])
 
+class SurfaceItem(BaseModel):
+    id: Optional[str] = None
+    label: Optional[str] = "Chape"
+    surface: float
+    thickness: float
+    has_foil: bool = False
+    has_mesh: bool = False
+    has_duramint: bool = True
+
+class IsolationItem(BaseModel):
+    id: Optional[str] = None
+    label: Optional[str] = "Isolation"
+    type: str = "pur"
+    surface: float
+    thickness: float
+
 class CalculatorSubmitRequest(BaseModel):
     domain: Optional[str] = None
     slug: Optional[str] = None
@@ -26,12 +42,18 @@ class CalculatorSubmitRequest(BaseModel):
     # Work Info
     work_type: str = "new" # "new" or "repair"
     site_address: str
-    surface: float
-    thickness: float
-    # Options
+    
+    # ── Multiple Surfaces ──
+    surfaces: List[SurfaceItem] = []
+    isolations: List[IsolationItem] = []
+    
+    # Legacy fields
+    surface: Optional[float] = 0.0
+    thickness: Optional[float] = 0.0
     has_foil: bool = False
     has_mesh: bool = False
     has_duramint: bool = True # Always included as requested
+    
     # Scheduling
     approximate_date: Optional[str] = None
     # Security
@@ -292,6 +314,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         
     signature_url = f"{webflow_base}/confirmation-contact?token={wo.token}&lang={wo.client_language}"
     pdf_url = f"https://davidechape.pontaj.app/api/proforma/download/{wo.id}"
+    proforma_url = f"https://davidechape.pontaj.app/confirm/{wo.token}"
     
     # 5. Fire webhook to Jordi's Make/n8n
     def fire_webhook():
@@ -324,7 +347,9 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
                 "vat_rate": prices_dict.get("vat_type", 21)
             },
             "signature_url": signature_url,
-            "pdf_url": pdf_url
+            "pdf_url": pdf_url,
+            "proforma_url": proforma_url,
+            "token": wo.token
         }
         try:
             requests.post(webhook_url, json=webhook_payload, timeout=5)
@@ -338,7 +363,6 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     from app.services.email_service import send_quote_email, send_admin_new_quote_alert
     
     def send_email_without_pdf():
-        proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
         send_quote_email(client.email, client.name, wo.client_language, proforma_url, None)
 
     if client.email:
@@ -346,7 +370,6 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
 
     def send_alerts_to_admins():
         from app.models import Admin
-        proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
         admins = db.query(Admin).filter(Admin.organization_id == wo.organization_id, Admin.receive_quote_alerts == True).all()
         
         try:

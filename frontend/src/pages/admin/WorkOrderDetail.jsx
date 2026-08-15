@@ -1235,7 +1235,45 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             delete newPrices.fiber_large;
             delete newPrices.fiber_threshold;
             // Calcul nou estimat
-            const newCalc = computeChapeTotal(surface, thickness, calcEditForm, newPrices);
+            const totalChapeSurface = (calcEditForm.chapes || []).reduce((sum, c) => sum + (parseFloat(c.surface) || 0), 0);
+            
+            // Compute base totals without threshold and truck cost
+            const chapeTotals = (calcEditForm.chapes || []).map(c => {
+                return computeChapeTotal(parseFloat(c.surface) || 0, parseFloat(c.thickness) || 0, c, newPrices);
+            });
+            
+            let totalNet = chapeTotals.reduce((sum, c) => sum + (c.base + c.extra + c.foil + c.mesh + c.fiber), 0);
+            
+            // Re-evaluate threshold & truck cost on TOTAL surface
+            let threshold = 0;
+            const thresholds = newPrices?.surface_thresholds || [];
+            if (newPrices?.custom_threshold !== undefined && newPrices.custom_threshold !== null && newPrices.custom_threshold !== '') {
+                threshold = parseFloat(newPrices.custom_threshold) || 0;
+            } else if (thresholds.length > 0) {
+                const match = thresholds.find(t => totalChapeSurface >= parseFloat(t.min_sqm) && totalChapeSurface <= parseFloat(t.max_sqm));
+                if (match) threshold = parseFloat(match.extra_charge) || 0;
+            }
+            
+            let truck_cost = parseFloat(newPrices?.truck_cost || 0);
+            const actualDistKm = parseFloat(newPrices?.distance_km || 0);
+            
+            if (truck_cost <= 0 && pricingSettings && actualDistKm > 0) {
+                const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
+                const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
+                const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
+                if (truckFlat > 0 && actualDistKm > distThreshold && totalChapeSurface <= surfThreshold) {
+                    truck_cost = truckFlat;
+                }
+            }
+            
+            totalNet += threshold + truck_cost;
+            const discountPct = parseFloat(newPrices?.discount_pct || 0);
+            totalNet = totalNet - (totalNet * discountPct / 100);
+            
+            // Also add PUR and EPS to estimated price (rough approx, backend might recalculate)
+            // Wait, does estimated_price currently include PUR/EPS?
+            // computeChapeTotal only returns Chape total!
+            const newCalc = { net: totalNet };
 
             // Sincronizare automată TVA în funcție de noile date de client/lucrare
             let newVatType = newPrices.vat_type;
@@ -2249,7 +2287,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 return (
                                     <button
                                         key={doc.id || idx}
-                                        onClick={() => setPreviewDocIndex(idx)}
+                                        onClick={() => {
+                                            setPreviewDocIndex(idx);
+                                        }}
                                         className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group text-left w-full"
                                     >
                                         <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
@@ -2274,12 +2314,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 e.stopPropagation();
                                                 const rawUrl = doc.file_url || doc.file_path;
                                                 const finalUrl = rawUrl?.startsWith('http') ? rawUrl : `${API_BASE}${rawUrl?.startsWith('/') ? '' : '/'}${rawUrl}`;
-                                                
-                                                if (doc.filename?.toLowerCase().endsWith('.pdf') || doc.content_type === 'application/pdf') {
-                                                    setDocDrawerState({ url: finalUrl, type: 'document' });
-                                                } else {
-                                                    window.open(finalUrl, '_blank');
-                                                }
+                                                window.open(finalUrl, '_blank');
                                             }}
                                         />
                                     </button>
@@ -2316,16 +2351,42 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         </button>
                                         <button 
                                             onClick={() => {
-                                                const chapeVol = (wo.volumes || []).find(v => /chape|[sșş]ap[aăâ]/i.test((v.label || '').toLowerCase()));
+                                                const allChapes = (wo.volumes || []).filter(v => /chape|[sșş]ap[aăâ]/i.test((v.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
+                                                const allPurs = (wo.volumes || []).filter(v => /isolation\s*pur/i.test((v.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
+                                                const allEps = (wo.volumes || []).filter(v => /isolation\s*eps/i.test((v.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
+
+                                                const chapes = allChapes.length > 0 ? allChapes.map((v, i) => ({
+                                                    id: Date.now() + i,
+                                                    surface: v.quantity || '',
+                                                    thickness: v.thickness || '',
+                                                    has_foil: v.has_foil || false,
+                                                    has_mesh: v.has_mesh || false,
+                                                    has_fiber: v.has_fiber || false,
+                                                    has_duramint: v.has_duramint || false
+                                                })) : [{ id: Date.now(), surface: surfaceForAuto || '', thickness: '', has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false }];
+                                                
+                                                const pur_isolations = allPurs.length > 0 ? allPurs.map((v, i) => ({
+                                                    id: Date.now() + 1000 + i,
+                                                    surface: v.quantity || '',
+                                                    thickness: v.thickness || '',
+                                                    pur_aspiration: v.pur_aspiration || false,
+                                                    pur_niveller: v.pur_niveller || false,
+                                                    pur_poncage: v.pur_poncage || false,
+                                                    pur_protection: v.pur_protection || false
+                                                })) : [];
+                                                
+                                                const eps_isolations = allEps.length > 0 ? allEps.map((v, i) => ({
+                                                    id: Date.now() + 2000 + i,
+                                                    surface: v.eps_surface || v.quantity || '',
+                                                    thickness: v.thickness || ''
+                                                })) : [];
+
                                                 setCalcEditForm({
                                                     client_type: wo.client_type || (wo.client ? wo.client.client_type : 'fizica'),
                                                     work_type: wo.work_type || 'new',
-                                                    surface: chapeVol?.quantity || surfaceForAuto || '',
-                                                    thickness: chapeVol?.thickness || '',
-                                                    has_foil: chapeVol?.has_foil || false,
-                                                    has_mesh: chapeVol?.has_mesh || false,
-                                                    has_fiber: chapeVol?.has_fiber || false,
-                                                    has_duramint: chapeVol?.has_duramint || false,
+                                                    chapes,
+                                                    pur_isolations,
+                                                    eps_isolations,
                                                     base_price: wo.prices?.base ?? 12.5,
                                                     extra_price: wo.prices?.extra ?? 1.25,
                                                     foil_price: wo.prices?.foil ?? 1.2,
@@ -2347,13 +2408,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     pur_opt_poncage: parseFloat(wo.prices?.pur_opt_poncage || 0),
                                                     pur_opt_protection: parseFloat(wo.prices?.pur_opt_protection || 0),
                                                     pur_discount_pct: parseFloat(wo.prices?.pur_discount_pct || 0),
-                                                    eps_discount_pct: parseFloat(wo.prices?.eps_discount_pct || 0),
-                                                    
-                                                    iso_pur_surface: isoPurSurface || '',
-                                                    iso_pur_thickness: isoPurThick || '',
-                                                    iso_eps_m3: isoEpsM3 || '',
-                                                    iso_eps_surface: isoEpsSurface || '',
-                                                    iso_eps_thickness: isoEpsThick || ''
+                                                    eps_discount_pct: parseFloat(wo.prices?.eps_discount_pct || 0)
                                                 });
                                                 setCalcEditTab('chape');
                                                 setCalcEditOpen(true);
@@ -3142,49 +3197,85 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('work_order_detail.calc_edit.surface', 'Surface (m²)')} *</label>
-                                            <input
-                                                type="number" min="0" step="0.5"
-                                                value={calcEditForm.surface}
-                                                onChange={e => setCalcEditForm(f => ({ ...f, surface: e.target.value }))}
-                                                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                placeholder="ex: 130"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('work_order_detail.calc_edit.thickness', 'Épaisseur (cm)')}</label>
-                                            <input
-                                                type="number" min="0" step="0.5"
-                                                value={calcEditForm.thickness}
-                                                onChange={e => setCalcEditForm(f => ({ ...f, thickness: e.target.value }))}
-                                                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                placeholder="ex: 10"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('work_order_detail.calc_edit.options', 'Options incluses')}</p>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                            {[
-                                                { key: 'has_foil',     label: t('work_order_detail.calc_edit.foil',     'Feuille') },
-                                                { key: 'has_mesh',     label: t('work_order_detail.calc_edit.mesh',     'Treillis') },
-                                                { key: 'has_fiber',    label: t('work_order_detail.calc_edit.fiber',    'Fibres') },
-                                                { key: 'has_duramint', label: t('work_order_detail.calc_edit.duramint', 'Duramint') },
-                                            ].map(({ key, label }) => (
-                                                <label key={key} className="flex items-center gap-2 cursor-pointer group p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={!!calcEditForm[key]}
-                                                        onChange={e => setCalcEditForm(f => ({ ...f, [key]: e.target.checked }))}
-                                                        className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                                                    />
-                                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">{label}</span>
-                                                </label>
-                                            ))}
-                                        </div>
+                                    <div className="space-y-4">
+                                        {(calcEditForm.chapes || []).map((chape, idx) => (
+                                            <div key={chape.id} className="p-4 bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl relative">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <h4 className="text-xs font-bold text-slate-500 uppercase">Chape {idx + 1}</h4>
+                                                    {calcEditForm.chapes.length > 1 && (
+                                                        <button 
+                                                            onClick={() => setCalcEditForm(f => ({ ...f, chapes: f.chapes.filter((_, i) => i !== idx) }))}
+                                                            className="text-red-500 hover:text-red-600 transition-colors"
+                                                            title={t('common.delete', 'Supprimer')}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('work_order_detail.calc_edit.surface', 'Surface (m²)')} *</label>
+                                                        <input
+                                                            type="number" min="0" step="0.5"
+                                                            value={chape.surface}
+                                                            onChange={e => {
+                                                                const newChapes = [...calcEditForm.chapes];
+                                                                newChapes[idx].surface = e.target.value;
+                                                                setCalcEditForm({ ...calcEditForm, chapes: newChapes });
+                                                            }}
+                                                            className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                            placeholder="ex: 130"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('work_order_detail.calc_edit.thickness', 'Épaisseur (cm)')}</label>
+                                                        <input
+                                                            type="number" min="0" step="0.5"
+                                                            value={chape.thickness}
+                                                            onChange={e => {
+                                                                const newChapes = [...calcEditForm.chapes];
+                                                                newChapes[idx].thickness = e.target.value;
+                                                                setCalcEditForm({ ...calcEditForm, chapes: newChapes });
+                                                            }}
+                                                            className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                            placeholder="ex: 10"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">{t('work_order_detail.calc_edit.options', 'Options incluses')}</p>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                        {[
+                                                            { key: 'has_foil',     label: t('work_order_detail.calc_edit.foil',     'Feuille') },
+                                                            { key: 'has_mesh',     label: t('work_order_detail.calc_edit.mesh',     'Treillis') },
+                                                            { key: 'has_fiber',    label: t('work_order_detail.calc_edit.fiber',    'Fibres') },
+                                                            { key: 'has_duramint', label: t('work_order_detail.calc_edit.duramint', 'Duramint') },
+                                                        ].map(({ key, label }) => (
+                                                            <label key={key} className="flex items-center gap-2 cursor-pointer group p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 border border-transparent hover:border-slate-200 dark:hover:border-slate-600 transition-colors">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={!!chape[key]}
+                                                                    onChange={e => {
+                                                                        const newChapes = [...calcEditForm.chapes];
+                                                                        newChapes[idx][key] = e.target.checked;
+                                                                        setCalcEditForm({ ...calcEditForm, chapes: newChapes });
+                                                                    }}
+                                                                    className="w-3.5 h-3.5 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                                                />
+                                                                <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">{label}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setCalcEditForm(f => ({ ...f, chapes: [...(f.chapes || []), { id: Date.now(), surface: '', thickness: '', has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false }] }))}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 font-bold text-xs transition-colors"
+                                        >
+                                            <Plus className="w-4 h-4" /> Ajouter une surface Chape
+                                        </button>
                                     </div>
 
                                     <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
@@ -3218,31 +3309,87 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             {/* TAB: ISOLATION */}
                             {calcEditTab === 'isolation' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
-                                    {isoPurSurface > 0 && (
+                                    {((calcEditForm.pur_isolations || []).length > 0 || isoPurSurface > 0) && (
                                         <div className="bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-100 dark:border-slate-700/50 space-y-4">
-                                            <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-2">Isolation PUR</p>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">Isolation PUR</p>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setCalcEditForm(f => ({ ...f, pur_isolations: [...(f.pur_isolations || []), { id: Date.now(), surface: '', thickness: '', pur_aspiration: false, pur_niveller: false, pur_poncage: false, pur_protection: false }] }))}
+                                                    className="flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-md text-[10px] font-bold hover:bg-indigo-100 transition-colors"
+                                                >
+                                                    <Plus className="w-3 h-3" /> Ajouter
+                                                </button>
+                                            </div>
                                             
-                                            <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Surface PUR (m²)</label>
-                                                    <input
-                                                        type="number" min="0" step="0.5"
-                                                        value={calcEditForm.iso_pur_surface}
-                                                        onChange={e => setCalcEditForm(f => ({ ...f, iso_pur_surface: e.target.value }))}
-                                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                        placeholder="ex: 130"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Épaisseur PUR (cm)</label>
-                                                    <input
-                                                        type="number" min="0" step="0.5"
-                                                        value={calcEditForm.iso_pur_thickness}
-                                                        onChange={e => setCalcEditForm(f => ({ ...f, iso_pur_thickness: e.target.value }))}
-                                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                        placeholder="ex: 10"
-                                                    />
-                                                </div>
+                                            <div className="space-y-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                                                {(calcEditForm.pur_isolations || []).map((pur, idx) => (
+                                                    <div key={pur.id} className="relative p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                                        {calcEditForm.pur_isolations.length > 1 && (
+                                                            <button 
+                                                                onClick={() => setCalcEditForm(f => ({ ...f, pur_isolations: f.pur_isolations.filter((_, i) => i !== idx) }))}
+                                                                className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition-colors"
+                                                                title={t('common.delete', 'Supprimer')}
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Surface PUR (m²) {idx + 1}</label>
+                                                                <input
+                                                                    type="number" min="0" step="0.5"
+                                                                    value={pur.surface}
+                                                                    onChange={e => {
+                                                                        const newPurs = [...calcEditForm.pur_isolations];
+                                                                        newPurs[idx].surface = e.target.value;
+                                                                        setCalcEditForm({ ...calcEditForm, pur_isolations: newPurs });
+                                                                    }}
+                                                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                                    placeholder="ex: 130"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Épaisseur PUR (cm)</label>
+                                                                <input
+                                                                    type="number" min="0" step="0.5"
+                                                                    value={pur.thickness}
+                                                                    onChange={e => {
+                                                                        const newPurs = [...calcEditForm.pur_isolations];
+                                                                        newPurs[idx].thickness = e.target.value;
+                                                                        setCalcEditForm({ ...calcEditForm, pur_isolations: newPurs });
+                                                                    }}
+                                                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                                    placeholder="ex: 10"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-3">
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {[
+                                                                    { key: 'pur_aspiration', label: 'Aspiration' },
+                                                                    { key: 'pur_niveller', label: 'Niveller' },
+                                                                    { key: 'pur_poncage', label: 'Ponçage' },
+                                                                    { key: 'pur_protection', label: 'Protection' }
+                                                                ].map(({ key, label }) => (
+                                                                    <label key={key} className="flex items-center gap-1.5 cursor-pointer group p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={!!pur[key]}
+                                                                            onChange={e => {
+                                                                                const newPurs = [...calcEditForm.pur_isolations];
+                                                                                newPurs[idx][key] = e.target.checked;
+                                                                                setCalcEditForm({ ...calcEditForm, pur_isolations: newPurs });
+                                                                            }}
+                                                                            className="w-3 h-3 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                                                        />
+                                                                        <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">{label}</span>
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
 
                                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tarifs & Remises PUR</p>
