@@ -1233,7 +1233,7 @@ export default function AdminOverview() {
                                             }}
                                             onDoubleClick={() => navigate(`/admin/work-orders/${quote.id}`)}
                                             className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
-                                            title={`Client: ${quote.client_name || t('common.unknown_client', 'Client Inconnu')}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.route_distance_km !== null && quote.route_distance_km !== undefined ? parseFloat(quote.route_distance_km).toFixed(0) + ' km' : '?'}`}
+                                            title={`Client: ${quote.client_name || t('common.unknown_client', 'Client Inconnu')}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${(() => { const rd = parseFloat(quote.route_distance_km || 0); const pd = parseFloat(quote.prices?.distance_km || 0); const d = rd > 0 ? rd * 2 : pd > 0 ? pd * 2 : 0; return d > 0 ? Math.round(d) + ' km' : '?'; })()}`}
                                         >
                                             {starredQuotes.includes(quote.id) && (
                                                 <Star className="w-3.5 h-3.5 text-amber-500 fill-current absolute top-2 right-2 opacity-80" />
@@ -1278,9 +1278,15 @@ export default function AdminOverview() {
                                                     let hasDist = false;
                                                     if (quote.route_segments && quote.route_segments.length > 0) {
                                                         dist = quote.route_segments.reduce((sum, seg) => sum + (seg.km || 0), 0) * 2;
-                                                        hasDist = true;
-                                                    } else if (quote.route_distance_km !== null && quote.route_distance_km !== undefined) {
+                                                        hasDist = dist > 0;
+                                                    }
+                                                    if (!hasDist && quote.route_distance_km && parseFloat(quote.route_distance_km) > 0) {
                                                         dist = parseFloat(quote.route_distance_km) * 2;
+                                                        hasDist = true;
+                                                    }
+                                                    // Fallback: distance din prices (setat de devis online) — e one-way
+                                                    if (!hasDist && quote.prices?.distance_km && parseFloat(quote.prices.distance_km) > 0) {
+                                                        dist = parseFloat(quote.prices.distance_km) * 2;
                                                         hasDist = true;
                                                     }
                                                     if (!hasDist) return null;
