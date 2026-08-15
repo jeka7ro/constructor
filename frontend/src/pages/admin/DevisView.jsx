@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getPrice } from '../../utils/pricingEngine';
-import { Loader2, Printer, ArrowLeft, FileText } from 'lucide-react'
+import { Loader2, Printer, ArrowLeft, FileText, Mail } from 'lucide-react'
 import api from '../../lib/api'
 import { useTenantStore } from '../../store/tenantStore'
 import { useTranslation } from 'react-i18next'
@@ -137,6 +137,14 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         }
     }, [wo])
 
+    useEffect(() => {
+        if (!loading && window.location.hash === '#bottom') {
+            setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' });
+            }, 500);
+        }
+    }, [loading]);
+
     if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 animate-spin text-emerald-600" /></div>
     if (error || !wo) return <div className="flex h-screen items-center justify-center font-bold text-red-600">{error || t('common.error', 'Erreur')}</div>
 
@@ -225,7 +233,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         
                         items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) })
                         if (extraThick > 0) {
-                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * getPrice(wo.prices?.extra_thickness_price_per_cm ?? wo.prices?.extra, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25) })
+                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * getPrice(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25) })
                         }
                         if (vol.has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) })
                         if (vol.has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) })
@@ -314,7 +322,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     const extraThick = Math.max(0, thick - stdThick);
                     
                     items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) });
-                    if (extraThick > 0) items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * getPrice(wo.prices?.extra_thickness_price_per_cm ?? wo.prices?.extra, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25) });
+                    if (extraThick > 0) items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * getPrice(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25) });
                     if (wo.has_foil || wo.actual_has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) });
                     if (wo.has_mesh || wo.actual_has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) });
                     if (wo.has_fiber || wo.actual_has_fiber || wo.has_duramint || wo.actual_has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: getPrice(wo.prices?.fiber, surface <= 200 ? pricingSettings?.fiber_price_sqm : pricingSettings?.fiber_price_sqm_large, surface <= 200 ? 2.5 : 2.0) });
@@ -343,7 +351,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 truckCost = truckFlat;
             }
         }
-        if (truckCost > 0 || distKm > 0) {
+        if (truckCost > 0) {
             items.push({
                 desc: `Transport${distKm > 0 ? ` (${Math.round(distKm)} km)` : ''}`,
                 qty: 1,
@@ -429,7 +437,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     const totalGross = netAfterDiscount + vatAmount
 
     const devisNum = wo.quote_number || 'DEV 0905'
-    const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString(locale) : new Date().toLocaleDateString(locale)
+    const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')
     const primaryColor = tenant?.primary_color || '#059669'
 
     return (
@@ -443,6 +451,20 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         <FileText className="w-4 h-4 text-emerald-600" />
                         <span className="font-bold text-slate-700 text-sm">{devisNum}</span>
                     </div>
+                    
+                    <button onClick={async () => {
+                        try {
+                            const res = await api.get(`/admin/work-orders/${id}`);
+                            await api.post(`/admin/work-orders/${id}/send-email`, { proforma_url: `https://davidechape.pontaj.app/public/proforma/${res.data.token}` });
+                            alert('Email trimis cu succes!');
+                        } catch (err) {
+                            alert('Eroare la trimiterea emailului.');
+                        }
+                    }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow transition-colors">
+                        <Mail className="w-4 h-4" />
+                        Trimite Email
+                    </button>
+
                     <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow transition-colors">
                         <Printer className="w-4 h-4" /> Imprimer / PDF
                     </button>
@@ -476,6 +498,8 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.client}</div>
                                 <div className="font-bold text-slate-800 break-words">{wo.client_name || '—'}</div>
                                 {wo.client_email && <div className="text-xs text-slate-500 mt-1 break-all">{wo.client_email}</div>}
+                                {(wo.client_phone || wo.client?.phone) && <div className="text-xs text-slate-500 mt-1">{wo.client_phone || wo.client?.phone}</div>}
+                                {wo.client?.address && <div className="text-xs text-slate-500 mt-1 break-words">{wo.client.address}</div>}
                                 {wo.client_cui && <div className="text-xs text-slate-400 mt-1">N° TVA: {wo.client_cui}</div>}
                             </div>
                             <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100">
@@ -548,7 +572,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                 <div className="mb-4 flex items-center gap-2 text-sm text-slate-600">
                                     <span className="font-bold text-slate-500">{T.dateEst}</span>
                                     <span className="font-black text-slate-800">
-                                        {new Date(wo.approximate_date).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })}
+                                        {new Date(wo.approximate_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
                                     </span>
                                 </div>
                             )}

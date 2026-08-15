@@ -692,12 +692,12 @@ export default function ClientsManagement() {
                                             value={formData.preferred_language}
                                             onChange={e => setFormData({...formData, preferred_language: e.target.value})}
                                         >
-                                            <option value="ro">🇷🇴 Română</option>
-                                            <option value="en">🇬🇧 English</option>
-                                            <option value="fr">🇫🇷 Français</option>
-                                            <option value="de">🇩🇪 Deutsch</option>
-                                            <option value="nl">🇳🇱 Nederlands</option>
-                                            <option value="ru">🇷🇺 Русский</option>
+                                            <option value="ro">Română</option>
+                                            <option value="en">English</option>
+                                            <option value="fr">Français</option>
+                                            <option value="de">Deutsch</option>
+                                            <option value="nl">Nederlands</option>
+                                            <option value="ru">Русский</option>
                                         </select>
                                     </div>
                                 </div>

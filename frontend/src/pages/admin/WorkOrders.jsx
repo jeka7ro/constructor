@@ -365,7 +365,7 @@ export default function WorkOrders() {
         return `${window.location.origin}/confirm/${wo.token}`
     }
 
-    const formatDate = (d) => d ? new Date(d).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+    const formatDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
 
     const renderActions = (wo) => {
         if (wo.status === 'deleted') {
@@ -1075,7 +1075,7 @@ export default function WorkOrders() {
                                     className={`relative flex items-center gap-2 p-3 rounded-xl border transition-all group disabled:opacity-50
                                         ${isPreferred ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/20'}
                                     `}>
-                                    <span className="text-2xl">{lang.flag}</span>
+                                    <img src={`https://flagcdn.com/w40/${lang.id === 'en' ? 'gb' : lang.id}.png`} alt={lang.id} className="w-[24px] h-[18px] object-cover rounded-sm shadow-sm opacity-90" />
                                     <span className={`text-sm font-bold ${isPreferred ? 'text-blue-700 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300 group-hover:text-blue-600'}`}>{lang.label}</span>
                                     {isPreferred && <span className="absolute top-1 right-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">{t('work_orders.pref', 'Préf')}</span>}
                                 </button>

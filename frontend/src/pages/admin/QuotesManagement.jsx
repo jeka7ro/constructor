@@ -866,10 +866,10 @@ export default function QuotesManagement() {
                 }
 
                 return (
-                    <div className="flex flex-col gap-0.5 max-w-[220px]">
-                        <div className="flex items-center gap-1.5 text-sm text-slate-700 overflow-hidden">
+                    <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5 text-sm text-slate-700">
                             <span 
-                                className={`truncate shrink min-w-0 px-2 py-0.5 rounded-full ${badgeColor} ${!isRead ? 'font-bold' : 'font-medium'}`} 
+                                className={`whitespace-normal break-words px-2 py-0.5 rounded-xl ${badgeColor} ${!isRead ? 'font-bold' : 'font-medium'}`} 
                                 title={row.client_name}
                             >
                                 {row.client_name || '-'}

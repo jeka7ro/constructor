@@ -107,8 +107,8 @@ def get_available_dates(domain: Optional[str] = None, slug: Optional[str] = None
 
 def get_driving_distance_km(origin: str, destination: str) -> float:
     import requests
-    import os
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    from app.config import settings
+    api_key = settings.GOOGLE_MAPS_API_KEY
     if not api_key or not origin or not destination:
         return 0.0
     

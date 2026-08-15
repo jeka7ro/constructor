@@ -561,6 +561,40 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const [isEditingAddress, setIsEditingAddress] = useState(false)
     const [editAddressData, setEditAddressData] = useState({ address: '', lat: null, lon: null })
 
+    
+    const translateItemName = (name, targetLang) => {
+        if (!name) return name;
+        if (targetLang === 'fr') return name; // e deja in franceza in DB
+        
+        const n = name.toLowerCase();
+        
+        if (targetLang === 'en') {
+            if (n.includes('chape')) return name.replace(/chape/i, 'Screed');
+            if (n.includes('isolation') || n.includes('pur') || n.includes('eps')) return name.replace(/isolation/i, 'Insulation');
+            if (n.includes('transport')) return 'Transport';
+            if (n.includes('pompage')) return 'Pumping';
+            if (n.includes('supplément')) return name.replace(/supplément/i, 'Extra').replace(/épaisseur/i, 'thickness');
+        }
+        
+        if (targetLang === 'nl') {
+            if (n.includes('chape')) return name.replace(/chape/i, 'Chape'); // In olandeza se foloseste tot Chape
+            if (n.includes('isolation') || n.includes('pur') || n.includes('eps')) return name.replace(/isolation/i, 'Isolatie');
+            if (n.includes('transport')) return 'Transport';
+            if (n.includes('pompage')) return 'Pompen';
+            if (n.includes('supplément')) return name.replace(/supplément/i, 'Extra').replace(/épaisseur/i, 'dikte');
+        }
+        
+        if (targetLang === 'ro') {
+            if (n.includes('chape')) return name.replace(/chape/i, 'Șapă');
+            if (n.includes('isolation') || n.includes('pur') || n.includes('eps')) return name.replace(/isolation/i, 'Izolație');
+            if (n.includes('transport')) return 'Transport';
+            if (n.includes('pompage')) return 'Pompare';
+            if (n.includes('supplément')) return name.replace(/supplément/i, 'Supliment').replace(/épaisseur/i, 'grosime');
+        }
+        
+        return name;
+    };
+
     const handleSaveAddress = async () => {
         try {
             await api.patch(`/public/work-orders/${token}/address`, {
@@ -625,7 +659,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     useEffect(() => {
         const load = async () => {
             try {
-                const res = await api.get(`/public/work-orders/${token}`)
+                const res = await api.get(`/public/work-orders/${token}?lang=${lang}`)
                 const data = res.data
                 if (data.status === 'cancelled') {
                     setError(t.orderCancelled)
@@ -657,6 +691,14 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 setError(err.response?.data?.detail || t.errorLoading)
             } finally {
                 setLoading(false)
+                setTimeout(() => {
+                    if (window.location.hash === '#chat-section') {
+                        const chatEl = document.getElementById('chat-section');
+                        if (chatEl) {
+                            chatEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                }, 300);
             }
         }
         load()
@@ -677,7 +719,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         lastUpdatedRef.current = order.updated_at || order.created_at
         const interval = setInterval(async () => {
             try {
-                const res = await api.get(`/public/work-orders/${token}`)
+                const res = await api.get(`/public/work-orders/${token}?lang=${lang}`)
                 const newData = res.data
                 if (newData.status === 'cancelled') {
                     setError(t.orderCancelled)
@@ -934,9 +976,9 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         {/* Language Selector */}
                         <div className="hidden sm:flex gap-1 bg-slate-100 p-1 rounded-lg">
                             {[
-                                { code: 'fr', label: 'FR', flag: '🇫🇷' },
-                                { code: 'nl', label: 'NL', flag: '🇳🇱' },
-                                { code: 'en', label: 'EN', flag: '🇬🇧' }
+                                { code: 'fr', label: 'FR' },
+                                { code: 'nl', label: 'NL' },
+                                { code: 'en', label: 'EN' }
                             ].map(l => (
                                 <button
                                     key={l.code}
@@ -946,7 +988,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     }}
                                     className={`px-3 py-1.5 rounded-md text-[11px] font-black transition-colors flex items-center gap-1.5 ${lang === l.code ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
-                                    <span className="text-sm leading-none">{l.flag}</span>
+                                    <img src={`https://flagcdn.com/w20/${l.code === 'en' ? 'gb' : l.code}.png`} alt={l.label} className="w-4 h-[11px] object-cover rounded-sm opacity-80" />
                                     {l.label}
                                 </button>
                             ))}
@@ -1325,9 +1367,9 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         {/* Language Selector in Chat Header */}
                         <div className="flex gap-1 bg-slate-200/60 p-1 rounded-lg">
                             {[
-                                { code: 'fr', label: 'FR', flag: '🇫🇷' },
-                                { code: 'nl', label: 'NL', flag: '🇳🇱' },
-                                { code: 'en', label: 'EN', flag: '🇬🇧' }
+                                { code: 'fr', label: 'FR' },
+                                { code: 'nl', label: 'NL' },
+                                { code: 'en', label: 'EN' }
                             ].map(l => (
                                 <button
                                     key={l.code}
@@ -1337,7 +1379,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     }}
                                     className={`px-3 py-1.5 rounded-md text-[11px] font-black transition-colors flex items-center gap-1.5 ${lang === l.code ? 'bg-white text-blue-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
-                                    <span className="text-sm leading-none">{l.flag}</span>
+                                    <img src={`https://flagcdn.com/w20/${l.code === 'en' ? 'gb' : l.code}.png`} alt={l.label} className="w-4 h-[11px] object-cover rounded-sm opacity-80" />
                                     {l.label}
                                 </button>
                             ))}

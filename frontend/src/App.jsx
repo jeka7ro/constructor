@@ -456,10 +456,6 @@ function SmartRedirect() {
         return <Navigate to="/login" replace />
     }
 
-    // Auto-correct misspelled public links (like /devisonline1 sent by mistake)
-    if (location.startsWith('/devisonline')) {
-        return <Navigate to="/devisonline" replace />
-    }
 
     // Auto-correct the wrong link I provided to Jordi
     if (location.startsWith('/public/calculator')) {

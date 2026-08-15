@@ -44,7 +44,8 @@
         "tracking": "Live volgen",
         "quotes": "Citaten",
         "invoicing": "Facturering",
-        "backups": "Systeem Back-ups"
+        "backups": "Systeem Back-ups",
+        "chats": "Messages Clients"
     },
     "logistics": {
         "title": "Logistiek",
@@ -303,7 +304,17 @@
         "longitude": "GPS Lengtegraad",
         "clear": "Wissen",
         "acceptance_date": "Acceptatiedatum",
-        "error_saving": "Fout bij opslaan"
+        "error_saving": "Fout bij opslaan",
+        "prev": "Précédent",
+        "alerts": "Notificări Devis",
+        "date_time": "Date / Heure",
+        "subject": "Sujet",
+        "system": "Sistem",
+        "color": "Culoare",
+        "uploaded_by_client": "Téléchargé par le client",
+        "document": "Document",
+        "preview_not_available": "Aperçu non disponible pour ce type de fichier.",
+        "open_file": "Ouvrir le fichier"
     },
     "users": {
         "delete_confirm_msg": "Weet je zeker dat je de gebruiker wilt verwijderen ",
@@ -391,7 +402,9 @@
         "archive_recommended": "Verplaats naar Archief (Aanbevolen)",
         "archive_hint": "Bewaar de volledige geschiedenis en urenregistraties. De werknemer heeft geen toegang meer, maar de gegevens blijven behouden voor statistieken.",
         "delete_permanent": "Definitief Verwijderen",
-        "delete_hint": "Alle registraties en rapporten gekoppeld aan deze werknemer worden vernietigd. Gebruik deze optie alleen als de werknemer per ongeluk is aangemaakt."
+        "delete_hint": "Alle registraties en rapporten gekoppeld aan deze werknemer worden vernietigd. Gebruik deze optie alleen als de werknemer per ongeluk is aangemaakt.",
+        "quote_alerts_updated": "Setări notificări actualizate",
+        "toggle_quote_alerts": "Activează/dezactivează notificările Devis pe Email"
     },
     "sites": {
         "urgency": {
@@ -891,7 +904,18 @@
             "break_minutes": "Pauze minuten"
         },
         "calendar": "Deadline:",
-        "search_placeholder": "Zoek een werknemer of werf..."
+        "search_placeholder": "Zoek een werknemer of werf...",
+        "status_draft": "Draft",
+        "status_submitted": "În așteptare",
+        "status_approved": "Aprobat",
+        "status_rejected": "Respins",
+        "filter_all": "Toate",
+        "filter_draft": "Draft",
+        "filter_pending": "În așteptare",
+        "filter_approved": "Aprobate",
+        "no_timesheets": "Nu ai pontaje",
+        "create": "Creează Pontaj",
+        "worked": "lucrate"
     },
     "dashboard": {
         "live_tracking": "LIVE VOLGEN",
@@ -1018,7 +1042,26 @@
         "gps_lost": "dashboard.gps_lost",
         "on_break_status": "dashboard.on_break_status",
         "done": "dashboard.done",
-        "working": "dashboard.working"
+        "working": "dashboard.working",
+        "clock_in_out": "Clock In/Out",
+        "today_timesheet": "Pontaj Azi",
+        "history": "Istoric",
+        "history_desc": "Vezi pontajele anterioare",
+        "team": "Echipa",
+        "settings_desc": "Configurare cont",
+        "materials": "Necesar Materiale",
+        "materials_desc": "Cereri pentru șantier",
+        "emergencies": "Urgențe",
+        "emergencies_desc": "Alerte rapide din șantier",
+        "complaints": "Sesizări / Reclamații",
+        "complaints_desc": "Trimite o sesizare",
+        "app_subtitle": "Sistem de pontaj",
+        "logout": "Deconectare",
+        "hello": "Bună",
+        "days_worked": "Zile Lucrate",
+        "active_sites": "Șantiere Active",
+        "quick_actions": "Acțiuni Rapide",
+        "open": "Deschide"
     },
     "settings": {
         "title": "Settings",
@@ -1088,7 +1131,11 @@
         "edit_category": "activities.edit_category",
         "category_name": "activities.category_name",
         "color": "activities.color",
-        "edit_activity": "activities.edit_activity"
+        "edit_activity": "activities.edit_activity",
+        "category": "Categorie",
+        "unit": "Unitate",
+        "system_category": "Sistem (Core)",
+        "category_name_placeholder": "Ex: Finisaje"
     },
     "notifications": {
         "title": "Meldingen",
@@ -1232,7 +1279,29 @@
         "no_new_messages": "U heeft geen nieuwe berichten.",
         "new_badge": "Nieuw",
         "work_order_label": "Werkorder:",
-        "open": "Openen"
+        "open": "Openen",
+        "address_updated": "Adresse mise à jour",
+        "message_hidden": "Message masqué au client",
+        "message_visible": "Message visible pour le client",
+        "error_toggling_visibility": "Erreur lors de la modification de la visibilité",
+        "message_marked_unread": "Mesaj marcat ca necitit",
+        "error_marking_unread": "Eroare la marcarea mesajului",
+        "team": "Équipe",
+        "system": "Sistem",
+        "hidden_from_client": "Masqué au client",
+        "react": "Réagir",
+        "show_to_client": "Afișează la client",
+        "hide_from_client": "Ascunde de la client",
+        "edit_message": "Éditer le message",
+        "mark_unread": "Marquer comme non lu",
+        "message_updated": "Message mis à jour",
+        "error_updating_message": "Erreur lors de la mise à jour du message",
+        "action_cannot_be_undone": "Cette action ne peut pas être annulée.",
+        "reopen_chat_desc": "Le client pourra à nouveau envoyer des messages.",
+        "close_chat_desc": "Le client ne pourra plus envoyer de messages.",
+        "new_quotes": "Devize noi de la clienți",
+        "notifications": "Notifications",
+        "see_all_messages": "Vezi toate mesajele"
     },
     "users_modal": {
         "role_required": "Sélectionnez un rôle.",
@@ -1271,7 +1340,8 @@
         "pin_placeholder": "4-6 cijfers",
         "reset_pin": "PIN Resetten",
         "new_pin_label": "Nieuwe PIN (4-6 cijfers)",
-        "reset_pin_button": "Reset PIN"
+        "reset_pin_button": "Reset PIN",
+        "receive_quote_alerts": "Primește notificări Devis Online pe Email"
     },
     "fleet_modal": {
         "new_vehicle": "Nieuw Voertuig",
@@ -1645,7 +1715,10 @@
         "select_language_client": "Selecteer taal voor de klant",
         "pref": "Voorkeur",
         "err_send": "Fout bij verzenden",
-        "no_sessions": "Geen sessies"
+        "no_sessions": "Geen sessies",
+        "team": "Echipă:",
+        "btn_restore": "Restaurer",
+        "weekly": "Săptămâna"
     },
     "work_order_detail": {
         "loading_order": "Laden...",
@@ -1668,7 +1741,8 @@
             "thickness": "Dikte",
             "avg": "gemiddeld",
             "route": "Route",
-            "round_trip": "retour"
+            "round_trip": "retour",
+            "base_dist": "Distance Base"
         },
         "location": {
             "no_address": "Geen adres",
@@ -1703,7 +1777,8 @@
             "team_leader": "TEAMLEIDER (BEVESTIGING)",
             "estimated_price": "GESCHATTE PRIJS",
             "team_leader_short": "TEAMLEIDER",
-            "client_beneficiary": "BEGUNSTIGDE"
+            "client_beneficiary": "BEGUNSTIGDE",
+            "quote_number": "Numéro de Devis"
         },
         "measurements": {
             "title": "Metingen & Volumes",
@@ -1768,7 +1843,11 @@
             "calc_real": "Werkelijke Berekening (ploegbaas)",
             "issue_invoice": "Factuur Uitgeven",
             "error_save_invoice_number": "Fout bij opslaan factuurnummer",
-            "error_send_billtobox": "Fout bij verzenden naar Billtobox"
+            "error_send_billtobox": "Fout bij verzenden naar Billtobox",
+            "discount_pur": "Remise PUR",
+            "discount_eps": "Remise EPS",
+            "discount_chape": "Remise Chape",
+            "transport": "Transport"
         },
         "top_cards": {
             "order": "Bestelling",
@@ -1822,7 +1901,8 @@
             "at_date": "op",
             "not_confirmed_by_client": "Niet bevestigd door klant",
             "confirmed_by_team": "Bevestigd door ploeg",
-            "accepted_date": "work_order_detail.status.accepted_date"
+            "accepted_date": "work_order_detail.status.accepted_date",
+            "date_confirmed_at": "Confirmé par le client"
         },
         "calc_edit": {
             "discount_pct": "Korting (%)",
@@ -1842,7 +1922,8 @@
             "foil_price": "Folie /m²",
             "mesh_price": "Net /m²",
             "fiber_price": "Vezels /m²",
-            "preview": "Voorbeeld geschatte totaal"
+            "preview": "Voorbeeld geschatte totaal",
+            "discount_chape": "Remise Chape (%)"
         },
         "calc_edit_real": {
             "title": "Echte berekening bewerken",
@@ -1860,7 +1941,7 @@
             "materials": "Geselecteerde Materialen (Berekening)"
         },
         "team_leader_details": {
-            "title": "Davide Team (Bevestigingen & Hoeveelheden)"
+            "title": "Équipe (Confirmations & Quantités)"
         },
         "documents": {
             "title": "Documenten & Bestanden",
@@ -1883,7 +1964,15 @@
             "action_confirmed": "Bevestigd door klant",
             "action_changed": "Gewijzigd door Admin",
             "new_date": "Nieuwe datum:"
-        }
+        },
+        "route_updated": "Les itinéraires de la journée ont été recalculés !",
+        "maps_not_loaded": "Google Maps non chargé.",
+        "invalid_coords": "Coordonnées invalides pour le calcul.",
+        "marked_unread": "Marcat ca necitit!",
+        "mark_unread_desc": "Marchează înapoi ca Nou (Necitit)",
+        "confirm_complete": "Êtes-vous sûr de vouloir marquer cette commande comme terminée ?",
+        "marked_completed": "Commande marquée comme terminée !",
+        "btn_history": "Historique"
     },
     "admin_dashboard": {
         "header_planning": {},
@@ -2282,7 +2371,29 @@
         "total_est_short": "Totaal Est.",
         "btn_save_with_client": "Klant aanmaken & Offerte opslaan",
         "bulk_delete_title": "Offertes Verwijderen",
-        "bulk_delete_warning": "Weet u zeker dat u de volgende offertes wilt verwijderen? Alle bijbehorende gegevens worden permanent verwijderd."
+        "bulk_delete_warning": "Weet u zeker dat u de volgende offertes wilt verwijderen? Alle bijbehorende gegevens worden permanent verwijderd.",
+        "btn_restore": "Restaurează devizul",
+        "confirm_restore": "Ești sigur că vrei să restaurezi acest deviz?",
+        "btn_restore_short": "Restaurează",
+        "restore_success": "Devizul a fost restaurat cu succes!",
+        "restore_error": "Eroare la restaurare: ",
+        "open_link": "Ouvrir le lien",
+        "address": "Adresse",
+        "scheduled_works": "Lucrări planificate pe",
+        "no_works_scheduled": "Nicio lucrare planificată.",
+        "view_planning": "Vezi planificarea",
+        "bulk_recalc_error": "Erreur lors du recalcul des distances.",
+        "bulk_mark_read_success": "Marcate ca citite.",
+        "bulk_mark_unread_success": "Marcate ca necitite.",
+        "restore_title": "Restaurer Devis",
+        "restore_msg": "Voulez-vous restaurer ce devis?",
+        "mark_unread": "Marquer comme non lu",
+        "mark_read": "Marquer comme lu",
+        "chat_client": "Messages / Chat Client",
+        "requested_date": "Date demandée",
+        "distance": "Distance",
+        "sand": "Sable",
+        "star": "Favorite"
     },
     "pricing_settings": {
         "global_title": "Globale Tarieven",
@@ -2739,7 +2850,10 @@
         "quote_approve_error": "overview.quote_approve_error",
         "error_unplanning": "overview.error_unplanning",
         "search_vies": "overview.search_vies",
-        "new_quotes_desc": "Je hebt {{num}} nieuwe offerteaanvragen ontvangen. Wil je ze nu bekijken?"
+        "new_quotes_desc": "Je hebt {{num}} nieuwe offerteaanvragen ontvangen. Wil je ze nu bekijken?",
+        "reschedule_title": "Le client demande une reprogrammation !",
+        "reschedule_desc": "Le client a demandé une autre date pour le travail.",
+        "go_to_order": "Voir la commande"
     },
     "calculator": {
         "back": "Terug",
@@ -2779,13 +2893,22 @@
         "chape_title": "Chape",
         "pur_selected": "PUR isolatie geselecteerd",
         "eps_selected": "EPS isolatie geselecteerd",
-        "pur_aspiration": "Aspiratie",
+        "pur_aspiration": "Afzuiging",
         "pur_niveller": "Laser nivellering",
-        "pur_poncage": "Schuimschuren",
+        "pur_poncage": "Schuim schuren",
         "pur_poncage_sub": "verplicht voor vloerverwarming",
         "pur_protection": "Bescherming boven 1M",
         "always_included": "Altijd inbegrepen",
-        "isolation_question": "Heeft u isolatie nodig voor deze werf?"
+        "isolation_question": "Heeft u isolatie nodig voor deze werf?",
+        "duramint_always_included": "Toujours inclus",
+        "pur_desc": "Gespoten polyurethaanschuim",
+        "eps_desc": "Geëxpandeerd polystyreen",
+        "isolation_choose": "Isolatietype",
+        "step_details": "Details",
+        "step_address": "Adres",
+        "step_date": "Datum",
+        "step_contact": "Contact",
+        "step_photos": "Foto's"
     },
     "planning": {
         "cannot_complete_future": "U kunt een toekomstige werkorder niet voltooien.",
@@ -2811,7 +2934,10 @@
         "holding_area": "Klik om een taak te selecteren, of sleep een taak hierheen",
         "holding_area_clear": "Annuleren",
         "confirm_send_notification": "planning.confirm_send_notification",
-        "notification_error": "planning.notification_error"
+        "notification_error": "planning.notification_error",
+        "favorites": "Clients",
+        "favorite_clients": "Favoris",
+        "drag_client": "Glisser dans le calendrier"
     },
     "link": "link",
     "meta": "meta",
@@ -2858,7 +2984,11 @@
         "fiber": "Vezel",
         "sound_insulation": "Geluidsisolatie",
         "floor_heating_add": "Additief vloerverwarming",
-        "workmanship": "materials.workmanship"
+        "workmanship": "materials.workmanship",
+        "pur_aspiration": "Aspiration",
+        "pur_niveller": "Niveler",
+        "pur_poncage": "Ponçage",
+        "pur_protection": "Protection"
     },
     "invoicing": {
         "status_invoiced": "Gefactureerd",
@@ -3261,7 +3391,8 @@
         "filter_any_action": "Elke Actie",
         "msg_login_admin": "Beheerder succesvol ingelogd",
         "msg_deleted_wo": "Werkbon/Offerte verwijderd",
-        "msg_created_wo": "Werkbon/Offerte aangemaakt"
+        "msg_created_wo": "Werkbon/Offerte aangemaakt",
+        "view_ip_map": "Vezi locația IP-ului pe hartă"
     },
     "emails": {
         "title": "E-mailrapporten",
@@ -3285,5 +3416,69 @@
         "download_ready": "Download klaar!",
         "download_error": "Fout bij downloaden back-upbestand.",
         "empty": "Geen back-ups gevonden."
+    },
+    "router": {
+        "welcome": "Bine ai venit",
+        "enter_code": "Te rugăm să introduci codul companiei tale",
+        "workspace_label": "Workspace (Nume Companie)",
+        "continue": "Continuă",
+        "no_account": "Nu ai un cont pentru compania ta?",
+        "start_demo": "Începe un Demo de 30 de zile gratuit"
+    },
+    "login": {
+        "employee_code": "Code Employé",
+        "pin_code": "Code PIN (4 chiffres)",
+        "privacy_policy": "Politique de Confidentialité",
+        "gps_notice_title": "Avis GPS :",
+        "gps_notice_desc": "Cette application collecte vos données de localisation pendant les heures de travail pour assurer le pointage et la gestion des chantiers.",
+        "sign_in": "Se connecter",
+        "forgot_pin": "Code PIN oublié ?",
+        "powered_by": "Une solution de",
+        "powered_by_smart": "Powered by Smart Timesheet"
+    },
+    "refresh-notifications": "refresh-notifications",
+    "Erreur": "error",
+    "quotesViewed": "quotesViewed",
+    "wo_id": "wo_id",
+    "sitemap": {
+        "error_loading": "Nu s-au putut incarca datele hartii.",
+        "status_geofence": "În afara perimetrului",
+        "status_gps_lost": "GPS Pierdut",
+        "status_active": "Activ pe șantier",
+        "status_break": "În pauză",
+        "code": "Cod:",
+        "check_in": "Check-in:",
+        "worked_hours": "Ore lucrate:",
+        "status": "Status:",
+        "reported_activities": "Activități raportate:",
+        "view_full_profile": "Vezi Profil Complet",
+        "current_month": "Luna Curenta",
+        "last_month": "Luna Trecuta",
+        "this_year": "Anul Curent",
+        "all_time": "Toate",
+        "no_gps_sites": "Niciun santier cu coordonate GPS",
+        "add_coords_hint": "Adauga latitudine/longitudine in Gestionare Santiere",
+        "county": "Judet",
+        "active_workers": "Muncitori activi",
+        "vehicles": "Vehicule",
+        "panels": "Panouri",
+        "power": "Putere",
+        "client": "Client",
+        "all": "Toate",
+        "no_gps": "fara GPS:",
+        "no_active_sites": "Niciun santier activ in aceasta perioada"
+    },
+    "mobile_agenda": {
+        "day": "Jour",
+        "week": "Semaine"
+    },
+    "mapview": {
+        "destination": "Destinație",
+        "base": "Baza:",
+        "previous": "Precedent:",
+        "fullscreen": "Mărește harta (Ecran complet)",
+        "sand": "Nisip",
+        "searching": "Se caută locația pe hartă...",
+        "geo_error": "Adresa nu a putut fi localizată. Adaugă GPS manual în Șantiere."
     }
 }

@@ -98,6 +98,14 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         }
     }, [pData?.lang, i18n]);
 
+    useEffect(() => {
+        if (!loading && window.location.hash === '#bottom') {
+            setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' });
+            }, 500);
+        }
+    }, [loading]);
+
     if (loading) return <div className="flex h-full items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
     if (!wo) return <div className="flex h-full items-center justify-center font-bold text-red-600">{t('common.not_found', 'Commande introuvable.')}</div>
 
@@ -543,9 +551,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             </p>
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
-                            <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
+                            <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('fr-FR')}</strong></p>
                             {isInvoiceView && (
-                                <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('ro-RO')}</strong></p>
+                                <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('fr-FR')}</strong></p>
                             )}
                         </div>
                     </div>

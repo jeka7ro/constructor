@@ -212,7 +212,7 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
 # GET — Citire detalii comandă (fără autentificare)
 # ──────────────────────────────────────────────────────────────────────────────
 @router.get("/public/work-orders/{token}")
-def get_public_work_order(token: str, db: Session = Depends(get_db)):
+def get_public_work_order(token: str, lang: Optional[str] = None, db: Session = Depends(get_db)):
     """
     Returnează datele publice ale comenzii de lucru pe baza tokenului unic.
     Utilizat de pagina de confirmare a clientului.
@@ -220,6 +220,11 @@ def get_public_work_order(token: str, db: Session = Depends(get_db)):
     wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
     if not wo or wo.status == 'deleted':
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită sau link-ul este invalid.")
+        
+    if lang and lang.lower() in ['fr', 'en', 'nl', 'ro', 'de']:
+        if not wo.client_language or wo.client_language.lower() != lang.lower():
+            wo.client_language = lang.lower()
+            db.commit()
     # Permitem vizualizarea și pentru draft (Deviz)
     
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()

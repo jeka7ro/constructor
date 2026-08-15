@@ -8,7 +8,7 @@ import AddressAutocomplete from '../components/AddressAutocomplete';
 const publicApi = axios.create({ baseURL: '/api/public/devis_online' });
 
 const TOTAL_STEPS = 5;
-const STEP_LABELS_FR = ['Détails', 'Adresse', 'Date', 'Contact', 'Photos'];
+
 
 export default function DevisOnline() {
     const { t, i18n } = useTranslation();
@@ -388,7 +388,7 @@ export default function DevisOnline() {
                             {['fr', 'nl', 'en'].map(lang => (
                                 <button key={lang} onClick={() => handleLanguageChange(lang)}
                                     className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded transition-all ${i18n.language === lang ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:bg-slate-200'}`}>
-                                    <span className="text-xs sm:text-sm">{lang === 'fr' ? '🇫🇷' : lang === 'nl' ? '🇳🇱' : '🇬🇧'}</span>
+                                    <img src={`https://flagcdn.com/w20/${lang === 'en' ? 'gb' : lang}.png`} alt={lang} className="w-[18px] h-[13px] object-cover shadow-sm rounded-sm" />
                                     {lang.toUpperCase()}
                                 </button>
                             ))}
@@ -405,7 +405,13 @@ export default function DevisOnline() {
                         <div className="absolute top-3 left-0 right-0 h-0.5 bg-slate-200 z-0" />
                         <div className="absolute top-3 left-0 h-0.5 bg-yellow-400 z-0 transition-all duration-500"
                             style={{ width: `${((step - 1) / (TOTAL_STEPS - 1)) * 100}%` }} />
-                        {STEP_LABELS_FR.map((label, idx) => {
+                        {[
+                            t('calculator.step_details', 'Détails'),
+                            t('calculator.step_address', 'Adresse'),
+                            t('calculator.step_date', 'Date'),
+                            t('calculator.step_contact', 'Contact'),
+                            t('calculator.step_photos', 'Photos')
+                        ].map((label, idx) => {
                             const s = idx + 1;
                             const isDone = s < step;
                             const isActive = s === step;

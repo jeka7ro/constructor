@@ -39,6 +39,7 @@ def _log_email(org_id, wo_id, to_email, client_name, subject, html_content, stat
         db.close()
 
 def send_quote_email(to_email: str, client_name: str, client_language: str, signing_url: str, pdf_path: str = None, org_id: str = None, wo_id: str = None):
+    client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         logger.warning("BREVO_API_KEY is not set. Email not sent.")
@@ -170,6 +171,7 @@ def send_quote_email(to_email: str, client_name: str, client_language: str, sign
         return False
 
 def send_planning_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, new_date: str, org_id: str = None, wo_id: str = None):
+    client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         return False
@@ -249,12 +251,13 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
 
 
 def send_quote_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, discount_pct: float = 0, org_id: str = None, wo_id: str = None):
+    client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         return False
         
     from_email = os.getenv("EMAIL_FROM", "info@davidechape.pontaj.app")
-    primary_color = "#f5a623"
+    primary_color = "#3b82f6"
     
     try:
         from app.database import SessionLocal
@@ -413,6 +416,7 @@ def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone:
         _log_email(org_id, wo_id, admin_email, "Admin", subject, html_content, "failed", str(e))
         return False
 def send_chat_notification_email(to_email: str, client_name: str, client_language: str, chat_url: str, org_id: str = None, wo_id: str = None):
+    client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         logger.warning("BREVO_API_KEY is not set. Email not sent.")
@@ -445,12 +449,48 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
         fallback = "Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur:"
         footer = "L'équipe Davide Chape<br>Ceci est un message automatique, merci de ne pas y répondre directement."
 
-    primary_color = "#3b82f6" # blue-500
+    primary_color = "#3b82f6"
+    tenant_name = "Davide Chape"
+    tenant_logo = "https://davidechape.pontaj.app/davide_logo.png"
     
+    try:
+        from app.database import SessionLocal
+        from app.models import Organization, WorkOrder
+        db = SessionLocal()
+        
+        if not org_id and wo_id:
+            wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id).first()
+            if wo:
+                org_id = wo.organization_id
+        
+        if org_id:
+            org = db.query(Organization).filter(Organization.id == org_id).first()
+            if org:
+                if org.primary_color: primary_color = org.primary_color
+                if org.name: tenant_name = org.name
+                if org.logo_url: tenant_logo = org.logo_url
+        elif not org_id:
+            org = db.query(Organization).first()
+            if org:
+                if org.primary_color: primary_color = org.primary_color
+                if org.name: tenant_name = org.name
+                if org.logo_url: tenant_logo = org.logo_url
+    except Exception:
+        pass
+    finally:
+        try:
+            db.close()
+        except:
+            pass
+            
+    # Replace "Davide Chape" in subject and footer dynamically
+    subject = subject.replace("Davide Chape", tenant_name)
+    footer = footer.replace("Davide Chape", tenant_name)
+            
     html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="background-color: {primary_color}; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">Davide Chape</h1>
+    <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid {primary_color};">
+            <img src="{tenant_logo}" alt="{tenant_name}" style="max-height: 60px;" />
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
             <p style="font-size: 16px;"><strong>{greeting}</strong>,</p>
@@ -458,10 +498,10 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
             <p style="font-size: 16px;">{body_main}</p>
             
             <div style="text-align: center; margin: 35px 0;">
-                <a href="{chat_url}" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
+                <a href="{chat_url}#chat-section" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
             </div>
             
-            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{chat_url}" style="color: {primary_color};">{chat_url}</a></p>
+            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{chat_url}#chat-section" style="color: {primary_color};">{chat_url}</a></p>
         </div>
         <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
             <p style="margin: 0;">{footer}</p>
@@ -471,7 +511,7 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
 
     payload = {
         "sender": {
-            "name": "Davide Chape",
+            "name": tenant_name,
             "email": from_email
         },
         "to": [{"email": to_email}],

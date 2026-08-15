@@ -1674,13 +1674,13 @@ export default function AdminOverview() {
                                                     title={t('dashboard.quick_create.country', 'Pays')}
                                                 >
                                                     <option value="BE">🇧🇪 BE</option>
-                                                    <option value="RO">🇷🇴 RO</option>
-                                                    <option value="FR">🇫🇷 FR</option>
-                                                    <option value="NL">🇳🇱 NL</option>
-                                                    <option value="DE">🇩🇪 DE</option>
-                                                    <option value="IT">🇮🇹 IT</option>
-                                                    <option value="ES">🇪🇸 ES</option>
-                                                    <option value="GB">🇬🇧 GB</option>
+                                                    <option value="RO">RO</option>
+                                                    <option value="FR">FR</option>
+                                                    <option value="NL">NL</option>
+                                                    <option value="DE">DE</option>
+                                                    <option value="IT">IT</option>
+                                                    <option value="ES">ES</option>
+                                                    <option value="GB">GB</option>
                                                     <option value="LU">🇱🇺 LU</option>
                                                     <option value="AT">🇦🇹 AT</option>
                                                     <option value="PL">🇵🇱 PL</option>

@@ -44,7 +44,8 @@
         "tracking": "Live Tracking",
         "quotes": "Quotes",
         "invoicing": "Invoicing",
-        "backups": "System Backups"
+        "backups": "System Backups",
+        "chats": "Messages Clients"
     },
     "logistics": {
         "title": "Logistics",
@@ -303,7 +304,17 @@
         "longitude": "Longitudine GPS",
         "clear": "common.clear",
         "acceptance_date": "common.acceptance_date",
-        "error_saving": "common.error_saving"
+        "error_saving": "common.error_saving",
+        "prev": "Précédent",
+        "alerts": "Notificări Devis",
+        "date_time": "Date / Heure",
+        "subject": "Sujet",
+        "system": "Sistem",
+        "color": "Culoare",
+        "uploaded_by_client": "Téléchargé par le client",
+        "document": "Document",
+        "preview_not_available": "Aperçu non disponible pour ce type de fichier.",
+        "open_file": "Ouvrir le fichier"
     },
     "users": {
         "delete_confirm_msg": "Êtes-vous sûr de vouloir supprimer l'utilisateur ",
@@ -391,7 +402,9 @@
         "archive_recommended": "Mută în Arhivă (Recomandat)",
         "archive_hint": "Păstrează tot istoricul și rapoartele de pontaj. Angajatul nu va mai avea acces, dar informațiile lui rămân în arhivă pentru statiscă.",
         "delete_permanent": "Supprimer Definitiv",
-        "delete_hint": "Toate pontajele și rapoartele asociate acestui angajat vor fi distruse. Folosește această opțiune doar dacă angajatul a fost creat dintr-o greșeală."
+        "delete_hint": "Toate pontajele și rapoartele asociate acestui angajat vor fi distruse. Folosește această opțiune doar dacă angajatul a fost creat dintr-o greșeală.",
+        "quote_alerts_updated": "Setări notificări actualizate",
+        "toggle_quote_alerts": "Activează/dezactivează notificările Devis pe Email"
     },
     "sites": {
         "urgency": {
@@ -891,7 +904,18 @@
             "break_minutes": "timesheets.table.break_minutes"
         },
         "calendar": "Termen:",
-        "search_placeholder": "Rechercher un ouvrier ou un chantier..."
+        "search_placeholder": "Rechercher un ouvrier ou un chantier...",
+        "status_draft": "Draft",
+        "status_submitted": "În așteptare",
+        "status_approved": "Aprobat",
+        "status_rejected": "Respins",
+        "filter_all": "Toate",
+        "filter_draft": "Draft",
+        "filter_pending": "În așteptare",
+        "filter_approved": "Aprobate",
+        "no_timesheets": "Nu ai pontaje",
+        "create": "Creează Pontaj",
+        "worked": "lucrate"
     },
     "dashboard": {
         "live_tracking": "LIVE TRACKING",
@@ -1018,7 +1042,26 @@
         "gps_lost": "dashboard.gps_lost",
         "on_break_status": "dashboard.on_break_status",
         "done": "dashboard.done",
-        "working": "dashboard.working"
+        "working": "dashboard.working",
+        "clock_in_out": "Clock In/Out",
+        "today_timesheet": "Pontaj Azi",
+        "history": "Istoric",
+        "history_desc": "Vezi pontajele anterioare",
+        "team": "Echipa",
+        "settings_desc": "Configurare cont",
+        "materials": "Necesar Materiale",
+        "materials_desc": "Cereri pentru șantier",
+        "emergencies": "Urgențe",
+        "emergencies_desc": "Alerte rapide din șantier",
+        "complaints": "Sesizări / Reclamații",
+        "complaints_desc": "Trimite o sesizare",
+        "app_subtitle": "Sistem de pontaj",
+        "logout": "Deconectare",
+        "hello": "Bună",
+        "days_worked": "Zile Lucrate",
+        "active_sites": "Șantiere Active",
+        "quick_actions": "Acțiuni Rapide",
+        "open": "Deschide"
     },
     "settings": {
         "title": "Settings",
@@ -1088,7 +1131,11 @@
         "edit_category": "activities.edit_category",
         "category_name": "activities.category_name",
         "color": "activities.color",
-        "edit_activity": "activities.edit_activity"
+        "edit_activity": "activities.edit_activity",
+        "category": "Categorie",
+        "unit": "Unitate",
+        "system_category": "Sistem (Core)",
+        "category_name_placeholder": "Ex: Finisaje"
     },
     "notifications": {
         "title": "Notifications",
@@ -1230,7 +1277,31 @@
         "no_new_messages": "You have no new messages.",
         "new_badge": "New",
         "work_order_label": "Work Order:",
-        "open": "Open"
+        "open": "Open",
+        "address_updated": "Adresse mise à jour",
+        "message_hidden": "Message masqué au client",
+        "message_visible": "Message visible pour le client",
+        "error_toggling_visibility": "Erreur lors de la modification de la visibilité",
+        "message_marked_unread": "Mesaj marcat ca necitit",
+        "error_marking_unread": "Eroare la marcarea mesajului",
+        "chat_with_client": "Chat avec le client",
+        "no_messages": "Aucun message",
+        "team": "Équipe",
+        "system": "Sistem",
+        "hidden_from_client": "Masqué au client",
+        "react": "Réagir",
+        "show_to_client": "Afișează la client",
+        "hide_from_client": "Ascunde de la client",
+        "edit_message": "Éditer le message",
+        "mark_unread": "Marquer comme non lu",
+        "message_updated": "Message mis à jour",
+        "error_updating_message": "Erreur lors de la mise à jour du message",
+        "action_cannot_be_undone": "Cette action ne peut pas être annulée.",
+        "reopen_chat_desc": "Le client pourra à nouveau envoyer des messages.",
+        "close_chat_desc": "Le client ne pourra plus envoyer de messages.",
+        "new_quotes": "Devize noi de la clienți",
+        "notifications": "Notifications",
+        "see_all_messages": "Vezi toate mesajele"
     },
     "users_modal": {
         "role_required": "Sélectionnez un rôle.",
@@ -1269,7 +1340,8 @@
         "pin_placeholder": "4-6 cifre",
         "reset_pin": "Resetare PIN",
         "new_pin_label": "PIN Nou (4-6 cifre)",
-        "reset_pin_button": "Resetează PIN"
+        "reset_pin_button": "Resetează PIN",
+        "receive_quote_alerts": "Primește notificări Devis Online pe Email"
     },
     "fleet_modal": {
         "new_vehicle": "New Vehicle",
@@ -1643,7 +1715,10 @@
         "select_language_client": "Sélectionnez la langue pour le client",
         "pref": "Préf",
         "err_send": "work_orders.err_send",
-        "no_sessions": "work_orders.no_sessions"
+        "no_sessions": "work_orders.no_sessions",
+        "team": "Echipă:",
+        "btn_restore": "Restaurer",
+        "weekly": "Săptămâna"
     },
     "work_order_detail": {
         "loading_order": "Loading order...",
@@ -1664,7 +1739,8 @@
             "thickness": "Thickness",
             "avg": "avg",
             "route": "Route",
-            "round_trip": "round trip"
+            "round_trip": "round trip",
+            "base_dist": "Distance Base"
         },
         "location": {
             "no_address": "No address specified",
@@ -1699,7 +1775,8 @@
             "team_leader": "TEAM LEADER (CONFIRMATION)",
             "estimated_price": "ESTIMATED PRICE",
             "team_leader_short": "TEAM LEADER",
-            "client_beneficiary": "BENEFICIARY"
+            "client_beneficiary": "BENEFICIARY",
+            "quote_number": "Numéro de Devis"
         },
         "measurements": {
             "title": "Measurements & Volumes",
@@ -1764,7 +1841,11 @@
             "calc_real": "Calcul Réel (chef de chantier)",
             "issue_invoice": "Émettre la Facture",
             "error_save_invoice_number": "work_order_detail.invoicing.error_save_invoice_number",
-            "error_send_billtobox": "work_order_detail.invoicing.error_send_billtobox"
+            "error_send_billtobox": "work_order_detail.invoicing.error_send_billtobox",
+            "discount_pur": "Remise PUR",
+            "discount_eps": "Remise EPS",
+            "discount_chape": "Remise Chape",
+            "transport": "Transport"
         },
         "top_cards": {
             "order": "Order",
@@ -1818,7 +1899,8 @@
             "at_date": "at",
             "not_confirmed_by_client": "Not confirmed by client",
             "confirmed_by_team": "Confirmé Équipe",
-            "accepted_date": "work_order_detail.status.accepted_date"
+            "accepted_date": "work_order_detail.status.accepted_date",
+            "date_confirmed_at": "Confirmé par le client"
         },
         "calc_edit": {
             "discount_pct": "Discount (%)",
@@ -1838,7 +1920,8 @@
             "foil_price": "Feuille /m²",
             "mesh_price": "Treillis /m²",
             "fiber_price": "Fibres /m²",
-            "preview": "Aperçu du total estimatif"
+            "preview": "Aperçu du total estimatif",
+            "discount_chape": "Remise Chape (%)"
         },
         "calc_edit_real": {
             "title": "Edit Real Calculation",
@@ -1856,7 +1939,7 @@
             "materials": "Matériaux Sélectionnés (Calcul)"
         },
         "team_leader_details": {
-            "title": "Équipe Davide (Confirmations & Quantités)"
+            "title": "Équipe (Confirmations & Quantités)"
         },
         "documents": {
             "title": "Documents & Fichiers",
@@ -1873,7 +1956,23 @@
         "sync_prices_title_modal": "Resynchronisation des Tarifs",
         "sync_prices_confirm": "Êtes-vous sûr de vouloir resynchroniser cette commande avec les tarifs globaux actuels ? Cela modifiera définitivement les prix historiques de la commande.",
         "delete_confirm": "Êtes-vous sûr de vouloir supprimer ceci définitivement ?",
-        "pdf_preview": "APERÇU DU DEVIS"
+        "pdf_preview": "APERÇU DU DEVIS",
+        "route_updated": "Les itinéraires de la journée ont été recalculés !",
+        "maps_not_loaded": "Google Maps non chargé.",
+        "invalid_coords": "Coordonnées invalides pour le calcul.",
+        "marked_unread": "Marcat ca necitit!",
+        "mark_unread_desc": "Marchează înapoi ca Nou (Necitit)",
+        "confirm_complete": "Êtes-vous sûr de vouloir marquer cette commande comme terminée ?",
+        "marked_completed": "Commande marquée comme terminée !",
+        "mark_completed": "Marquer comme terminé",
+        "mark_completed_btn": "Marquer comme terminé",
+        "btn_history": "Historique",
+        "history": {
+            "title": "Historique des dates",
+            "action_confirmed": "Confirmé par client",
+            "action_changed": "Modifié par Admin",
+            "new_date": "Nouvelle date:"
+        }
     },
     "admin_dashboard": {
         "header_planning": {},
@@ -2391,7 +2490,30 @@
         "total_est_short": "Total Est.",
         "btn_save_with_client": "Créer Client & Enregistrer Devis",
         "bulk_delete_title": "Supprimer les Devis",
-        "bulk_delete_warning": "Êtes-vous sûr de vouloir supprimer les devis suivants ? Toutes les données associées seront définitivement supprimées."
+        "bulk_delete_warning": "Êtes-vous sûr de vouloir supprimer les devis suivants ? Toutes les données associées seront définitivement supprimées.",
+        "btn_restore": "Restaurează devizul",
+        "confirm_restore": "Ești sigur că vrei să restaurezi acest deviz?",
+        "btn_restore_short": "Restaurează",
+        "restore_success": "Devizul a fost restaurat cu succes!",
+        "restore_error": "Eroare la restaurare: ",
+        "open_link": "Ouvrir le lien",
+        "address": "Adresse",
+        "scheduled_works": "Lucrări planificate pe",
+        "no_works_scheduled": "Nicio lucrare planificată.",
+        "view_planning": "Vezi planificarea",
+        "bulk_recalc_error": "Erreur lors du recalcul des distances.",
+        "bulk_mark_read_success": "Marcate ca citite.",
+        "bulk_mark_unread_success": "Marcate ca necitite.",
+        "restore_title": "Restaurer Devis",
+        "restore_msg": "Voulez-vous restaurer ce devis?",
+        "mark_unread": "Marquer comme non lu",
+        "mark_read": "Marquer comme lu",
+        "chat_client": "Messages / Chat Client",
+        "recalculate_distances": "Recalculare distanțe",
+        "requested_date": "Date demandée",
+        "distance": "Distance",
+        "sand": "Sable",
+        "star": "Favorite"
     },
     "pricing_settings": {
         "global_title": "Global Rates",
@@ -2433,7 +2555,46 @@
         "no_custom_clients": "No clients with preferential pricing.",
         "client_pricing_title": "Client Pricing",
         "select_client": "Select Client",
-        "confirm_reset": "Are you sure you want to reset pricing for this client?"
+        "confirm_reset": "Are you sure you want to reset pricing for this client?",
+        "mandatory": "Obligatoriu",
+        "tab_chape": "Chape",
+        "tab_pur": "Isolation PUR",
+        "tab_eps": "Isolation EPS",
+        "tab_logistics": "Logistique & TVA",
+        "base_large": "Prix de Base (grande surf.)",
+        "base_threshold": "Seuil Grande Surface",
+        "extra_thickness_price_large": "Prix/cm suppl. (grande surf.)",
+        "extra_thickness_threshold": "Seuil Grande Surface (Épaisseur)",
+        "pur_grid": "Grille Base & Épaisseur",
+        "pur_base": "Prix de base (3cm, ≤100m²)",
+        "pur_extra": "Prix / cm suppl. (au-delà 10cm)",
+        "pur_discount": "Rabais par palier de surface (100m²)",
+        "pur_discount_sub": "Appliqué à >100, >200, >300 m²",
+        "pur_min_sub": "Plafond minimum pour petit chantier",
+        "pur_options": "Options Supplémentaires",
+        "pur_opt_aspiration": "Aspiration",
+        "pur_opt_niveller": "Niveller, travail au laser",
+        "pur_opt_poncage": "Ponçage de la mousse",
+        "pur_opt_poncage_sub": "(obligatoire pour chauffage au sol)",
+        "pur_opt_protection": "Protection au-dessus 1M",
+        "eps_grid": "Grille Volumétrique EPS",
+        "eps_desc_m3": "mètre cube (m³)",
+        "eps_desc_2": "(Surface * Épaisseur).",
+        "eps_desc_3": "Veuillez définir les paliers de volume. Laissez",
+        "eps_desc_fixed": "Prix Fixe",
+        "eps_desc_4": "vide pour appliquer le tarif par m³. Laissez",
+        "eps_desc_rate": "Tarif / m³",
+        "eps_thresholds": "Paliers de Prix",
+        "section_transport_chape": "Transport Chape",
+        "truck_distance": "Distance de facturation",
+        "truck_distance_sub": "Si trajet > km, appliquer frais",
+        "truck_price": "Frais de transport (Fixe)",
+        "truck_free_surface": "Gratuit pour grande surface",
+        "truck_free_surface_sub": "Pas de frais si surface >",
+        "section_transport_pur": "Transport PUR",
+        "section_transport_eps": "Transport EPS",
+        "eps_truck_free": "Gratuit pour grand volume",
+        "eps_truck_free_sub": "Pas de frais si volume > m³"
     },
     "datatable": {
         "show": "Show",
@@ -2804,7 +2965,10 @@
         "quote_approve_error": "overview.quote_approve_error",
         "error_unplanning": "overview.error_unplanning",
         "search_vies": "overview.search_vies",
-        "new_quotes_desc": "You have received {{num}} new quote requests. Do you want to view them now?"
+        "new_quotes_desc": "You have received {{num}} new quote requests. Do you want to view them now?",
+        "reschedule_title": "Le client demande une reprogrammation !",
+        "reschedule_desc": "Le client a demandé une autre date pour le travail.",
+        "go_to_order": "Voir la commande"
     },
     "calculator": {
         "back": "Back",
@@ -2845,12 +3009,21 @@
         "pur_selected": "PUR insulation selected",
         "eps_selected": "EPS insulation selected",
         "pur_aspiration": "Aspiration",
-        "pur_niveller": "Laser levelling",
+        "pur_niveller": "Laser leveling",
         "pur_poncage": "Foam sanding",
-        "pur_poncage_sub": "required for underfloor heating",
+        "pur_poncage_sub": "mandatory for underfloor heating",
         "pur_protection": "Protection above 1M",
         "always_included": "Always included",
-        "isolation_question": "Do you need insulation for this site?"
+        "isolation_question": "Do you need insulation for this site?",
+        "duramint_always_included": "Toujours inclus",
+        "pur_desc": "Sprayed polyurethane foam",
+        "eps_desc": "Expanded polystyrene",
+        "isolation_choose": "Insulation Type",
+        "step_details": "Details",
+        "step_address": "Address",
+        "step_date": "Date",
+        "step_contact": "Contact",
+        "step_photos": "Photos"
     },
     "planning": {
         "cannot_complete_future": "You cannot complete a future work order.",
@@ -2876,7 +3049,10 @@
         "holding_area": "Apasă pentru a selecta o lucrare, sau trage o lucrare aici",
         "holding_area_clear": "Anulează",
         "confirm_send_notification": "planning.confirm_send_notification",
-        "notification_error": "planning.notification_error"
+        "notification_error": "planning.notification_error",
+        "favorites": "Clients",
+        "favorite_clients": "Favoris",
+        "drag_client": "Glisser dans le calendrier"
     },
     "link": "link",
     "meta": "meta",
@@ -2923,7 +3099,11 @@
         "fiber": "Fibre",
         "sound_insulation": "Isolation acoustique",
         "floor_heating_add": "Additif pour chauffage",
-        "workmanship": "materials.workmanship"
+        "workmanship": "materials.workmanship",
+        "pur_aspiration": "Aspiration",
+        "pur_niveller": "Niveler",
+        "pur_poncage": "Ponçage",
+        "pur_protection": "Protection"
     },
     "analytics": {
         "screed_table_title": "Tableau de Calcul (Chape)",
@@ -3124,7 +3304,7 @@
     "vehicle": "vehicle",
     "canvas": "canvas",
     "street_view": {
-        "title": "Street View (Destinație)",
+        "title": "Street View (Destination)",
         "exact_address": "Adresse Exacte",
         "facade_large": "Adresse Exacte (Façade)",
         "angle": "Angle"
@@ -3240,7 +3420,8 @@
         "filter_any_action": "Any Action",
         "msg_login_admin": "Administrator logged in successfully",
         "msg_deleted_wo": "Work order/quote deleted",
-        "msg_created_wo": "Work order/quote created"
+        "msg_created_wo": "Work order/quote created",
+        "view_ip_map": "Vezi locația IP-ului pe hartă"
     },
     "emails": {
         "title": "Email Reports",
@@ -3264,5 +3445,69 @@
         "download_ready": "Download ready!",
         "download_error": "Error downloading backup file.",
         "empty": "No backups found."
+    },
+    "router": {
+        "welcome": "Bine ai venit",
+        "enter_code": "Te rugăm să introduci codul companiei tale",
+        "workspace_label": "Workspace (Nume Companie)",
+        "continue": "Continuă",
+        "no_account": "Nu ai un cont pentru compania ta?",
+        "start_demo": "Începe un Demo de 30 de zile gratuit"
+    },
+    "login": {
+        "employee_code": "Code Employé",
+        "pin_code": "Code PIN (4 chiffres)",
+        "privacy_policy": "Politique de Confidentialité",
+        "gps_notice_title": "Avis GPS :",
+        "gps_notice_desc": "Cette application collecte vos données de localisation pendant les heures de travail pour assurer le pointage et la gestion des chantiers.",
+        "sign_in": "Se connecter",
+        "forgot_pin": "Code PIN oublié ?",
+        "powered_by": "Une solution de",
+        "powered_by_smart": "Powered by Smart Timesheet"
+    },
+    "refresh-notifications": "refresh-notifications",
+    "Erreur": "error",
+    "quotesViewed": "quotesViewed",
+    "wo_id": "wo_id",
+    "sitemap": {
+        "error_loading": "Nu s-au putut incarca datele hartii.",
+        "status_geofence": "În afara perimetrului",
+        "status_gps_lost": "GPS Pierdut",
+        "status_active": "Activ pe șantier",
+        "status_break": "În pauză",
+        "code": "Cod:",
+        "check_in": "Check-in:",
+        "worked_hours": "Ore lucrate:",
+        "status": "Status:",
+        "reported_activities": "Activități raportate:",
+        "view_full_profile": "Vezi Profil Complet",
+        "current_month": "Luna Curenta",
+        "last_month": "Luna Trecuta",
+        "this_year": "Anul Curent",
+        "all_time": "Toate",
+        "no_gps_sites": "Niciun santier cu coordonate GPS",
+        "add_coords_hint": "Adauga latitudine/longitudine in Gestionare Santiere",
+        "county": "Judet",
+        "active_workers": "Muncitori activi",
+        "vehicles": "Vehicule",
+        "panels": "Panouri",
+        "power": "Putere",
+        "client": "Client",
+        "all": "Toate",
+        "no_gps": "fara GPS:",
+        "no_active_sites": "Niciun santier activ in aceasta perioada"
+    },
+    "mobile_agenda": {
+        "day": "Jour",
+        "week": "Semaine"
+    },
+    "mapview": {
+        "destination": "Destinație",
+        "base": "Baza:",
+        "previous": "Precedent:",
+        "fullscreen": "Mărește harta (Ecran complet)",
+        "sand": "Nisip",
+        "searching": "Se caută locația pe hartă...",
+        "geo_error": "Adresa nu a putut fi localizată. Adaugă GPS manual în Șantiere."
     }
 }

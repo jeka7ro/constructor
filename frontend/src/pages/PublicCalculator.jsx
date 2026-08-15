@@ -326,7 +326,7 @@ export default function PublicCalculator() {
                             {['fr', 'nl', 'en'].map(lang => (
                                 <button key={lang} onClick={() => handleLanguageChange(lang)}
                                     className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded transition-all ${i18n.language === lang ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:bg-slate-200'}`}>
-                                    <span className="text-xs sm:text-sm">{lang === 'fr' ? '🇫🇷' : lang === 'nl' ? '🇳🇱' : '🇬🇧'}</span>
+                                    <img src={`https://flagcdn.com/w20/${lang === 'en' ? 'gb' : lang}.png`} alt={lang} className="w-[18px] h-[13px] object-cover shadow-sm rounded-sm" />
                                     {lang.toUpperCase()}
                                 </button>
                             ))}

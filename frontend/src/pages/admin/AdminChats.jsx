@@ -50,12 +50,10 @@ export default function AdminChats() {
     };
 
     const getFlagEmoji = (lang) => {
-        if (!lang) return '🇷🇴';
+        if (!lang) return <img src="https://flagcdn.com/w20/ro.png" alt="ro" className="w-[18px] h-[13px] object-cover rounded-sm shadow-sm inline" />;
         const l = lang.toLowerCase();
-        if (l === 'nl') return '🇳🇱';
-        if (l === 'fr') return '🇫🇷';
-        if (l === 'en') return '🇬🇧';
-        return '🇷🇴';
+        const code = l === 'en' ? 'gb' : l;
+        return <img src={`https://flagcdn.com/w20/${code}.png`} alt={l} className="w-[18px] h-[13px] object-cover rounded-sm shadow-sm inline" />;
     };
 
     // Load list of chats
@@ -559,13 +557,15 @@ export default function AdminChats() {
                                                                         </span>
                                                                     ) : msg.sender === 'admin' ? (
                                                                         (tenant?.favicon_url || tenant?.logo_url) ? (
-                                                                            <img src={tenant.favicon_url ? getImageUrl(tenant.favicon_url) : getImageUrl(tenant.logo_url)} alt="Davide Chape" className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0 hidden md:block" />
+                                                                            <img src={tenant.favicon_url ? getImageUrl(tenant.favicon_url) : getImageUrl(tenant.logo_url)} alt={tenant?.name || "Company"} className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0 hidden md:block" />
                                                                         ) : (
-                                                                            <span className="w-5 h-5 rounded-full bg-white text-blue-600 hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">DC</span>
+                                                                            <span className="w-5 h-5 rounded-full bg-blue-600 text-white hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">
+                                                                                {(tenant?.name || 'D').charAt(0).toUpperCase()}
+                                                                            </span>
                                                                         )
                                                                     ) : null}
                                                                     <span className="truncate max-w-[150px] md:max-w-[200px]">
-                                                                        {msg.sender === 'client' ? activeWo.client_name : (msg.sender === 'admin' ? 'Echipă Davide Chape' : t('admin.system', 'Sistem'))}
+                                                                        {msg.sender === 'client' ? activeWo.client_name : (msg.sender === 'admin' ? (activeWo.client_language === 'nl' || activeWo.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape') : t('admin.system', 'Sistem'))}
                                                                     </span>
                                                                 </span>
                                                                 <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
@@ -795,9 +795,9 @@ export default function AdminChats() {
                                                 title="Limbă Traducere (la Client)"
                                             >
                                                 <option value="none">Fără trad.</option>
-                                                <option value="nl">🇳🇱 NL</option>
-                                                <option value="fr">🇫🇷 FR</option>
-                                                <option value="en">🇬🇧 EN</option>
+                                                <option value="nl">NL</option>
+                                                <option value="fr">FR</option>
+                                                <option value="en">EN</option>
                                             </select>
                                             {targetLang !== 'none' && (
                                                 <button

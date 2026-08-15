@@ -1,13 +1,39 @@
 import os
 import sys
-from dotenv import load_dotenv
+# Set up Django/FastAPI environment if needed
+sys.path.append(os.getcwd() + "/backend")
 
-# load env manually
-load_dotenv('backend/.env')
+from app.database import SessionLocal
+from app.models import Organization, WorkOrder
+from app.services.email_service import send_chat_notification_email
 
-from backend.app.services.email_service import send_planning_update_email
+db = SessionLocal()
+wo = db.query(WorkOrder).filter(WorkOrder.client_email.isnot(None)).order_by(WorkOrder.created_at.desc()).first()
 
-import httpx
-print("Testing email service...")
-result = send_planning_update_email('jeka7ro@gmail.com', 'Eugeniu Cazmal', 'fr', 'https://davidechape.pontaj.app', '29/07/2026')
-print(f"Result: {result}")
+if wo:
+    # We will simulate the html_content generation
+    client_name = wo.client_name or "Test Client"
+    client_language = wo.client_language or "fr"
+    chat_url = f"https://davidechape.pontaj.app/devisonline/{wo.token}"
+    org_id = wo.organization_id
+    
+    # We just run the function but mock the httpx.post to save to a file instead
+    import httpx
+    original_post = httpx.post
+    
+    def mock_post(*args, **kwargs):
+        html = kwargs.get('json', {}).get('htmlContent', '')
+        with open("frontend/public/email_preview.html", "w", encoding="utf-8") as f:
+            f.write(html)
+        print("HTML saved to frontend/public/email_preview.html")
+        class MockResponse:
+            def raise_for_status(self): pass
+        return MockResponse()
+        
+    httpx.post = mock_post
+    
+    send_chat_notification_email(wo.client_email, client_name, client_language, chat_url, org_id, wo.id)
+    
+    httpx.post = original_post
+else:
+    print("No work orders found with client_email.")

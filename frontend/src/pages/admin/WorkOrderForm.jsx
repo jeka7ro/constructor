@@ -681,12 +681,12 @@ export default function WorkOrderForm() {
                                                 <div>
                                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('work_order_form.language', 'Langue')}</label>
                                                     <select value={form.client_language} onChange={e => set('client_language', e.target.value)} className={SELECT}>
-                                                        <option value="ro">🇷🇴 RO</option>
-                                                        <option value="en">🇬🇧 EN</option>
-                                                        <option value="fr">🇫🇷 FR</option>
-                                                        <option value="de">🇩🇪 DE</option>
-                                                        <option value="nl">🇳🇱 NL</option>
-                                                        <option value="ru">🇷🇺 RU</option>
+                                                        <option value="ro">RO</option>
+                                                        <option value="en">EN</option>
+                                                        <option value="fr">FR</option>
+                                                        <option value="de">DE</option>
+                                                        <option value="nl">NL</option>
+                                                        <option value="ru">RU</option>
                                                     </select>
                                                 </div>
                                                 {selectedClient && (
@@ -713,12 +713,12 @@ export default function WorkOrderForm() {
                                                 <div>
                                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('work_order_form.language', 'Langue')}</label>
                                                     <select value={form.client_language} onChange={e => set('client_language', e.target.value)} className={SELECT}>
-                                                        <option value="ro">🇷🇴 RO</option>
-                                                        <option value="en">🇬🇧 EN</option>
-                                                        <option value="fr">🇫🇷 FR</option>
-                                                        <option value="de">🇩🇪 DE</option>
-                                                        <option value="nl">🇳🇱 NL</option>
-                                                        <option value="ru">🇷🇺 RU</option>
+                                                        <option value="ro">RO</option>
+                                                        <option value="en">EN</option>
+                                                        <option value="fr">FR</option>
+                                                        <option value="de">DE</option>
+                                                        <option value="nl">NL</option>
+                                                        <option value="ru">RU</option>
                                                     </select>
                                                 </div>
                                             </div>

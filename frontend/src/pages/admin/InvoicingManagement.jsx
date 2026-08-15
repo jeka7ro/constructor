@@ -934,11 +934,11 @@ export default function InvoicingManagement() {
                                         }}
                                         className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded focus:border-blue-500 outline-none"
                                     >
-                                        <option value="ro">🇷🇴 Roumain</option>
-                                        <option value="fr">🇫🇷 Français</option>
-                                        <option value="en">🇬🇧 Anglais</option>
-                                        <option value="de">🇩🇪 Allemand</option>
-                                        <option value="nl">🇳🇱 Néerlandais</option>
+                                        <option value="ro">Roumain</option>
+                                        <option value="fr">Français</option>
+                                        <option value="en">Anglais</option>
+                                        <option value="de">Allemand</option>
+                                        <option value="nl">Néerlandais</option>
                                     </select>
                                 </div>
 

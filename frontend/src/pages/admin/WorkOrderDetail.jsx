@@ -9,6 +9,7 @@ import {
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
     Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check
 } from 'lucide-react'
+import PdfThumbnail from '../../components/PdfThumbnail'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import ConfirmModal from '../../components/ConfirmModal'
 import api from '../../lib/api'
@@ -17,6 +18,7 @@ import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell
 } from 'recharts'
+import { useTenantStore } from '../../store/tenantStore';
 import { useTranslation } from 'react-i18next'
 import HourlyWeather from '../../components/HourlyWeather'
 import StreetViewPhotos from '../../components/StreetViewPhotos'
@@ -169,6 +171,7 @@ function NavButtons({ lat, lon, address }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
+    const { currentTenant: tenant } = useTenantStore();
     const { t, i18n } = useTranslation()
     const params = useParams()
     const id = orderId || params.id
@@ -245,7 +248,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         return () => { mounted = false }
     }, [wo?.start_date, wo?.assigned_team_id, wo?.client_name, wo?.is_quote])
     const [signatureConfirm, setSignatureConfirm] = useState(false)
+    const [previewAttachment, setPreviewAttachment] = useState(null)
     const [previewDocIndex, setPreviewDocIndex] = useState(null)
+    const [showEmailPreview, setShowEmailPreview] = useState(false)
+    const [emailPreviewContent, setEmailPreviewContent] = useState('')
     const [showCamera, setShowCamera] = useState(false)
     const [toast, setToast] = useState({ message: null, type: 'success' })
     // Calcul Edit Modal (Estimatif)
@@ -279,6 +285,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [messages, setMessages] = useState([])
     const [chatMessage, setChatMessage] = useState("")
     const [sendingMessage, setSendingMessage] = useState(false)
+    const [selectedFiles, setSelectedFiles] = useState([])
+    const [isUploadingFiles, setIsUploadingFiles] = useState(false)
+    const chatFileInputRef = useRef(null)
     const [targetLang, setTargetLang] = useState('nl')
     const [previewTranslation, setPreviewTranslation] = useState('')
     const [isTranslating, setIsTranslating] = useState(false)
@@ -504,6 +513,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
+    const getImageUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('http')) return url;
+        return `${API_BASE}${url.startsWith('/') ? url : '/' + url}`;
+    };
+
     const load = useCallback(async () => {
         setLoading(true)
         try {
@@ -574,12 +589,31 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     }
 
     const handleSendMessage = async () => {
-        if (!chatMessage.trim()) return;
+        if ((!chatMessage.trim() && selectedFiles.length === 0) || sendingMessage || isUploadingFiles) return;
         setSendingMessage(true);
+        setIsUploadingFiles(true);
+        let uploadedAttachments = []
+        try {
+            for (const file of selectedFiles) {
+                const formData = new FormData()
+                formData.append('file', file)
+                const res = await api.post(`/admin/work-orders/${id}/chat-attachment`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+                uploadedAttachments.push(res.data)
+            }
+        } catch (err) {
+            showToast("Eroare la încărcarea fișierelor.", "error");
+            setIsUploadingFiles(false);
+            setSendingMessage(false);
+            return;
+        }
+
         try {
             const payload = {
                 message: chatMessage,
-                target_lang: targetLang === 'none' ? null : targetLang
+                target_lang: targetLang === 'none' ? null : targetLang,
+                attachments: uploadedAttachments
             };
             if (previewTranslation.trim()) {
                 payload.translations = { [targetLang]: previewTranslation };
@@ -588,10 +622,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setMessages(prev => [...prev, res.data]);
             setChatMessage("");
             setPreviewTranslation("");
+            setSelectedFiles([]);
         } catch (err) {
             showToast("Eroare la trimiterea mesajului.", "error");
         } finally {
             setSendingMessage(false);
+            setIsUploadingFiles(false);
         }
     };
 
@@ -896,7 +932,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         if (prices?.extra_large !== undefined && prices?.extra_threshold !== undefined) {
             extraRate = surface > parseFloat(prices.extra_threshold) ? parseFloat(prices.extra_large) : parseFloat(prices.extra);
         } else {
-            extraRate = parseFloat(prices?.extra || 1.25);
+            extraRate = parseFloat(prices?.extra ?? prices?.extra_thickness_price_per_cm ?? 1.25);
         }
         const extra = extraThick * extraRate * surface;
         const foil  = flags?.has_foil  ? parseFloat(prices?.foil  || 1.2) * surface : 0;
@@ -1603,199 +1639,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
             {/* ── Main Grid ───────────────────────────────────────────────────── */}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                <div className="h-full">
-                    <Section className="h-full" icon={({ className }) => <TruckSVG color={wo.team_color || '#2563eb'} className={className} />} title={t('work_order_detail.planning.title', "Planificare, Echipaj & Traseu")}>
-                        <div className="flex flex-col md:flex-row gap-3">
-                            {/* Left: Schedule + Crew */}
-                            <div className="flex-shrink-0 md:w-44 space-y-2">
-                                <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.schedule', 'Orar Planificat')}</p>
-                                    <div className="flex items-baseline gap-1 text-xs">
-                                        <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(wo.start_date)}</span> {wo.start_time ? <span className="font-semibold text-slate-500"> {wo.start_time}</span> : ''}
-                                    </div>
-                                    <div className="mt-1.5 p-1.5 bg-slate-50 dark:bg-slate-800/50 rounded border border-slate-100 dark:border-slate-700/50">
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                                            <Navigation className="w-2.5 h-2.5" /> 
-                                            Ora Reală Sosire (GPS)
-                                        </p>
-                                        <div className="text-xs font-bold">
-                                            {loadingGpsArrival ? (
-                                                <span className="text-slate-400 italic">Se verifică GPS...</span>
-                                            ) : gpsArrival?.arrived ? (
-                                                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                                    {wo.start_date ? new Date(wo.start_date).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}, {gpsArrival.arrived}
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-400 italic">Nu există date GPS</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="border-t border-slate-100 dark:border-slate-700 pt-2">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.planning.crew', 'Echipaj')}</p>
-                                    <div className="space-y-1 text-xs">
-                                        <div>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase block">{t('work_order_detail.planning.manager', 'Responsabil')}</span>
-                                            <span className="font-semibold text-slate-800 dark:text-slate-200">{wo.assigned_team_name || '—'}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase block">{t('work_order_detail.planning.vehicle', 'Vehicul')}</span>
-                                            <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                                {wo.assigned_vehicle_plate ? `${wo.assigned_vehicle_plate}${wo.assigned_vehicle_name ? ' · ' + wo.assigned_vehicle_name : ''}` : wo.assigned_vehicle_name || '—'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {/* Divider */}
-                            <div className="w-px bg-slate-100 dark:bg-slate-700 hidden md:block flex-shrink-0"></div>
-                            <div className="h-px bg-slate-100 dark:bg-slate-700 md:hidden"></div>
-                            {/* Right: Route */}
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                                    <TruckSVG color={wo.team_color || '#2563eb'} className="w-3 h-3"/>
-                                    {t('work_order_detail.planning.route_hops', 'Traseu (Etape)')}
-                                </p>
-                                {(wo.route_segments && wo.route_segments.length > 0) ? (
-                                    <>
-                                        <div className="relative pl-5 space-y-1.5 before:absolute before:inset-y-2 before:left-[9px] before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
-                                            {wo.route_segments.map((seg, idx) => (
-                                                <div key={idx} className="relative">
-                                                    <div className="absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full bg-fuchsia-500 ring-2 ring-white dark:ring-slate-800 shadow-sm"></div>
-                                                    <div className="bg-slate-50 dark:bg-slate-700/40 rounded-lg px-2 py-1 border border-slate-100 dark:border-slate-700/50 flex items-center justify-between gap-1 min-w-0">
-                                                        <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-tight min-w-0 flex-1">
-                                                            <span className="block truncate">{seg.from}</span>
-                                                            <span className="text-slate-400">→ </span>
-                                                            <span className="block truncate">{seg.to}</span>
-                                                        </p>
-                                                        <span className="text-[9px] font-black text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-900/30 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">{seg.km} km</span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distance Totale (Aller-Retour)')}</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-slate-900 dark:text-white">{((wo.route_segments || []).reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)).toFixed(1)} km</span>
-                                                {wo.status !== 'completed' && wo.status !== 'cancelled' && (
-                                                    <button 
-                                                        onClick={handleRecalculateRoute}
-                                                        disabled={isRecalculatingRoute}
-                                                        title={t('work_order_detail.recalculate', 'Recalculer l\'itinéraire')}
-                                                        className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-blue-500 transition-colors ${isRecalculatingRoute ? 'opacity-50 animate-spin' : ''}`}
-                                                    >
-                                                        <RefreshCw className="w-3.5 h-3.5" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center py-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
-                                        <span className="text-xs text-slate-400 font-medium mb-2">{t('work_order_detail.planning.no_route', 'Aucun itinéraire enregistré')}</span>
-                                        {wo.status !== 'completed' && wo.status !== 'cancelled' && (
-                                            <button 
-                                                onClick={handleRecalculateRoute}
-                                                disabled={isRecalculatingRoute}
-                                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider hover:bg-blue-100 transition-colors ${isRecalculatingRoute ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            >
-                                                <RefreshCw className={`w-3 h-3 ${isRecalculatingRoute ? 'animate-spin' : ''}`} />
-                                                {t('work_order_detail.recalculate', 'Recalculer l\'itinéraire')}
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </Section>
-                </div>
-                
-                <div className="h-full">
-                    <Section className="h-full" icon={Building2} title={t('work_order_detail.project_info.title', "Détails Projet & Construction")}>
-                        <div className="flex flex-col gap-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.project_info.client_type', 'Type de Client')}</p>
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                                        {(wo.client_type === 'pf' || wo.client_type === 'fizica') ? t('quotes.pf', 'Particulier') : 
-                                         (wo.client_type === 'pj' || wo.client_type === 'juridica') ? t('quotes.pj', 'Entreprise') : '—'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.project_info.construction_type', 'Type de Construction')}</p>
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                                        {wo.work_type === 'new' ? t('quotes.construction_new', 'Nouvelle Construction') : 
-                                         wo.work_type === 'repair' ? t('quotes.construction_renovation', 'Rénovation') : '—'}
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4 mt-2">
-                                <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Date Approximative</p>
-                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                        {wo.approximate_date || '—'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">TVA / CUI (Entreprise)</p>
-                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                        {wo.client_cui || '—'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 mt-2">
-                                <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Langue Client</p>
-                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase">
-                                        {wo.client_language || 'FR'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Source (Calculateur)</p>
-                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase">
-                                        {wo.source_system || '—'}
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            {(wo.volumes && wo.volumes.length > 0) && (
-                                <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.project_info.materials', 'Matériaux Sélectionnés (Calcul)')}</p>
-                                    <div className="space-y-1.5">
-                                        {wo.volumes.map((v, i) => {
-                                            const options = [];
-                                            if (v.has_foil) options.push(t('materials.foil', 'Film'));
-                                            if (v.has_mesh) options.push(t('materials.mesh', 'Treillis métallique'));
-                                            if (v.has_duramint || v.has_fiber) options.push(t('materials.fiber', 'Fibre'));
-                                            if (v.has_sound_insulation) options.push(t('materials.sound_insulation', 'Isolation acoustique'));
-                                            if (v.has_floor_heating_add) options.push(t('materials.floor_heating_add', 'Additif pour chauffage'));
-                                            
-                                            if (options.length === 0) return null;
-                                            
-                                            return (
-                                                <div key={i} className="flex flex-wrap gap-2">
-                                                    {options.map((opt, j) => (
-                                                        <span key={j} className="inline-flex items-center bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                                                            ✓ {opt}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            );
-                                        })}
-                                        {wo.volumes.every(v => !v.has_foil && !v.has_mesh && !v.has_duramint && !v.has_fiber && !v.has_sound_insulation && !v.has_floor_heating_add) && (
-                                            <span className="text-xs text-slate-400 font-medium italic">{t('general.none', 'Aucun matériau supplémentaire')}</span>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </Section>
-                </div>
-            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch mb-5">
                 <div className="flex flex-col gap-5">
@@ -1808,9 +1651,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     >
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.id', 'ID Commande')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.quote_number', 'Numéro de Devis')}</p>
                                                     <div className="flex items-center gap-2 flex-wrap">
-                                                        <p className="text-sm font-black tracking-widest">{wo.id?.slice(0, 8).toUpperCase()}</p>
+                                                        <p className="text-sm font-black tracking-widest text-slate-800 dark:text-white">{wo.quote_number || wo.id?.slice(0, 8).toUpperCase()}</p>
                                                         {wo.source_system === 'we-r' || wo.source_system === 'calculator_public' ? (
                                                             <span className="text-[8px] font-bold uppercase tracking-wide text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">{t('source.we_r', 'WE-R')}</span>
                                                         ) : wo.source_system === 'devis_online' ? (
@@ -1883,6 +1726,78 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_phone || '—'}</p>
                                                 </div>
                                             </div>
+
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.project_info.client_type', 'Type de Client')}</p>
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                                                        {(wo.client_type === 'pf' || wo.client_type === 'fizica') ? t('quotes.pf', 'Particulier') : 
+                                                         (wo.client_type === 'pj' || wo.client_type === 'juridica') ? t('quotes.pj', 'Entreprise') : '—'}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.project_info.construction_type', 'Type de Construction')}</p>
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                                                        {wo.work_type === 'new' ? t('quotes.construction_new', 'Nouvelle Construction') : 
+                                                         wo.work_type === 'repair' ? t('quotes.construction_renovation', 'Rénovation') : '—'}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">TVA / CUI</p>
+                                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                                        {wo.client_cui || '—'}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Langue Client</p>
+                                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase">
+                                                        {wo.client_language || 'FR'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {(wo.volumes && wo.volumes.length > 0) && (
+                                                <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.project_info.materials', 'Détails de Surface & Matériaux')}</p>
+                                                    <div className="space-y-3">
+                                                        {wo.volumes.map((v, i) => {
+                                                            const options = [];
+                                                            if (v.has_foil) options.push(t('materials.foil', 'Film'));
+                                                            if (v.has_mesh) options.push(t('materials.mesh', 'Treillis métallique'));
+                                                            if (v.has_duramint || v.has_fiber) options.push(t('materials.fiber', 'Fibre'));
+                                                            if (v.has_sound_insulation) options.push(t('materials.sound_insulation', 'Isolation acoustique'));
+                                                            if (v.has_floor_heating_add) options.push(t('materials.floor_heating_add', 'Additif pour chauffage'));
+                                                            if (v.pur_aspiration) options.push(t('materials.pur_aspiration', 'Aspiration'));
+                                                            if (v.pur_niveller) options.push(t('materials.pur_niveller', 'Niveler'));
+                                                            if (v.pur_poncage) options.push(t('materials.pur_poncage', 'Ponçage'));
+                                                            if (v.pur_protection) options.push(t('materials.pur_protection', 'Protection'));
+                                                            
+                                                            return (
+                                                                <div key={i} className="flex flex-col gap-1.5 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+                                                                            {v.label || 'Surface'}
+                                                                        </span>
+                                                                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-600">
+                                                                            {v.quantity || 0} {v.unit || 'm²'} <span className="text-slate-300 dark:text-slate-600 mx-1">|</span> {v.thickness || 0} CM
+                                                                        </span>
+                                                                    </div>
+                                                                    {options.length > 0 && (
+                                                                        <div className="flex flex-wrap gap-1.5 mt-1">
+                                                                            {options.map((opt, j) => (
+                                                                                <span key={j} className="inline-flex items-center bg-blue-100/60 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider">
+                                                                                    ✓ {opt}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50 space-y-2">
                                                 <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Bénéficiaire')}</p>
                                                 {(wo.confirmed_at || wo.date_confirmed_at) ? (
@@ -1892,11 +1807,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
                                                                     <div className="flex items-center gap-2 mb-1">
                                                                         <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                                                                        <span className="font-bold text-amber-800 uppercase text-[10px]">Clientul a solicitat reprogramarea</span>
+                                                                        <span className="font-bold text-amber-800 uppercase text-[10px]">{t('work_order_detail.reschedule_requested', 'Le client a demandé une reprogrammation')}</span>
                                                                     </div>
                                                                     {wo.reschedule_requested_date && (
                                                                         <div className="text-xs font-bold text-amber-900 mb-1">
-                                                                            Data dorită: {new Date(wo.reschedule_requested_date).toLocaleDateString('ro-RO')}
+                                                                            {t('work_order_detail.requested_date', 'Date souhaitée :')} {new Date(wo.reschedule_requested_date).toLocaleDateString('fr-FR')}
                                                                         </div>
                                                                     )}
                                                                     {wo.reschedule_reason && (
@@ -1907,7 +1822,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                         className="mt-2 flex items-center justify-center gap-2 w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold uppercase transition-colors"
                                                                     >
                                                                         <MessageSquare className="w-4 h-4" />
-                                                                        Răspunde clientului
+                                                                        {t('work_order_detail.reply_to_client', 'Répondre au client')}
                                                                     </button>
                                                                 </div>
                                                             )}
@@ -2023,10 +1938,16 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                     {(wo?.client_name || '?').charAt(0).toUpperCase()}
                                                                 </span>
                                                             ) : msg.sender === 'admin' ? (
-                                                                <span className="w-5 h-5 rounded-full bg-white text-blue-600 hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">DC</span>
+                                                                (tenant?.favicon_url || tenant?.logo_url) ? (
+                                                                <img src={tenant.favicon_url ? getImageUrl(tenant.favicon_url) : getImageUrl(tenant.logo_url)} alt={tenant?.name || "Company"} className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0 hidden md:block" />
+                                                            ) : (
+                                                                <span className="w-5 h-5 rounded-full bg-blue-600 text-white hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">
+                                                                    {(tenant?.name || 'D').charAt(0).toUpperCase()}
+                                                                </span>
+                                                            )
                                                             ) : null}
                                                             <span className="truncate max-w-[150px] md:max-w-[200px]">
-                                                                {msg.sender === 'client' ? wo?.client_name : (msg.sender === 'admin' ? 'Echipă Davide Chape' : t('admin.system', 'Sistem'))}
+                                                                {msg.sender === 'client' ? wo?.client_name : (msg.sender === 'admin' ? (wo?.client_language === 'nl' || wo?.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape') : t('admin.system', 'Sistem'))}
                                                             </span>
                                                         </span>
                                                         <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
@@ -2037,6 +1958,57 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         {msg.message}
                                                     </div>
                                                     
+                                                            {msg.attachments && msg.attachments.length > 0 && (
+                                                                <div className="mb-2 flex flex-col gap-2">
+                                                                    {msg.attachments.map((att, idx) => {
+                                                                        const isPdf = att.type === 'pdf' || (att.url && att.url.toLowerCase().endsWith('.pdf'));
+                                                                        const isImage = att.type === 'image' || (att.url && att.url.match(/\.(jpeg|jpg|gif|png|webp)$/i));
+                                                                        
+                                                                        if (isImage || isPdf) {
+                                                                            return (
+                                                                                <button 
+                                                                                    type="button"
+                                                                                    key={idx} 
+                                                                                    onClick={() => setPreviewAttachment({ ...att, isPdf, isImage })}
+                                                                                    className={`flex flex-col text-left rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-blue-500 transition-all shadow-sm ${isImage || isPdf ? 'p-0 w-[200px] sm:w-[240px] bg-white dark:bg-slate-800' : 'p-2.5 bg-white dark:bg-slate-800'}`}
+                                                                                >
+                                                                                    {isImage ? (
+                                                                                        <img src={getImageUrl(att.url)} alt="attachment" className="w-full object-cover" />
+                                                                                    ) : isPdf ? (
+                                                                                        <div className="flex flex-col w-full h-full">
+                                                                                            <div className="w-full h-[140px] bg-white relative">
+                                                                                                <PdfThumbnail url={getImageUrl(att.url)} className="w-full h-full" />
+                                                                                            </div>
+                                                                                            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 flex items-center gap-3 border-t border-slate-200 dark:border-slate-700/50">
+                                                                                                <div className="bg-red-500 text-white rounded w-8 h-9 flex items-center justify-center flex-shrink-0 shadow-sm relative overflow-hidden">
+                                                                                                    <span className="text-[10px] font-bold mt-1.5">PDF</span>
+                                                                                                    <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-600 rounded-bl shadow-sm"></div>
+                                                                                                </div>
+                                                                                                <div className="flex flex-col flex-1 min-w-0">
+                                                                                                    <span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{att.name || 'Document'}</span>
+                                                                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Document PDF</span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className="flex items-center gap-2 p-2.5">
+                                                                                            <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                                                                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{att.name || 'Document'}</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </button>
+                                                                            )
+                                                                        }
+                                                                        return (
+                                                                            <a key={idx} href={getImageUrl(att.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm w-fit">
+                                                                                <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                                                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{att.name || 'File'}</span>
+                                                                            </a>
+                                                                        )
+                                                                    })}
+                                                                </div>
+                                                            )}
+
                                                     {/* Translation Display */}
                                                     {msg.translations && Object.keys(msg.translations).length > 0 && (
                                                         (() => {
@@ -2152,7 +2124,32 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 }} 
                                 className="max-w-3xl mx-auto flex flex-col gap-2"
                             >
-                                <div className="flex gap-2 w-full">
+                                {selectedFiles.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        {selectedFiles.map((f, i) => (
+                                            <div key={i} className="flex items-center gap-2 bg-white dark:bg-slate-800 px-2 py-1 rounded shadow-sm text-xs border border-slate-200 dark:border-slate-700">
+                                                <span className="truncate max-w-[150px] text-slate-700 dark:text-slate-300">{f.name}</span>
+                                                <button type="button" onClick={() => setSelectedFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full p-0.5">
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="flex gap-2 w-full items-center">
+                                    <input
+                                        type="file"
+                                        multiple
+                                        className="hidden"
+                                        ref={chatFileInputRef}
+                                        accept="image/*,application/pdf"
+                                        onChange={e => {
+                                            if (e.target.files) {
+                                                setSelectedFiles(prev => [...prev, ...Array.from(e.target.files)])
+                                            }
+                                        }}
+                                    />
                                     <input
                                         id="chat-input-field"
                                         type="text"
@@ -2169,9 +2166,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         title="Limbă Traducere (la Client)"
                                     >
                                         <option value="none">Fără trad.</option>
-                                        <option value="nl">🇳🇱 NL</option>
-                                        <option value="fr">🇫🇷 FR</option>
-                                        <option value="en">🇬🇧 EN</option>
+                                        <option value="nl">NL</option>
+                                        <option value="fr">FR</option>
+                                        <option value="en">EN</option>
                                     </select>
                                     {targetLang !== 'none' && (
                                         <button
@@ -2188,12 +2185,35 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             )}
                                         </button>
                                     )}
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={() => chatFileInputRef.current?.click()}
+                                        className="p-2 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                        title="Adaugă atașament"
+                                    >
+                                        <Paperclip className="w-4 h-4" />
+                                    </button>
+                                    
+                                    <button
+                                        type="button"
+                                        title="Inserează Link Devis"
+                                        onClick={() => setChatMessage(prev => prev + (prev ? '\n' : '') + `Consultați devizul aici: https://davidechape.pontaj.app/public/proforma/${wo?.token}`)}
+                                        className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-600 rounded-xl px-3 py-2 flex items-center justify-center transition-colors shadow-sm"
+                                    >
+                                        <Link className="w-4 h-4" />
+                                    </button>
+
                                     <button
                                         type="submit"
-                                        disabled={sendingMessage || (!chatMessage.trim() && !previewTranslation.trim())}
+                                        disabled={(!chatMessage.trim() && selectedFiles.length === 0) || sendingMessage || isUploadingFiles}
                                         className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl px-4 py-2 flex items-center justify-center transition-colors shadow-sm"
                                     >
-                                        <Send className="w-4 h-4" />
+                                        {sendingMessage || isUploadingFiles ? (
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        ) : (
+                                            <Send className="w-4 h-4" />
+                                        )}
                                     </button>
                                 </div>
                                 {previewTranslation !== '' && targetLang !== 'none' && (
@@ -2217,146 +2237,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         </div>
                     </Section>
 
-                    {(() => {
-                        const hasConsumed = (wo.materials_consumed || []).filter(m => m.name).length > 0 || wo.actual_surface_m2 || wo.actual_sand_quantity;
-                        const sectionTitle = t('work_order_detail.team_leader_details.title', 'Équipe Davide (Confirmations & Quantités)');
-                        
-                        let selectedMats = [];
-                        if (wo.volumes && wo.volumes.length > 0) {
-                            wo.volumes.forEach(v => {
-                                if (v.has_foil) selectedMats.push(t('materials.foil', 'Film'));
-                                if (v.has_mesh) selectedMats.push(t('materials.mesh', 'Treillis métallique'));
-                                if (v.has_duramint || v.has_fiber) selectedMats.push(t('materials.fiber', 'Fibre'));
-                                if (v.has_sound_insulation) selectedMats.push(t('materials.sound_insulation', 'Isolation acoustique'));
-                                if (v.has_floor_heating_add) selectedMats.push(t('materials.floor_heating_add', 'Additif pour chauffage'));
-                            });
-                        }
-                        selectedMats = [...new Set(selectedMats)];
-                        
-                        return (
-                            <Section className="flex-1" icon={Wrench} title={sectionTitle} contentClassName="!p-3">
-                                            <div className="mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
-                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Chef Équipe')}</p>
-                                                {wo.team_leader_confirmed_at ? (
-                                                    <div className="flex flex-col gap-1">
-                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
-                                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">{t('work_order_detail.status.confirmed', 'Confirmé')}</span>
-                                                        </div>
-                                                        <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold pl-5">{fmtFull(wo.team_leader_confirmed_at)}</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
-                                                        <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
-                                                        <span className="text-xs font-semibold text-slate-400">{t('work_order_detail.status.awaiting_confirmation', 'En attente de confirmation')}</span>
-                                                    </div>
-                                                )}
-                                                {wo.team_leader_confirmation_note && (
-                                                    <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-xl mt-2">
-                                                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider mb-1">{t('common.note', 'Note')}</p>
-                                                        <p className="text-xs text-slate-700 dark:text-slate-300">{wo.team_leader_confirmation_note}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex flex-col gap-3">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center flex-wrap gap-2">
-                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planifié / Estimé')}</p>
-                                                        </div>
-                                                        {(wo.volumes || []).length > 0 && (
-                                                            <>
-                                                                <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
-                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.works_volumes', 'Travaux / Volumes')}</p>
-                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                    {wo.volumes.map((v, i) => (
-                                                                        <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-                                                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{translateDynamicLabel(v.label)}</span>
-                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{v.quantity} {v.unit}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                        {(wo.materials?.length > 0 || selectedMats.length > 0 || autoSandKg > 0) && (
-                                                            <>
-                                                                <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
-                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.required', 'Matériaux Requis')}</p>
-                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                    {(wo.materials || []).map((m, i) => (
-                                                                        <div key={`m-${i}`} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-                                                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{translateDynamicLabel(m.name)}</span>
-                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{m.quantity} {m.unit}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                    {selectedMats.map((mat, i) => (
-                                                                        <div key={`sel-${i}`} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-                                                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{mat}</span>
-                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">✓</span>
-                                                                        </div>
-                                                                    ))}
-                                                                    {autoSandKg > 0 && (
-                                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30 rounded-lg">
-                                                                            <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">{t('work_order_detail.kpi.sand_est', 'Sable (estimé)')}</span>
-                                                                            <span className="text-[11px] font-bold text-amber-800 dark:text-amber-200">{(autoSandKg/1000).toFixed(1)} t</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                            {!(wo.volumes?.length) && !(wo.materials?.length) && selectedMats.length === 0 && autoSandKg === 0 && (
-                                                <p className="text-sm text-slate-400 text-center py-4">{t('work_order_detail.materials.no_quantity', 'Aucune quantité enregistrée')}</p>
-                                            )}
-                                        
-                                                </div>
-                                                {hasConsumed ? (
-                                                    <>
-                                                        <div className="w-full h-px bg-slate-100 dark:bg-slate-700/50 my-1"></div>
-                                                        <div className="flex items-center flex-wrap gap-2 pt-1">
-                                                            <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'RÉELLEMENT CONSOMMÉ')}</p>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 flex-wrap">
-                                                                {wo.actual_surface_m2 && (
-                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_surface', 'Surface confirmée')}</span>
-                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{wo.actual_surface_m2} m²</span>
-                                                                    </div>
-                                                                )}
-                                                                
-                                                                {wo.actual_thickness_cm && (
-                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_thickness', 'Épaisseur confirmée')}</span>
-                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{(Math.round(parseFloat(wo.actual_thickness_cm) * 2) / 2).toFixed(1)} cm</span>
-                                                                    </div>
-                                                                )}
-                                                                
-                                                                {wo.actual_sand_quantity && (
-                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_sand', 'Sable')}</span>
-                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{wo.actual_sand_quantity} kg</span>
-                                                                    </div>
-                                                                )}
-
-                                                                {(wo.materials_consumed || []).filter(m => m.name).map((m, i) => (
-                                                                    <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{m.name} {m.note && `(${m.note})`}</span>
-                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{m.quantity} {m.unit}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="flex-1 hidden xl:block"></div>
-                                                )}
-                                            </div>
-                                        </Section>
-                        );
-                    })()}
                 </div>
             </div>
 
@@ -2590,7 +2470,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <span className="text-right tabular-nums">- <b>{estimCalc.discount.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
-                                    {estimCalc.actualDistKm > 0 && (
+                                    {estimCalc.truck_cost > 0 && (
                                         <div className={`flex justify-between font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 ${estimCalc.truck_cost > 0 ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}`}>
                                             <span className="font-medium">{t('work_order_detail.invoicing.transport', 'Transport')} ({Math.round(estimCalc.actualDistKm)} km)</span>
                                             <span className="text-right tabular-nums">{estimCalc.truck_cost > 0 ? `+ ` : ''}<b>{estimCalc.truck_cost.toFixed(2)}&nbsp;EUR</b></span>
@@ -2720,7 +2600,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         )}
                     </Section>
                 </div>
-
                 {/* ─── Facturare ──────────────────────────────────────────── */}
                 <div className="flex flex-col h-full">
                     <Section icon={FileText} title={t('work_order_detail.invoicing.title', 'Facturation')} className="h-full">
@@ -2746,6 +2625,24 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                 </div>
                             {/* Badge FACTURAT / NEFACTURAT */}
+                            
+                            {/* Buton Previzualizare Email */}
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const res = await api.get(`/admin/work-orders/${id}/email-preview`);
+                                        setEmailPreviewContent(res.data.html);
+                                        setShowEmailPreview(true);
+                                    } catch (err) {
+                                        alert(t('work_order_detail.email_err', 'Eroare la previzualizarea emailului.'));
+                                    }
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full text-[10px] sm:text-xs uppercase tracking-wider shadow-sm transition-colors shrink-0"
+                            >
+                                <Mail className="w-3.5 h-3.5" />
+                                {t('work_order_detail.btn_preview_email', 'Trimite Email')}
+                            </button>
+
                             <div className="ml-auto">
                                 {wo.is_invoiced ? (
                                     <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
@@ -2763,7 +2660,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                         {/* Preview iframe cu click-to-fullpage */}
                         <div
-                                className="relative w-full h-[500px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer group"
+                                className="relative w-full h-[700px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer group"
                                 onClick={() => setDocDrawerState({ url: activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice` : `${window.location.origin}/admin/quotes/${wo.id}/pdf`, type: activeDocTab })}
                             >
                                 {/* Overlay click hint */}
@@ -2773,9 +2670,16 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     </span>
                                 </div>
                                 <iframe
-                                    src={activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice` : `${window.location.origin}/admin/quotes/${wo.id}/pdf`}
+                                    src={activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice#bottom` : `${window.location.origin}/admin/quotes/${wo.id}/pdf#bottom`}
                                     className="w-full h-full border-none pointer-events-none"
                                     title={activeDocTab === 'facture' ? 'Facture PDF' : 'Devis PDF'}
+                                    onLoad={(e) => {
+                                        try {
+                                            const doc = e.target.contentWindow.document;
+                                            const scrollHeight = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
+                                            e.target.contentWindow.scrollTo(0, scrollHeight);
+                                        } catch(err) {}
+                                    }}
                                 />
                             </div>
 
@@ -2793,8 +2697,262 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             )}
                     </Section>
                 </div>
+            </div>
 
+
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch mb-5">
+                <div className="h-full">
+                    <Section className="h-full" icon={({ className }) => <TruckSVG color={wo.team_color || '#2563eb'} className={className} />} title={t('work_order_detail.planning.title', "Planificare, Echipaj & Traseu")}>
+                        <div className="flex flex-col md:flex-row gap-3">
+                            {/* Left: Schedule + Crew */}
+                            <div className="flex-shrink-0 md:w-44 space-y-2">
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.schedule', 'Orar Planificat')}</p>
+                                    <div className="flex items-baseline gap-1 text-xs">
+                                        <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(wo.start_date)}</span> {wo.start_time ? <span className="font-semibold text-slate-500"> {wo.start_time}</span> : ''}
+                                    </div>
+                                    <div className="mt-1.5 p-1.5 bg-slate-50 dark:bg-slate-800/50 rounded border border-slate-100 dark:border-slate-700/50">
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                                            <Navigation className="w-2.5 h-2.5" /> 
+                                            Ora Reală Sosire (GPS)
+                                        </p>
+                                        <div className="text-xs font-bold">
+                                            {loadingGpsArrival ? (
+                                                <span className="text-slate-400 italic">Se verifică GPS...</span>
+                                            ) : gpsArrival?.arrived ? (
+                                                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                                    {wo.start_date ? new Date(wo.start_date).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}, {gpsArrival.arrived}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-400 italic">Nu există date GPS</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="border-t border-slate-100 dark:border-slate-700 pt-2">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.planning.crew', 'Echipaj')}</p>
+                                    <div className="space-y-1 text-xs">
+                                        <div>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase block">{t('work_order_detail.planning.manager', 'Responsabil')}</span>
+                                            <span className="font-semibold text-slate-800 dark:text-slate-200">{wo.assigned_team_name || '—'}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase block">{t('work_order_detail.planning.vehicle', 'Vehicul')}</span>
+                                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                                {wo.assigned_vehicle_plate ? `${wo.assigned_vehicle_plate}${wo.assigned_vehicle_name ? ' · ' + wo.assigned_vehicle_name : ''}` : wo.assigned_vehicle_name || '—'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Divider */}
+                            <div className="w-px bg-slate-100 dark:bg-slate-700 hidden md:block flex-shrink-0"></div>
+                            <div className="h-px bg-slate-100 dark:bg-slate-700 md:hidden"></div>
+                            {/* Right: Route */}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    <TruckSVG color={wo.team_color || '#2563eb'} className="w-3 h-3"/>
+                                    {t('work_order_detail.planning.route_hops', 'Traseu (Etape)')}
+                                </p>
+                                {(wo.route_segments && wo.route_segments.length > 0) ? (
+                                    <>
+                                        <div className="relative pl-5 space-y-1.5 before:absolute before:inset-y-2 before:left-[9px] before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+                                            {wo.route_segments.map((seg, idx) => (
+                                                <div key={idx} className="relative">
+                                                    <div className="absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full bg-fuchsia-500 ring-2 ring-white dark:ring-slate-800 shadow-sm"></div>
+                                                    <div className="bg-slate-50 dark:bg-slate-700/40 rounded-lg px-2 py-1 border border-slate-100 dark:border-slate-700/50 flex items-center justify-between gap-1 min-w-0">
+                                                        <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-tight min-w-0 flex-1">
+                                                            <span className="block truncate">{seg.from}</span>
+                                                            <span className="text-slate-400">→ </span>
+                                                            <span className="block truncate">{seg.to}</span>
+                                                        </p>
+                                                        <span className="text-[9px] font-black text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-900/30 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">{seg.km} km</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distance Totale (Aller-Retour)')}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-black text-slate-900 dark:text-white">{((wo.route_segments || []).reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)).toFixed(1)} km</span>
+                                                {wo.status !== 'completed' && wo.status !== 'cancelled' && (
+                                                    <button 
+                                                        onClick={handleRecalculateRoute}
+                                                        disabled={isRecalculatingRoute}
+                                                        title={t('work_order_detail.recalculate', 'Recalculer l\'itinéraire')}
+                                                        className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-blue-500 transition-colors ${isRecalculatingRoute ? 'opacity-50 animate-spin' : ''}`}
+                                                    >
+                                                        <RefreshCw className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
+                                        <span className="text-xs text-slate-400 font-medium mb-2">{t('work_order_detail.planning.no_route', 'Aucun itinéraire enregistré')}</span>
+                                        {wo.status !== 'completed' && wo.status !== 'cancelled' && (
+                                            <button 
+                                                onClick={handleRecalculateRoute}
+                                                disabled={isRecalculatingRoute}
+                                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider hover:bg-blue-100 transition-colors ${isRecalculatingRoute ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                <RefreshCw className={`w-3 h-3 ${isRecalculatingRoute ? 'animate-spin' : ''}`} />
+                                                {t('work_order_detail.recalculate', 'Recalculer l\'itinéraire')}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Section>
                 </div>
+                <div className="h-full flex flex-col">
+                    {(() => {
+                        const hasConsumed = (wo.materials_consumed || []).filter(m => m.name).length > 0 || wo.actual_surface_m2 || wo.actual_sand_quantity;
+                        const sectionTitle = t('work_order_detail.team_leader_details.title', 'Équipe Davide (Confirmations & Quantités)');
+                        
+                        let selectedMats = [];
+                        if (wo.volumes && wo.volumes.length > 0) {
+                            wo.volumes.forEach(v => {
+                                if (v.has_foil) selectedMats.push(t('materials.foil', 'Film'));
+                                if (v.has_mesh) selectedMats.push(t('materials.mesh', 'Treillis métallique'));
+                                if (v.has_duramint || v.has_fiber) selectedMats.push(t('materials.fiber', 'Fibre'));
+                                if (v.has_sound_insulation) selectedMats.push(t('materials.sound_insulation', 'Isolation acoustique'));
+                                if (v.has_floor_heating_add) selectedMats.push(t('materials.floor_heating_add', 'Additif pour chauffage'));
+                            });
+                        }
+                        selectedMats = [...new Set(selectedMats)];
+                        
+                        return (
+                            <Section className="flex-1" icon={Wrench} title={sectionTitle} contentClassName="!p-3">
+                                            <div className="mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Chef Équipe')}</p>
+                                                {wo.team_leader_confirmed_at ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
+                                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">{t('work_order_detail.status.confirmed', 'Confirmé')}</span>
+                                                        </div>
+                                                        <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold pl-5">{fmtFull(wo.team_leader_confirmed_at)}</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
+                                                        <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
+                                                        <span className="text-xs font-semibold text-slate-400">{t('work_order_detail.status.awaiting_confirmation', 'En attente de confirmation')}</span>
+                                                    </div>
+                                                )}
+                                                {wo.team_leader_confirmation_note && (
+                                                    <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-xl mt-2">
+                                                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider mb-1">{t('common.note', 'Note')}</p>
+                                                        <p className="text-xs text-slate-700 dark:text-slate-300">{wo.team_leader_confirmation_note}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col gap-3">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center flex-wrap gap-2">
+                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planifié / Estimé')}</p>
+                                                        </div>
+                                                        {(wo.volumes || []).length > 0 && (
+                                                            <>
+                                                                <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
+                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.works_volumes', 'Travaux / Volumes')}</p>
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    {wo.volumes.map((v, i) => (
+                                                                        <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{translateDynamicLabel(v.label)}</span>
+                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{v.quantity} {v.unit}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                        {(wo.materials?.length > 0 || selectedMats.length > 0 || autoSandKg > 0) && (
+                                                            <>
+                                                                <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
+                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.required', 'Matériaux Requis')}</p>
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    {(wo.materials || []).map((m, i) => (
+                                                                        <div key={`m-${i}`} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{translateDynamicLabel(m.name)}</span>
+                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{m.quantity} {m.unit}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {selectedMats.map((mat, i) => (
+                                                                        <div key={`sel-${i}`} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{mat}</span>
+                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">✓</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {autoSandKg > 0 && (
+                                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">{t('work_order_detail.kpi.sand_est', 'Sable (estimé)')}</span>
+                                                                            <span className="text-[11px] font-bold text-amber-800 dark:text-amber-200">{(autoSandKg/1000).toFixed(1)} t</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                            {!(wo.volumes?.length) && !(wo.materials?.length) && selectedMats.length === 0 && autoSandKg === 0 && (
+                                                <p className="text-sm text-slate-400 text-center py-4">{t('work_order_detail.materials.no_quantity', 'Aucune quantité enregistrée')}</p>
+                                            )}
+                                        
+                                                </div>
+                                                {hasConsumed ? (
+                                                    <>
+                                                        <div className="w-full h-px bg-slate-100 dark:bg-slate-700/50 my-1"></div>
+                                                        <div className="flex items-center flex-wrap gap-2 pt-1">
+                                                            <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'RÉELLEMENT CONSOMMÉ')}</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                {wo.actual_surface_m2 && (
+                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_surface', 'Surface confirmée')}</span>
+                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{wo.actual_surface_m2} m²</span>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {wo.actual_thickness_cm && (
+                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_thickness', 'Épaisseur confirmée')}</span>
+                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{(Math.round(parseFloat(wo.actual_thickness_cm) * 2) / 2).toFixed(1)} cm</span>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {wo.actual_sand_quantity && (
+                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_sand', 'Sable')}</span>
+                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{wo.actual_sand_quantity} kg</span>
+                                                                    </div>
+                                                                )}
+
+                                                                {(wo.materials_consumed || []).filter(m => m.name).map((m, i) => (
+                                                                    <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{m.name} {m.note && `(${m.note})`}</span>
+                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{m.quantity} {m.unit}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex-1 hidden xl:block"></div>
+                                                )}
+                                            </div>
+                                        </Section>
+                        );
+                    })()}
+                </div>
+            </div>
+
 
 
 
@@ -3694,8 +3852,111 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>,
                 document.body
             )}
+
+
+            
+            {/* Email Preview Modal */}
+            {showEmailPreview && createPortal(
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-8">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowEmailPreview(false)}></div>
+                    <div className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Mail className="w-5 h-5 text-blue-500" />
+                                Email Preview
+                            </h3>
+                            <button onClick={() => setShowEmailPreview(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-auto p-6 bg-white" dangerouslySetInnerHTML={{ __html: emailPreviewContent }}></div>
+                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3">
+                            <button onClick={() => setShowEmailPreview(false)} className="px-4 py-2 text-sm font-bold text-slate-600 hover:text-slate-900">
+                                Anulează
+                            </button>
+                            <button onClick={async () => {
+                                try {
+                                    await api.post(`/admin/work-orders/${id}/send-email`, { proforma_url: `https://davidechape.pontaj.app/public/proforma/${wo.token}` });
+                                    setShowEmailPreview(false);
+                                    alert(t('work_order_detail.email_sent', 'Email trimis cu succes!'));
+                                } catch (err) {
+                                    alert(t('work_order_detail.email_err', 'Eroare la trimiterea emailului.'));
+                                }
+                            }} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm">
+                                Trimite Email
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Attachment Preview Modal */}
+            {previewAttachment && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setPreviewAttachment(null)}></div>
+                    <div className="relative w-full max-w-5xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                        
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+                            <div className="flex items-center gap-3 truncate pr-4">
+                                <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                                <h3 className="font-semibold text-slate-800 dark:text-white truncate">
+                                    {previewAttachment.name || 'Previzualizare Fișier'}
+                                </h3>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                {!previewAttachment.isInternalUrl && (
+                                    <a 
+                                        href={getImageUrl(previewAttachment.url)} 
+                                        download 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition-colors flex items-center gap-2 font-medium text-sm"
+                                        title="Descarcă Fișier"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Descarcă</span>
+                                    </a>
+                                )}
+                                <button
+                                    onClick={() => setPreviewAttachment(null)}
+                                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-100 dark:bg-black/50 p-4">
+                            {previewAttachment.isImage ? (
+                                <img 
+                                    src={getImageUrl(previewAttachment.url)} 
+                                    alt={previewAttachment.name} 
+                                    className="max-w-full max-h-[70vh] object-contain rounded shadow-sm"
+                                />
+                            ) : previewAttachment.isPdf ? (
+                                <iframe
+                                    src={previewAttachment.isInternalUrl ? previewAttachment.url : getImageUrl(previewAttachment.url)}
+                                    title="PDF Preview"
+                                    className="w-full h-[70vh] rounded shadow-sm bg-white"
+                                />
+                            ) : (
+                                <div className="text-center p-8 text-slate-500">
+                                    Format nesuportat pentru previzualizare directă.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
         </div>
-    )
+    );
+    
     if (isEmbedded) {
         return createPortal(
             <div className="fixed inset-0 z-[99999] bg-slate-50 dark:bg-slate-950 overflow-y-auto w-full h-full">
