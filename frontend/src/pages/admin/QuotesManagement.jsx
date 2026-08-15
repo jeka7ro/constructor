@@ -777,10 +777,10 @@ export default function QuotesManagement() {
                             >
                                 {row.client_name || '-'}
                             </span>
-                            {row.approximate_date && (
+                            {(row.start_date || row.approximate_date) && (
                                 <>
                                     <span className="text-slate-300 shrink-0">•</span>
-                                    <DateScheduleTooltip date={row.approximate_date} i18n={i18n} navigate={navigate} />
+                                    <DateScheduleTooltip date={row.start_date || row.approximate_date} i18n={i18n} navigate={navigate} />
                                 </>
                             )}
                         </div>
@@ -804,9 +804,9 @@ export default function QuotesManagement() {
             className: 'w-[190px]',
             render: (row) => {
                 let displayDate = '';
-                if (row.approximate_date) {
+                if (row.start_date || row.approximate_date) {
                     try {
-                        const d = new Date(row.approximate_date)
+                        const d = new Date(row.start_date || row.approximate_date)
                         if (!isNaN(d.getTime())) {
                             displayDate = d.toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : 'en-GB')
                         }
