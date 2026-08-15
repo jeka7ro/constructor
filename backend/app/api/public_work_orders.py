@@ -387,7 +387,8 @@ def confirm_work_order(
             import os
             from app.services.email_service import send_order_confirmation_email
             frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
-            signing_url = f"{frontend_url}/public/proforma/{wo.token}"
+            client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
+            signing_url = f"{frontend_url}/public/proforma/{wo.token}?lang={client_lang}"
             date_str = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
             if wo.start_time:
                 date_str += f" ({wo.start_time})"

@@ -1355,7 +1355,8 @@ def update_work_order(
             from app.services.email_service import send_planning_update_email
             from app.services.whatsapp_service import send_planning_update_whatsapp
             
-            proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+            client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
+            proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}?lang={client_lang}"
             formatted_date = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
             if wo.start_time:
                 formatted_date += f" ({wo.start_time})"
@@ -2851,8 +2852,8 @@ def post_work_order_message(
             
             if not last_admin_msg or (datetime.utcnow() - last_admin_msg.created_at) > timedelta(minutes=5):
                 frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
-                chat_url = f"{frontend_url}/public/proforma/{wo.token}"
                 client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
+                chat_url = f"{frontend_url}/public/proforma/{wo.token}?lang={client_lang}"
                 
                 send_chat_notification_email(
                     to_email=wo.client_email,
@@ -3299,7 +3300,8 @@ def preview_work_order_email(id: str, db: Session = Depends(get_db)):
 
     client_language = str(wo.client_language).lower().split('-')[0].strip() if wo.client_language else 'fr'
     client_name = client.name
-    proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+    client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
+    proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}?lang={client_lang}"
     
     if client_language == "nl":
         greeting = f"Beste {client_name}"
