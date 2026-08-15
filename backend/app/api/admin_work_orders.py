@@ -1370,42 +1370,35 @@ def update_work_order(
                     send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
                 except Exception as e:
                     print(f"Failed to send planning update whatsapp: {e}")
+            
+            # Adauga un mesaj in chat
+            try:
+                from app.models import WorkOrderMessage
+                chat_fr = f"✅ L'équipe Davide Chape vous a programmé pour le {formatted_date}."
+                chat_nl = f"✅ Het Davide Chape team heeft u ingepland op {formatted_date}."
+                chat_en = f"✅ The Davide Chape team has scheduled you for {formatted_date}."
+                chat_ro = f"✅ Echipa Davide Chape v-a programat pentru {formatted_date}."
+                
+                auto_msg = WorkOrderMessage(
+                    work_order_id=wo.id,
+                    sender="system",
+                    message=chat_fr,
+                    translations={
+                        "fr": chat_fr,
+                        "nl": chat_nl,
+                        "en": chat_en,
+                        "ro": chat_ro
+                    }
+                )
+                db.add(auto_msg)
+                db.commit()
+            except Exception as e:
+                print(f"Failed to add system message to chat: {e}")
         else:
             print(f"Skipped planning notification for WO {wo.id} because it lacks a token")
     else:
-        # Check if discount was modified from admin modal
-        if discount_changed and wo.client_email:
-            if getattr(wo, 'token', None):
-                from app.services.email_service import send_quote_update_email
-                proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
-                try:
-                    send_quote_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, discount_pct=new_discount)
-                    
-                    # Salvare mesaj automat în Chat (cu traduceri pentru frontend)
-                    chat_fr = f"Bonjour, l'équipe Davide Chape vous a accordé une remise supplémentaire de {new_discount}% sur votre devis. Veuillez vérifier l'offre actualisée."
-                    chat_nl = f"Hallo, het Davide Chape team heeft u een extra korting van {new_discount}% toegekend op uw offerte. Controleer de bijgewerkte offerte."
-                    chat_en = f"Hello, the Davide Chape team has granted you an additional discount of {new_discount}% on your quote. Please check the updated offer."
-                    
-                    auto_msg = WorkOrderMessage(
-                        work_order_id=wo.id,
-                        sender="admin",
-                        message=chat_fr,
-                        translations={
-                            "fr": chat_fr,
-                            "nl": chat_nl,
-                            "en": chat_en
-                        },
-                        is_read_by_admin=True
-                    )
-                    db.add(auto_msg)
-                    db.flush()
-                except Exception as e:
-                    print(f"Failed to send quote update email or chat: {e}")
-            else:
-                print(f"Skipped discount notification for WO {wo.id} because it lacks a token")
-
-        # Removed backward compatibility for old automatic emails
-        # to ensure the admin has full control via the frontend explicit `send_notification` payload flag.
+        # Discount changed? Do NOT auto-notify. Frontend will ask admin if they want to notify.
+        pass
     
     # ── Invalidare cache logistic — NUMAI dacă s-a schimbat echipa sau adresa ──
     # Nu recalculăm la fiecare update (costuri API Google!)
@@ -2056,6 +2049,30 @@ async def approve_quote(
                 send_planning_update_email(client_email, client_name, lang, signing_url, date_str)
             if client_phone:
                 send_planning_update_whatsapp(client_phone, client_name, lang, signing_url, date_str)
+            
+            # Adauga mesaj in chat
+            try:
+                from app.models import WorkOrderMessage
+                chat_fr = f"✅ L'équipe Davide Chape vous a programmé pour le {date_str}."
+                chat_nl = f"✅ Het Davide Chape team heeft u ingepland op {date_str}."
+                chat_en = f"✅ The Davide Chape team has scheduled you for {date_str}."
+                chat_ro = f"✅ Echipa Davide Chape v-a programat pentru {date_str}."
+                
+                auto_msg = WorkOrderMessage(
+                    work_order_id=wo.id,
+                    sender="system",
+                    message=chat_fr,
+                    translations={
+                        "fr": chat_fr,
+                        "nl": chat_nl,
+                        "en": chat_en,
+                        "ro": chat_ro
+                    }
+                )
+                db.add(auto_msg)
+                db.commit()
+            except Exception as msg_e:
+                print(f"Eroare adaugare mesaj chat la aprobare: {msg_e}")
         else:
             print(f"Skipped approval notification for WO {wo.id} because source is {wo.source_system}")
     except Exception as e:
@@ -2985,7 +3002,10 @@ def put_work_order_message(
     except Exception as e:
         print(f"Auto-translation failed: {e}")
         
-    msg.translated_message = translations
+    msg.translations = translations
+    
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(msg, "translations")
     
     db.commit()
     db.refresh(msg)
@@ -2994,8 +3014,11 @@ def put_work_order_message(
         "id": msg.id,
         "sender": msg.sender,
         "message": msg.message,
-        "translated_message": msg.translated_message,
-        "created_at": msg.created_at.isoformat() + "Z"
+        "created_at": msg.created_at.isoformat() + "Z",
+        "translations": msg.translations,
+        "reactions": msg.reactions,
+        "attachments": msg.attachments,
+        "is_hidden": msg.is_hidden
     }
 
 @router.put("/work-orders/{wo_id}/messages/{msg_id}/toggle-visibility")
@@ -3228,6 +3251,41 @@ def open_work_order_chat(
     return {"message": "Chat opened successfully"}
 
 
+
+from pydantic import BaseModel
+
+class SendEmailPayload(BaseModel):
+    proforma_url: str
+
+@router.post("/{id}/send-email")
+def send_work_order_email_route(id: str, payload: SendEmailPayload, db: Session = Depends(get_db)):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work order not found")
+        
+    client = db.query(Client).filter(Client.id == wo.client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    from app.services.email_service import send_quote_email
+    success = send_quote_email(
+        to_email=client.email,
+        client_name=client.name,
+        client_language=wo.client_language,
+        signing_url=payload.proforma_url,
+        pdf_path=None,
+        org_id=wo.organization_id,
+        wo_id=wo.id
+    )
+    
+    if not success:
+        raise HTTPException(status_code=500, detail="Eroare la trimiterea emailului.")
+        
+    if wo.status == "draft":
+        wo.status = "sent"
+        db.commit()
+
+    return {"status": "ok"}
 
 @router.get("/{id}/email-preview")
 def preview_work_order_email(id: str, db: Session = Depends(get_db)):

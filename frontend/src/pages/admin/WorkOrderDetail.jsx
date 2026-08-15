@@ -256,6 +256,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [toast, setToast] = useState({ message: null, type: 'success' })
     // Calcul Edit Modal (Estimatif)
     const [calcEditOpen, setCalcEditOpen] = useState(false)
+    const [showDiscountNotifyPrompt, setShowDiscountNotifyPrompt] = useState(false)
     const [calcEditSaving, setCalcEditSaving] = useState(false)
     const [calcEditForm, setCalcEditForm] = useState(null)
     const [calcEditTab, setCalcEditTab] = useState('chape') // 'chape', 'isolation'
@@ -1267,7 +1268,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setWo(res.data);
             setVatType(String(newVatType));
             setCalcEditOpen(false);
-            showToast(t('work_order_detail.calc_edit.saved', 'Calcul mis à jour avec succès. Le discount a été appliqué !'));
+            showToast(t('work_order_detail.calc_edit.saved', 'Calcul mis à jour avec succès.'));
+            
+            // Si le discount a changé, proposer d'envoyer une notification au client
+            const oldDiscountPct = parseFloat(wo.prices?.discount_pct || 0);
+            const newDiscountPct = parseFloat(calcEditForm.discount_pct || 0);
+            if (oldDiscountPct !== newDiscountPct && newDiscountPct > 0 && res.data?.client_email) {
+                setTimeout(() => setShowDiscountNotifyPrompt(true), 500);
+            }
         } catch (e) {
             console.error("Save calc error:", e?.response?.data || e.message);
             showToast(t('work_order_detail.calc_edit.error', 'Erreur lors de la sauvegarde du calcul.'), 'error');
@@ -3758,6 +3766,32 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 confirmText={t('common.confirm', 'Confirmer')}
                 cancelText={t('common.cancel', 'Annuler')}
                 type="danger"
+            />
+
+            <ConfirmModal
+                isOpen={showDiscountNotifyPrompt}
+                onClose={() => setShowDiscountNotifyPrompt(false)}
+                onConfirm={async () => {
+                    setShowDiscountNotifyPrompt(false);
+                    try {
+                        const discPct = parseFloat(wo.prices?.discount_pct || 0);
+                        const proformaUrl = `${window.location.origin}/public/proforma/${wo.token}`;
+                        // Send chat message + email notification
+                        await api.post(`/admin/work-orders/${id}/messages`, {
+                            message: `Bonjour, l'équipe Davide Chape vous a accordé une remise de ${discPct}% sur votre devis. Veuillez vérifier l'offre actualisée: ${proformaUrl}`,
+                            sender: 'admin'
+                        });
+                        showToast(t('work_order_detail.discount_notify_sent', 'Notification envoyée au client avec succès.'));
+                    } catch (e) {
+                        console.error('Discount notify error:', e);
+                        showToast(t('work_order_detail.discount_notify_error', 'Erreur lors de la notification.'), 'error');
+                    }
+                }}
+                title={t('work_order_detail.discount_notify_title', 'Notifier le client ?')}
+                message={t('work_order_detail.discount_notify_msg', 'La remise a été mise à jour. Voulez-vous envoyer un message au client pour l\'informer de la nouvelle offre ?')}
+                confirmText={t('work_order_detail.discount_notify_yes', 'Oui, notifier')}
+                cancelText={t('work_order_detail.discount_notify_no', 'Non, pas maintenant')}
+                type="info"
             />
             
             <ConfirmModal
