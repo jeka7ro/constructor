@@ -1647,7 +1647,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         <Trash2 className="w-3.5 h-3.5" />
                         {t('common.delete', 'Supprimer')}
                     </button>
-                    {/* wo.status !== 'completed' && (
+                    {wo.status !== 'completed' && (
                         <>
                             {wo.status === 'planning' && wo.client_email && (
                                 <button
@@ -1690,7 +1690,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <Trash2 className="w-3.5 h-3.5" /> {t('common.delete', 'Supprimer')}
                             </button>
                         </>
-                    ) */}
+                    )}
                 </div>
             </div>
 
