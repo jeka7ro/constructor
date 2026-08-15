@@ -3257,7 +3257,7 @@ from pydantic import BaseModel
 class SendEmailPayload(BaseModel):
     proforma_url: str
 
-@router.post("/{id}/send-email")
+@router.post("/work-orders/{id}/send-email")
 def send_work_order_email_route(id: str, payload: SendEmailPayload, db: Session = Depends(get_db)):
     wo = db.query(WorkOrder).filter(WorkOrder.id == id).first()
     if not wo:
@@ -3287,7 +3287,7 @@ def send_work_order_email_route(id: str, payload: SendEmailPayload, db: Session 
 
     return {"status": "ok"}
 
-@router.get("/{id}/email-preview")
+@router.get("/work-orders/{id}/email-preview")
 def preview_work_order_email(id: str, db: Session = Depends(get_db)):
     wo = db.query(WorkOrder).filter(WorkOrder.id == id).first()
     if not wo:
