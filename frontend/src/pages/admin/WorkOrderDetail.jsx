@@ -294,6 +294,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [isUploadingFiles, setIsUploadingFiles] = useState(false)
     const chatFileInputRef = useRef(null)
     const [targetLang, setTargetLang] = useState('nl')
+    
+    // Sync chat target language with client language when wo loads
+    useEffect(() => {
+        if (wo?.client_language) {
+            setTargetLang(wo.client_language.toLowerCase());
+        }
+    }, [wo?.client_language]);
     const [previewTranslation, setPreviewTranslation] = useState('')
     const [isTranslating, setIsTranslating] = useState(false)
     const [historyModalOpen, setHistoryModalOpen] = useState(false)
