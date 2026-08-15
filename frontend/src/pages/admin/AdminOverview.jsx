@@ -328,8 +328,8 @@ export default function AdminOverview() {
     const fetchPendingQuotes = async () => {
         try {
             const res = await api.get('/admin/work-orders?status=draft,pending,confirmed&is_quote=true&slim=true')
-            // Panelul arata DOAR devisele INCA netrimise — cele cu status=planning au mers deja in calendar
-            const validQuotes = (res.data || []).filter(q => q.status !== 'cancelled' && q.status !== 'planning')
+            // Panelul arata DOAR devisele INCA netrimise — cele cu status=planning au mers deja in calendar sau au deja o data stabilita
+            const validQuotes = (res.data || []).filter(q => q.status !== 'cancelled' && q.status !== 'planning' && !q.start_date)
             
             let newlyFound = []
             if (isInitialQuotesFetch.current) {
@@ -838,6 +838,7 @@ export default function AdminOverview() {
             setQuickEditOrder(null)
             setQuickEditForm(null)
             fetchWorkOrdersStats()
+            fetchPendingQuotes()
         } catch (error) {
             console.error("Error quick editing work order:", error)
             alert(t('overview.save_changes_error', 'Une erreur est survenue lors de l\'enregistrement des modifications.'));
@@ -881,7 +882,14 @@ export default function AdminOverview() {
             if (quoteInPending) {
                 // Dacă a fost tras un Devis din așteptare, îl mutăm vizual instant în calendar
                 setPendingQuotes(prev => prev.filter(q => String(q.id) !== String(woId)));
-                setAllWorkOrders(prev => [...prev, { ...quoteInPending, start_date: newDate, start_time: newTime, status: 'planning' }]);
+                setAllWorkOrders(prev => {
+                    // Prevent duplicates: check if WO already exists
+                    const exists = prev.some(w => String(w.id) === String(woId));
+                    if (exists) {
+                        return prev.map(w => String(w.id) === String(woId) ? { ...w, start_date: newDate, start_time: newTime, status: 'planning' } : w);
+                    }
+                    return [...prev, { ...quoteInPending, start_date: newDate, start_time: newTime, status: 'planning' }];
+                });
             } else {
                 setAllWorkOrders(prev => prev.map(wo => String(wo.id) === String(woId) ? { 
                     ...wo, 

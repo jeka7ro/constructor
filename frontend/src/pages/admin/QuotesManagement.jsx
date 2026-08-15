@@ -13,6 +13,7 @@ import ConfirmModal from '../../components/ConfirmModal'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import QuickAddWizard from '../../components/QuickAddWizard'
 import api from '../../lib/api'
+import { buildQuoteItems } from '../../utils/priceCalculator'
 
 function haversine(lat1, lon1, lat2, lon2) {
     if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
@@ -27,18 +28,17 @@ function haversine(lat1, lon1, lat2, lon2) {
 
 
 /**
- * Calcule le prix total du devis — LOGIQUE IDENTIQUE À DevisView.buildItems().
+ * Calcule le prix total du devis — utilise la source unique buildQuoteItems().
  * Priorité: proforma_data.items → fallback volumes → fallback estimated_price.
  */
 function computeQuoteDataFromRow(row) {
     const wo = row;
     const p = wo.prices || {};
-    let items = [];
-
-    // ── PRIORITÉ 1: proforma_data.items (prixes custom, identique au PDF) ──
+    
+    // PRIORITÉ 1: proforma_data.items (prix custom sauvegardés)
     const pRaw = wo.proforma_data?.items;
     if (pRaw && pRaw.length > 0) {
-        const d0 = String(pRaw[0].desc || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        const d0 = (pRaw[0].desc || '').toLowerCase().trim();
         const isPlaceholder = pRaw.length === 1 &&
             (pRaw[0].id === 'default' ||
              d0.includes('conform deviz') ||
@@ -46,136 +46,39 @@ function computeQuoteDataFromRow(row) {
              d0 === 'chape' || d0 === 'sapa' ||
              /sapa|chape/i.test(d0));
         if (!isPlaceholder) {
-            items = pRaw.map(i => ({ qty: parseFloat(i.qty || 1), price: parseFloat(i.price || 0) }));
+            // Use saved proforma items directly
+            const items = pRaw.map(i => ({ qty: parseFloat(i.qty || 1), price: parseFloat(i.price || 0), isChape: i.isChape }));
+            const totalNet = items.reduce((s, i) => s + i.qty * i.price, 0);
+            const chapeNet = items.filter(i => i.isChape).reduce((s, i) => s + i.qty * i.price, 0);
+            const discountPct = parseFloat(p.discount_pct || 0);
+            const discountAmount = (chapeNet * (discountPct / 100)) + parseFloat(p.discount || 0);
+            const netAfterDiscount = totalNet - discountAmount;
+            let vatRate = 0;
+            if (p.useVat !== false) {
+                if (p.vat_type !== undefined) vatRate = parseFloat(p.vat_type);
+                else if (wo.client_type === 'pj' || wo.client_type === 'juridica') vatRate = 0;
+                else vatRate = wo.work_type === 'repair' ? 6 : 21;
+            }
+            const totalGross = netAfterDiscount * (1 + vatRate / 100);
+            const discounts = items.filter(i => i.price < 0);
+            if (discountAmount > 0) discounts.push({ desc: `Remise Chape (${discountPct}%)`, price: -discountAmount });
+            return { totalGross: totalGross > 0 ? totalGross : null, discounts };
         }
     }
 
-    // ── PRIORITÉ 2: calcul depuis volumes (fallback identique à DevisView) ──
-    if (items.length === 0 && wo.volumes?.length > 0) {
-        wo.volumes.forEach(vol => {
-            const isChape = /[sșş]ap[aăâ]/i.test(vol.label || '') || /chape/i.test(vol.label || '') ||
-                            (vol.label || '').toLowerCase().includes('sapa');
-            const surface = parseFloat(vol.quantity || 0);
-            const thick   = parseFloat(vol.thickness || 0);
-
-            if (surface > 0) {
-                if (isChape) {
-                    const stdThick  = parseFloat(p.standard_thickness || 5);
-                    const extraThick = Math.max(0, thick - stdThick);
-                    items.push({ qty: surface, price: parseFloat(p.base || 12.5), isChape: true });
-                    if (extraThick > 0)
-                        items.push({ qty: surface, price: extraThick * parseFloat(p.extra_thickness_price_per_cm || p.extra || 1.25), isChape: true });
-                    if (vol.has_foil)  items.push({ qty: surface, price: parseFloat(p.foil  || 1.2), isChape: true });
-                    if (vol.has_mesh)  items.push({ qty: surface, price: parseFloat(p.mesh  || 2.5), isChape: true });
-                    if (vol.has_fiber || vol.has_duramint)
-                        items.push({ qty: surface, price: parseFloat(p.fiber || (surface <= 200 ? 2.5 : 2.0)), isChape: true });
-                } else if (/isolation\s*pur/i.test(vol.label || '')) {
-                    const purThick = thick || 3;
-                    let purBase = parseFloat(p.pur_base_price_3cm || 13.95);
-                    if (purThick > 3 && purThick <= 10) {
-                        purBase += (purThick - 3) * parseFloat(p.pur_step_price_up_to_10cm || 1.65);
-                    } else if (purThick > 10) {
-                        purBase += 7 * parseFloat(p.pur_step_price_up_to_10cm || 1.65);
-                        purBase += (purThick - 10) * parseFloat(p.pur_extra_price_above_10cm || 2.10);
-                    }
-                    if (surface > 100) {
-                        purBase += Math.floor((surface - 100) / 100) * parseFloat(p.pur_surface_discount_step || -0.50);
-                    }
-                    purBase = Math.max(0, purBase);
-                    items.push({ qty: surface, price: purBase });
-                    if (vol.pur_aspiration) items.push({ qty: surface, price: parseFloat(p.pur_opt_aspiration || 2.00) });
-                    if (vol.pur_niveller) items.push({ qty: surface, price: parseFloat(p.pur_opt_niveller || 4.25) });
-                    if (vol.pur_poncage) items.push({ qty: surface, price: parseFloat(p.pur_opt_poncage || 1.50) });
-                    if (vol.pur_protection) items.push({ qty: surface, price: parseFloat(p.pur_opt_protection || 1.50) });
-                    
-                    const purDiscountPct = parseFloat(p.pur_discount_pct || 0);
-                    if (purDiscountPct > 0) {
-                        let totalPurGross = purBase * surface;
-                        if (vol.pur_aspiration) totalPurGross += parseFloat(p.pur_opt_aspiration || 2.00) * surface;
-                        if (vol.pur_niveller) totalPurGross += parseFloat(p.pur_opt_niveller || 4.25) * surface;
-                        if (vol.pur_poncage) totalPurGross += parseFloat(p.pur_opt_poncage || 1.50) * surface;
-                        if (vol.pur_protection) totalPurGross += parseFloat(p.pur_opt_protection || 1.50) * surface;
-                        items.push({ qty: 1, price: -(totalPurGross * purDiscountPct / 100), desc: `Remise PUR (${purDiscountPct}%)` });
-                    }
-                } else if (/isolation\s*eps/i.test(vol.label || '')) {
-                    const epsVol = (surface * (thick || 1)) / 100;
-                    const epsTiers = p.eps_volume_thresholds || [
-                        { max_m3: 10, price_flat: 1495 },
-                        { max_m3: 20, price_per_m3: 160 },
-                        { max_m3: 40, price_per_m3: 155 },
-                        { max_m3: 99999, price_per_m3: 150 }
-                    ];
-                    let epsPrice = 0;
-                    for (let tier of epsTiers) {
-                        if (epsVol <= parseFloat(tier.max_m3 || 99999)) {
-                            if (tier.price_flat) epsPrice = parseFloat(tier.price_flat);
-                            else epsPrice = epsVol * parseFloat(tier.price_per_m3 || 150);
-                            break;
-                        }
-                    }
-                    // overrides from devis explicitly
-                    if (p.custom_eps_price_flat !== undefined && p.custom_eps_price_flat !== null && !isNaN(p.custom_eps_price_flat)) {
-                        epsPrice = parseFloat(p.custom_eps_price_flat);
-                    } else if (p.custom_eps_price_per_m3 !== undefined && p.custom_eps_price_per_m3 !== null && !isNaN(p.custom_eps_price_per_m3)) {
-                        epsPrice = epsVol * parseFloat(p.custom_eps_price_per_m3);
-                    }
-                    items.push({ qty: 1, price: epsPrice });
-                    const epsDiscountPct = parseFloat(p.eps_discount_pct || 0);
-                    if (epsDiscountPct > 0) {
-                        items.push({ qty: 1, price: -(epsPrice * epsDiscountPct / 100), desc: `Remise EPS (${epsDiscountPct}%)` });
-                    }
-                } else {
-                    // Volume non-chape: price unitaire stocké ou estimated_price / surface
-                    const unitPrice = parseFloat(vol.price || 0) || (parseFloat(wo.estimated_price || 0) / (surface || 1));
-                    if (unitPrice > 0) items.push({ qty: surface, price: unitPrice });
-                }
-            }
-        });
-    }
-
-    // ── Surface thresholds (forfait) ──
-    if (p.surface_thresholds?.length) {
-        const surfCheck = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
-        p.surface_thresholds.forEach(t => {
-            if (surfCheck >= parseFloat(t.min_sqm || 0) && surfCheck <= parseFloat(t.max_sqm || 999999)) {
-                const charge = parseFloat(t.extra_charge || 0);
-                if (charge > 0) items.push({ qty: 1, price: charge, isChape: true });
-            }
-        });
-    }
-
-    // Rien à calculer → retourner null (fallback à estimated_price)
-    if (items.length === 0) return null;
-
-    const totalNet        = items.reduce((s, i) => s + i.qty * i.price, 0);
-    const chapeNet        = items.filter(i => i.isChape).reduce((s, i) => s + i.qty * i.price, 0);
-    const discountPct     = parseFloat(p.discount_pct || 0);
+    // PRIORITÉ 2: calcul din volumes — folosește buildQuoteItems (sursa unică)
+    if (!wo.volumes?.length) return null;
     
-    // Only apply discountPct to Chape items
-    const discountAmount = (chapeNet * (discountPct / 100)) + parseFloat(p.discount || 0);
-    const netAfterDiscount = totalNet - discountAmount;
-
-    // TVA — identique à DevisView (vat_type est un pourcentage: 21, 6, 0)
-    let vatRate = 0;
-    if (p.useVat !== false) {
-        if (p.vat_type !== undefined) {
-            vatRate = parseFloat(p.vat_type);
-        } else if (wo.client_type === 'pj' || wo.client_type === 'juridica') {
-            vatRate = 0;
-        } else {
-            vatRate = wo.work_type === 'repair' ? 6 : 21;
-        }
-    }
-
-    const totalGross = netAfterDiscount * (1 + vatRate / 100);
+    const result = buildQuoteItems(wo, null);
+    if (!result || result.items.length === 0) return null;
     
-    const discounts = items.filter(i => i.price < 0);
-    if (discountAmount > 0) {
-        discounts.push({ desc: `Remise Chape (${discountPct}%)`, price: -discountAmount });
+    const discounts = result.items.filter(i => i.price < 0);
+    if (result.discountAmount > 0) {
+        discounts.push({ desc: `Remise Chape (${result.discountPct}%)`, price: -result.discountAmount });
     }
     
     return {
-        totalGross: totalGross > 0 ? totalGross : null,
+        totalGross: result.totalGross > 0 ? result.totalGross : null,
         discounts
     };
 }
@@ -1151,7 +1054,12 @@ export default function QuotesManagement() {
             const extraThickness = Math.max(0, thickness - standardThick);
             extraThickForAuto += extraThickness;
             autoBase += (parseFloat(form.prices?.base || pricingSettings?.base_price_sqm || 12.5) * surface);
-            const extraPrice = parseFloat(form.prices?.extra) || (surface <= (pricingSettings?.extra_thickness_large_threshold_sqm ?? 200) ? (pricingSettings?.extra_thickness_price_per_cm ?? 1.25) : (pricingSettings?.extra_thickness_price_per_cm_large ?? 1.25));
+            let extraPrice;
+            if (form.prices?.extra_large !== undefined && form.prices?.extra_threshold !== undefined) {
+                extraPrice = surface > parseFloat(form.prices.extra_threshold) ? parseFloat(form.prices.extra_large) : parseFloat(form.prices?.extra || 1.25);
+            } else {
+                extraPrice = parseFloat(form.prices?.extra) || (surface <= (pricingSettings?.extra_thickness_large_threshold_sqm ?? 200) ? (pricingSettings?.extra_thickness_price_per_cm ?? 1.25) : (pricingSettings?.extra_thickness_price_per_cm_large ?? 1.25));
+            }
             autoExtra += extraThickness * extraPrice * surface;
             autoFoil += vol.has_foil ? parseFloat(form.prices?.foil || pricingSettings?.plastic_foil_price_sqm || 1.2) * surface : 0;
             autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || pricingSettings?.metal_mesh_price_sqm || 2.5) * surface : 0;

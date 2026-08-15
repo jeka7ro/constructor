@@ -157,7 +157,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }
 
     // ─── REGULA DE BAZA: Devis = cantitati estimative, Factura = cantitati reale ───
-    const activePrices = isInvoiceView && wo.prices?.invoice ? wo.prices.invoice : (wo.prices || {});
+    const activePrices = isInvoiceView && wo.prices?.invoice 
+        ? { ...(wo.prices || {}), ...wo.prices.invoice } 
+        : (wo.prices || {});
     let defaultFallbackItems = []
     
     if (wo.volumes && wo.volumes.length > 0) {
@@ -187,15 +189,27 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     });
                     
                     if (extraThickForAuto > 0) {
+                        // Match computeChapeTotal: use extra_large when surface > extra_threshold
+                        let extraRate;
+                        if (activePrices.extra_large !== undefined && activePrices.extra_threshold !== undefined) {
+                            extraRate = surfaceForAuto > parseFloat(activePrices.extra_threshold) ? parseFloat(activePrices.extra_large) : parseFloat(activePrices.extra || 1.25);
+                        } else {
+                            extraRate = parseFloat(activePrices.extra_thickness_price_per_cm || activePrices.extra || 1.25);
+                        }
                         defaultFallbackItems.push({
                             id: `extra_${idx}`,
                             desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`,
                             qty: surfaceForAuto,
-                            price: extraThickForAuto * parseFloat(activePrices.extra_thickness_price_per_cm || activePrices.extra || 1.25)
+                            price: extraThickForAuto * extraRate
                         });
                     }
                     
-                    if (vol.has_foil) {
+                    const hasFoil = isInvoiceView && activePrices.has_foil !== undefined ? activePrices.has_foil : vol.has_foil;
+                    const hasMesh = isInvoiceView && activePrices.has_mesh !== undefined ? activePrices.has_mesh : vol.has_mesh;
+                    const hasFiber = isInvoiceView && activePrices.has_fiber !== undefined ? activePrices.has_fiber : vol.has_fiber;
+                    const hasDuramint = isInvoiceView && activePrices.has_duramint !== undefined ? activePrices.has_duramint : vol.has_duramint;
+
+                    if (hasFoil) {
                         defaultFallbackItems.push({
                             id: `foil_${idx}`,
                             desc: `Feuille de plastique (Visqueen)`,
@@ -204,7 +218,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         });
                     }
                     
-                    if (vol.has_mesh) {
+                    if (hasMesh) {
                         defaultFallbackItems.push({
                             id: `mesh_${idx}`,
                             desc: `Armature (Paillasse)`,
@@ -213,7 +227,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         });
                     }
                     
-                    if (vol.has_fiber || vol.has_duramint) {
+                    if (hasFiber || hasDuramint) {
                         defaultFallbackItems.push({
                             id: `fiber_${idx}`,
                             desc: `Fibre + Duramint`,
@@ -366,7 +380,13 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                 
                 defaultFallbackItems.push({ id: 'base_gen', desc: `Pose de chape ${Math.min(thickForAuto, stdThick)} cm`, qty: surfaceForAuto, price: parseFloat(activePrices.base || 12.5) });
                 if (extraThickForAuto > 0) {
-                    defaultFallbackItems.push({ id: 'extra_gen', desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`, qty: surfaceForAuto, price: extraThickForAuto * parseFloat(activePrices.extra_thickness_price_per_cm || activePrices.extra || 1.25) });
+                    let extraRate;
+                    if (activePrices.extra_large !== undefined && activePrices.extra_threshold !== undefined) {
+                        extraRate = surfaceForAuto > parseFloat(activePrices.extra_threshold) ? parseFloat(activePrices.extra_large) : parseFloat(activePrices.extra || 1.25);
+                    } else {
+                        extraRate = parseFloat(activePrices.extra_thickness_price_per_cm || activePrices.extra || 1.25);
+                    }
+                    defaultFallbackItems.push({ id: 'extra_gen', desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`, qty: surfaceForAuto, price: extraThickForAuto * extraRate });
                 }
                 if (wo.has_foil || wo.actual_has_foil) {
                     defaultFallbackItems.push({ id: 'foil_gen', desc: `Feuille de plastique (Visqueen)`, qty: surfaceForAuto, price: parseFloat(activePrices.foil || 1.2) });

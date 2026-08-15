@@ -295,9 +295,12 @@ export default function ShortWorksCalendar({
     // Filter work orders that fall in this week
     const weekDayStrings = useMemo(() => weekDays.map(d => format(d, 'yyyy-MM-dd')), [weekDays]);
 
-    // Filter work orders that fall in this week - highly optimized string matching
+    // Filter work orders that fall in this week - highly optimized string matching + dedup
     const weeklyOrders = useMemo(() => {
+        const seen = new Set();
         return workOrders.filter(wo => {
+            if (seen.has(wo.id)) return false;
+            seen.add(wo.id);
             const dateStr = wo.start_date || wo.deadline_date;
             if (!dateStr) return false;
             const ds = dateStr.split('T')[0];

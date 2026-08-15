@@ -171,7 +171,7 @@ function NavButtons({ lat, lon, address }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
-    const { currentTenant: tenant } = useTenantStore();
+    const { tenant } = useTenantStore();
     const { t, i18n } = useTranslation()
     const params = useParams()
     const id = orderId || params.id
@@ -266,6 +266,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [calcRealEditForm, setCalcRealEditForm] = useState(null)
     const [generatingProforma, setGeneratingProforma] = useState(false)
     const [activeDocTab, setActiveDocTab] = useState('devis')
+    const [pdfScrollActive, setPdfScrollActive] = useState(false)
     const [docDrawerState, setDocDrawerState] = useState(null)
     const [syncingPrices, setSyncingPrices] = useState(false)
     const [showSyncConfirm, setShowSyncConfirm] = useState(false)
@@ -1284,12 +1285,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             const thickness = parseFloat(calcRealEditForm.thickness) || 0;
             
             const newInvoicePrices = {
-                base: parseFloat(calcRealEditForm.base_price) || 0,
-                extra: parseFloat(calcRealEditForm.extra_price) || 0,
-                foil: parseFloat(calcRealEditForm.foil_price) || 0,
-                mesh: parseFloat(calcRealEditForm.mesh_price) || 0,
-                fiber: parseFloat(calcRealEditForm.fiber_price) || 0,
-                discount_pct: parseFloat(calcRealEditForm.discount_pct) || 0,
                 has_foil: !!calcRealEditForm.has_foil,
                 has_mesh: !!calcRealEditForm.has_mesh,
                 has_fiber: !!calcRealEditForm.has_fiber,
@@ -1938,13 +1933,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                     {(wo?.client_name || '?').charAt(0).toUpperCase()}
                                                                 </span>
                                                             ) : msg.sender === 'admin' ? (
-                                                                (tenant?.favicon_url || tenant?.logo_url) ? (
-                                                                <img src={tenant.favicon_url ? getImageUrl(tenant.favicon_url) : getImageUrl(tenant.logo_url)} alt={tenant?.name || "Company"} className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0 hidden md:block" />
-                                                            ) : (
-                                                                <span className="w-5 h-5 rounded-full bg-blue-600 text-white hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">
-                                                                    {(tenant?.name || 'D').charAt(0).toUpperCase()}
-                                                                </span>
-                                                            )
+                                                                tenant?.favicon_url ? (
+                                                                    <img src={getImageUrl(tenant.favicon_url)} alt={tenant?.name || "Company"} className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0 hidden md:block" />
+                                                                ) : (
+                                                                    <span className="w-5 h-5 rounded-full bg-white text-blue-600 hidden md:flex items-center justify-center font-bold text-[10px] shrink-0 shadow-sm border border-slate-100">
+                                                                        {(tenant?.name || 'DC').substring(0, 2).toUpperCase()}
+                                                                    </span>
+                                                                )
                                                             ) : null}
                                                             <span className="truncate max-w-[150px] md:max-w-[200px]">
                                                                 {msg.sender === 'client' ? wo?.client_name : (msg.sender === 'admin' ? (wo?.client_language === 'nl' || wo?.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape') : t('admin.system', 'Sistem'))}
@@ -2151,6 +2146,16 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             }
                                         }}
                                     />
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={() => chatFileInputRef.current?.click()}
+                                        className="p-2 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
+                                        title="Adaugă atașament"
+                                    >
+                                        <Paperclip className="w-5 h-5" />
+                                    </button>
+                                    
                                     <input
                                         id="chat-input-field"
                                         type="text"
@@ -2158,7 +2163,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         onChange={e => setChatMessage(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                                         placeholder={t('admin.type_message', 'Tapez votre message...')}
-                                        className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 md:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                                        className="flex-1 min-w-[100px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 md:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
                                     />
                                     <select 
                                         value={targetLang}
@@ -2167,7 +2172,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         title="Limbă Traducere (la Client)"
                                     >
                                         <option value="none">Fără trad.</option>
-                                        <option value="nl">NL</option>
+                                        <option value="nl">NL (Vlaams/Dutch)</option>
                                         <option value="fr">FR</option>
                                         <option value="en">EN</option>
                                     </select>
@@ -2186,24 +2191,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             )}
                                         </button>
                                     )}
-                                    
-                                    <button
-                                        type="button"
-                                        onClick={() => chatFileInputRef.current?.click()}
-                                        className="p-2 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                                        title="Adaugă atașament"
-                                    >
-                                        <Paperclip className="w-4 h-4" />
-                                    </button>
-                                    
-                                    <button
-                                        type="button"
-                                        title="Inserează Link Devis"
-                                        onClick={() => setChatMessage(prev => prev + (prev ? '\n' : '') + `Consultați devizul aici: https://davidechape.pontaj.app/public/proforma/${wo?.token}`)}
-                                        className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-600 rounded-xl px-3 py-2 flex items-center justify-center transition-colors shadow-sm"
-                                    >
-                                        <Link className="w-4 h-4" />
-                                    </button>
+
 
                                     <button
                                         type="submit"
@@ -2527,13 +2515,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 has_foil: realChapeFlags?.has_foil || false,
                                                 has_mesh: realChapeFlags?.has_mesh || false,
                                                 has_fiber: realChapeFlags?.has_fiber || false,
-                                                has_duramint: realChapeFlags?.has_duramint || false,
-                                                base_price: parseFloat(realPrices?.base || 12.5),
-                                                extra_price: parseFloat(realPrices?.extra || 1.25),
-                                                foil_price: parseFloat(realPrices?.foil || 1.2),
-                                                mesh_price: parseFloat(realPrices?.mesh || 2.5),
-                                                fiber_price: parseFloat(realPrices?.fiber || 2.5),
-                                                discount_pct: parseFloat(realPrices?.discount_pct || 0)
+                                                has_duramint: realChapeFlags?.has_duramint || false
                                             });
                                             setCalcRealEditOpen(true);
                                         }}
@@ -2635,7 +2617,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         setEmailPreviewContent(res.data.html);
                                         setShowEmailPreview(true);
                                     } catch (err) {
-                                        alert(t('work_order_detail.email_err', 'Eroare la previzualizarea emailului.'));
+                                        showToast(t('work_order_detail.email_prev_err', 'Erreur lors de la prévisualisation de l\'email.'), 'error');
                                     }
                                 }}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full text-[10px] sm:text-xs uppercase tracking-wider shadow-sm transition-colors shrink-0"
@@ -2659,19 +2641,43 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             </div>
                         </div>
 
-                        {/* Preview iframe cu click-to-fullpage */}
-                        <div className="relative w-full h-[700px] rounded-xl overflow-hidden border border-slate-200">
+                        {/* Preview iframe — click pentru a activa scroll-ul în PDF */}
+                        <div className={`relative w-full h-[700px] rounded-xl overflow-hidden border-2 transition-colors ${pdfScrollActive ? 'border-blue-400 shadow-lg shadow-blue-100' : 'border-slate-200'}`}
+                            onBlur={() => setPdfScrollActive(false)}
+                        >
+                                {/* Overlay — vizibil când PDF-ul NU e activ: scroll-ul trece la pagină */}
+                                {!pdfScrollActive && (
+                                    <div
+                                        className="absolute inset-0 z-10 cursor-pointer flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors"
+                                        onClick={() => setPdfScrollActive(true)}
+                                        onWheel={(e) => { window.scrollBy(0, e.deltaY); }}
+                                    >
+                                        <span className="bg-slate-800/80 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg">
+                                            Cliquez pour naviguer dans le PDF
+                                        </span>
+                                    </div>
+                                )}
+                                {/* Buton close scroll activ */}
+                                {pdfScrollActive && (
+                                    <button
+                                        onClick={() => setPdfScrollActive(false)}
+                                        className="absolute top-4 left-4 z-30 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 text-xs font-bold transition-colors"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                        Quitter le mode PDF
+                                    </button>
+                                )}
                                 {/* Floating expand button */}
                                 <button
                                     onClick={() => setDocDrawerState({ url: activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice` : `${window.location.origin}/admin/quotes/${wo.id}/pdf`, type: activeDocTab })}
-                                    className="absolute top-4 right-4 z-20 bg-slate-800/80 hover:bg-slate-900 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2 text-xs font-bold transition-colors"
+                                    className="absolute top-4 right-4 z-30 bg-slate-800/80 hover:bg-slate-900 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2 text-xs font-bold transition-colors"
                                 >
                                     <ExternalLink className="w-4 h-4" />
                                     Ouvrir en plein écran
                                 </button>
                                 
                                 <iframe
-                                    src={activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice#bottom` : `${window.location.origin}/admin/quotes/${wo.id}/pdf#bottom`}
+                                    src={activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice&_t=${wo.updated_at || Date.now()}#bottom` : `${window.location.origin}/admin/quotes/${wo.id}/pdf?_t=${wo.updated_at || Date.now()}#bottom`}
                                     className="w-full h-full border-none"
                                     title={activeDocTab === 'facture' ? 'Facture PDF' : 'Devis PDF'}
                                     onLoad={(e) => {
@@ -3594,37 +3600,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 </div>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">{t('work_order_detail.calc_edit.prices', 'Grille de Tarifs Personnalisée')}</p>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {[
-                                        { key: 'base_price', label: t('work_order_detail.calc_edit.base_price', 'Base /m²') },
-                                        { key: 'extra_price', label: t('work_order_detail.calc_edit.extra_price', 'Extra /m²/cm') },
-                                        { key: 'foil_price', label: t('work_order_detail.calc_edit.foil_price', 'Feuille /m²') },
-                                        { key: 'mesh_price', label: t('work_order_detail.calc_edit.mesh_price', 'Treillis /m²') },
-                                        { key: 'fiber_price', label: t('work_order_detail.calc_edit.fiber_price', 'Fibres /m²') },
-                                        { key: 'discount_pct', label: t('work_order_detail.calc_edit.discount_pct', 'Remise (%)') }
-                                    ].map(({ key, label }) => (
-                                        <div key={key}>
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">{label}</label>
-                                            <input
-                                                type="number" min="0" step="0.01"
-                                                value={calcRealEditForm[key]}
-                                                onChange={e => setCalcRealEditForm(f => ({ ...f, [key]: e.target.value }))}
-                                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
+                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">{t('work_order_detail.calc_edit.note_prices', 'Les prix unitaires et les remises sont hérités du devis initial.')}</p>
                             </div>
                             {parseFloat(calcRealEditForm.surface) > 0 && (() => {
                                 const livePrices = {
-                                    ...wo.prices,
-                                    base: parseFloat(calcRealEditForm.base_price) || 0,
-                                    extra: parseFloat(calcRealEditForm.extra_price) || 0,
-                                    foil: parseFloat(calcRealEditForm.foil_price) || 0,
-                                    mesh: parseFloat(calcRealEditForm.mesh_price) || 0,
-                                    fiber: parseFloat(calcRealEditForm.fiber_price) || 0,
-                                    discount_pct: parseFloat(calcRealEditForm.discount_pct) || 0
+                                    ...wo.prices
                                 };
                                 const prev = computeChapeTotal(parseFloat(calcRealEditForm.surface), parseFloat(calcRealEditForm.thickness) || 0, calcRealEditForm, livePrices);
                                 return (
@@ -3860,31 +3840,37 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             {showEmailPreview && createPortal(
                 <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-8">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowEmailPreview(false)}></div>
-                    <div className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                    <div className="relative w-full max-w-3xl h-[80vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
                         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Mail className="w-5 h-5 text-blue-500" />
-                                Email Preview
+                                {t('work_order_detail.email_preview_title', 'Aperçu de l\'Email')}
                             </h3>
                             <button onClick={() => setShowEmailPreview(false)} className="text-slate-400 hover:text-slate-600 p-1">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="flex-1 overflow-auto p-6 bg-white" dangerouslySetInnerHTML={{ __html: emailPreviewContent }}></div>
+                        <div className="flex-1 overflow-hidden bg-white">
+                            <iframe 
+                                className="w-full h-full border-0" 
+                                srcDoc={emailPreviewContent} 
+                                title="Email Preview"
+                            />
+                        </div>
                         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3">
                             <button onClick={() => setShowEmailPreview(false)} className="px-4 py-2 text-sm font-bold text-slate-600 hover:text-slate-900">
-                                Anulează
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button onClick={async () => {
                                 try {
                                     await api.post(`/admin/work-orders/${id}/send-email`, { proforma_url: `https://davidechape.pontaj.app/public/proforma/${wo.token}` });
                                     setShowEmailPreview(false);
-                                    alert(t('work_order_detail.email_sent', 'Email trimis cu succes!'));
+                                    showToast(t('work_order_detail.email_sent', 'Email envoyé avec succès!'), 'success');
                                 } catch (err) {
-                                    alert(t('work_order_detail.email_err', 'Eroare la trimiterea emailului.'));
+                                    showToast(t('work_order_detail.email_err', 'Erreur lors de l\'envoi de l\'email.'), 'error');
                                 }
                             }} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm">
-                                Trimite Email
+                                {t('work_order_detail.send_email_btn', 'Envoyer l\'Email')}
                             </button>
                         </div>
                     </div>

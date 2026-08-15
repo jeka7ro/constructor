@@ -233,7 +233,14 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         
                         items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) })
                         if (extraThick > 0) {
-                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * getPrice(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25) })
+                            // Match computeChapeTotal: use extra_large when surface > extra_threshold
+                            let extraRate;
+                            if (wo.prices?.extra_large !== undefined && wo.prices?.extra_threshold !== undefined) {
+                                extraRate = surface > parseFloat(wo.prices.extra_threshold) ? parseFloat(wo.prices.extra_large) : parseFloat(wo.prices?.extra ?? 1.25);
+                            } else {
+                                extraRate = getPrice(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25);
+                            }
+                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * extraRate })
                         }
                         if (vol.has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) })
                         if (vol.has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) })
@@ -322,7 +329,15 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     const extraThick = Math.max(0, thick - stdThick);
                     
                     items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) });
-                    if (extraThick > 0) items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * getPrice(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25) });
+                    if (extraThick > 0) {
+                        let extraRate;
+                        if (wo.prices?.extra_large !== undefined && wo.prices?.extra_threshold !== undefined) {
+                            extraRate = surface > parseFloat(wo.prices.extra_threshold) ? parseFloat(wo.prices.extra_large) : parseFloat(wo.prices?.extra ?? 1.25);
+                        } else {
+                            extraRate = getPrice(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25);
+                        }
+                        items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * extraRate });
+                    }
                     if (wo.has_foil || wo.actual_has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) });
                     if (wo.has_mesh || wo.actual_has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) });
                     if (wo.has_fiber || wo.actual_has_fiber || wo.has_duramint || wo.actual_has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: getPrice(wo.prices?.fiber, surface <= 200 ? pricingSettings?.fiber_price_sqm : pricingSettings?.fiber_price_sqm_large, surface <= 200 ? 2.5 : 2.0) });
@@ -512,8 +527,8 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         </div>
                     </div>
                     <div className="pb-8 sm:pb-10 print:px-8">
-                        <div className="w-full overflow-x-auto print:overflow-visible">
-                            <div className="min-w-[500px] px-5 sm:px-10 space-y-2 pb-2 print:px-0">
+                        <div className="w-full">
+                            <div className="px-3 sm:px-10 space-y-2 pb-2 print:px-0">
                                 <div className="grid grid-cols-12 gap-3 sm:gap-4 px-2 sm:px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
                                     <div className="col-span-5">{T.desc}</div>
                                     <div className="col-span-2 text-center">{T.qty}</div>
@@ -527,12 +542,12 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                             <div className="col-span-12 text-slate-700 font-black text-[11px] uppercase tracking-widest">{item.headerLabel}</div>
                                         </div>
                                     ) : (
-                                    <div key={i} className="grid grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
+                                    <div key={i} className="grid grid-cols-12 gap-2 sm:gap-4 px-2 sm:px-5 py-3 sm:py-4 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100 items-center break-inside-avoid">
                                         <div className="col-span-5 text-slate-700 font-medium text-xs sm:text-sm">{item.desc}</div>
-                                        <div className="col-span-2 text-center text-slate-600 font-medium text-sm">{item.qty}</div>
-                                        <div className="col-span-1 text-center text-slate-500 font-bold text-[10px] uppercase">{item.unit}</div>
-                                        <div className="col-span-2 text-right text-slate-600 text-sm">{item.price.toFixed(2)}</div>
-                                        <div className="col-span-2 text-right font-bold text-slate-800 text-sm">{(item.qty * item.price).toFixed(2)}</div>
+                                        <div className="col-span-2 text-center text-slate-600 font-medium text-xs sm:text-sm">{item.qty}</div>
+                                        <div className="col-span-1 text-center text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase">{item.unit}</div>
+                                        <div className="col-span-2 text-right text-slate-600 text-xs sm:text-sm">{item.price.toFixed(2)}</div>
+                                        <div className="col-span-2 text-right font-bold text-slate-800 text-xs sm:text-sm">{(item.qty * item.price).toFixed(2)}</div>
                                     </div>
                                     )
                                 ))}
