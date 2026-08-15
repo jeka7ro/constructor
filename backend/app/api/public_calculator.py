@@ -39,6 +39,8 @@ class CalculatorSubmitRequest(BaseModel):
     client_phone: Optional[str] = None
     client_address: Optional[str] = None
     client_language: str = "fr"
+    language: Optional[str] = None
+    lang: Optional[str] = None
     # Work Info
     work_type: str = "new" # "new" or "repair"
     site_address: str
@@ -162,6 +164,15 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
 
     org = get_org_by_domain_or_slug(payload.domain, payload.slug, db)
     
+    # 1.5 Handle language fallback if webhook sends 'language' or 'lang' instead of 'client_language'
+    effective_lang = payload.client_language
+    if effective_lang == "fr": # if it's the default, check the aliases
+        if payload.language:
+            effective_lang = payload.language
+        elif payload.lang:
+            effective_lang = payload.lang
+    effective_lang = str(effective_lang).lower().strip()
+    
     # 2. Find or create Client
     client_name = ""
     if payload.client_type == "juridica" and payload.client_company_name:
@@ -264,7 +275,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         client_name=client.name,
         client_email=client.email,
         client_phone=client.phone,
-        client_language=payload.client_language,
+        client_language=effective_lang,
         volumes=[{
             "label": "Chape",
             "quantity": payload.surface,
@@ -325,7 +336,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
             "last_name": payload.client_last_name or "",
             "email": payload.client_email,
             "phone": payload.client_phone,
-            "client_language": payload.client_language,
+            "client_language": effective_lang,
             "company_name": payload.client_company_name or "",
             "client_type": payload.client_type,
             "surface": payload.surface,
@@ -363,7 +374,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     from app.services.email_service import send_quote_email, send_admin_new_quote_alert
     
     def send_email_without_pdf():
-        send_quote_email(client.email, client.name, wo.client_language, proforma_url, None)
+        send_quote_email(client.email, client.name, effective_lang, proforma_url, None)
 
     if client.email:
         background_tasks.add_task(send_email_without_pdf)
