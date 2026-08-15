@@ -2012,7 +2012,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     {/* Translation Display */}
                                                     {msg.translations && Object.keys(msg.translations).length > 0 && (
                                                         (() => {
-                                                            const transText = Object.values(msg.translations)[0] || '';
+                                                            const displayLang = targetLang !== 'none' ? targetLang : (wo?.client_language || 'fr').toLowerCase();
+                                                            const transText = msg.translations[displayLang] || msg.translations['fr'] || Object.values(msg.translations)[0] || '';
                                                             if (transText.includes('Error 500') || transText.includes('Eroare la traducere') || transText.includes("That's an error")) return null;
                                                             return (
                                                                 <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
