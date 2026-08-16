@@ -28,7 +28,7 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 - **BUTOANE ȘI ACȚIUNI**: Păstrează mereu un design consistent. În interiorul `DataTable`, butoanele de acțiune trebuie să folosească iconițe Lucide (ex: `Eye`, `Edit`, `Trash2`) și același padding ca în restul platformei (`px-3 py-1.5`, `rounded-lg`).
 - Când combini date într-un tabel (pentru lipsă de spațiu), pune-le pe aceeași coloană una sub alta (ex: `Suprafață / Grosime`), în loc să micșorezi fonturile ca să încapă toate.
 - Asigură-te întotdeauna că Modalele, ferestrele de Dialog, și ferestrele de tip Popup (ex: `ConfirmModal`) au un `z-[9999]` sau suficient de mare pentru a randa peste Navigation Bar (Header-ul albastru). **CRITIC:** Deoarece aplicația folosește un layout unde `<main>` și `<header>` sunt siblings, un simplu `z-[9999]` pus în interiorul unei pagini nu va acoperi header-ul din cauza stacking context-ului. **Folosește MEREU `createPortal(<div className="fixed inset-0 z-[9999]...">...</div>, document.body)`** pentru a garanta că modalul acoperă întreg ecranul, inclusiv header-ul!
-- **FĂRĂ ALERTE NATIVE BROWSER**: Este complet interzisă folosirea `alert(...)` sau `prompt(...)`! Folosește exclusiv componenta Toast/Notificări existentă în aplicație (ex: funcția `showToast` existentă deja în pagini) sau un modal stilizat curat.
+- **FĂRĂ ALERTE NATIVE BROWSER**: Este complet interzisă folosirea `alert(...)`, `confirm(...)` sau `prompt(...)`! Folosește exclusiv componenta Toast/Notificări, sau Modale/Dialoguri de confirmare (ex: `ConfirmModal`) construite în React. Fără excepții.
 
 ## 6. Limba de lucru în Frontend
 - Acesta este un proiect **100% în limba Franceză** pentru utilizatorul final și administrator.
@@ -92,4 +92,14 @@ Aceste reguli sunt **LEGE** și nu trebuie încălcate sub nicio formă la calcu
 - Chiar dacă randarea se face pe baza unui obiect înghețat (`proforma_data.items`), codul are obligația să inspecteze listele generate. Dacă secțiunea de transport lipsește de pe factura salvată, iar distanța/costul justifică unul, el va fi adăugat dinamic pe ultimul rând:
   - Exemplu corect: `Transport (391 km)` —> cost: 250 EUR.
 
+## 5. CLIENȚI PREFERENȚIALI (EX: ISOFLEX)
+- Anumiți clienți (ex. Isoflex) sunt "clienți preferențiali" și au prețuri personalizate (inclusiv prețuri de 0) stabilite în pagina de Tarife.
+- În cazul lor, este absolut normal ca unele costuri (cum ar fi prețul pentru Fibră + Duramint) să fie **0 EUR**.
+- Aceste elemente trebuie să apară pe deviz ca și cantitate (m²) pentru ca șefii de echipă să vadă materialele necesare, dar cu un preț total de **0**.
+- Ca atare, funcția centrală de extragere a prețului (`getPrice` / `priceCalculator`) **trebuie să accepte valoarea 0 ca fiind validă** și să nu o forțeze la un alt etalon atunci când acel 0 vine din setările preferențiale.
+
 Încălcarea acestor reguli generează confuzie, discrepanțe legale pe facturi și pierderi financiare masive. Nicio decizie arhitecturală nouă nu poate anula aceste cerințe de unificare a prețurilor.
+
+## 6. JURNAL DE ACTIVITATE (ACTIVITY LOG)
+- Orice agent nou care preia acest proiect are **obligația** de a citi fișierul `.agents/ACTIVITY_LOG.md` pentru a înțelege istoricul recent.
+- După fiecare sesiune de modificări aprobate, agentul **trebuie să actualizeze** acest fișier adăugând acțiunile efectuate, lecțiile învățate, data și confirmarea aprobării utilizatorului.
