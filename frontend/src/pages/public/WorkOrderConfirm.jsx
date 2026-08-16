@@ -118,60 +118,6 @@ function SignaturePad({ onChange, disabled, t }) {
 }
 
 const LANG_DICT = {
-    ro: {
-        workOrder: 'Comandă de Lucru / Deviz',
-        finalWorkOrder: 'Lucrare Finalizată',
-        confirmed: 'Confirmat!',
-        confirmedBy: 'Confirmat de',
-        onDate: 'pe',
-        signature: 'Semnătură înregistrată',
-        start: 'Start',
-        deadline: 'Termen',
-        client: 'Beneficiar',
-        location: 'Locație Lucrare',
-        requirements: 'Cerințe de Lucru',
-        volumes: 'Volume Estimate',
-        materials: 'Materiale',
-        notes: 'Observații',
-        approxDate: 'Dată (Aprox.)',
-        plannedDate: 'Data Planificată',
-        proposedDate: 'Data Propusă',
-        plannedTime: 'Ora',
-        confirmOrder: 'Confirmare Deviz',
-        confirmOrderFinal: 'Confirmare Lucrare Finalizată',
-        confirmDesc: 'Completați datele, aplicați semnătura digitală și confirmați.',
-        confirmedByLabel: 'Confirmat de *',
-        namePlaceholder: 'Nume și prenume / Companie',
-        digitalSignature: 'Semnătură Digitală',
-        signatureRequired: 'Semnătura este obligatorie',
-        acceptOffer: 'Confirm că am luat cunoștință de deviz, de data programată și accept această ofertă.',
-        orAcceptWithout: 'sau acceptați fără semnătură:',
-        terms: 'Am citit și sunt de acord cu toate cerințele, condițiile, prețurile estimate și data programată specificate în acest deviz.',
-        termsFinal: 'J\'ai vérifié les travaux exécutés, y compris les photos jointes, et je confirme que le travail a été correctement terminé.',
-        confirmBtn: 'Confirmă și Semnează',
-        confirmingBtn: 'Se confirmă...',
-        confirmDateBtn: 'Confirmă Data',
-        dateConfirmedMsg: 'Dată Confirmată',
-        estimatedPrice: 'Preț Estimativ',
-        finalInvoice: 'Factură Finală (PDF)',
-        downloadPdf: 'Descarcă PDF',
-        completionPhotos: 'Photos de Fin de Travaux',
-        signHere: 'Semnați aici cu mouse-ul sau degetul',
-        clearSignature: 'Șterge semnătura',
-        loadingOrder: 'Se încarcă comanda...',
-        orderNotFound: 'Comandă negăsită',
-        errorLoading: 'Nu am putut accesa comanda. Verificați conexiunea la internet.',
-        errorConfirming: 'Eroare la confirmare. Încearcă din nou.',
-        updateNotification: 'Actualizare importantă! Data de intervenție sau devizul a fost modificat. Vă rugăm să verificați noile informații.',
-        orderCancelled: 'Această comandă a fost anulată.',
-        rescheduleTitle: 'Solicită altă dată',
-        rescheduleDesc: 'Scrie-ne mai jos data pe care o preferi și motivul. Te vom contacta în cel mai scurt timp pentru a stabili o nouă programare.',
-        reschedulePlaceholder: 'Ex: Aș prefera pe 15 august, după ora 10:00...',
-        rescheduleSubmit: 'Trimite Solicitarea',
-        rescheduleSuccess: 'Solicitarea a fost trimisă cu succes!',
-        reschedulePending: 'Ați solicitat reprogramarea. Echipa noastră vă va contacta.',
-        contactChatToReschedule: 'Dacă doriți să modificați această dată, vă rugăm să ne contactați prin chat.'
-    },
     en: {
         workOrder: 'Work Order',
         confirmed: 'Order Confirmed!',
@@ -464,7 +410,8 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const { token } = useParams()
     const [searchParams, setSearchParams] = useSearchParams()
     const urlLang = searchParams.get('lang')
-    const [lang, setLang] = useState(urlLang || 'fr')
+    const initialLang = (urlLang && ['fr', 'nl', 'en', 'de'].includes(urlLang)) ? urlLang : 'fr'
+    const [lang, setLang] = useState(initialLang)
     const t = LANG_DICT[lang] || LANG_DICT['fr']
     
     const MODAL_T = {
