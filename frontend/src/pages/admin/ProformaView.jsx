@@ -7,9 +7,10 @@ import { useTenantStore } from '../../store/tenantStore'
 import { useTranslation } from 'react-i18next'
 import i18nGlobal from '../../i18n'
 
-export default function ProformaView({ workOrderData = null, config = null }) {
+export default function ProformaView({ workOrderData = null, config = null, workOrderId = null }) {
     const { t, i18n } = useTranslation()
-    const { id } = useParams()
+    const urlParams = useParams()
+    const id = workOrderId || urlParams.id
     const location = useLocation()
     const navigate = useNavigate()
     const { tenant } = useTenantStore()
