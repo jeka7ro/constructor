@@ -219,7 +219,7 @@ export default function DevisOnline() {
                         client_language: formData.client_language || 'fr',
                         company_name: formData.client_company_name,
                         client_type: formData.client_type,
-                        surfaces: formData.surfaces,
+                        surfaces: formData.surfaces.map((s, idx) => ({ ...s, label: `Surface ${idx + 1}` })),
                         isolations: formData.isolations,
                         // Legacy compatibility
                         surface: formData.surface || (formData.surfaces?.[0]?.surface),
