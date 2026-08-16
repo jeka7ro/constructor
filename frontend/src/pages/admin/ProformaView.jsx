@@ -58,7 +58,12 @@ export default function ProformaView({ workOrderData = null, config = null, work
                 'supplier': 'FOURNISSEUR',
                 'client_none': 'Sans Client',
                 'invoice_title': 'FACTURE',
-                'note': 'Ceci est une facture proforma. Les produits et services seront fournis après confirmation du paiement ou selon le contrat en vigueur.'
+                'note': 'Ceci est une facture proforma. Les produits et services seront fournis après confirmation du paiement ou selon le contrat en vigueur.',
+                'total_label': 'Total :',
+                'quote_comment_1': 'Le devis total exclut la TVA :',
+                'quote_comment_2': 'pour les nouvelles constructions TVA 21%',
+                'quote_comment_3': 'pour les renouvellements TVA 6%',
+                'quote_comment_4': 'pour les entreprises disposant de numéros de TVA, autoliquidation et TVA non appliquée'
             }[key] || key
         })
     }
@@ -186,16 +191,16 @@ export default function ProformaView({ workOrderData = null, config = null, work
                         id: `base_${idx}`,
                         desc: `Pose de chape ${Math.min(thickForAuto, stdThick)} cm`,
                         qty: surfaceForAuto,
-                        price: parseFloat(activePrices.base || 12.5)
+                        price: getPrice(activePrices.base, null, 12.5)
                     });
                     
                     if (extraThickForAuto > 0) {
                         // Match computeChapeTotal: use extra_large when surface > extra_threshold
                         let extraRate;
                         if (activePrices.extra_large !== undefined && activePrices.extra_threshold !== undefined) {
-                            extraRate = surfaceForAuto > parseFloat(activePrices.extra_threshold) ? parseFloat(activePrices.extra_large) : parseFloat(activePrices.extra || 1.25);
+                            extraRate = surfaceForAuto > parseFloat(activePrices.extra_threshold) ? getPrice(activePrices.extra_large, null, 1.25) : getPrice(activePrices.extra, null, 1.25);
                         } else {
-                            extraRate = parseFloat(activePrices.extra_thickness_price_per_cm || activePrices.extra || 1.25);
+                            extraRate = getPrice(activePrices.extra_thickness_price_per_cm || activePrices.extra, null, 1.25);
                         }
                         defaultFallbackItems.push({
                             id: `extra_${idx}`,
@@ -215,7 +220,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
                             id: `foil_${idx}`,
                             desc: `Feuille de plastique (Visqueen)`,
                             qty: surfaceForAuto,
-                            price: parseFloat(activePrices.foil || 1.2)
+                            price: getPrice(activePrices.foil, null, 1.2)
                         });
                     }
                     
@@ -224,7 +229,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
                             id: `mesh_${idx}`,
                             desc: `Armature (Paillasse)`,
                             qty: surfaceForAuto,
-                            price: parseFloat(activePrices.mesh || 2.5)
+                            price: getPrice(activePrices.mesh, null, 2.5)
                         });
                     }
                     
@@ -233,7 +238,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
                             id: `fiber_${idx}`,
                             desc: `Fibre + Duramint`,
                             qty: surfaceForAuto,
-                            price: parseFloat(activePrices.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0))
+                            price: getPrice(activePrices.fiber, null, surfaceForAuto <= 200 ? 2.5 : 2.0)
                         });
                     }
 
