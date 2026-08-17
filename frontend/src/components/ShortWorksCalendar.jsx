@@ -82,13 +82,17 @@ const calculateOrderSand = (wo) => {
 export const formatAddressCityFirst = (address) => {
     if (!address) return '';
     const parts = address.split(',').map(p => p.trim());
+    // "doar localc" -> doar localitatea
+    // Dacă adresa e "Bruxelles, Belgia", returnăm "Bruxelles" (parts[0])
+    // Dacă e "Strada X, Oras, Tara", ideal ar fi orasul, dar returnam parts[0] sau parts[1]
     if (parts.length >= 2) {
-        // Assume parts[0] is street, parts[1] is city+zip
-        const street = parts[0];
         let cityWithZip = parts[1];
         let city = cityWithZip.replace(/\d+/g, '').trim();
-        if (!city) city = cityWithZip;
-        return `${city}, ${street}`;
+        // Dacă e doar "Bruxelles, Belgia", Belgia e parts[1].
+        if (city.toLowerCase() === 'belgia' || city.toLowerCase() === 'belgium') {
+            return parts[0].replace(/\d+/g, '').trim();
+        }
+        return city || parts[0];
     }
     return address;
 };
@@ -1162,10 +1166,10 @@ export default function ShortWorksCalendar({
                                             ${isSelectingForHolding && !isPast ? 'ring-2 ring-yellow-400 animate-pulse cursor-pointer' : ''}
                                             ${heldOrder?.id === wo.id ? 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/50' : ''}`}
                                         style={{
-                                            top: `${(wo.rowStart - 1) * 70 + 2}px`,
-                                            height: '64px',
-                                            left: `${leftPercent}%`,
-                                            width: widthValue,
+                                            top: `${(wo.rowStart - 1) * 70 + 4}px`,
+                                            height: '60px',
+                                            left: `calc(${leftPercent}% + 5px)`,
+                                            width: `calc(${(colFr / totalFr) * 100}% - 10px)`,
                                             backgroundColor: !wo.assigned_team_id ? undefined : `${colorHex}25`,
                                             borderLeftColor: !wo.assigned_team_id ? undefined : colorHex,
                                             borderColor: isCompleted ? '#22c55e' : (!wo.assigned_team_id ? undefined : `${colorHex}50`),
@@ -1275,8 +1279,30 @@ export default function ShortWorksCalendar({
                                         }}
                                         title={`${(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)} — trageți pentru a muta`}
                                     >
+                                        {/* SURFATA - SUS DREAPTA */}
+                                        {(() => {
+                                            const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
+                                            const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
+                                            const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+                                            const finalSurf = sumVol > 0 ? sumVol : fallbackSurf;
+                                            const estSurf = parseFloat(wo.estimated_surface) || 0;
+                                            const isCompleted = wo.status === 'completed' || wo.status === 'invoiced';
+                                            const isReal = isCompleted && finalSurf > 0;
+                                            const displaySurf = isReal ? finalSurf : (estSurf > 0 ? estSurf : finalSurf);
+                                            
+                                            if (displaySurf > 0) {
+                                                return (
+                                                    <div className={`absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 text-[10px] font-bold ${isReal ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`} title={isReal ? "Surface Réelle" : "Surface Estimée"}>
+                                                        {displaySurf}m²
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+
+                                        {/* VREMEA - JOS DREAPTA */}
                                         {!isCompleted && (
-                                            <div className={`absolute top-1 right-1 z-10 opacity-70`}>
+                                            <div className={`absolute bottom-1 right-1 z-10 opacity-70`}>
                                                 <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} />
                                             </div>
                                         )}
@@ -1306,17 +1332,13 @@ export default function ShortWorksCalendar({
                                             if (!distText && !(displaySurf > 0) && !(sandVal > 0)) return null;
 
                                             return (
-                                                <div className="mt-1 flex items-center gap-1.5 w-fit max-w-full overflow-hidden bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700/50">
+                                                <div className="mt-1 flex items-center gap-3 w-fit max-w-full overflow-hidden bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700/50">
                                                     {distText && (
                                                         <span className="text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-400 whitespace-nowrap" title="Distanță Rută (Planning)">
                                                             {distText}
                                                         </span>
                                                     )}
-                                                    {displaySurf > 0 && (
-                                                        <span className={`text-[9px] font-bold ${isReal ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}`} title={isReal ? "Surface Réelle" : "Surface Estimée"}>
-                                                            {displaySurf}m²
-                                                        </span>
-                                                    )}
+                                                    {/* Suprafata a fost mutata in dreapta sus */}
                                                     {sandVal > 0 && (
                                                         <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold whitespace-nowrap">
                                                             {sandVal.toFixed(1)}T
