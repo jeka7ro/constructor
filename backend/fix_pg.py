@@ -1,10 +1,15 @@
-import re
+from sqlalchemy import create_engine, text
+from app.config import settings
 
-with open("update_pg_clients_type.py", "r") as f:
-    code = f.read()
-
-code = code.replace("ALTER TABLE clients", "ALTER TABLE saas_app.clients")
-
-with open("update_pg_clients_type.py", "w") as f:
-    f.write(code)
-
+engine = create_engine(settings.DATABASE_URL)
+with engine.begin() as conn:
+    try:
+        conn.execute(text("ALTER TABLE saas_app.clients ADD COLUMN rating INTEGER DEFAULT 0"))
+        print("Added rating")
+    except Exception as e:
+        print(f"Error rating: {e}")
+    try:
+        conn.execute(text("ALTER TABLE saas_app.clients ADD COLUMN internal_notes TEXT"))
+        print("Added internal_notes")
+    except Exception as e:
+        print(f"Error internal_notes: {e}")

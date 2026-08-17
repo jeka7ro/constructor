@@ -31,6 +31,12 @@ class PricingSettingSchema(BaseModel):
     fiber_price_sqm_large: float
     fiber_large_threshold_sqm: float
     surface_thresholds: List[SurfaceThreshold]
+    
+    # Prețuri minime (Facturare)
+    min_invoice_threshold_sqm: Optional[float] = 40.0
+    min_invoice_fixed_price_under: Optional[float] = None
+    min_invoice_min_price_over: Optional[float] = None
+    
     vat_legal_entity: float = 0.0
     vat_physical_new: float = 21.0
     vat_physical_repair: float = 6.0
@@ -139,6 +145,11 @@ def get_pricing_settings(
         "fiber_price_sqm_large": setting.fiber_price_sqm_large,
         "fiber_large_threshold_sqm": setting.fiber_large_threshold_sqm,
         "surface_thresholds": setting.surface_thresholds or [],
+        
+        "min_invoice_threshold_sqm": getattr(setting, "min_invoice_threshold_sqm", 40.0),
+        "min_invoice_fixed_price_under": getattr(setting, "min_invoice_fixed_price_under", None),
+        "min_invoice_min_price_over": getattr(setting, "min_invoice_min_price_over", None),
+        
         "vat_legal_entity": setting.vat_legal_entity,
         "vat_physical_new": setting.vat_physical_new,
         "vat_physical_repair": setting.vat_physical_repair,
@@ -234,6 +245,10 @@ def update_pricing_settings(
     setting.fiber_price_sqm = payload.fiber_price_sqm
     setting.fiber_price_sqm_large = payload.fiber_price_sqm_large
     setting.fiber_large_threshold_sqm = payload.fiber_large_threshold_sqm
+    
+    setting.min_invoice_threshold_sqm = payload.min_invoice_threshold_sqm
+    setting.min_invoice_fixed_price_under = payload.min_invoice_fixed_price_under
+    setting.min_invoice_min_price_over = payload.min_invoice_min_price_over
     
     setting.vat_legal_entity = payload.vat_legal_entity
     setting.vat_physical_new = payload.vat_physical_new

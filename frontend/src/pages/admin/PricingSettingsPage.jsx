@@ -321,6 +321,7 @@ export default function PricingSettingsPage() {
                                         onAddThreshold={handleClientAddThreshold}
                                         onRemoveThreshold={handleClientRemoveThreshold}
                                         onUpdateThreshold={handleClientUpdateThreshold}
+                                        isCustomClient={true}
                                     />
                                 </>
                             ) : (

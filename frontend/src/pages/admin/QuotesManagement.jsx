@@ -5,7 +5,7 @@ import { useAdminStore } from '../../store/adminStore'
 import { createPortal } from 'react-dom'
 import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip, Eye, EyeOff, Route, Copy, ExternalLink, MessageSquare, Wind, Thermometer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import DataTable from '../../components/DataTable'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
 import SearchableSelect from '../../components/SearchableSelect'
@@ -771,12 +771,23 @@ export default function QuotesManagement() {
                 return (
                     <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5 text-sm text-slate-700">
-                            <span 
-                                className={`whitespace-normal break-words px-2 py-0.5 rounded-xl ${badgeColor} ${!isRead ? 'font-bold' : 'font-medium'}`} 
-                                title={row.client_name}
-                            >
-                                {row.client_name || '-'}
-                            </span>
+                            {row.client_id ? (
+                                <RouterLink 
+                                    to={`/admin/clients/${row.client_id}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className={`whitespace-normal break-words px-2 py-0.5 rounded-xl ${badgeColor} ${!isRead ? 'font-bold' : 'font-medium'} hover:opacity-80 transition-opacity cursor-pointer`}
+                                    title={row.client_name}
+                                >
+                                    {row.client_name || '-'}
+                                </RouterLink>
+                            ) : (
+                                <span 
+                                    className={`whitespace-normal break-words px-2 py-0.5 rounded-xl ${badgeColor} ${!isRead ? 'font-bold' : 'font-medium'}`} 
+                                    title={row.client_name}
+                                >
+                                    {row.client_name || '-'}
+                                </span>
+                            )}
                             {(row.start_date || row.approximate_date) && (
                                 <>
                                     <span className="text-slate-300 shrink-0">•</span>

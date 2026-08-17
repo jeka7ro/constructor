@@ -69,31 +69,47 @@ export default function ProformaView({ workOrderData = null, config = null, work
     }
 
     useEffect(() => {
-        if (workOrderData) {
-            setWo(workOrderData)
-            setLoading(false)
-            return
-        }
-        if (!id) return
-        const loadWorkOrder = async () => {
+        let isMounted = true;
+        
+        const loadAll = async () => {
             try {
-                const res = await api.get(`/admin/work-orders/${id}`)
-                setWo(res.data)
+                let currentWo = workOrderData;
+                
+                // 1. Fetch WO if not provided
+                if (!currentWo && id) {
+                    const woRes = await api.get(`/admin/work-orders/${id}`);
+                    currentWo = woRes.data;
+                }
+                
+                if (!currentWo) {
+                    if (isMounted) setLoading(false);
+                    return;
+                }
+                
+                // 2. Fetch Pricing Settings (using client_id for preferential tariffs)
+                const pricingQuery = currentWo.client_id ? `?client_id=${currentWo.client_id}` : '';
+                const pricingRes = await api.get(`/admin/pricing-settings${pricingQuery}`).catch(err => {
+                    console.error('Failed to load pricing settings:', err);
+                    return { data: null };
+                });
+                
+                if (isMounted) {
+                    setWo(currentWo);
+                    if (pricingRes.data) {
+                        setPricingSettings(pricingRes.data);
+                    }
+                    setLoading(false);
+                }
             } catch (err) {
-                console.error(err)
-            } finally {
-                setLoading(false)
+                console.error(err);
+                if (isMounted) setLoading(false);
             }
-        }
-        loadWorkOrder()
-    }, [id, workOrderData])
-
-    // Fetch pricing settings (tarife)
-    useEffect(() => {
-        api.get('/admin/pricing-settings')
-            .then(res => setPricingSettings(res.data))
-            .catch(err => console.error('Failed to load pricing settings:', err))
-    }, [])
+        };
+        
+        loadAll();
+        
+        return () => { isMounted = false; };
+    }, [id, workOrderData]);
 
     const pData = config || wo?.proforma_data || null
     
@@ -460,10 +476,13 @@ export default function ProformaView({ workOrderData = null, config = null, work
         return { ...item, desc: newDesc };
     }) : defaultFallbackItems;
 
-    // Filter out Transport if price is 0 (from the initial items list)
+    // Filter out Transport and Ajustare to avoid double-charging, since we recalculate them
     items = items.filter(item => {
+        if (item.id === 'min_invoice_adj' || (item.desc && item.desc.toLowerCase().includes('ajustare preț'))) {
+            return false;
+        }
         if (item.desc && (item.desc.toLowerCase().includes('transport') || item.desc.toLowerCase().includes('déplacement'))) {
-            return parseFloat(item.price || 0) > 0;
+            return false;
         }
         return true;
     });
@@ -528,6 +547,40 @@ export default function ProformaView({ workOrderData = null, config = null, work
             unit: 'Forfait',
             price: truckCost
         });
+    }
+
+    // ── FACTURARE MINIMĂ (Preferențiali) ──────────────────────────────────────
+    const pSettings = pricingSettings || {};
+    const minThreshold = parseFloat(pSettings.min_invoice_threshold_sqm || 0);
+    
+    if (minThreshold > 0) {
+        const currentTotalNetForMin = items.reduce((s, i) => i.isHeader ? s : s + (i.qty * i.price), 0);
+        const fixedUnder = parseFloat(pSettings.min_invoice_fixed_price_under || 0);
+        const minOver = parseFloat(pSettings.min_invoice_min_price_over || 0);
+        
+        if (surfCheck <= minThreshold && fixedUnder > 0) {
+            if (currentTotalNetForMin !== fixedUnder) {
+                items.push({
+                    id: 'min_invoice_adj',
+                    isChape: true,
+                    desc: 'Ajustare preț minim șantier',
+                    qty: 1,
+                    unit: 'Forfait',
+                    price: fixedUnder - currentTotalNetForMin
+                });
+            }
+        } else if (surfCheck > minThreshold && minOver > 0) {
+            if (currentTotalNetForMin < minOver) {
+                items.push({
+                    id: 'min_invoice_adj',
+                    isChape: true,
+                    desc: 'Ajustare preț minim șantier',
+                    qty: 1,
+                    unit: 'Forfait',
+                    price: minOver - currentTotalNetForMin
+                });
+            }
+        }
     }
 
     const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0)
@@ -617,7 +670,12 @@ export default function ProformaView({ workOrderData = null, config = null, work
                         <div className="col-span-2 text-right">{isInvoiceView ? tL('subtotal_eur', 'Sous-total (EUR)') : tL('amount', 'Montant')}</div>
                     </div>
                     {items.map((item, idx) => (
-                        <div key={item.id || idx} className="grid grid-cols-12 gap-4 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
+                        item.isHeader ? (
+                            <div key={item.id || idx} className="grid grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-5 py-2 bg-slate-200/60 rounded-xl border border-slate-200 items-center break-inside-avoid mt-3 first:mt-0">
+                                <div className="col-span-12 text-slate-700 font-black text-[11px] uppercase tracking-widest">{item.headerLabel}</div>
+                            </div>
+                        ) : (
+                        <div key={item.id || idx} className="grid grid-cols-12 gap-4 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid mt-1">
                             <div className="col-span-5">
                                 <p className="font-medium text-slate-800 text-sm">{item.desc}</p>
                                 {idx === 0 && (wo.site_name || wo.site_address) && (
@@ -635,6 +693,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
                             {isInvoiceView && <div className="col-span-1 text-right text-slate-600 text-sm">{vatRate > 0 ? `${vatRate}%` : '0,0%'}</div>}
                             <div className="col-span-2 text-right font-bold text-slate-800 text-sm">{(item.qty * item.price).toFixed(2)}</div>
                         </div>
+                        )
                     ))}
                 </div>
 

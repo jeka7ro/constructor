@@ -86,10 +86,9 @@ def _log_email(org_id, wo_id, to_email, client_name, subject, html_content, stat
     finally:
         db.close()
 
-def send_quote_email(to_email: str, client_name: str, client_language: str, signing_url: str, pdf_path: str = None, org_id: str = None, wo_id: str = None):
+def send_quote_email(to_email: str, client_name: str, client_language: str, signing_url: str, pdf_path: str = None, org_id: str = None, wo_id: str = None, custom_html: str = None):
     client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
     if client_language in ['eng', 'english']: client_language = 'en'
-    if client_language in ['ro', 'romana', 'romanian']: client_language = 'ro'
     if client_language in ['nl', 'dutch']: client_language = 'nl'
     if client_language in ['fr', 'french']: client_language = 'fr'
     brevo_api_key = os.getenv("BREVO_API_KEY")
@@ -156,8 +155,11 @@ def send_quote_email(to_email: str, client_name: str, client_language: str, sign
         except:
             pass
 
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+    if custom_html:
+        html_content = custom_html
+    else:
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
         <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid {primary_color};">
             <img src="https://davidechape.pontaj.app/davide_logo.png" alt="Davide Chape" style="max-height: 60px;" />
         </div>

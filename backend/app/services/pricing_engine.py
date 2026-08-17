@@ -45,8 +45,7 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
             "threshold": 0, "truck_cost": 0, "isolation_cost": 0, 
             "total_net": 0, "vat_amount": 0, "distance_km": distance_km,
             "isolation_pur_base": 0, "isolation_pur_opt": 0, "isolation_eps_base": 0,
-            "total_gross": 0, "vat_rate": 0, "discount_amount": 0, "discount_pct": 0,
-            "pur_discount_pct": 0, "eps_discount_pct": 0
+            "pur_discount_pct": 0, "eps_discount_pct": 0, "min_invoice_adj": 0
         }
 
     # 1. Base Cost
@@ -185,6 +184,26 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
 
     total_net = chape_net + isolation_cost
     
+    # ── FACTURARE MINIMĂ (Preferențiali) ──────────────────────────────────────
+    min_invoice_adj = 0.0
+    min_threshold = float(pricing.get('min_invoice_threshold_sqm') or 0.0)
+    
+    if min_threshold > 0:
+        fixed_under = float(pricing.get('min_invoice_fixed_price_under') or 0.0)
+        min_over = float(pricing.get('min_invoice_min_price_over') or 0.0)
+        
+        # Calculate reference surface. First try 'surface_m2' directly from payload
+        surf_check = float(payload.get('surface_m2') or payload.get('quantity') or total_surface)
+        
+        if surf_check <= min_threshold and fixed_under > 0:
+            if total_net != fixed_under:
+                min_invoice_adj = fixed_under - total_net
+        elif surf_check > min_threshold and min_over > 0:
+            if total_net < min_over:
+                min_invoice_adj = min_over - total_net
+                
+    total_net += min_invoice_adj
+    
     # 7. VAT
     vat_rate = 21.0
     client_type = payload.get('client_type', 'fizica')
@@ -206,6 +225,7 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
         "mesh": mesh_cost,
         "fiber": fiber_cost,
         "threshold": hidden_extra,
+        "min_invoice_adj": min_invoice_adj,
         "truck_cost": truck_cost,
         "isolation_cost": isolation_cost,
         "isolation_pur_base": iso_pur_base,

@@ -22,7 +22,52 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
         
     date_val = work_order.invoiced_at if is_invoice else work_order.created_at
     from datetime import datetime
-    issue_date = date_val.strftime('%Y-%m-%d') if date_val else datetime.now().strftime('%Y-%m-%d')
+    issue_date = date_val.strftime('%d.%m.%Y') if date_val else datetime.now().strftime('%d.%m.%Y')
+    
+    lang = getattr(work_order, 'client_language', 'fr')
+    if not lang: lang = 'fr'
+    lang = lang.lower().split('-')[0]
+    if lang not in ['fr', 'nl', 'en']: lang = 'fr'
+    
+    t = {
+        'fr': {
+            'chape_pose': "Pose de chape",
+            'extra_thick': "Épaisseur supplémentaire",
+            'foil': "Feuille de plastique (Visqueen)",
+            'mesh': "Armature (Paillasse)",
+            'fiber': "Fibre + Duramint",
+            'transport': "Transport",
+            'labor': "Main-d'œuvre",
+            'chape': "Chape",
+            'discount': "Remise",
+            'tbd': "À déterminer"
+        },
+        'nl': {
+            'chape_pose': "Chape plaatsing",
+            'extra_thick': "Extra dikte",
+            'foil': "Plastic folie (Visqueen)",
+            'mesh': "Wapening (Netten)",
+            'fiber': "Vezel + Duramint",
+            'transport': "Transport",
+            'labor': "Arbeidskosten",
+            'chape': "Chape",
+            'discount': "Korting",
+            'tbd': "Te bepalen"
+        },
+        'en': {
+            'chape_pose': "Screed placement",
+            'extra_thick': "Extra thickness",
+            'foil': "Plastic foil (Visqueen)",
+            'mesh': "Mesh reinforcement",
+            'fiber': "Fiber + Duramint",
+            'transport': "Transport",
+            'labor': "Labor",
+            'chape': "Screed",
+            'discount': "Discount",
+            'tbd': "To be determined"
+        }
+    }
+    _t = t[lang]
     
     client_name = safe_str(client.name if client else work_order.client_name)
     client_cui = safe_str(client.cui if client else "")
@@ -44,19 +89,19 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
                     std_thick = float(prices.get('standard_thickness', 5))
                     extra_thick = max(0, thick - std_thick)
                     
-                    items.append({"desc": f"Pose de chape {min(thick, std_thick)} cm", "qty": surface, "price": float(prices.get('base', 12.5))})
+                    items.append({"desc": f"{_t['chape_pose']} {min(thick, std_thick)} cm", "qty": surface, "price": float(prices.get('base', 12.5))})
                     if extra_thick > 0:
                         # Match computeChapeTotal: use extra_large when surface > extra_threshold
                         extra_rate = float(prices.get('extra', prices.get('extra_thickness_price_per_cm', 1.25)))
                         if prices.get('extra_large') is not None and prices.get('extra_threshold') is not None:
                             extra_rate = float(prices['extra_large']) if surface > float(prices['extra_threshold']) else float(prices.get('extra', 1.25))
-                        items.append({"desc": f"Épaisseur supplémentaire ({extra_thick} cm)", "qty": surface, "price": extra_thick * extra_rate})
+                        items.append({"desc": f"{_t['extra_thick']} ({extra_thick} cm)", "qty": surface, "price": extra_thick * extra_rate})
                     if vol.get('has_foil'):
-                        items.append({"desc": "Feuille de plastique (Visqueen)", "qty": surface, "price": float(prices.get('foil', 1.2))})
+                        items.append({"desc": _t['foil'], "qty": surface, "price": float(prices.get('foil', 1.2))})
                     if vol.get('has_mesh'):
-                        items.append({"desc": "Armature (Paillasse)", "qty": surface, "price": float(prices.get('mesh', 2.5))})
+                        items.append({"desc": _t['mesh'], "qty": surface, "price": float(prices.get('mesh', 2.5))})
                     if vol.get('has_fiber') or vol.get('has_duramint'):
-                        items.append({"desc": "Fibre + Duramint", "qty": surface, "price": float(prices.get('fiber', 2.5 if surface <= 200 else 2.0))})
+                        items.append({"desc": _t['fiber'], "qty": surface, "price": float(prices.get('fiber', 2.5 if surface <= 200 else 2.0))})
                         
                 elif 'isolation' in lbl and 'pur' in lbl:
                     pur_thick = thick or 3
@@ -115,7 +160,7 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
                     
                     eps_discount_pct = float(prices.get('eps_discount_pct', 0))
                     if eps_discount_pct > 0:
-                        items.append({"desc": f"Remise EPS ({eps_discount_pct}%)", "qty": 1, "price": -(eps_price * eps_discount_pct / 100)})
+                        items.append({"desc": f"{_t['discount']} EPS ({eps_discount_pct}%)", "qty": 1, "price": -(eps_price * eps_discount_pct / 100)})
                 else:
                     items.append({"desc": lbl or "Volume", "qty": surface, "price": float(work_order.estimated_price or 0) / (surface or 1)})
 
@@ -142,7 +187,7 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
                 truck_cost = truck_flat
                 
         if truck_cost > 0:
-            desc = "Transport"
+            desc = _t['transport']
             items.append({"id": "transport_auto", "desc": desc, "qty": 1, "price": truck_cost})
 
     table_rows = ""
@@ -156,9 +201,9 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
         desc = item.get('desc', '')
         desc_lower = desc.lower()
         if 'șapă' in desc_lower or 'sapa' in desc_lower:
-            desc = "Chape"
+            desc = _t['chape']
         elif 'manoper' in desc_lower:
-            desc = "Main-d'œuvre"
+            desc = _t['labor']
             
         table_rows += f"""
         <tr>
@@ -184,7 +229,7 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
     if discount_amount > 0:
         table_rows += f"""
         <tr>
-            <td>Remise Chape</td>
+            <td>{_t['discount']} {_t['chape']}</td>
             <td style="text-align: right;"></td>
             <td style="text-align: right;"></td>
             <td style="text-align: right; color: red;">-€{discount_amount:.2f}</td>
@@ -202,9 +247,26 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
     total_vat = total_net * (vat_percent / 100)
     total_gross = total_net + total_vat
 
+    start_d = getattr(work_order, 'start_date', None)
+    approx_d = getattr(work_order, 'approximate_date', None)
+    
+    if start_d:
+        if hasattr(start_d, 'strftime'):
+            intervention_date = start_d.strftime('%d.%m.%Y')
+        else:
+            intervention_date = str(start_d)[:10]
+    elif approx_d:
+        if hasattr(approx_d, 'strftime'):
+            intervention_date = approx_d.strftime('%d.%m.%Y')
+        else:
+            intervention_date = str(approx_d)[:10]
+    else:
+        intervention_date = _t['tbd']
+
     return {
         "doc_number": doc_number,
         "issue_date": issue_date,
+        "intervention_date": intervention_date,
         "client_name": client_name,
         "client_address": client_address,
         "client_cui": client_cui,
@@ -212,16 +274,70 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
         "total_net": total_net,
         "total_vat": total_vat,
         "vat_percent": vat_percent,
-        "total_gross": total_gross
+        "total_gross": total_gross,
+        "lang": lang
     }
 
 
 def get_html_template(work_order, client=None):
     """Generates the HTML template for the PDF invoice/quote"""
-    
     data = _compute_pdf_data(work_order, client, is_invoice=True)
+    lang = data.get('lang', 'fr')
+    
+    t = {
+        'fr': {
+            'billed_to': "Facturé à:",
+            'cui': "CUI / TVA",
+            'invoice_title': "FACTURE",
+            'invoice_no': "N° de facture:",
+            'issue_date': "Date d'émission:",
+            'intervention': "Date d'intervention:",
+            'desc': "Description",
+            'qty': "Quantité",
+            'unit_price': "Prix Unitaire",
+            'total': "Total",
+            'subtotal': "Sous-total (Net):",
+            'vat': "TVA",
+            'grand_total': "TOTAL À PAYER:",
+            'footer': "Merci pour votre confiance. En cas de questions concernant cette facture, n'hésitez pas à nous contacter."
+        },
+        'nl': {
+            'billed_to': "Gefactureerd aan:",
+            'cui': "BTW",
+            'invoice_title': "FACTUUR",
+            'invoice_no': "Factuur Nr:",
+            'issue_date': "Uitgiftedatum:",
+            'intervention': "Uitvoeringsdatum:",
+            'desc': "Beschrijving",
+            'qty': "Hoeveelheid",
+            'unit_price': "Eenheidsprijs",
+            'total': "Totaal",
+            'subtotal': "Subtotaal (Netto):",
+            'vat': "BTW",
+            'grand_total': "TOTAAL TE BETALEN:",
+            'footer': "Bedankt voor uw vertrouwen. Bij vragen over deze factuur, neem gerust contact met ons op."
+        },
+        'en': {
+            'billed_to': "Billed to:",
+            'cui': "VAT",
+            'invoice_title': "INVOICE",
+            'invoice_no': "Invoice No:",
+            'issue_date': "Issue Date:",
+            'intervention': "Intervention Date:",
+            'desc': "Description",
+            'qty': "Quantity",
+            'unit_price': "Unit Price",
+            'total': "Total",
+            'subtotal': "Subtotal (Net):",
+            'vat': "VAT",
+            'grand_total': "TOTAL TO PAY:",
+            'footer': "Thank you for your business. If you have any questions about this invoice, please contact us."
+        }
+    }
+    _t = t[lang]
     invoice_number = data['doc_number']
     issue_date = data['issue_date']
+    intervention_date = data['intervention_date']
     client_name = data['client_name']
     client_cui = data['client_cui']
     client_address = data['client_address']
@@ -341,25 +457,26 @@ def get_html_template(work_order, client=None):
 
         <div class="client-section">
             <div class="client-details">
-                <strong>Facturé à:</strong><br><br>
+                <strong>{_t['billed_to']}</strong><br><br>
                 <strong>{client_name}</strong><br>
                 {client_address}<br>
-                {f"CUI / TVA: {client_cui}" if client_cui else ""}
+                {f"{_t['cui']}: {client_cui}" if client_cui else ""}
             </div>
             <div class="invoice-meta">
-                <div class="invoice-title">FACTURE</div>
-                <strong>N° de facture:</strong> {invoice_number}<br>
-                <strong>Date d'émission:</strong> {issue_date}
+                <div class="invoice-title">{_t['invoice_title']}</div>
+                <strong>{_t['invoice_no']}</strong> {invoice_number}<br>
+                <strong>{_t['issue_date']}</strong> {issue_date}<br>
+                <strong>{_t['intervention']}</strong> {intervention_date}
             </div>
         </div>
 
         <table>
             <thead>
                 <tr>
-                    <th>Description</th>
-                    <th class="right">Quantité</th>
-                    <th class="right">Prix Unitaire</th>
-                    <th class="right">Total</th>
+                    <th>{_t['desc']}</th>
+                    <th class="right">{_t['qty']}</th>
+                    <th class="right">{_t['unit_price']}</th>
+                    <th class="right">{_t['total']}</th>
                 </tr>
             </thead>
             <tbody>
@@ -370,22 +487,22 @@ def get_html_template(work_order, client=None):
         <div class="totals-section">
             <table class="totals-table">
                 <tr>
-                    <td>Sous-total (Net):</td>
+                    <td>{_t['subtotal']}</td>
                     <td style="text-align: right;">€{total_net:.2f}</td>
                 </tr>
                 <tr>
-                    <td>TVA ({vat_percent}%):</td>
+                    <td>{_t['vat']} ({vat_percent}%):</td>
                     <td style="text-align: right;">€{total_vat:.2f}</td>
                 </tr>
                 <tr class="bold">
-                    <td>TOTAL À PAYER:</td>
+                    <td>{_t['grand_total']}</td>
                     <td style="text-align: right;">€{total_gross:.2f}</td>
                 </tr>
             </table>
         </div>
 
         <div class="footer">
-            Merci pour votre confiance. En cas de questions concernant cette facture, n'hésitez pas à nous contacter.
+            {_t['footer']}
         </div>
     </body>
     </html>
@@ -396,8 +513,63 @@ def get_quote_html_template(work_order, client=None):
     """Generates the HTML template for the PDF quote (Devis)"""
     
     data = _compute_pdf_data(work_order, client, is_invoice=False)
+    lang = data.get('lang', 'fr')
+    
+    t = {
+        'fr': {
+            'quote_for': "Devis pour:",
+            'cui': "CUI / TVA",
+            'quote_title': "DEVIS ESTIMATIF",
+            'quote_no': "N° de devis:",
+            'date': "Date:",
+            'intervention': "Date d'intervention:",
+            'desc': "Description",
+            'qty': "Quantité",
+            'unit_price': "Prix Unitaire",
+            'total': "Total",
+            'subtotal': "Sous-total (Net):",
+            'vat': "TVA",
+            'grand_total': "TOTAL ESTIMATIF:",
+            'footer': "Merci pour votre confiance. Ce devis est valable pour une durée de 30 jours."
+        },
+        'nl': {
+            'quote_for': "Offerte voor:",
+            'cui': "BTW",
+            'quote_title': "RICHTOFFERTE",
+            'quote_no': "Offerte Nr:",
+            'date': "Datum:",
+            'intervention': "Uitvoeringsdatum:",
+            'desc': "Beschrijving",
+            'qty': "Hoeveelheid",
+            'unit_price': "Eenheidsprijs",
+            'total': "Totaal",
+            'subtotal': "Subtotaal (Netto):",
+            'vat': "BTW",
+            'grand_total': "TOTAAL RAMING:",
+            'footer': "Bedankt voor uw vertrouwen. Deze offerte is 30 dagen geldig."
+        },
+        'en': {
+            'quote_for': "Quote for:",
+            'cui': "VAT",
+            'quote_title': "ESTIMATED QUOTE",
+            'quote_no': "Quote No:",
+            'date': "Date:",
+            'intervention': "Intervention Date:",
+            'desc': "Description",
+            'qty': "Quantity",
+            'unit_price': "Unit Price",
+            'total': "Total",
+            'subtotal': "Subtotal (Net):",
+            'vat': "VAT",
+            'grand_total': "ESTIMATED TOTAL:",
+            'footer': "Thank you for your trust. This quote is valid for 30 days."
+        }
+    }
+    _t = t[lang]
+
     quote_number = data['doc_number']
     issue_date = data['issue_date']
+    intervention_date = data['intervention_date']
     client_name = data['client_name']
     client_cui = data['client_cui']
     client_address = data['client_address']
@@ -409,7 +581,7 @@ def get_quote_html_template(work_order, client=None):
 
     html = f"""
     <!DOCTYPE html>
-    <html lang="fr">
+    <html lang="{lang}">
     <head>
         <meta charset="UTF-8">
         <style>
@@ -517,25 +689,26 @@ def get_quote_html_template(work_order, client=None):
 
         <div class="client-section">
             <div class="client-details">
-                <strong>Devis pour:</strong><br><br>
+                <strong>{_t['quote_for']}</strong><br><br>
                 <strong>{client_name}</strong><br>
                 {client_address}<br>
-                {f"CUI / TVA: {client_cui}" if client_cui else ""}
+                {f"{_t['cui']}: {client_cui}" if client_cui else ""}
             </div>
             <div class="invoice-meta">
-                <div class="invoice-title">DEVIS ESTIMATIF</div>
-                <strong>N° de devis:</strong> {quote_number}<br>
-                <strong>Date:</strong> {issue_date}
+                <div class="invoice-title">{_t['quote_title']}</div>
+                <strong>{_t['quote_no']}</strong> {quote_number}<br>
+                <strong>{_t['date']}</strong> {issue_date}<br>
+                <strong>{_t['intervention']}</strong> {intervention_date}
             </div>
         </div>
 
         <table>
             <thead>
                 <tr>
-                    <th>Description</th>
-                    <th class="right">Quantité</th>
-                    <th class="right">Prix Unitaire</th>
-                    <th class="right">Total</th>
+                    <th>{_t['desc']}</th>
+                    <th class="right">{_t['qty']}</th>
+                    <th class="right">{_t['unit_price']}</th>
+                    <th class="right">{_t['total']}</th>
                 </tr>
             </thead>
             <tbody>
@@ -546,22 +719,22 @@ def get_quote_html_template(work_order, client=None):
         <div class="totals-section">
             <table class="totals-table">
                 <tr>
-                    <td>Sous-total (Net):</td>
+                    <td>{_t['subtotal']}</td>
                     <td style="text-align: right;">€{total_net:.2f}</td>
                 </tr>
                 <tr>
-                    <td>TVA ({vat_percent}%):</td>
+                    <td>{_t['vat']} ({vat_percent}%):</td>
                     <td style="text-align: right;">€{total_vat:.2f}</td>
                 </tr>
                 <tr class="bold">
-                    <td>TOTAL ESTIMATIF:</td>
+                    <td>{_t['grand_total']}</td>
                     <td style="text-align: right;">€{total_gross:.2f}</td>
                 </tr>
             </table>
         </div>
 
         <div class="footer">
-            Merci pour votre confiance. Ce devis est valable pour une durée de 30 jours.
+            {_t['footer']}
         </div>
     </body>
     </html>

@@ -419,6 +419,38 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         }
     }
 
+    // ── FACTURARE MINIMĂ (Preferențiali) ──────────────────────────────────────
+    const pSettings = pricingSettings || {};
+    const minThreshold = parseFloat(pSettings.min_invoice_threshold_sqm || 0);
+    
+    if (minThreshold > 0) {
+        const currentTotalNetForMin = items.reduce((s, i) => i.isHeader ? s : s + (i.qty * i.price), 0);
+        const fixedUnder = parseFloat(pSettings.min_invoice_fixed_price_under || 0);
+        const minOver = parseFloat(pSettings.min_invoice_min_price_over || 0);
+        
+        if (surfCheck <= minThreshold && fixedUnder > 0) {
+            if (currentTotalNetForMin !== fixedUnder) {
+                items.push({
+                    isChape: true,
+                    desc: 'Ajustare preț minim șantier',
+                    qty: 1,
+                    unit: 'Forfait',
+                    price: fixedUnder - currentTotalNetForMin
+                });
+            }
+        } else if (surfCheck > minThreshold && minOver > 0) {
+            if (currentTotalNetForMin < minOver) {
+                items.push({
+                    isChape: true,
+                    desc: 'Ajustare preț minim șantier',
+                    qty: 1,
+                    unit: 'Forfait',
+                    price: minOver - currentTotalNetForMin
+                });
+            }
+        }
+    }
+
     const totalNet = items.filter(i => !i.isHeader).reduce((s, i) => s + i.qty * i.price, 0)
     
     const isChapeItem = (desc) => {
@@ -507,7 +539,15 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-6">
                             <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.client}</div>
-                                <div className="font-bold text-slate-800 break-words">{wo.client_name || '—'}</div>
+                                <div className="font-bold text-slate-800 break-words">
+                                    {wo.client_id ? (
+                                        <a href={`/admin/clients/${wo.client_id}`} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 transition-colors print:text-slate-800 text-inherit">
+                                            {wo.client_name || '—'}
+                                        </a>
+                                    ) : (
+                                        wo.client_name || '—'
+                                    )}
+                                </div>
                                 {wo.client_email && <div className="text-xs text-slate-500 mt-1 break-all">{wo.client_email}</div>}
                                 {(wo.client_phone || wo.client?.phone) && <div className="text-xs text-slate-500 mt-1">{wo.client_phone || wo.client?.phone}</div>}
                                 {wo.client?.address && <div className="text-xs text-slate-500 mt-1 break-words">{wo.client.address}</div>}

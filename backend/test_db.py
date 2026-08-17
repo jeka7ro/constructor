@@ -1,12 +1,12 @@
-from app.database import SessionLocal
-from app.models import WorkOrder
+import sqlite3
+import json
 
-db = SessionLocal()
-wos = db.query(WorkOrder).filter(WorkOrder.quote_number != None).order_by(WorkOrder.created_at.desc()).limit(3).all()
-for wo in wos:
-    print(f"ID: {wo.id}")
-    print(f"start_date: {wo.start_date}")
-    print(f"date_confirmed_at: {wo.date_confirmed_at}")
-    print(f"confirmed_at: {wo.confirmed_at}")
-    print(f"status: {wo.status}")
-    print("---")
+conn = sqlite3.connect('/Users/eugeniucazmal/Downloads/dev_office/Client B - pontaje/backend/chape.db')
+cursor = conn.cursor()
+cursor.execute("SELECT prices, estimated_price FROM work_orders WHERE invoice_number='INV779' OR quote_number='INV779' OR id LIKE '%779%' OR id='cd458194-35cf-4dce-b55b-52e6e761223d'")
+res = cursor.fetchone()
+if res:
+    print("prices:", res[0])
+    print("estimated_price:", res[1])
+else:
+    print("Not found")

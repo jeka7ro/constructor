@@ -45,7 +45,8 @@ export default function PricingSettingsForm({
     onSettingChange,
     onAddThreshold,
     onRemoveThreshold,
-    onUpdateThreshold
+    onUpdateThreshold,
+    isCustomClient = false
 }) {
     const { t } = useTranslation()
     const [activeTab, setActiveTab] = useState('sapa')
@@ -143,6 +144,36 @@ export default function PricingSettingsForm({
                                 ))}
                             </div>
                         </div>
+
+                        {isCustomClient && (
+                            <div className="mt-6 mb-4">
+                                <SectionHeader label="Limitate Facturare (Clienți Preferențiali)" />
+                                <div className="text-[11px] text-slate-500 mb-2 leading-relaxed">
+                                    Dacă suprafața (m²) este mai mică sau egală cu pragul setat, factura se forțează la valoarea din primul câmp. Dacă suprafața este mai mare, factura va avea un minim garantat conform celui de-al doilea câmp.
+                                </div>
+                                <PriceRow 
+                                    label="Prag Suprafață Șantier Mic" 
+                                    sublabel="ex: 40" 
+                                    value={settings.min_invoice_threshold_sqm} 
+                                    onChange={v => onSettingChange('min_invoice_threshold_sqm', v)} 
+                                    unit="m²" 
+                                />
+                                <PriceRow 
+                                    label={`Preț fix dacă ≤ ${settings.min_invoice_threshold_sqm || 40} m²`} 
+                                    sublabel="ex: 850" 
+                                    value={settings.min_invoice_fixed_price_under} 
+                                    onChange={v => onSettingChange('min_invoice_fixed_price_under', v)} 
+                                    unit="€" 
+                                />
+                                <PriceRow 
+                                    label={`Preț minim dacă > ${settings.min_invoice_threshold_sqm || 40} m²`} 
+                                    sublabel="ex: 1050" 
+                                    value={settings.min_invoice_min_price_over} 
+                                    onChange={v => onSettingChange('min_invoice_min_price_over', v)} 
+                                    unit="€" 
+                                />
+                            </div>
+                        )}
                     </>
                 )}
 

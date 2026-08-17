@@ -434,12 +434,14 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     from app.services.email_service import send_quote_email, send_admin_new_quote_alert
     from app.services.whatsapp_service import send_whatsapp_message, send_admin_new_quote_whatsapp
     
-    # Trimitem doar e-mailul cu link-ul către proformă, fără niciun PDF atașat
-    def send_email_without_pdf():
-        send_quote_email(client.email, client.name, wo.client_language, proforma_url, None)
+    # Generate PDF and send email
+    async def generate_and_send_pdf():
+        from app.services.pdf_generator import generate_quote_pdf
+        pdf_path = await generate_quote_pdf(wo, client)
+        send_quote_email(client.email, client.name, wo.client_language, proforma_url, pdf_path)
 
     if client.email:
-        background_tasks.add_task(send_email_without_pdf)
+        background_tasks.add_task(generate_and_send_pdf)
     if client.phone:
         background_tasks.add_task(send_whatsapp_message, client.phone, client.name, wo.client_language, proforma_url)
 

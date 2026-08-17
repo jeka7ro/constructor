@@ -47,7 +47,8 @@
         "email_logs": "Journaux d'E-mails",
         "audit_logs": "Journaux d'Activité",
         "backups": "Sauvegardes (Backups)",
-        "chats": "Messages Clients"
+        "chats": "Messages Clients",
+        "client_analytics": "Analyse Clients"
     },
     "audit": {
         "title": "Journal d'activité",
@@ -2864,7 +2865,7 @@
         "feels_like": "Ressenti",
         "wind": "Vent",
         "humidity": "Humidité",
-        "no_data": "Date meteo indisponibile pentru"
+        "no_data": "Données météorologiques indisponibles pour"
     },
     "live": {
         "ago_sec": "il y a {{count}}s",
@@ -3571,5 +3572,26 @@
         "sand": "Nisip",
         "searching": "Se caută locația pe hartă...",
         "geo_error": "Adresa nu a putut fi localizată. Adaugă GPS manual în Șantiere."
+    },
+    "pricing_analytics": {
+        "desc": "Vérification automatique des prix calculés par rapport aux prix sauvegardés.",
+        "kpi_total_quotes": "Total Devis Analysés",
+        "kpi_total_errors": "Devis avec Écarts (Erreurs)",
+        "kpi_diff_value": "Valeur des Écarts",
+        "filter_quick": "Filtres Rapide :",
+        "filter_all": "Tous",
+        "filter_with_diff": "Avec Écarts",
+        "filter_without_diff": "Sans Écart",
+        "search": "Rechercher par nom, ID, somme...",
+        "calc_details": "Détails du Calcul",
+        "total_net_calc": "TOTAL NET (Calculé dynamiquement) :",
+        "total_gross_calc": "TOTAL BRUT (Calculé dynamiquement) :",
+        "total_net_saved": "TOTAL NET (Sauvegardé dans DB/PDF) :",
+        "net_diff": "DIFFÉRENCE NETTE :",
+        "col_gross_saved": "BRUT SAUVEGARDÉ (PDF)",
+        "col_net_recalc": "NET RECALCULÉ",
+        "col_vat_recalc": "TVA RECALCULÉE",
+        "col_gross_recalc": "BRUT (RECALCULÉ)",
+        "col_diff_tvac": "DIFFÉRENCE (TVAC)"
     }
 }

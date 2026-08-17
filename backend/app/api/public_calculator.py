@@ -380,11 +380,13 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     # Fire email in background (same logic as devis_online)
     from app.services.email_service import send_quote_email, send_admin_new_quote_alert
     
-    def send_email_without_pdf():
-        send_quote_email(client.email, client.name, effective_lang, proforma_url, None)
+    async def generate_and_send_pdf():
+        from app.services.pdf_generator import generate_quote_pdf
+        pdf_path = await generate_quote_pdf(wo, client)
+        send_quote_email(client.email, client.name, effective_lang, proforma_url, pdf_path)
 
     if client.email:
-        background_tasks.add_task(send_email_without_pdf)
+        background_tasks.add_task(generate_and_send_pdf)
 
     def send_alerts_to_admins():
         from app.models import Admin

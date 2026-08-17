@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Building, Plus, Search, MapPin, Phone, Mail, Edit2, Trash2, Check, X, FileText, Briefcase, Loader2, RotateCw, Star } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Building, Plus, Search, MapPin, Phone, Mail, Edit2, Trash2, Check, X, FileText, Briefcase, Loader2, RotateCw, Star, Eye } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import MiniMapSelector from '../../components/MiniMapSelector'
@@ -10,6 +11,7 @@ import { useUIStore } from '../../store/uiStore'
 
 export default function ClientsManagement() {
     const { t } = useTranslation()
+    const navigate = useNavigate()
     const showToast = useUIStore(state => state.showToast)
     const [clients, setClients] = useState([])
     const [loading, setLoading] = useState(true)
@@ -441,6 +443,13 @@ export default function ClientsManagement() {
                                                             title={client.is_favorite ? t('clients.remove_favorite', 'Retirer des favoris') : t('clients.add_favorite', 'Ajouter aux favoris')}
                                                         >
                                                             <Star className="w-4 h-4" fill={client.is_favorite ? "currentColor" : "none"} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/clients/${client.id}`); }}
+                                                            className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors"
+                                                            title={t('common.view', 'Vezi Profil')}
+                                                        >
+                                                            <Eye className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleOpenModal(client); }}

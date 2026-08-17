@@ -16,6 +16,7 @@ import TimesheetApprovalPage from './pages/admin/TimesheetApprovalPage'
 import ReportsPage from './pages/admin/ReportsPage'
 import EmployeesManagement from './pages/admin/EmployeesManagement'
 import LogisticsRouter from './pages/admin/logistics/LogisticsRouter'
+import PricingAnalytics from './pages/admin/PricingAnalytics'
 
 import SitesManagement from './pages/admin/SitesManagement'
 import ActivitiesManagement from './pages/admin/ActivitiesManagement'
@@ -30,6 +31,7 @@ const WorkspaceRouter = lazy(() => import('./pages/WorkspaceRouter'))
 const UsersManagement = lazy(() => import('./pages/admin/UsersManagement'))
 const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'))
 const ClientsManagement = lazy(() => import('./pages/admin/ClientsManagement'))
+const ClientDetail = lazy(() => import('./pages/admin/ClientDetail'))
 const PhotoTestPage = lazy(() => import('./pages/admin/PhotoTestPage'))
 const TimesheetsPage = lazy(() => import('./pages/employee/TimesheetsPage'))
 const TimesheetForm = lazy(() => import('./pages/employee/TimesheetForm'))
@@ -54,6 +56,7 @@ const InvoicingManagement = lazy(() => import('./pages/admin/InvoicingManagement
 const InvoiceDetails = lazy(() => import('./pages/admin/InvoiceDetails'))
 const QuotesManagement = lazy(() => import('./pages/admin/QuotesManagement'))
 const EmailLogs = lazy(() => import('./pages/admin/EmailLogs'))
+const ClientAnalytics = lazy(() => import('./pages/admin/ClientAnalytics'))
 const ProformaView = lazy(() => import('./pages/admin/ProformaView'))
 const DevisView = lazy(() => import('./pages/admin/DevisView'))
 const AdminChats = lazy(() => import('./pages/admin/AdminChats'))
@@ -302,12 +305,15 @@ function App() {
                         <Route path="organizations" element={<OrganizationsManagement />} />
 
                         <Route path="clients" element={<ClientsManagement />} />
+                        <Route path="client-analytics" element={<ClientAnalytics />} />
+                        <Route path="clients/:id" element={<ClientDetail />} />
                         <Route path="backups" element={<AdminBackups />} />
                         <Route path="sites" element={<SitesManagement />} />
                         <Route path="photos-test" element={<PhotoTestPage />} />
                         <Route path="reports" element={<ReportsPage />} />
                         <Route path="timesheets" element={<TimesheetApprovalPage />} />
                         <Route path="screed-analytics" element={<WorkOrderCalculations />} />
+                        <Route path="pricing-analytics" element={<PricingAnalytics />} />
                             <Route path="activities" element={<ActivitiesManagement />} />
                             <Route path="settings" element={<SettingsPage />} />
                             <Route path="pricing-settings" element={<PricingSettingsPage />} />

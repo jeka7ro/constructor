@@ -7,7 +7,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check, ShieldCheck
 } from 'lucide-react'
 import PdfThumbnail from '../../components/PdfThumbnail'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import HourlyWeather from '../../components/HourlyWeather'
 import StreetViewPhotos from '../../components/StreetViewPhotos'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
+import PricingAuditModal from '../../components/PricingAuditModal'
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const getStatusConfig = (t) => ({
@@ -273,10 +274,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [pdfScrollActive, setPdfScrollActive] = useState(false)
     const [docDrawerState, setDocDrawerState] = useState(null)
     const [syncingPrices, setSyncingPrices] = useState(false)
+    const [auditModalOpen, setAuditModalOpen] = useState(false)
     const [showSyncConfirm, setShowSyncConfirm] = useState(false)
     
     // Modale pentru ștergere și convertire (înlocuiesc alertele native de browser)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
     const [showConvertConfirm, setShowConvertConfirm] = useState(false)
     
     // Address Edit
@@ -377,7 +380,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setWo(res.data)
             setInvoiceNumberDraft(null)
         } catch (err) {
-            alert(err.response?.data?.detail || t('work_order_detail.invoicing.error_upload_invoice', 'Erreur lors du téléchargement de la facture.'))
+            showToast(err.response?.data?.detail || t('work_order_detail.invoicing.error_upload_invoice', 'Erreur lors du téléchargement de la facture.'), 'error')
         } finally {
             setUploadingInvoice(false)
         }
@@ -393,7 +396,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setWo(res.data)
             setInvoiceNumberDraft(null)
         } catch (err) {
-            alert(err.response?.data?.detail || t('work_order_detail.invoicing.error_update_invoice_status', 'Erreur lors de la mise à jour du statut de la facture.'))
+            showToast(err.response?.data?.detail || t('work_order_detail.invoicing.error_update_invoice_status', 'Erreur lors de la mise à jour du statut de la facture.'), 'error')
         } finally {
             setSavingInvoiceStatus(false)
         }
@@ -409,7 +412,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setWo(res.data)
             setInvoiceNumberDraft(null)
         } catch (err) {
-            alert(err.response?.data?.detail || t('work_order_detail.invoicing.error_save_invoice_number', "Erreur lors de l'enregistrement du numéro de facture."))
+            showToast(err.response?.data?.detail || t('work_order_detail.invoicing.error_save_invoice_number', "Erreur lors de l'enregistrement du numéro de facture."), 'error')
         } finally {
             setSavingInvoiceStatus(false)
         }
@@ -453,7 +456,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             showToast(t('work_order_detail.photo_upload_success', 'La photo a été téléchargée avec succès !'))
         } catch (err) {
             console.error(err)
-            alert(err.response?.data?.detail || t('work_order_detail.photo_upload_error', 'Erreur lors du téléchargement de la photo.'))
+            showToast(err.response?.data?.detail || t('work_order_detail.photo_upload_error', 'Erreur lors du téléchargement de la photo.'), 'error')
         } finally {
             setIsUploadingPhoto(false)
             if (fileInputRef.current) fileInputRef.current.value = ''
@@ -933,30 +936,32 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const matLabel = hasStarted ? t('work_order_detail.kpi.mat_consumed', 'Mat. Consommés') : t('work_order_detail.kpi.mat_required', 'Mat. Requis');
 
 
+    const getPriceVal = (val, def) => (val !== undefined && val !== null && val !== '') ? parseFloat(val) : def;
+
     // ── Funcție unică de calcul (aceeași formulă pentru deviz și factură) ──────
     const computeChapeTotal = (surface, thickness, flags, prices) => {
         if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, extraThick: 0 };
-        const standardThick = parseFloat(prices?.standard_thickness || 5);
+        const standardThick = getPriceVal(prices?.standard_thickness, 5);
         const extraThick = Math.max(0, thickness - standardThick);
-        const base  = parseFloat(prices?.base  || 12.5) * surface;
+        const base  = getPriceVal(prices?.base, 12.5) * surface;
         
         let extraRate = 0;
         if (prices?.extra_large !== undefined && prices?.extra_threshold !== undefined) {
-            extraRate = surface > parseFloat(prices.extra_threshold) ? parseFloat(prices.extra_large) : parseFloat(prices.extra);
+            extraRate = surface > getPriceVal(prices.extra_threshold, 0) ? getPriceVal(prices.extra_large, 0) : getPriceVal(prices.extra, 0);
         } else {
-            extraRate = parseFloat(prices?.extra ?? prices?.extra_thickness_price_per_cm ?? 1.25);
+            extraRate = getPriceVal(prices?.extra ?? prices?.extra_thickness_price_per_cm, 1.25);
         }
         const extra = extraThick * extraRate * surface;
-        const foil  = flags?.has_foil  ? parseFloat(prices?.foil  || 1.2) * surface : 0;
-        const mesh  = flags?.has_mesh  ? parseFloat(prices?.mesh  || 2.5) * surface : 0;
+        const foil  = flags?.has_foil  ? getPriceVal(prices?.foil, 1.2) * surface : 0;
+        const mesh  = flags?.has_mesh  ? getPriceVal(prices?.mesh, 2.5) * surface : 0;
         let fiberRate = 0;
         if (prices?.fiber_large !== undefined && prices?.fiber_threshold !== undefined) {
-            fiberRate = surface > parseFloat(prices.fiber_threshold) ? parseFloat(prices.fiber_large) : parseFloat(prices.fiber);
+            fiberRate = surface > getPriceVal(prices.fiber_threshold, 0) ? getPriceVal(prices.fiber_large, 0) : getPriceVal(prices.fiber, 0);
         } else {
-            fiberRate = parseFloat(prices?.fiber || 2.5);
+            fiberRate = getPriceVal(prices?.fiber, 2.5);
         }
         const fiber = (flags?.has_fiber || flags?.has_duramint) ? fiberRate * surface : 0;
-        const discountPct = parseFloat(prices?.discount_pct || 0);
+        const discountPct = getPriceVal(prices?.discount_pct, 0);
         // ── Aplicare Seuil de Surface (grila de suprafață) ─────────────────────
         const thresholds = prices?.surface_thresholds || [];
         let threshold = 0;
@@ -968,11 +973,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             );
             if (match) threshold = parseFloat(match.extra_charge) || 0;
         }
-        let truck_cost = parseFloat(prices?.truck_cost || 0);
+        let truck_cost = getPriceVal(prices?.truck_cost, 0);
         
         // Regulă strictă: Folosim EXCLUSIV distanța unică (one-way) calculată la crearea devizului
         // Nu mai folosim wo.route_distance_km sau wo.route_segments (care sunt din planificare)
-        const actualDistKm = parseFloat(prices?.distance_km || 0);
+        const actualDistKm = getPriceVal(prices?.distance_km, 0);
 
         if (truck_cost <= 0 && pricingSettings && actualDistKm > 0) {
             const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
@@ -1044,15 +1049,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             estimCalc.actualDistKm = c.actualDistKm;
         } else if (/isolation\s*pur/i.test(labelSafe) && surface > 0) {
             isAuto = true;
-            let purBase = parseFloat(wo.prices?.pur_base_price_3cm || 13.95);
+            let purBase = getPriceVal(wo.prices?.pur_base_price_3cm, 13.95);
             if (isoPurThick > 3 && isoPurThick <= 10) {
-                purBase += (isoPurThick - 3) * parseFloat(wo.prices?.pur_step_price_up_to_10cm || 1.65);
+                purBase += (isoPurThick - 3) * getPriceVal(wo.prices?.pur_step_price_up_to_10cm, 1.65);
             } else if (isoPurThick > 10) {
-                purBase += 7 * parseFloat(wo.prices?.pur_step_price_up_to_10cm || 1.65);
-                purBase += (isoPurThick - 10) * parseFloat(wo.prices?.pur_extra_price_above_10cm || 2.10);
+                purBase += 7 * getPriceVal(wo.prices?.pur_step_price_up_to_10cm, 1.65);
+                purBase += (isoPurThick - 10) * getPriceVal(wo.prices?.pur_extra_price_above_10cm, 2.10);
             }
             if (surface > 100) {
-                purBase += Math.floor((surface - 100) / 100) * parseFloat(wo.prices?.pur_surface_discount_step || -0.50);
+                purBase += Math.floor((surface - 100) / 100) * getPriceVal(wo.prices?.pur_surface_discount_step, -0.50);
             }
             purBase = Math.max(0, purBase);
             const isoPurBaseCost = purBase * surface;
@@ -1061,30 +1066,30 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             let thisPurTotal = isoPurBaseCost;
             
             if (vol.pur_aspiration) {
-                let cost = parseFloat(wo.prices?.pur_opt_aspiration || 2.00) * surface;
+                let cost = getPriceVal(wo.prices?.pur_opt_aspiration, 2.00) * surface;
                 estimCalc.isoPurOpt += cost;
                 purOpts.aspiration += cost;
                 thisPurTotal += cost;
             }
             if (vol.pur_niveller) {
-                let cost = parseFloat(wo.prices?.pur_opt_niveller || 4.25) * surface;
+                let cost = getPriceVal(wo.prices?.pur_opt_niveller, 4.25) * surface;
                 estimCalc.isoPurOpt += cost;
                 purOpts.niveller += cost;
                 thisPurTotal += cost;
             }
             if (vol.pur_poncage) {
-                let cost = parseFloat(wo.prices?.pur_opt_poncage || 1.50) * surface;
+                let cost = getPriceVal(wo.prices?.pur_opt_poncage, 1.50) * surface;
                 estimCalc.isoPurOpt += cost;
                 purOpts.poncage += cost;
                 thisPurTotal += cost;
             }
             if (vol.pur_protection) {
-                let cost = parseFloat(wo.prices?.pur_opt_protection || 1.50) * surface;
+                let cost = getPriceVal(wo.prices?.pur_opt_protection, 1.50) * surface;
                 estimCalc.isoPurOpt += cost;
                 purOpts.protection += cost;
                 thisPurTotal += cost;
             }
-            let purDiscountPct = parseFloat(wo.prices?.pur_discount_pct || 0);
+            let purDiscountPct = getPriceVal(wo.prices?.pur_discount_pct, 0);
             let netPur = thisPurTotal * (1 - purDiscountPct / 100);
             estimCalc.purDiscount = thisPurTotal * (purDiscountPct / 100);
             estimCalc.purDiscountPct = purDiscountPct;
@@ -1620,82 +1625,43 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     </div>
                     {wo.status !== 'completed' && wo.status !== 'cancelled' && wo.status !== 'draft' && (
                         <button
-                            onClick={async () => {
-                                if (window.confirm(t('work_order_detail.confirm_complete', 'Êtes-vous sûr de vouloir marquer cette commande comme terminée ?'))) {
-                                    try {
-                                        await api.put(`/admin/work-orders/${id}`, { status: 'completed' });
-                                        setWo(prev => ({ ...prev, status: 'completed' }));
-                                        showToast(t('work_order_detail.marked_completed', 'Commande marquée comme terminée !'), 'success');
-                                    } catch (e) {
-                                        console.error(e);
-                                        showToast(t('common.error', 'Erreur'), 'error');
-                                    }
-                                }
-                            }}
-                            className="flex items-center gap-2 px-4 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-bold hover:bg-emerald-100 transition-colors shrink-0"
-                            title={t('work_order_detail.mark_completed', 'Marquer comme terminé')}
+                            onClick={() => setShowCompleteConfirm(true)}
+                            className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors shrink-0"
+                            title={t('work_order_detail.mark_completed_btn', 'Marquer comme terminé')}
                         >
                             <CheckCircle2 className="w-4 h-4" />
-                            {t('work_order_detail.mark_completed_btn', 'Marquer comme terminé')}
                         </button>
                     )}
                     <button 
                         onClick={() => setShowDeleteConfirm(true)}
-                        className="flex items-center gap-2 px-4 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 text-sm font-bold hover:bg-red-100 transition-colors shrink-0"
+                        className="flex items-center justify-center w-9 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors shrink-0"
                         title={t('common.delete', 'Supprimer')}
                     >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        {t('common.delete', 'Supprimer')}
+                        <Trash2 className="w-4 h-4" />
                     </button>
-                    {wo.status !== 'completed' && (
-                        <>
-                            {wo.status === 'planning' && wo.client_email && (
-                                <button
-                                    onClick={async () => {
-                                        if (confirm(t('planning.confirm_send_notification', 'Êtes-vous sûr de vouloir envoyer (ou renvoyer) l\\'email de notification au client ?'))) {
-                                            try {
-                                                await api.put(`/admin/work-orders/${id}`, { send_notification: true });
-                                                showToast(t('planning.notification_sent', 'Notification envoyée avec succès !'), 'success');
-                                            } catch (e) {
-                                                console.error(e);
-                                                showToast(t('planning.notification_error', 'Erreur lors de l\\'envoi de la notification.'), 'error');
-                                            }
-                                        }
-                                    }}
-                                    className="flex items-center gap-2 px-4 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-bold hover:bg-emerald-100 transition-colors shrink-0"
-                                    title={t('planning.send_notification_btn', 'Envoyer / Renvoyer la notification de planification')}
-                                >
-                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                    {t('planning.send_email_btn', 'Envoyer Notification')}
-                                </button>
-                            )}
-                            <button
-                                onClick={() => document.getElementById('chat-input-field')?.focus()}
-                                className="flex items-center gap-2 px-4 h-9 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-sm font-bold hover:bg-blue-100 transition-colors shrink-0"
-                                title="Chat cu clientul"
-                            >
-                                <MessageSquare className="w-4 h-4" />
-                                {messages.length > 0 ? (
-                                    <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{messages.length}</span>
-                                ) : null}
-                                Chat
-                            </button>
-                            <button onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
-                                className="flex items-center gap-2 px-4 h-9 rounded-full border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                <Edit2 className="w-3.5 h-3.5" /> {t('common.edit', 'Modifier')}
-                            </button>
-                            <button 
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="flex items-center gap-2 px-4 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 text-sm font-bold hover:bg-red-100 transition-colors">
-                                <Trash2 className="w-3.5 h-3.5" /> {t('common.delete', 'Supprimer')}
-                            </button>
-                        </>
+
+                    {wo.client_email && (
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await api.get(`/admin/work-orders/${id}/email-preview`);
+                                    setEmailPreviewContent(res.data.html);
+                                    setShowEmailPreview(true);
+                                } catch (err) {
+                                    showToast(t('work_order_detail.email_prev_err', 'Erreur lors de la prévisualisation de l\'email.'), 'error');
+                                }
+                            }}
+                            className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors shrink-0"
+                            title={t('planning.send_email_btn', 'Envoyer Notification')}
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        </button>
                     )}
                 </div>
             </div>
 
             {/* ── KPIs ────────────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
                 <KPI icon={Users}    label={t('work_order_detail.kpi.employees', 'Employés')}       value={workersValue}     sub={workersSub}       color="purple" />
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', 'Volume')}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
@@ -2520,6 +2486,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         >
                                             <RefreshCw className={`w-3.5 h-3.5 ${syncingPrices ? 'animate-spin' : ''}`} />
                                         </button>
+                                        <button
+                                            onClick={() => setAuditModalOpen(true)}
+                                            className="text-indigo-500 hover:text-indigo-700 transition-colors bg-indigo-50 dark:bg-indigo-900/30 p-1.5 rounded-md border border-indigo-200 dark:border-indigo-800 shadow-sm flex items-center gap-1.5"
+                                            title={t('audit.button_title', 'Auditer les calculs de prix')}
+                                        >
+                                            <ShieldCheck className="w-3.5 h-3.5" />
+                                            <span className="text-xs font-bold uppercase tracking-wider">{t('audit.btn', 'Audit Prix')}</span>
+                                        </button>
                                         <button 
                                             onClick={() => {
                                                 const allChapes = (wo.volumes || []).filter(v => /chape|[sșş]ap[aăâ]/i.test((v.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
@@ -2629,7 +2603,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres / Duramint')}</span>
                                             <span className="text-right tabular-nums">
-                                                {surfaceForAuto} m² × {(wo.prices?.fiber_large !== undefined ? (surfaceForAuto > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : parseFloat(wo.prices?.fiber || 2.5)).toFixed(2)} = <b>{autoFiber.toFixed(2)}&nbsp;EUR</b>
+                                                {surfaceForAuto} m² × {(wo.prices?.fiber_large !== undefined ? (surfaceForAuto > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : getPriceVal(wo.prices?.fiber, 2.5)).toFixed(2)} = <b>{autoFiber.toFixed(2)}&nbsp;EUR</b>
                                             </span>
                                         </div>
                                     )}
@@ -2786,7 +2760,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres / Duramint')}</span>
                                             <span className="text-right tabular-nums">
-                                                {realSurface} m² × {(wo.prices?.fiber_large !== undefined ? (realSurface > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : parseFloat(wo.prices?.fiber || 2.5)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)}&nbsp;EUR</b>
+                                                {realSurface} m² × {(wo.prices?.fiber_large !== undefined ? (realSurface > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : getPriceVal(wo.prices?.fiber, 2.5)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)}&nbsp;EUR</b>
                                             </span>
                                         </div>
                                     )}
@@ -4187,6 +4161,27 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             />
 
             <ConfirmModal
+                isOpen={showCompleteConfirm}
+                onClose={() => setShowCompleteConfirm(false)}
+                onConfirm={() => {
+                    api.put(`/admin/work-orders/${id}`, { status: 'completed' })
+                       .then(() => {
+                           setWo(prev => ({ ...prev, status: 'completed' }));
+                           showToast(t('work_order_detail.marked_completed', 'Commande marquée comme terminée !'), 'success');
+                           setShowCompleteConfirm(false);
+                       })
+                       .catch((e) => {
+                           console.error(e);
+                           showToast(t('common.error', 'Erreur'), 'error');
+                       })
+                }}
+                title={t('work_order_detail.mark_completed_btn', 'Marquer comme terminé')}
+                message={t('work_order_detail.confirm_complete', 'Êtes-vous sûr de vouloir marquer cette commande comme terminée ?')}
+                confirmText={t('common.confirm', 'Confirmer')}
+                cancelText={t('common.cancel', 'Annuler')}
+            />
+
+            <ConfirmModal
                 isOpen={showConvertConfirm}
                 onClose={() => setShowConvertConfirm(false)}
                 onConfirm={executeConvertToOrder}
@@ -4348,6 +4343,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>,
                 document.body
             )}
+
+            <PricingAuditModal
+                isOpen={auditModalOpen}
+                onClose={() => setAuditModalOpen(false)}
+                wo={wo}
+                pricingSettings={pricingSettings}
+                activePrices={wo.prices || {}}
+                totals={{
+                    total_gross: totalGross,
+                    total_net: autoNet
+                }}
+            />
 
         </div>
     );

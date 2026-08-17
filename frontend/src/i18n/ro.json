@@ -1,5 +1,6 @@
 {
   "nav": {
+    "pricing_analytics": "Analiză Devize",
     "isoflex_history": "Istoric Isoflex",
     "pricing_settings": "Setări Prețuri",
     "dashboard": "Dashboard",
@@ -3557,5 +3558,26 @@
   },
   "chat": {
     "translation": "Traducere"
+  },
+  "pricing_analytics": {
+    "desc": "Verificare automată a prețurilor calculate comparativ cu prețurile salvate.",
+    "kpi_total_quotes": "Total Devize Analizate",
+    "kpi_total_errors": "Devize cu Diferențe (Erori)",
+    "kpi_diff_value": "Valoarea Diferențelor",
+    "filter_quick": "Filtre Rapide :",
+    "filter_all": "Toate",
+    "filter_with_diff": "Cu Diferențe",
+    "filter_without_diff": "Fără Diferențe",
+    "search": "Căutare după nume, ID, sumă...",
+    "calc_details": "Detalii Calcul",
+    "total_net_calc": "TOTAL NET (Calculat dinamic) :",
+    "total_gross_calc": "TOTAL BRUT (Calculat dinamic) :",
+    "total_net_saved": "TOTAL NET (Salvat în DB/PDF) :",
+    "net_diff": "DIFERENȚĂ NETĂ :",
+    "col_gross_saved": "BRUT SALVAT (PDF)",
+    "col_net_recalc": "NET RECALCULAT",
+    "col_vat_recalc": "TVA RECALCULAT",
+    "col_gross_recalc": "BRUT (RECALCULAT)",
+    "col_diff_tvac": "DIFERENȚĂ (TVAC)"
   }
 }

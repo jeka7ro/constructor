@@ -103,3 +103,11 @@ Aceste reguli sunt **LEGE** și nu trebuie încălcate sub nicio formă la calcu
 ## 6. JURNAL DE ACTIVITATE (ACTIVITY LOG)
 - Orice agent nou care preia acest proiect are **obligația** de a citi fișierul `.agents/ACTIVITY_LOG.md` pentru a înțelege istoricul recent.
 - După fiecare sesiune de modificări aprobate, agentul **trebuie să actualizeze** acest fișier adăugând acțiunile efectuate, lecțiile învățate, data și confirmarea aprobării utilizatorului.
+
+# Reguli Stricte de Layout (UI)
+
+## 1. Pagina Deviz (WorkOrderDetail) - Harta și Vremea
+- **PĂSTRAREA STRUCTURII DE BAZĂ**: Aspectul hărții și al casetei de vreme de pe pagina `WorkOrderDetail` este **FINAL ȘI BLOCAT**. Orice agent are interdicția de a modifica această structură fără aprobare explicită.
+- **CARDUL DE VREME (HourlyWeather)**: Cardul complet de vreme TREBUIE să fie plasat **ÎN STÂNGA HĂRȚII**, pe același rând cu harta (folosind prop-ul `leftPanelContent` al componentei `MapView`).
+  - **ESTE STRICT INTERZISĂ** micșorarea cardului de vreme într-o pastilă mică ("tiny pill") sau suprapunerea lui direct pe hartă ca un overlay (ex: `overlayBottomLeft` sau `overlayBottomRight`). Cardul trebuie să își păstreze formatul mare, informativ, în coloana proprie de lângă hartă.
+- **BUTOANELE DE ACȚIUNE (Toolbar)**: S-a stabilit definitiv că butoanele de `Edit` și `Chat` NU mai apar deloc în acest toolbar. Butoanele care rămân (Șterge, Confirmă, Trimite Email) vor avea doar o iconiță, **fără text**. Butonul de trimitere email va fi vizibil de fiecare dată când există o adresă de email setată pe lucrare (`wo.client_email`), ignorând constrângerile de status.

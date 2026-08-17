@@ -68,6 +68,11 @@ class PricingSetting(Base):
     fiber_price_sqm_large = Column(Float, default=2.0)
     fiber_large_threshold_sqm = Column(Float, default=200.0)
     
+    # Prețuri minime (Facturare) - preponderent pentru clienți preferențiali
+    min_invoice_threshold_sqm = Column(Float, nullable=True)
+    min_invoice_fixed_price_under = Column(Float, nullable=True)
+    min_invoice_min_price_over = Column(Float, nullable=True)
+    
     surface_thresholds = Column(JSON, default=list) 
     
     # ── Options Mandatory Flags ─────────────────────────────────────────────
@@ -393,6 +398,8 @@ class Client(Base):
     swift = Column(String(20), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_favorite = Column(Boolean, default=False, nullable=False)
+    rating = Column(Integer, default=0, nullable=True) # 1-5 stars
+    internal_notes = Column(Text, nullable=True) # Serious/not serious etc
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     

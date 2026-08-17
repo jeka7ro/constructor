@@ -201,6 +201,8 @@ export default function AdminDashboard() {
                 { path: '/admin/planning', icon: LayoutDashboard, label: t('nav.planning', 'Planning') },
                 { path: '/admin/quotes', icon: FileText, label: t('nav.quotes', 'Devis / Offres') },
                 { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistique') },
+                { path: '/admin/client-analytics', icon: BarChart3, label: t('nav.client_analytics', 'Analyse Clients') },
+                { path: '/admin/pricing-analytics', icon: Calculator, label: t('nav.pricing_analytics', 'Analyse Devis') },
                 { path: '/admin/invoicing', icon: FileText, label: t('nav.invoicing', 'Facturation') },
                 { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Commandes') },
                 { path: '/admin/chats', icon: MessageSquare, label: t('nav.chats', 'Messages Clients') },
@@ -386,6 +388,7 @@ export default function AdminDashboard() {
         if (p.includes('/isoflex-history')) return t('nav.isoflex_history', 'Historique Isoflex');
         if (p.includes('/work-orders')) return t('nav.work_orders', 'Commandes');
         if (p.includes('/screed-analytics')) return t('nav.screed_analytics', 'Tableau de calcul');
+        if (p.includes('/pricing-analytics')) return t('nav.pricing_analytics', 'Analyse Devis');
         if (p.includes('/timesheets')) return t('nav.timesheets', 'Pointages');
         if (p.includes('/reports')) return t('nav.reports', 'Rapports');
         if (p.includes('/sites')) return t('nav.sites', 'Chantiers');

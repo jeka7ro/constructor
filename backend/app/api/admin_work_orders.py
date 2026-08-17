@@ -146,6 +146,27 @@ class WorkOrderUpdate(WorkOrderCreate):
     proforma_data: Optional[dict] = None
     send_notification: bool = False
 
+def _serialize_audit_mode(wo) -> dict:
+    return {
+        "id": wo.id,
+        "title": wo.title,
+        "status": wo.status,
+        "is_quote": bool(wo.is_quote),
+        "created_at": str(wo.created_at) if wo.created_at else None,
+        "start_date": str(wo.start_date) if wo.start_date else None,
+        "client_name": wo.client_name or (wo.client.name if wo.client else None),
+        "client_type": getattr(wo.client, "client_type", "juridica") if wo.client else "juridica",
+        "prices": wo.prices or {},
+        "volumes": wo.volumes or [],
+        "actual_surface_m2": wo.actual_surface_m2,
+        "actual_thickness_cm": wo.actual_thickness_cm,
+        "route_distance_km": wo.route_distance_km,
+        "work_type": wo.work_type,
+        "estimated_price": wo.estimated_price,
+        "proforma_data": wo.proforma_data,
+        "quote_number": wo.quote_number,
+        "invoice_number": wo.invoice_number
+    }
 
 def _serialize_slim(wo: WorkOrder) -> dict:
     """Versiune ultra-rapidă pentru planning — fără calcul preț, documente sau poze."""
@@ -562,6 +583,7 @@ def list_work_orders(
     limit: Optional[int] = None,
     slim: bool = Query(False),  # Mod rapid pentru planning — fără calcul preț
     invoice_mode: bool = Query(False), # Mod rapid pentru facturare — exclude poze/doc, păstrează proforma
+    audit_mode: bool = Query(False), # Mod ultra-rapid pentru PricingAnalytics
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -625,7 +647,7 @@ def list_work_orders(
                 (WorkOrder.is_quote == True) & (WorkOrder.status.in_(['planning', 'confirmed', 'in_progress', 'completed']))
             ))
 
-    if slim or invoice_mode:
+    if slim or invoice_mode or audit_mode:
         # Mod rapid: nu incarca documente/poze (expensive selectinload)
         q = q.options(
             joinedload(WorkOrder.site),
@@ -650,7 +672,8 @@ def list_work_orders(
             q = q.filter(WorkOrder.status == status)
     else:
         q = q.filter(WorkOrder.status != 'isoflex')
-        q = q.filter(WorkOrder.status != 'deleted')
+        if not audit_mode:
+            q = q.filter(WorkOrder.status != 'deleted')
     from sqlalchemy import or_
     from datetime import datetime
     if start_date:
@@ -674,6 +697,8 @@ def list_work_orders(
         return [_serialize_slim(wo) for wo in wos]
     if invoice_mode:
         return [_serialize_invoice_mode(wo) for wo in wos]
+    if audit_mode:
+        return [_serialize_audit_mode(wo) for wo in wos]
     return [_serialize(wo, db) for wo in wos]
 
 
@@ -989,6 +1014,13 @@ def create_work_order(
         details={"message": f"Created work order/quote {wo.quote_number or wo.invoice_number}", "is_quote": wo.is_quote}
     )
 
+    # CRITICAL: Force calculation of estimated_price and transport so it's not saved as None/0!
+    try:
+        sync_work_order_prices(wo.id, db, current_admin)
+        db.refresh(wo)
+    except Exception as e:
+        print(f"Failed to auto-sync prices on creation: {e}")
+
     return _serialize(wo, db)
 
 
@@ -1165,9 +1197,11 @@ def update_work_order(
     
     update_data = payload.dict(exclude_unset=True)
     print("DEBUG update_data:", update_data)
-    old_start_date = wo.start_date
-    old_prices = wo.prices or {}
-    old_discount = float(old_prices.get("discount_pct", 0))
+    old_start_date = str(wo.start_date) if wo.start_date else ""
+    old_estimated_price = str(wo.estimated_price) if wo.estimated_price else ""
+    old_prices_str = str(wo.prices) if wo.prices else ""
+    old_volumes_str = str(wo.volumes) if wo.volumes else ""
+    old_discount = float((wo.prices or {}).get("discount_pct", 0))
 
     for f in fields:
         if f in update_data:
@@ -1341,11 +1375,40 @@ def update_work_order(
 
     wo.updated_at = datetime.utcnow()
     
-    if str(old_start_date) != str(wo.start_date):
+    if str(old_start_date) != (str(wo.start_date) if wo.start_date else ""):
         wo.date_confirmed_at = None
         
     db.commit()
     db.refresh(wo)
+
+    # Trigger PDF generation and email if critical fields changed
+    new_start_date = str(wo.start_date) if wo.start_date else ""
+    new_estimated_price = str(wo.estimated_price) if wo.estimated_price else ""
+    new_prices_str = str(wo.prices) if wo.prices else ""
+    new_volumes_str = str(wo.volumes) if wo.volumes else ""
+    
+    if (old_start_date != new_start_date or
+        old_estimated_price != new_estimated_price or
+        old_prices_str != new_prices_str or
+        old_volumes_str != new_volumes_str):
+        
+        async def generate_and_send_updated_pdf():
+            from app.services.pdf_generator import generate_quote_pdf
+            from app.services.email_service import send_quote_email
+            if wo.client_email:
+                proforma_url = f"https://davidechape.pontaj.app/confirm/{wo.token}"
+                client = wo.client
+                pdf_path = await generate_quote_pdf(wo, client)
+                send_quote_email(
+                    to_email=wo.client_email,
+                    client_name=wo.client_name,
+                    client_language=wo.client_language,
+                    signing_url=proforma_url,
+                    pdf_path=pdf_path
+                )
+        
+        if getattr(wo, 'is_quote', False) and wo.client_email:
+            background_tasks.add_task(generate_and_send_updated_pdf)
 
     # Handle manual explicit notifications from frontend modal
     if getattr(payload, 'send_notification', False):
@@ -1425,6 +1488,14 @@ def update_work_order(
 
     # Dacă au apărut modificări la prețuri, volume sau date financiare, regenerăm PDF-ul automat
     needs_pdf = any(k in update_data for k in ["volumes", "prices", "proforma_data", "estimated_price"])
+    
+    if any(k in update_data for k in ["volumes", "prices", "site_latitude", "site_longitude", "site_address"]):
+        try:
+            sync_work_order_prices(wo.id, db, current_admin)
+            db.refresh(wo)
+        except Exception as e:
+            print(f"Failed to auto-sync prices on update: {e}")
+
     if needs_pdf and (wo.is_quote or wo.is_invoiced or getattr(wo, 'pdf_path', None)):
         background_tasks.add_task(regenerate_pdf_task, wo.id)
 
@@ -1520,26 +1591,37 @@ def sync_work_order_prices(
         # Calculate truck cost based on total surface of chape
         distance_km = 0
         truck_cost = 0
+        
+        # Avoid Google Maps API billing loop if distance is already cached
+        existing_prices = dict(wo.prices or {})
+        cached_dist = float(existing_prices.get('distance_km') or 0.0)
+        
         if wo.site_address:
             if total_surface <= getattr(pricing, 'truck_surface_threshold_free_sqm', 500.0):
-                # Import the LogisticBase model
-                from app.models import LogisticBase
-                bases = db.query(LogisticBase).filter(LogisticBase.organization_id == current_admin.organization_id).all()
-                if bases:
-                    # Calculate distance for all bases and take the minimum
-                    min_dist = 999999.0
-                    for base_record in bases:
-                        if base_record.address:
-                            dist = get_driving_distance_km(base_record.address, wo.site_address)
-                            if 0 < dist < min_dist:
-                                min_dist = dist
+                if cached_dist > 0:
+                    distance_km = cached_dist
+                    if distance_km > getattr(pricing, 'truck_distance_threshold_km', 50.0):
+                        truck_cost = getattr(pricing, 'truck_extra_price_flat', 0.0)
+                else:
+                    # Import the LogisticBase model
+                    from app.models import LogisticBase
+                    bases = db.query(LogisticBase).filter(LogisticBase.organization_id == current_admin.organization_id).all()
+                    if bases:
+                        # Calculate distance for all bases and take the minimum
+                        min_dist = 999999.0
+                        for base_record in bases:
+                            if base_record.address:
+                                dist = get_driving_distance_km(base_record.address, wo.site_address)
+                                if 0 < dist < min_dist:
+                                    min_dist = dist
+                        
+                        if min_dist < 999999.0:
+                            distance_km = min_dist
+                            if distance_km > getattr(pricing, 'truck_distance_threshold_km', 50.0):
+                                truck_cost = getattr(pricing, 'truck_extra_price_flat', 0.0)
                     
-                    if min_dist < 999999.0:
-                        distance_km = min_dist
-                        if distance_km > getattr(pricing, 'truck_distance_threshold_km', 50.0):
-                            truck_cost = getattr(pricing, 'truck_extra_price_flat', 0.0)
-                    
-        wo.prices = {
+        existing_prices = dict(wo.prices or {})
+        new_prices = {
             "base": pricing.base_price_sqm,
             "base_large": pricing.base_price_sqm_large,
             "base_threshold": pricing.base_large_threshold_sqm,
@@ -1554,38 +1636,152 @@ def sync_work_order_prices(
             "distance_km": distance_km
         }
         
+        for k, v in new_prices.items():
+            if k not in existing_prices or existing_prices[k] is None:
+                existing_prices[k] = v
+        
+        wo.prices = existing_prices
+        
+        auto_net = 0
+        total_chape_gross = 0
+        total_pur_gross = 0
+        total_eps_gross = 0
+        
+        def get_price(p_val, p_large_val, p_thresh, qty, default_small, default_large):
+            if p_large_val is not None and p_thresh is not None:
+                if qty > float(p_thresh):
+                    return float(p_large_val)
+                else:
+                    return float(p_val) if p_val is not None else default_small
+            else:
+                if p_val is not None and str(p_val).strip() != '':
+                    return float(p_val)
+                return default_large if qty > 200 else default_small
+
         for vol in (wo.volumes or []):
             quantity = float(vol.get('quantity') or 0)
             thickness = float(vol.get('thickness') or 0)
             label = str(vol.get('label') or '').lower()
+            
             if 'chape' in label or 'sapa' in label or 'şapă' in label or 'șapă' in label:
                 if quantity > 0:
-                    base_rate = pricing.base_price_sqm if quantity <= pricing.base_large_threshold_sqm else pricing.base_price_sqm_large
-                    base = quantity * base_rate
+                    base_rate = get_price(existing_prices.get('base'), existing_prices.get('base_large'), existing_prices.get('base_threshold'), quantity, 12.50, 12.00)
+                    chape_cost = quantity * base_rate
                     
-                    extra_cm = max(0, thickness - pricing.standard_thickness_cm)
-                    extra_thresh = getattr(pricing, 'extra_thickness_large_threshold_sqm', 200.0)
-                    extra_price = getattr(pricing, 'extra_thickness_price_per_cm_large', pricing.extra_thickness_price_per_cm) if quantity > extra_thresh else pricing.extra_thickness_price_per_cm
-                    extra_cost = quantity * extra_cm * extra_price
+                    std_thick = float(existing_prices.get('standard_thickness', 5))
+                    if thickness > std_thick:
+                        extra_rate = get_price(existing_prices.get('extra'), existing_prices.get('extra_large'), existing_prices.get('extra_threshold'), quantity, 1.25, 1.20)
+                        chape_cost += (thickness - std_thick) * extra_rate * quantity
                     
-                    foil_cost = quantity * pricing.plastic_foil_price_sqm if vol.get('has_foil') else 0
-                    mesh_cost = quantity * pricing.metal_mesh_price_sqm if vol.get('has_mesh') else 0
+                    if vol.get('has_foil'):
+                        val = existing_prices.get('foil')
+                        chape_cost += quantity * float(val if val is not None and str(val).strip() != '' else 1.20)
+                    if vol.get('has_mesh'):
+                        val = existing_prices.get('mesh')
+                        chape_cost += quantity * float(val if val is not None and str(val).strip() != '' else 2.50)
+                    if vol.get('has_fiber') or vol.get('has_duramint'):
+                        fiber_rate = get_price(existing_prices.get('fiber'), existing_prices.get('fiber_large'), existing_prices.get('fiber_threshold'), quantity, 2.50, 2.00)
+                        chape_cost += quantity * fiber_rate
                     
-                    fiber_rate = pricing.fiber_price_sqm if quantity <= pricing.fiber_large_threshold_sqm else pricing.fiber_price_sqm_large
-                    fiber_cost = quantity * fiber_rate if (vol.get('has_fiber') or vol.get('has_duramint')) else 0
+                    total_chape_gross += chape_cost
                     
-                    hidden_extra = 0
-                    if pricing.surface_thresholds:
-                        for thresh in pricing.surface_thresholds:
-                            min_s = float(thresh.get("min_sqm") or 0)
-                            max_s = float(thresh.get("max_sqm") or 999999)
-                            if min_s <= quantity < max_s:
-                                hidden_extra += float(thresh.get("extra_charge") or 0)
+            elif 'pur' in label or 'mousse' in label:
+                if quantity > 0:
+                    pur_base = float(existing_prices.get('pur_base_price_3cm', 13.95))
+                    step_up_to_10 = float(existing_prices.get('pur_step_price_up_to_10cm', 1.65))
+                    extra_above_10 = float(existing_prices.get('pur_extra_price_above_10cm', 2.10))
+                    
+                    if 3 < thickness <= 10:
+                        pur_base += (thickness - 3) * step_up_to_10
+                    elif thickness > 10:
+                        pur_base += 7 * step_up_to_10
+                        pur_base += (thickness - 10) * extra_above_10
+                        
+                    if quantity > 100:
+                        import math
+                        pur_base += math.floor((quantity - 100) / 100.0) * float(existing_prices.get('pur_surface_discount_step', -0.50))
+                        
+                    pur_base = max(0, pur_base)
+                    pur_items_gross = quantity * pur_base
+                    
+                    if vol.get('pur_aspiration'): pur_items_gross += quantity * float(existing_prices.get('pur_opt_aspiration', 2.00))
+                    if vol.get('pur_niveller'): pur_items_gross += quantity * float(existing_prices.get('pur_opt_niveller', 4.25))
+                    if vol.get('pur_poncage'): pur_items_gross += quantity * float(existing_prices.get('pur_opt_poncage', 1.50))
+                    if vol.get('pur_protection'): pur_items_gross += quantity * float(existing_prices.get('pur_opt_protection', 1.50))
+                    
+                    pur_discount = float(existing_prices.get('pur_discount_pct', 0))
+                    if pur_discount > 0:
+                        pur_items_gross -= (pur_items_gross * pur_discount / 100.0)
+                        
+                    total_pur_gross += pur_items_gross
+                    
+            elif 'isolation eps' in label or 'thermobeton' in label:
+                if quantity > 0:
+                    vol_m3 = float(vol.get('volume_m3') or (quantity * thickness / 100.0))
+                    eps_price = 0
+                    
+                    custom_flat = existing_prices.get('custom_eps_price_flat')
+                    custom_per_m3 = existing_prices.get('custom_eps_price_per_m3')
+                    
+                    if custom_flat is not None and str(custom_flat).strip() != "" and str(custom_flat) != "null":
+                        eps_price = float(custom_flat)
+                    elif custom_per_m3 is not None and str(custom_per_m3).strip() != "" and str(custom_per_m3) != "null":
+                        eps_price = float(custom_per_m3) * vol_m3
+                    elif getattr(pricing, 'eps_volume_thresholds', None):
+                        for t in pricing.eps_volume_thresholds:
+                            t_max = float(t.get('max_m3') or 999999)
+                            if vol_m3 <= t_max:
+                                if t.get('price_flat') is not None:
+                                    eps_price = float(t.get('price_flat'))
+                                else:
+                                    eps_price = vol_m3 * float(t.get('price_per_m3') or 150)
+                                break
                                 
-                    auto_net += (base + extra_cost + foil_cost + mesh_cost + fiber_cost + hidden_extra)
+                    eps_discount = float(existing_prices.get('eps_discount_pct', 0))
+                    if eps_discount > 0:
+                        eps_price -= (eps_price * eps_discount / 100.0)
+                        
+                    total_eps_gross += eps_price
+
+        # Threshold / Forfait
+        surf_check = float(wo.volumes[0].get('quantity') if wo.volumes else (wo.surface_m2 or 0))
+        thresh_charge = 0
+        if existing_prices.get('custom_threshold') not in [None, ""]:
+            thresh_charge = float(existing_prices.get('custom_threshold'))
+        elif existing_prices.get('surface_thresholds'):
+            for t in existing_prices['surface_thresholds']:
+                if float(t.get('min_sqm', 0)) <= surf_check <= float(t.get('max_sqm', 999999)):
+                    thresh_charge = float(t.get('extra_charge', 0))
+                    break
                     
-        if auto_net > 0 or truck_cost > 0:
-            wo.estimated_price = auto_net + truck_cost
+        total_chape_gross += thresh_charge
+        
+        # Truck Cost
+        truck_cost = float(existing_prices.get('truck_cost', 0))
+        dist_km = float(existing_prices.get('distance_km', 0))
+        
+        if truck_cost <= 0 and dist_km > 0:
+            t_flat = float(getattr(pricing, 'truck_extra_price_flat', 0))
+            t_dist = float(getattr(pricing, 'truck_distance_threshold_km', 50))
+            t_surf = float(getattr(pricing, 'truck_surface_threshold_free_sqm', 500))
+            
+            if t_flat > 0 and dist_km > t_dist and surf_check <= t_surf:
+                truck_cost = t_flat
+                existing_prices['truck_cost'] = truck_cost
+                from sqlalchemy.orm.attributes import flag_modified
+                wo.prices = existing_prices
+                flag_modified(wo, "prices")
+                
+        total_chape_gross += truck_cost
+        
+        # Discount Chape
+        discount_pct = float(existing_prices.get('discount_pct', 0))
+        discount_amount = (total_chape_gross * discount_pct) / 100.0
+        
+        auto_net = (total_chape_gross - discount_amount) + total_pur_gross + total_eps_gross
+
+        if auto_net > 0:
+            wo.estimated_price = auto_net
         
         from datetime import datetime
         wo.updated_at = datetime.utcnow()

@@ -255,3 +255,129 @@ def search_clients(q: str = Query(..., min_length=2), db: Session = Depends(get_
         }
         for c in clients
     ]
+
+class ClientRatingUpdate(BaseModel):
+    rating: int = Field(ge=0, le=5)
+    internal_notes: Optional[str] = None
+
+@router.put("/{client_id}/rating")
+def update_client_rating(
+    client_id: str,
+    payload: ClientRatingUpdate,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    client = db.query(Client).filter(
+        Client.id == client_id,
+        Client.organization_id == current_admin.organization_id
+    ).first()
+    
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+        
+    client.rating = payload.rating
+    client.internal_notes = payload.internal_notes
+    client.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(client)
+    
+    return {"message": "Rating updated successfully", "rating": client.rating, "internal_notes": client.internal_notes}
+
+@router.get("/{client_id}/details")
+def get_client_details(
+    client_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    client = db.query(Client).filter(
+        Client.id == client_id,
+        Client.organization_id == current_admin.organization_id
+    ).first()
+    
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+        
+    from app.models import WorkOrder, WorkOrderPhoto
+    
+    work_orders = db.query(WorkOrder).filter(
+        WorkOrder.client_id == client_id,
+        WorkOrder.organization_id == current_admin.organization_id,
+        WorkOrder.source_system.in_(["manual", "devis_online", "calculator", "admin"])
+    ).order_by(WorkOrder.created_at.desc()).all()
+    
+    wo_ids = [wo.id for wo in work_orders]
+    
+    photos = []
+    if wo_ids:
+        db_photos = db.query(WorkOrderPhoto).filter(
+            WorkOrderPhoto.work_order_id.in_(wo_ids)
+        ).order_by(WorkOrderPhoto.uploaded_at.desc()).all()
+        
+        for p in db_photos:
+            photos.append({
+                "id": p.id,
+                "photo_path": p.photo_path,
+                "description": p.description,
+                "uploaded_at": p.uploaded_at,
+                "work_order_id": p.work_order_id,
+                "type": p.photo_type
+            })
+            
+    # Calculate stats (Orice nu e facturat e considerat 'Deviz/Comandă' de către utilizator)
+    total_invoices = len([wo for wo in work_orders if wo.is_invoiced])
+    total_quotes = len([wo for wo in work_orders if not wo.is_invoiced])
+    
+    # Calculate total value (sum of final_net / gross if available, or estimated_price)
+    total_value = 0.0
+    for wo in work_orders:
+        added = False
+        if wo.prices and isinstance(wo.prices, dict) and "total_net" in wo.prices:
+            try:
+                total_value += float(wo.prices["total_net"])
+                added = True
+            except:
+                pass
+        
+        if not added and wo.estimated_price:
+            try:
+                total_value += float(wo.estimated_price)
+            except:
+                pass
+                
+    return {
+        "client": {
+            "id": client.id,
+            "name": client.name,
+            "cui": client.cui,
+            "reg_com": client.reg_com,
+            "address": client.address,
+            "email": client.email,
+            "phone": client.phone,
+            "contact_person": client.contact_person,
+            "rating": client.rating or 0,
+            "internal_notes": client.internal_notes or ""
+        },
+        "stats": {
+            "total_quotes": total_quotes,
+            "total_invoices": total_invoices,
+            "total_value": total_value
+        },
+        "work_orders": [
+            {
+                "id": wo.id,
+                "quote_number": wo.quote_number,
+                "invoice_number": wo.invoice_number,
+                "title": wo.title,
+                "status": wo.status,
+                "is_quote": wo.is_quote,
+                "is_invoiced": wo.is_invoiced,
+                "created_at": wo.created_at,
+                "estimated_price": wo.estimated_price,
+                "pdf_path": wo.pdf_path,
+                "final_invoice_path": wo.final_invoice_path,
+                "proforma_path": wo.proforma_path
+            } for wo in work_orders
+        ],
+        "photos": photos
+    }

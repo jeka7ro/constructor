@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 const weatherCache = {};
 
-export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, compact, inline }) {
+export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, compact, inline, tiny }) {
     const { t } = useTranslation();
     const [hourlyData, setHourlyData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -154,10 +154,29 @@ export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, c
     }
     
     if (error || !hourlyData) {
+        if (tiny) {
+            return (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-white/90 dark:bg-slate-800/90 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                    <CloudSun className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-[10px] font-bold text-slate-500">{address?.split(',').slice(-2).join(', ').trim() || t('weather.no_data', 'N/A')}</span>
+                </div>
+            );
+        }
         return (
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 p-6 flex flex-col items-center justify-center text-center">
                 <CloudSun className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
                 <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{t('weather.no_data', 'Date meteo indisponibile pentru')} {dateStr.split('T')[0]}</p>
+            </div>
+        );
+    }
+
+    if (tiny) {
+        return (
+            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/90 dark:bg-slate-800/90 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 backdrop-blur-sm">
+                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px]">{address?.split(',').slice(-2).join(', ').trim() || 'Locație'}</span>
+                <div className="w-px h-3 bg-slate-300 dark:bg-slate-600"></div>
+                <span className="text-[12px] font-black text-blue-600 dark:text-blue-400">{hourlyData[0]?.temp}°</span>
+                {getIcon(hourlyData[0]?.code, "w-4 h-4")}
             </div>
         );
     }

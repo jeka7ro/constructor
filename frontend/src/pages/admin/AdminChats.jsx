@@ -636,7 +636,7 @@ export default function AdminChats() {
                                                                     if (!transText.trim() || transText.includes('Error 500') || transText.includes('Eroare la traducere') || transText.includes("That's an error")) return null;
                                                                     return (
                                                                         <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
-                                                                            <span className="font-semibold block mb-0.5">🌐 Traducere:</span>
+                                                                            <span className="font-semibold block mb-0.5">🌐 {t('chat.translation', 'Traduction')}:</span>
                                                                             {transText}
                                                                         </div>
                                                                     );
@@ -798,7 +798,7 @@ export default function AdminChats() {
                                                 title="Limbă Traducere (la Client)"
                                             >
                                                 <option value="none">Fără trad.</option>
-                                                <option value="nl">NL (Vlaams/Dutch)</option>
+                                                <option value="nl">NL</option>
                                                 <option value="fr">FR</option>
                                                 <option value="en">EN</option>
                                             </select>

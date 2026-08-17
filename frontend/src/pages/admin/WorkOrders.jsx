@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -504,7 +504,15 @@ export default function WorkOrders() {
             sortValue: (wo) => wo.client_name?.toLowerCase() || '',
             render: (wo) => (
                 <div>
-                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{wo.client_name || '—'}</div>
+                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        {wo.client_id ? (
+                            <RouterLink onClick={(e) => e.stopPropagation()} to={`/admin/clients/${wo.client_id}`} className="hover:text-indigo-600 transition-colors">
+                                {wo.client_name || '—'}
+                            </RouterLink>
+                        ) : (
+                            wo.client_name || '—'
+                        )}
+                    </div>
                     {wo.client_email && (
                         <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{wo.client_email}</div>
                     )}

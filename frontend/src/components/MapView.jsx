@@ -46,7 +46,7 @@ const getPinSvg = () => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
  * MapView — hartă read-only folosind Google Maps.
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Google Geocoder.
  */
-const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent, onRouteCalculated, teamColor = '#2563eb', markerType = 'truck' }) => {
+const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent, onRouteCalculated, teamColor = '#2563eb', markerType = 'truck', overlayTopRight, overlayBottomRight, overlayBottomLeft }) => {
     const { t } = useTranslation();
     const mapRef = useRef(null);
     const detailMapRef = useRef(null);
@@ -540,6 +540,22 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     <div className="absolute inset-0 bg-white/70 dark:bg-slate-800/70 flex flex-col items-center justify-center gap-2 z-[400] pointer-events-none">
                         <div className="w-7 h-7 rounded-full border-3 border-blue-500 border-t-transparent animate-spin" />
                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{t('mapview.searching', 'Se caută locația pe hartă...')}</span>
+                    </div>
+                )}
+                
+                {overlayTopRight && (
+                    <div className="absolute top-12 right-2 z-[400] pointer-events-auto">
+                        {overlayTopRight}
+                    </div>
+                )}
+                {overlayBottomRight && (
+                    <div className="absolute bottom-6 right-2 z-[400] pointer-events-auto">
+                        {overlayBottomRight}
+                    </div>
+                )}
+                {overlayBottomLeft && (
+                    <div className="absolute bottom-6 left-2 z-[400] pointer-events-auto">
+                        {overlayBottomLeft}
                     </div>
                 )}
 

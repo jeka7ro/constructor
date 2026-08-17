@@ -212,18 +212,55 @@ export function buildQuoteItems(wo, pricingSettings, options = {}) {
         });
     }
     
+    // ── FACTURARE MINIMĂ (Preferențiali) ──────────────────────────────────────
+    const currentTotalNetForMin = items.reduce((s, i) => i.isHeader ? s : s + (i.qty * i.price), 0);
+    const minThreshold = parseFloat(p.min_invoice_threshold_sqm || 0);
+    
+    if (minThreshold > 0) {
+        const fixedUnder = parseFloat(p.min_invoice_fixed_price_under || 0);
+        const minOver = parseFloat(p.min_invoice_min_price_over || 0);
+        
+        if (surfCheck <= minThreshold && fixedUnder > 0) {
+            if (currentTotalNetForMin !== fixedUnder) {
+                items.push({
+                    id: 'min_invoice_adj',
+                    isChape: true,
+                    desc: 'Ajustare preț minim șantier',
+                    qty: 1,
+                    unit: 'Forfait',
+                    price: fixedUnder - currentTotalNetForMin
+                });
+            }
+        } else if (surfCheck > minThreshold && minOver > 0) {
+            if (currentTotalNetForMin < minOver) {
+                items.push({
+                    id: 'min_invoice_adj',
+                    isChape: true,
+                    desc: 'Ajustare preț minim șantier',
+                    qty: 1,
+                    unit: 'Forfait',
+                    price: minOver - currentTotalNetForMin
+                });
+            }
+        }
+    }
+    
     // ── TOTALE ────────────────────────────────────────────────────────────────
-    const totalNet = items.reduce((s, i) => s + i.qty * i.price, 0);
+    const totalNet = items.reduce((s, i) => {
+        if (i.isHeader) return s;
+        return s + (i.qty * i.price);
+    }, 0);
     
     // Discount: se aplică pe chape items (base+extra+foil+mesh+fiber+threshold+transport)
     // NU pe PUR/EPS — identic cu computeChapeTotal (linia 974 WorkOrderDetail)
     const isChapeItem = (item) => {
+        if (item.isHeader) return false;
         const d = (item.desc || '').toLowerCase();
         return !d.includes('eps') && !d.includes('pur') && !d.includes('isolation') &&
                !d.includes('ponçage') && !d.includes('aspiration') && !d.includes('nivellement') && !d.includes('protection');
     };
     
-    const chapeTotalGross = items.filter(i => isChapeItem(i)).reduce((s, i) => s + i.qty * i.price, 0);
+    const chapeTotalGross = items.filter(i => isChapeItem(i)).reduce((s, i) => s + (i.qty * i.price), 0);
     const discountPct = parseFloat(p.discount_pct || 0);
     const discountAmount = (chapeTotalGross * discountPct) / 100;
     const netAfterDiscount = totalNet - discountAmount;
