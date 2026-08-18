@@ -1,5 +1,5 @@
 import { getPrice } from "../../utils/pricingEngine";
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { createPortal } from 'react-dom'
 import { SAND_STATIONS } from '../../data/sandStations'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
@@ -2613,7 +2613,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         const fiberPrice = p.fiber_large !== undefined ? (surface > parseFloat(p.fiber_threshold) ? parseFloat(p.fiber_large) : parseFloat(p.fiber)) : getPriceVal(p.fiber, 2.5);
 
                                         return (
-                                            <React.Fragment key={idx}>
+                                            <Fragment key={idx}>
                                                 <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                                     <span className="font-medium">{lbl} - Bază</span>
                                                     <span className="text-right tabular-nums">{surface} m² × {basePrice.toFixed(2)} = <b>{(surface * basePrice).toFixed(2)}&nbsp;EUR</b></span>
@@ -2642,7 +2642,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         <span className="text-right tabular-nums">{surface} m² × {fiberPrice.toFixed(2)} = <b>{(surface * fiberPrice).toFixed(2)}&nbsp;EUR</b></span>
                                                     </div>
                                                 )}
-                                            </React.Fragment>
+                                            </Fragment>
                                         );
                                     })}
                                     {estimCalc.isoPurBase > 0 && (
