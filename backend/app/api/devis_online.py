@@ -26,6 +26,10 @@ class IsolationItem(BaseModel):
     type: str = "pur"
     surface: float
     thickness: float
+    isolation_pur_aspiration: bool = False
+    isolation_pur_niveller: bool = False
+    isolation_pur_poncage: bool = False
+    isolation_pur_protection: bool = False
 
 class CalculatorSubmitRequest(BaseModel):
     domain: Optional[str] = None
@@ -190,9 +194,9 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
     
     # 1. Use multiple surfaces if provided
     if payload.surfaces and len(payload.surfaces) > 0:
-        for surf in payload.surfaces:
+        for idx, surf in enumerate(payload.surfaces):
             volumes.append({
-                "label": surf.label or "Chape",
+                "label": surf.label if surf.label else str(idx + 1),
                 "quantity": surf.surface,
                 "unit": "m²",
                 "thickness": surf.thickness,
@@ -203,7 +207,7 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
     else:
         # Fallback to single surface
         volumes.append({
-            "label": "Chape",
+            "label": "1",
             "quantity": payload.surface,
             "unit": "m²",
             "thickness": payload.thickness,
@@ -220,15 +224,15 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
                 "thickness": iso.thickness or 3,
             }
             if iso.type == "pur":
-                iso_vol["label"] = iso.label or "Isolation PUR"
+                iso_vol["label"] = iso.label if (iso.label and iso.label != "Isolation") else "Isolation PUR"
                 iso_vol["unit"] = "m²"
-                # Keep legacy options per-surface for now if passed, else default
-                iso_vol["pur_aspiration"] = payload.isolation_pur_aspiration
-                iso_vol["pur_niveller"] = payload.isolation_pur_niveller
-                iso_vol["pur_poncage"] = payload.isolation_pur_poncage
-                iso_vol["pur_protection"] = payload.isolation_pur_protection
+                # Options are now inside IsolationItem
+                iso_vol["pur_aspiration"] = iso.isolation_pur_aspiration
+                iso_vol["pur_niveller"] = iso.isolation_pur_niveller
+                iso_vol["pur_poncage"] = iso.isolation_pur_poncage
+                iso_vol["pur_protection"] = iso.isolation_pur_protection
             elif iso.type == "eps":
-                iso_vol["label"] = iso.label or "Isolation EPS"
+                iso_vol["label"] = iso.label if (iso.label and iso.label != "Isolation") else "Isolation EPS"
                 iso_vol["unit"] = "m³"
                 iso_vol["volume_m3"] = round(iso.surface * (iso.thickness or 1) / 100, 2)
             volumes.append(iso_vol)

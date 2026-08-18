@@ -178,11 +178,16 @@ export function buildQuoteItems(wo, pricingSettings, options = {}) {
     
     if (p.custom_threshold !== undefined && p.custom_threshold !== null && p.custom_threshold !== '') {
         thresholdCharge = parseFloat(p.custom_threshold) || 0;
-    } else if (p.surface_thresholds && Array.isArray(p.surface_thresholds)) {
-        const match = p.surface_thresholds.find(t =>
-            surfCheck >= parseFloat(t.min_sqm || 0) && surfCheck <= parseFloat(t.max_sqm || 999999)
-        );
-        if (match) thresholdCharge = parseFloat(match.extra_charge || 0);
+    } else {
+        const thresholds = (p.surface_thresholds && Array.isArray(p.surface_thresholds))
+            ? p.surface_thresholds
+            : (pricingSettings?.surface_thresholds && Array.isArray(pricingSettings.surface_thresholds) ? pricingSettings.surface_thresholds : null);
+        if (thresholds) {
+            const match = thresholds.find(t =>
+                surfCheck >= parseFloat(t.min_sqm || 0) && surfCheck <= parseFloat(t.max_sqm || 999999)
+            );
+            if (match) thresholdCharge = parseFloat(match.extra_charge || 0);
+        }
     }
     
     if (thresholdCharge > 0) {

@@ -1954,7 +1954,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 <div key={i} className="flex flex-col gap-1.5 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
                                                                     <div className="flex items-center justify-between">
                                                                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
-                                                                            {v.label || 'Surface'}
+                                                                            {v.label?.match(/^\d+$/) 
+                                                                                ? t('materials.surface_n', 'Surface {{n}}', { n: v.label }) 
+                                                                                : (v.label === 'Chape' ? t('materials.surface_n', 'Surface {{n}}', { n: i + 1 }) : v.label || 'Surface')}
                                                                         </span>
                                                                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-600">
                                                                             {v.quantity || 0} {v.unit || 'm²'} <span className="text-slate-300 dark:text-slate-600 mx-1">|</span> {v.thickness || 0} CM
@@ -2587,19 +2589,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <span className="text-right tabular-nums">{surfaceForAuto} m² × {extraThickForAuto} cm × {(autoExtra / (surfaceForAuto * extraThickForAuto)).toFixed(2)} = <b>{autoExtra.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
-                                    {autoFoil > 0 && (
+                                    {(autoFoil > 0 || chapeFlags.has_foil) && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
                                             <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
-                                    {autoMesh > 0 && (
+                                    {(autoMesh > 0 || chapeFlags.has_mesh) && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
                                             <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
-                                    {autoFiber > 0 && (
+                                    {(autoFiber > 0 || chapeFlags.has_fiber || chapeFlags.has_duramint) && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres / Duramint')}</span>
                                             <span className="text-right tabular-nums">
@@ -2744,19 +2746,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <span className="text-right tabular-nums">{realSurface} m² × {realCalc.extraThick} cm × {(realCalc.extra / (realSurface * realCalc.extraThick)).toFixed(2)} = <b>{realCalc.extra.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
-                                    {realCalc.foil > 0 && (
+                                    {(realCalc.foil > 0 || realChapeFlags.has_foil) && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
                                             <span className="text-right tabular-nums">{realSurface} m² × {getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2).toFixed(2)} = <b>{realCalc.foil.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
-                                    {realCalc.mesh > 0 && (
+                                    {(realCalc.mesh > 0 || realChapeFlags.has_mesh) && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
                                             <span className="text-right tabular-nums">{realSurface} m² × {getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5).toFixed(2)} = <b>{realCalc.mesh.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
-                                    {realCalc.fiber > 0 && (
+                                    {(realCalc.fiber > 0 || realChapeFlags.has_fiber || realChapeFlags.has_duramint) && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres / Duramint')}</span>
                                             <span className="text-right tabular-nums">
@@ -2832,9 +2834,29 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <span className="text-right tabular-nums">{realCalc.truck_cost > 0 ? `+ ` : ''}<b>{realCalc.truck_cost.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
+                                    {/* TVA Real-calculated */}
+                                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
+                                            <span>{t('work_order_detail.invoicing.net_htva', 'Total Net (HTVA)')}</span>
+                                            <span className="tabular-nums">{realCalc.net.toFixed(2)}&nbsp;EUR</span>
+                                        </div>
+                                        
+                                        {vatEnabled ? (
+                                            <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium mt-1">
+                                                <span>TVA ({vatType}%)</span>
+                                                <span className="tabular-nums">{(realCalc.net * vatRate).toFixed(2)}&nbsp;EUR</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-between text-slate-500 dark:text-slate-500 font-medium mt-1">
+                                                <span>{t('quotes.tva_disabled', 'TVA non appliquée')}</span>
+                                                <span className="tabular-nums">0.00&nbsp;EUR</span>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-3" />
                                     <div className="flex justify-between text-base font-black text-slate-900 dark:text-white">
-                                        <span>{t('work_order_detail.invoicing.gross', 'TOTAL RÉEL:')}</span>
+                                        <span>{t('work_order_detail.invoicing.gross', 'TOTAL RÉEL (TTC):')}</span>
                                         <span className="tabular-nums">{(realCalc.net + realCalc.net * vatRate).toFixed(2)}&nbsp;EUR</span>
                                     </div>
                                     {bigDiff && (
