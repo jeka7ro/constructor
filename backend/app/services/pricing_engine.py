@@ -66,21 +66,36 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
     foil_cost = 0.0
     mesh_cost = 0.0
     fiber_cost = 0.0
+    items = []
 
     for s in surfaces_data:
         s_area = float(s.get('surface', 0))
         s_thick = float(s.get('thickness', 0))
+        lbl = s.get('label')
+        lbl_prefix = f"{lbl} - " if lbl else ""
         
         base_cost += base_rate * s_area
+        items.append({'label': f'{lbl_prefix}Bază', 'quantity': s_area, 'unit': 'm²', 'price': base_rate, 'total': base_rate * s_area})
+        
         extra_thick = max(0.0, s_thick - standard_thickness)
-        extra_cost += extra_thick * extra_price * s_area
+        if extra_thick > 0:
+            extra_cost += extra_thick * extra_price * s_area
+            items.append({'label': f'{lbl_prefix}Grosime Extra ({extra_thick} cm)', 'quantity': s_area, 'unit': 'm²', 'price': extra_thick * extra_price, 'total': extra_thick * extra_price * s_area})
         
         if s.get('has_foil'):
-            foil_cost += float(pricing.get('plastic_foil_price_sqm', 1.2)) * s_area
-        if s.get('has_mesh'):
-            mesh_cost += float(pricing.get('metal_mesh_price_sqm', 2.5)) * s_area
+            foil_rate = float(pricing.get('plastic_foil_price_sqm', 1.2))
+            foil_cost += foil_rate * s_area
+            items.append({'label': f'{lbl_prefix}Folie', 'quantity': s_area, 'unit': 'm²', 'price': foil_rate, 'total': foil_rate * s_area})
             
-        fiber_cost += fiber_rate * s_area
+        if s.get('has_mesh'):
+            mesh_rate = float(pricing.get('metal_mesh_price_sqm', 2.5))
+            mesh_cost += mesh_rate * s_area
+            items.append({'label': f'{lbl_prefix}Plasă', 'quantity': s_area, 'unit': 'm²', 'price': mesh_rate, 'total': mesh_rate * s_area})
+            
+        if fiber_rate > 0:
+            if s.get('has_fiber') or s.get('has_duramint'):
+                fiber_cost += fiber_rate * s_area
+                items.append({'label': f'{lbl_prefix}Fibră / Duramint', 'quantity': s_area, 'unit': 'm²', 'price': fiber_rate, 'total': fiber_rate * s_area})
 
     # 4. Thresholds Cost
     hidden_extra = 0.0
@@ -90,7 +105,10 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
             min_s = float(thresh.get("min_sqm", 0))
             max_s = float(thresh.get("max_sqm", 999999))
             if min_s <= total_surface <= max_s:
-                hidden_extra += float(thresh.get("extra_charge", 0))
+                charge = float(thresh.get("extra_charge", 0))
+                hidden_extra += charge
+                if charge > 0:
+                    items.append({'label': f'Taxă suprafață mică ({total_surface} m²)', 'quantity': 1, 'unit': 'buc', 'price': charge, 'total': charge})
 
     # 5. Truck Cost
     truck_cost = 0.0
@@ -100,6 +118,8 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
             truck_distance_threshold = float(pricing.get('truck_distance_threshold_km', 50.0))
             if distance_km > truck_distance_threshold:
                 truck_cost = float(pricing.get('truck_extra_price_flat', 0.0))
+                if truck_cost > 0:
+                    items.append({'label': 'Transport / Déplacement', 'quantity': 1, 'unit': 'Forfait', 'price': truck_cost, 'total': truck_cost})
 
     # 6. Isolation Cost
     isolation_cost = 0.0
@@ -140,12 +160,26 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
                 pur_base += discount_steps * float(pricing.get('pur_surface_discount_step', -0.5))
                 
             iso_pur_base += pur_base * iso_surface
+            if pur_base > 0:
+                items.append({'label': f'Isolation PUR ({iso_thick} cm)', 'quantity': iso_surface, 'unit': 'm²', 'price': pur_base, 'total': pur_base * iso_surface})
             
             # Options PUR
-            if iso.get('pur_aspiration') or payload.get('isolation_pur_aspiration'): iso_pur_opt_total += float(pricing.get('pur_opt_aspiration', 2.0)) * iso_surface
-            if iso.get('pur_niveller') or payload.get('isolation_pur_niveller'): iso_pur_opt_total += float(pricing.get('pur_opt_niveller', 4.25)) * iso_surface
-            if iso.get('pur_poncage') or payload.get('isolation_pur_poncage'): iso_pur_opt_total += float(pricing.get('pur_opt_poncage', 1.5)) * iso_surface
-            if iso.get('pur_protection') or payload.get('isolation_pur_protection'): iso_pur_opt_total += float(pricing.get('pur_opt_protection', 1.5)) * iso_surface
+            if iso.get('pur_aspiration') or payload.get('isolation_pur_aspiration'):
+                val = float(pricing.get('pur_opt_aspiration', 2.0))
+                iso_pur_opt_total += val * iso_surface
+                items.append({'label': 'Aspiration PUR', 'quantity': iso_surface, 'unit': 'm²', 'price': val, 'total': val * iso_surface})
+            if iso.get('pur_niveller') or payload.get('isolation_pur_niveller'):
+                val = float(pricing.get('pur_opt_niveller', 4.25))
+                iso_pur_opt_total += val * iso_surface
+                items.append({'label': 'Nivellement PUR', 'quantity': iso_surface, 'unit': 'm²', 'price': val, 'total': val * iso_surface})
+            if iso.get('pur_poncage') or payload.get('isolation_pur_poncage'):
+                val = float(pricing.get('pur_opt_poncage', 1.5))
+                iso_pur_opt_total += val * iso_surface
+                items.append({'label': 'Ponçage PUR', 'quantity': iso_surface, 'unit': 'm²', 'price': val, 'total': val * iso_surface})
+            if iso.get('pur_protection') or payload.get('isolation_pur_protection'):
+                val = float(pricing.get('pur_opt_protection', 1.5))
+                iso_pur_opt_total += val * iso_surface
+                items.append({'label': 'Protection PUR', 'quantity': iso_surface, 'unit': 'm²', 'price': val, 'total': val * iso_surface})
             
         elif iso_type == "eps":
             vol_m3 = (iso_surface * iso_thick) / 100.0
@@ -158,7 +192,9 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
             else:
                 eps_thresholds = pricing.get('eps_volume_thresholds', [])
                 for t in sorted(eps_thresholds, key=lambda x: float(x.get('max_m3', 99999))):
-                    if vol_m3 <= float(t.get('max_m3', 99999)):
+                    t_min = float(t.get('min_m3', 0))
+                    t_max = float(t.get('max_m3', 99999))
+                    if t_min <= vol_m3 <= t_max:
                         if t.get('price_flat'):
                             eps_cost = float(t['price_flat'])
                         else:
@@ -166,6 +202,8 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
                         break
             
             iso_eps_base += eps_cost
+            if eps_cost > 0:
+                items.append({'label': f'Isolation EPS ({iso_thick} cm)', 'quantity': iso_surface, 'unit': 'm²', 'price': eps_cost / iso_surface if iso_surface > 0 else 0, 'total': eps_cost})
 
     pur_cost = max(iso_pur_base, float(pricing.get('pur_minimum_execution_price', 1375.0))) + iso_pur_opt_total if has_pur else 0.0
 
@@ -239,5 +277,6 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
         "discount_amount": discount_amount,
         "discount_pct": global_discount_pct,
         "pur_discount_pct": pur_discount_pct,
-        "eps_discount_pct": eps_discount_pct
+        "eps_discount_pct": eps_discount_pct,
+        "items": items
     }

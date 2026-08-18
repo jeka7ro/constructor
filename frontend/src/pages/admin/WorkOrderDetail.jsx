@@ -1303,31 +1303,49 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         if (!calcEditForm) return;
         setCalcEditSaving(true);
         try {
-            const surface = parseFloat(calcEditForm.surface) || 0;
-            const thickness = parseFloat(calcEditForm.thickness) || 0;
-            
-            const newPurSurface = parseFloat(calcEditForm.iso_pur_surface) || 0;
-            const newPurThickness = parseFloat(calcEditForm.iso_pur_thickness) || 0;
-            const newEpsVolume = parseFloat(calcEditForm.iso_eps_m3) || 0;
-
-            const newVolumes = (wo.volumes || []).map(v => {
+            // 1. Păstrăm volumele care NU sunt de izolație și NU sunt șapă (dacă există altele)
+            const otherVolumes = (wo.volumes || []).filter(v => {
                 const labelSafe = (v.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                if (/chape|[sșş]ap[aăâ]/i.test(labelSafe)) {
-                    return { ...v, quantity: surface, thickness, has_foil: !!calcEditForm.has_foil, has_mesh: !!calcEditForm.has_mesh, has_fiber: !!calcEditForm.has_fiber, has_duramint: !!calcEditForm.has_duramint };
-                }
-                if (/isolation\s*pur/i.test(labelSafe)) {
-                    return { ...v, quantity: newPurSurface, thickness: newPurThickness };
-                }
-                if (/isolation\s*eps/i.test(labelSafe)) {
-                    return { ...v, quantity: parseFloat(calcEditForm.iso_eps_surface) || 0, eps_surface: parseFloat(calcEditForm.iso_eps_surface) || 0, thickness: parseFloat(calcEditForm.iso_eps_thickness) || 0 };
-                }
-                return v;
+                const isChape = /chape|[sșş]ap[aăâ]/i.test(labelSafe);
+                const isPur = /isolation\s*pur/i.test(labelSafe);
+                const isEps = /isolation\s*eps/i.test(labelSafe);
+                return !isChape && !isPur && !isEps;
             });
-            // Dacă nu există niciun volum Chape, creăm unul
-            const hasChapeVol = (wo.volumes || []).some(v => /chape|[sșş]ap[aăâ]/i.test((v.label || '').toLowerCase()));
-            if (!hasChapeVol && surface > 0) {
-                newVolumes.push({ label: 'Chape', quantity: surface, unit: 'm²', thickness, has_foil: !!calcEditForm.has_foil, has_mesh: !!calcEditForm.has_mesh, has_fiber: !!calcEditForm.has_fiber, has_duramint: !!calcEditForm.has_duramint });
-            }
+
+            // 2. Adăugăm chapes modificate
+            const modifiedChapes = (calcEditForm.chapes || []).map(c => ({
+                label: c.label || 'Șapă',
+                quantity: parseFloat(c.surface) || 0,
+                unit: 'm²',
+                thickness: parseFloat(c.thickness) || 5,
+                has_foil: !!c.has_foil,
+                has_mesh: !!c.has_mesh,
+                has_fiber: !!c.has_fiber,
+                has_duramint: !!c.has_duramint
+            })).filter(c => c.quantity > 0);
+
+            // 3. Adăugăm PUR
+            const modifiedPurs = (calcEditForm.pur_isolations || []).map(p => ({
+                label: 'Isolation PUR',
+                quantity: parseFloat(p.surface) || 0,
+                unit: 'm²',
+                thickness: parseFloat(p.thickness) || 3,
+                pur_aspiration: !!p.pur_aspiration,
+                pur_niveller: !!p.pur_niveller,
+                pur_poncage: !!p.pur_poncage,
+                pur_protection: !!p.pur_protection
+            })).filter(p => p.quantity > 0);
+
+            // 4. Adăugăm EPS
+            const modifiedEps = (calcEditForm.eps_isolations || []).map(e => ({
+                label: 'Isolation EPS',
+                quantity: parseFloat(e.surface) || 0,
+                eps_surface: parseFloat(e.surface) || 0,
+                unit: 'm²',
+                thickness: parseFloat(e.thickness) || 5
+            })).filter(e => e.quantity > 0);
+
+            const newVolumes = [...otherVolumes, ...modifiedChapes, ...modifiedPurs, ...modifiedEps];
             const newPrices = {
                 ...(wo.prices || {}),
                 base: parseFloat(calcEditForm.base_price) || 0,
@@ -2503,14 +2521,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 const allEps = (wo.volumes || []).filter(v => /isolation\s*eps/i.test((v.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
 
                                                 const chapes = allChapes.length > 0 ? allChapes.map((v, i) => ({
-                                                    id: Date.now() + i,
+                                                    id: v.id || (Date.now() + i),
+                                                    label: v.label || 'Șapă',
                                                     surface: v.quantity || '',
                                                     thickness: v.thickness || '',
                                                     has_foil: v.has_foil || false,
                                                     has_mesh: v.has_mesh || false,
                                                     has_fiber: v.has_fiber || false,
                                                     has_duramint: v.has_duramint || false
-                                                })) : [{ id: Date.now(), surface: surfaceForAuto || '', thickness: '', has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false }];
+                                                })) : [{ id: Date.now(), label: 'Șapă', surface: surfaceForAuto || '', thickness: '', has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false }];
                                                 
                                                 const pur_isolations = allPurs.length > 0 ? allPurs.map((v, i) => ({
                                                     id: Date.now() + 1000 + i,
@@ -2579,36 +2598,53 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     </div>
                                 )}
                                 <div className="p-4 space-y-2 text-sm">
-                                    <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                        <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
-                                        <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.base, surfaceForAuto <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)}&nbsp;EUR</b></span>
-                                    </div>
-                                    {autoExtra > 0 && (
-                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({extraThickForAuto} cm)</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {extraThickForAuto} cm × {(autoExtra / (surfaceForAuto * extraThickForAuto)).toFixed(2)} = <b>{autoExtra.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {(autoFoil > 0 || chapeFlags.has_foil) && (
-                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {(autoMesh > 0 || chapeFlags.has_mesh) && (
-                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {(autoFiber > 0 || chapeFlags.has_fiber || chapeFlags.has_duramint) && (
-                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres / Duramint')}</span>
-                                            <span className="text-right tabular-nums">
-                                                {surfaceForAuto} m² × {(wo.prices?.fiber_large !== undefined ? (surfaceForAuto > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : getPriceVal(wo.prices?.fiber, 2.5)).toFixed(2)} = <b>{autoFiber.toFixed(2)}&nbsp;EUR</b>
-                                            </span>
-                                        </div>
-                                    )}
+                                    {(wo.volumes || []).map((vol, idx) => {
+                                        const surface = parseFloat(vol.quantity) || 0;
+                                        if (surface <= 0) return null;
+                                        const rawLbl = vol.label || `Șapă ${idx + 1}`;
+                                        const lbl = rawLbl.replace(/chape/i, 'Șapă');
+                                        const thick = parseFloat(vol.thickness) || 5;
+                                        const extraThick = Math.max(0, thick - 5);
+                                        
+                                        const p = wo.prices || {};
+                                        const basePrice = getPrice(p.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5);
+                                        const foilPrice = getPrice(p.foil, pricingSettings?.plastic_foil_price_sqm, 1.2);
+                                        const meshPrice = getPrice(p.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5);
+                                        const fiberPrice = p.fiber_large !== undefined ? (surface > parseFloat(p.fiber_threshold) ? parseFloat(p.fiber_large) : parseFloat(p.fiber)) : getPriceVal(p.fiber, 2.5);
+
+                                        return (
+                                            <React.Fragment key={idx}>
+                                                <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                                    <span className="font-medium">{lbl} - Bază</span>
+                                                    <span className="text-right tabular-nums">{surface} m² × {basePrice.toFixed(2)} = <b>{(surface * basePrice).toFixed(2)}&nbsp;EUR</b></span>
+                                                </div>
+                                                {extraThick > 0 && (
+                                                    <div className="flex justify-between text-slate-500 dark:text-slate-400 pl-4">
+                                                        <span className="font-medium">↳ Grosime Extra ({extraThick} cm)</span>
+                                                        <span className="text-right tabular-nums">{surface} m² × {extraThick} cm × 1.25 = <b>{(surface * extraThick * 1.25).toFixed(2)}&nbsp;EUR</b></span>
+                                                    </div>
+                                                )}
+                                                {vol.has_foil && (
+                                                    <div className="flex justify-between text-slate-600 dark:text-slate-400 pl-4">
+                                                        <span className="font-medium">↳ Folie plastic</span>
+                                                        <span className="text-right tabular-nums">{surface} m² × {foilPrice.toFixed(2)} = <b>{(surface * foilPrice).toFixed(2)}&nbsp;EUR</b></span>
+                                                    </div>
+                                                )}
+                                                {vol.has_mesh && (
+                                                    <div className="flex justify-between text-slate-600 dark:text-slate-400 pl-4">
+                                                        <span className="font-medium">↳ Plasă metalică</span>
+                                                        <span className="text-right tabular-nums">{surface} m² × {meshPrice.toFixed(2)} = <b>{(surface * meshPrice).toFixed(2)}&nbsp;EUR</b></span>
+                                                    </div>
+                                                )}
+                                                {(vol.has_fiber || vol.has_duramint) && (
+                                                    <div className="flex justify-between text-slate-600 dark:text-slate-400 pl-4">
+                                                        <span className="font-medium">↳ Fibră / Duramint</span>
+                                                        <span className="text-right tabular-nums">{surface} m² × {fiberPrice.toFixed(2)} = <b>{(surface * fiberPrice).toFixed(2)}&nbsp;EUR</b></span>
+                                                    </div>
+                                                )}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                     {estimCalc.isoPurBase > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                                             <span className="font-medium">Isolation PUR ({isoPurThick} cm)</span>
@@ -3745,7 +3781,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         </div>
 
                         <div className="px-5 pb-4">
-                            {parseFloat(calcEditForm.surface) > 0 && (() => {
+                            {(calcEditForm.chapes || []).reduce((sum, c) => sum + (parseFloat(c.surface) || 0), 0) > 0 && (() => {
+                                const totalChapeSurface = (calcEditForm.chapes || []).reduce((sum, c) => sum + (parseFloat(c.surface) || 0), 0);
                                 const livePrices = {
                                     ...wo.prices,
                                     base: parseFloat(calcEditForm.base_price) || 0,
@@ -3792,12 +3829,22 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     has_fiber: !!calcEditForm.has_fiber,
                                     has_duramint: !!calcEditForm.has_duramint
                                 };
-                                const liveChapeCalc = computeChapeTotal(
-                                    parseFloat(calcEditForm.surface) || 0,
-                                    parseFloat(calcEditForm.thickness) || 0,
-                                    liveFlags,
+                                const liveChapeCalc = (calcEditForm.chapes || []).map(c => computeChapeTotal(
+                                    parseFloat(c.surface) || 0,
+                                    parseFloat(c.thickness) || 0,
+                                    {
+                                        has_foil: !!c.has_foil,
+                                        has_mesh: !!c.has_mesh,
+                                        has_fiber: !!c.has_fiber,
+                                        has_duramint: !!c.has_duramint
+                                    },
                                     livePrices
-                                );
+                                )).reduce((acc, curr) => ({
+                                    net: acc.net + curr.net,
+                                    base: acc.base + curr.base,
+                                    extra: acc.extra + curr.extra,
+                                    threshold: acc.threshold + curr.threshold
+                                }), { net: 0, base: 0, extra: 0, threshold: 0 });
                                 
                                 let liveNet = liveChapeCalc.net;
                                 let liveChape = liveNet - liveChapeCalc.threshold;
@@ -3912,7 +3959,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             <button onClick={() => setCalcEditOpen(false)} className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                 {t('common.cancel', 'Annuler')}
                             </button>
-                            <button onClick={handleCalcEditSave} disabled={calcEditSaving || !parseFloat(calcEditForm.surface)} className="flex-1 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                            <button onClick={handleCalcEditSave} disabled={calcEditSaving || (calcEditForm.chapes || []).reduce((sum, c) => sum + (parseFloat(c.surface) || 0), 0) === 0} className="flex-1 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                                 {calcEditSaving && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                                 {t('common.save', 'Enregistrer')}
                             </button>

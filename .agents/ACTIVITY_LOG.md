@@ -27,3 +27,29 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 ---
 
 *Notă: Orice modificare viitoare pe proiect va fi documentată în acest fișier sub o nouă rubrică de dată/oră, incluzând specificarea prealabilă a stării de aprobare de către utilizator.*
+
+## 2026-08-18 (Fix missing pending quotes & hide surface labels)
+- **Probleme rezolvate:** 
+  1. Frontend-ul afișa panoul de devize gol deși datele existau. Cauza: portul 8000 era ocupat de un alt proiect (`Axis v1`), în timp ce `vite.config.js` pentru proiectul curent proxy-a către `8001`, port la care nu rula niciun backend. Am corectat prin rularea corectă a uvicorn-ului pe portul 8001, restabilind comunicarea API-ului.
+  2. Modificarea cerinței vizuale prin care clientul voia să ascundă numele explicit ("Chape", "Șapă") din interfața de detaliu a comenzii (ex. în `WorkOrderDetail.jsx`) folosind doar formatele anonime de tip "Surface 1", "Surface 2". S-a folosit o verificare regex `/chape|[sșş]ap[aăâ]/i`.
+- **Aprobare Utilizator:** Modificările au fost discutate și aprobate de utilizator, fiind confirmate prin execuția `git push`.
+- **Lecții învățate:** 
+  1. Când o interfață (sau secțiuni mari din ea) rămân brusc goale în modul de dezvoltare locală, trebuie neapărat verificat proxy-ul din Vite față de portul pe care rulează FastAPI. Aici, o aplicație terță bloca 8000.
+  2. Tratarea datelor Apple/Safari cere ca datele `YYYY-MM-DD HH:MM:SS` să fie transformate conform standardului ISO cu `T` la mijloc.
+
+## 2026-08-18 (Fix NaN error on Fiber pricing display)
+**Problem:** In the WorkOrderDetail invoice section, the `Fibres / Duramint` line was displaying `NaN` for the rate when the fiber price was explicitly set to 0. This was caused by an inline ternary condition attempting to calculate the rate manually without fallback.
+**Solution:** Refactored `computeChapeTotal` to return all individual rates (`baseRate`, `extraRate`, `fiberRate`) alongside the totals. Updated the UI rendering block to use these clean properties (`autoCalc.fiberRate.toFixed(2)` and `autoCalc.extraRate.toFixed(2)`) instead of doing unsafe inline math and divisions.
+
+## 18 August 2026 (Fix Edit Modal Volumes and Analytics Fiber Calculation)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat pentru `git push` de către utilizator.
+
+### Modificări Efectuate:
+1. **Frontend (`WorkOrderDetail.jsx`):**
+   - Am corectat funcția `handleCalcEditSave` care salva greșit cantitățile cu 0 din cauză că variabilele structurii vechi (`surface`) fuseseră înlocuite cu structura nouă array (`chapes`) în sesiunile anterioare.
+   - Am actualizat calculul și extragerea metadatelor specifice fiecărei poziții de lucrare la salvarea modicului de editare. Aceasta rezolvă bug-ul critic prin care volumele deveneau "0" și dispăreau din platforma de echipe (planning) a lui Petrea/Iulian.
+2. **Backend (`pricing_engine.py` și `admin_work_orders.py`):**
+   - **Problema:** Pe ecranul de *Analiză Devize (Pricing Analytics)* se afișa o diferență constantă în plus de preț (ex. +146.00 €) între prețul salvat și cel recalculat de Python pentru clienți precum *Eugeniu Cazmal*.
+   - **Cauza:** În versiunea veche de backend, `pricing_engine.py` adăuga prețul fibrei/duramint necondiționat pe orice metru pătrat, iar `admin_work_orders.py` la formarea payload-ului pentru Analytics uita să extragă bifarea reală `has_fiber`.
+   - **Soluția:** Am modificat `admin_work_orders.py` să încarce flag-urile reale (`has_fiber`, `has_duramint`) din DB în modul de audit și am pus condiții explicite de verificare în `pricing_engine.py` pentru a preveni adăugarea din oficiu a fibrei. Costurile pentru fibră, folie și grosimi adiționale se raportează acum la nivel granular (per poziție, nu per deviz global).

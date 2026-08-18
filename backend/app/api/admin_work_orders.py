@@ -150,6 +150,7 @@ def _serialize_audit_mode(wo) -> dict:
     # ── Recalcul server-side cu pricing_engine (sursa de adevăr) ──
     recalculated_net = None
     recalc_vat_rate = None
+    recalculated_items = []
     try:
         from app.services.pricing_engine import calculate_quote_price
         if wo.volumes and len(wo.volumes) > 0:
@@ -185,6 +186,9 @@ def _serialize_audit_mode(wo) -> dict:
                         'thickness': float(vol.get('thickness') or 0),
                         'has_foil': vol.get('has_foil', False),
                         'has_mesh': vol.get('has_mesh', False),
+                        'has_fiber': vol.get('has_fiber', False),
+                        'has_duramint': vol.get('has_duramint', False),
+                        'label': vol.get('label', '')
                     })
             
             pricing_data = dict(wo.prices) if wo.prices else {}
@@ -224,6 +228,7 @@ def _serialize_audit_mode(wo) -> dict:
             result = calculate_quote_price(payload, pricing_data)
             recalculated_net = round(result['total_net'], 2)
             recalc_vat_rate = result.get('vat_rate', 0)
+            recalculated_items = result.get('items', [])
     except Exception as e:
         print(f"Audit recalc error for {wo.id}: {e}")
     
@@ -245,6 +250,7 @@ def _serialize_audit_mode(wo) -> dict:
         "estimated_price": wo.estimated_price,
         "recalculated_net": recalculated_net,
         "recalc_vat_rate": recalc_vat_rate,
+        "recalculated_items": recalculated_items,
         "proforma_data": wo.proforma_data,
         "quote_number": wo.quote_number,
         "invoice_number": wo.invoice_number,
@@ -462,23 +468,30 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
                 if surface <= 0:
                     continue
                 if is_chape:
-                    std_thick  = float(p.get('standard_thickness') or 5)
-                    extra_thick = max(0.0, thick - std_thick)
-                    items_calc.append({'qty': surface, 'price': float(p.get('base') or 12.5)})
+                    std_thick  = p.get('standard_thickness') if p.get('standard_thickness') not in (None, '') else 5
+                    extra_thick = max(0.0, thick - float(std_thick))
+                    items_calc.append({'label': f'{lbl} - Bază', 'qty': surface, 'unit': 'm²', 'price': float(p.get('base') if p.get('base') not in (None, '') else 12.5)})
                     if extra_thick > 0:
-                        extra_thresh = float(p.get('extra_threshold') or 200)
-                        extra_price = float(p.get('extra_large') or p.get('extra') or 1.25) if surface > extra_thresh else float(p.get('extra') or 1.25)
-                        items_calc.append({'qty': surface, 'price': extra_thick * extra_price})
+                        extra_thresh = float(p.get('extra_threshold') if p.get('extra_threshold') not in (None, '') else 200)
+                        
+                        default_extra = p.get('extra') if p.get('extra') not in (None, '') else 1.25
+                        if surface > extra_thresh:
+                            extra_price = float(p.get('extra_large') if p.get('extra_large') not in (None, '') else default_extra)
+                        else:
+                            extra_price = float(default_extra)
+                            
+                        items_calc.append({'label': f'{lbl} - Grosime Extra ({extra_thick} cm)', 'qty': surface, 'unit': 'm²', 'price': extra_thick * extra_price})
                     if vol.get('has_foil'):
-                        items_calc.append({'qty': surface, 'price': float(p.get('foil') or 1.2)})
+                        items_calc.append({'label': f'{lbl} - Folie', 'qty': surface, 'unit': 'm²', 'price': float(p.get('foil') if p.get('foil') not in (None, '') else 1.2)})
                     if vol.get('has_mesh'):
-                        items_calc.append({'qty': surface, 'price': float(p.get('mesh') or 2.5)})
+                        items_calc.append({'label': f'{lbl} - Plasă', 'qty': surface, 'unit': 'm²', 'price': float(p.get('mesh') if p.get('mesh') not in (None, '') else 2.5)})
                     if vol.get('has_fiber') or vol.get('has_duramint'):
-                        items_calc.append({'qty': surface, 'price': float(p.get('fiber') or (2.5 if surface <= 200 else 2.0))})
+                        default_fiber = 2.5 if surface <= 200 else 2.0
+                        items_calc.append({'label': f'{lbl} - Fibră / Duramint', 'qty': surface, 'unit': 'm²', 'price': float(p.get('fiber') if p.get('fiber') not in (None, '') else default_fiber)})
                 else:
-                    unit_price = float(vol.get('price') or 0)
+                    unit_price = float(vol.get('price') if vol.get('price') not in (None, '') else 0)
                     if unit_price > 0:
-                        items_calc.append({'qty': surface, 'price': unit_price})
+                        items_calc.append({'label': lbl, 'qty': surface, 'unit': 'm²', 'price': unit_price})
 
         # Surface thresholds
         if items_calc and p.get('surface_thresholds'):
@@ -489,7 +502,10 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
                 if min_s <= surf_check <= max_s:
                     charge = float(thresh.get('extra_charge') or 0)
                     if charge > 0:
-                        items_calc.append({'qty': 1, 'price': charge})
+                        items_calc.append({'label': f'Taxă suprafață mică ({surf_check} m²)', 'qty': 1, 'unit': 'buc', 'price': charge})
+
+        for i in items_calc:
+            i['total'] = i['qty'] * i['price']
 
 
         if items_calc:
@@ -1703,6 +1719,9 @@ def sync_work_order_prices(
                     'thickness': float(vol.get('thickness') or 0),
                     'has_foil': vol.get('has_foil', False),
                     'has_mesh': vol.get('has_mesh', False),
+                    'has_fiber': vol.get('has_fiber', False),
+                    'has_duramint': vol.get('has_duramint', False),
+                    'label': vol.get('label', '')
                 })
         
         pricing_data = dict(wo.prices) if wo.prices else {}

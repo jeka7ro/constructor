@@ -168,58 +168,81 @@ export default function PricingAuditModal({ isOpen, onClose, wo, pricingSettings
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                                
-                                {/* Base Chape */}
-                                <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{t('audit.item_chape', 'Chape Base')}</td>
-                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 tabular-nums">
-                                        {actualSurface} m² × {formatCurrency(baseAudit.value)}
-                                    </td>
-                                    <td className="px-4 py-3">{renderSourceBadge(baseAudit)}</td>
-                                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white text-right tabular-nums">
-                                        {formatCurrency(actualSurface * baseAudit.value)}
-                                    </td>
-                                </tr>
-
-                                {/* Foil */}
-                                {wo?.flags?.has_foil && (
-                                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                        <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{t('audit.item_foil', 'Film Plastique')}</td>
-                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 tabular-nums">
-                                            {actualSurface} m² × {formatCurrency(foilAudit.value)}
-                                        </td>
-                                        <td className="px-4 py-3">{renderSourceBadge(foilAudit)}</td>
-                                        <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white text-right tabular-nums">
-                                            {formatCurrency(actualSurface * foilAudit.value)}
-                                        </td>
-                                    </tr>
-                                )}
-
-                                {/* Mesh */}
-                                {wo?.flags?.has_mesh && (
-                                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                        <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{t('audit.item_mesh', 'Treillis Métallique')}</td>
-                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 tabular-nums">
-                                            {actualSurface} m² × {formatCurrency(meshAudit.value)}
-                                        </td>
-                                        <td className="px-4 py-3">{renderSourceBadge(meshAudit)}</td>
-                                        <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white text-right tabular-nums">
-                                            {formatCurrency(actualSurface * meshAudit.value)}
-                                        </td>
-                                    </tr>
-                                )}
-
-                                {/* Fiber */}
-                                <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{t('audit.item_fiber', 'Fibre / Duramint')}</td>
-                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 tabular-nums">
-                                        {actualSurface} m² × {formatCurrency(fiberAudit.value)}
-                                    </td>
-                                    <td className="px-4 py-3">{renderSourceBadge(fiberAudit)}</td>
-                                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white text-right tabular-nums">
-                                        {formatCurrency(actualSurface * fiberAudit.value)}
-                                    </td>
-                                </tr>
+                                {/* Volumes Breakdown */}
+                                {wo.volumes && wo.volumes.map((vol, idx) => {
+                                    const qty = parseFloat(vol.quantity) || 0;
+                                    const thick = parseFloat(vol.thickness) || 5;
+                                    const rawLbl = vol.label || `Șapă ${idx + 1}`;
+                                    const lbl = rawLbl.replace(/chape/i, 'Șapă');
+                                    if (qty <= 0) return null;
+                                    
+                                    const std_thick = pricingSettings?.standard_thickness_cm || 5;
+                                    const extraThick = Math.max(0, thick - std_thick);
+                                    
+                                    // Use the globally resolved audit badges for prices
+                                    return (
+                                        <React.Fragment key={idx}>
+                                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{lbl} - Bază</td>
+                                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400 tabular-nums">
+                                                    {qty} m² × {formatCurrency(baseAudit.value)}
+                                                </td>
+                                                <td className="px-4 py-3">{renderSourceBadge(baseAudit)}</td>
+                                                <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white text-right tabular-nums">
+                                                    {formatCurrency(qty * baseAudit.value)}
+                                                </td>
+                                            </tr>
+                                            {extraThick > 0 && (
+                                                <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500">
+                                                    <td className="px-4 py-3 font-medium pl-8">↳ Grosime Extra ({extraThick} cm)</td>
+                                                    <td className="px-4 py-3 tabular-nums">
+                                                        {qty} m² × {formatCurrency(extraThick * 1.25)}
+                                                    </td>
+                                                    <td className="px-4 py-3">-</td>
+                                                    <td className="px-4 py-3 font-semibold text-right tabular-nums">
+                                                        {formatCurrency(qty * extraThick * 1.25)}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {vol.has_foil && (
+                                                <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white pl-8">↳ Folie</td>
+                                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 tabular-nums">
+                                                        {qty} m² × {formatCurrency(foilAudit.value)}
+                                                    </td>
+                                                    <td className="px-4 py-3">{renderSourceBadge(foilAudit)}</td>
+                                                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white text-right tabular-nums">
+                                                        {formatCurrency(qty * foilAudit.value)}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {vol.has_mesh && (
+                                                <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white pl-8">↳ Plasă</td>
+                                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 tabular-nums">
+                                                        {qty} m² × {formatCurrency(meshAudit.value)}
+                                                    </td>
+                                                    <td className="px-4 py-3">{renderSourceBadge(meshAudit)}</td>
+                                                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white text-right tabular-nums">
+                                                        {formatCurrency(qty * meshAudit.value)}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {(vol.has_fiber || vol.has_duramint) && (
+                                                <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white pl-8">↳ Fibră / Duramint</td>
+                                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 tabular-nums">
+                                                        {qty} m² × {formatCurrency(fiberAudit.value)}
+                                                    </td>
+                                                    <td className="px-4 py-3">{renderSourceBadge(fiberAudit)}</td>
+                                                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white text-right tabular-nums">
+                                                        {formatCurrency(qty * fiberAudit.value)}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
 
                                 {/* Transport */}
                                 <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 bg-slate-50/50">
