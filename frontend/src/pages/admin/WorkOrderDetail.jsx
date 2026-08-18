@@ -1956,7 +1956,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
                                                                             {v.label?.match(/^\d+$/) 
                                                                                 ? t('materials.surface_n', 'Surface {{n}}', { n: v.label }) 
-                                                                                : (v.label === 'Chape' ? t('materials.surface_n', 'Surface {{n}}', { n: i + 1 }) : v.label || 'Surface')}
+                                                                                : ((v.label || '').toLowerCase().match(/chape|[sșş]ap[aăâ]/) ? t('materials.surface_n', 'Surface {{n}}', { n: i + 1 }) : v.label || 'Surface')}
                                                                         </span>
                                                                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-600">
                                                                             {v.quantity || 0} {v.unit || 'm²'} <span className="text-slate-300 dark:text-slate-600 mx-1">|</span> {v.thickness || 0} CM

@@ -193,8 +193,8 @@ export default function PricingAnalytics() {
                     if (!wo.is_quote) return false;
                     // Doar cu recalculated_net valid (server a putut recalcula)
                     if (wo.recalculated_net === null || wo.recalculated_net === undefined) return false;
-                    const cDate = wo.created_at ? new Date(wo.created_at) : null;
-                    const sDate = wo.start_date ? new Date(wo.start_date) : null;
+                    const cDate = wo.created_at ? new Date(wo.created_at.replace(' ', 'T')) : null;
+                    const sDate = wo.start_date ? new Date(wo.start_date.replace(' ', 'T')) : null;
                     const threshold = new Date('2026-08-01T00:00:00Z');
                     return (cDate && cDate >= threshold) || (sDate && sDate >= threshold);
                 })
@@ -230,7 +230,9 @@ export default function PricingAnalytics() {
             processedData.sort((a, b) => {
                 if (a.isDiscrepancy && !b.isDiscrepancy) return -1;
                 if (!a.isDiscrepancy && b.isDiscrepancy) return 1;
-                return new Date(b.created_at) - new Date(a.created_at);
+                const dateB = b.created_at ? new Date(b.created_at.replace(' ', 'T')).getTime() : 0;
+                const dateA = a.created_at ? new Date(a.created_at.replace(' ', 'T')).getTime() : 0;
+                return dateB - dateA;
             });
 
             setData(processedData);
