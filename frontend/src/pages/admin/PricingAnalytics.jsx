@@ -123,12 +123,12 @@ const CalculationModal = ({ wo, onClose }) => {
                                     <div className="p-4 text-center bg-slate-50">
                                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('analytics.net_recalculated', 'NET Recalculé')}</p>
                                         <p className="text-xl font-black text-slate-700">{wo.calcNet.toFixed(2)} €</p>
-                                        {recalcVatRate > 0 && (
+                                        {vatRate > 0 && (
                                             <div className="mt-2 pt-2 border-t border-slate-200">
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{t('analytics.vat', 'TVA')} ({recalcVatRate}%)</p>
-                                                <p className="text-sm font-bold text-slate-500">{(wo.calcNet * (recalcVatRate / 100)).toFixed(2)} €</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{t('analytics.vat', 'TVA')} ({vatRate}%)</p>
+                                                <p className="text-sm font-bold text-slate-500">{(wo.calcNet * (vatRate / 100)).toFixed(2)} €</p>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase mt-1.5 mb-0.5">{t('analytics.total_ttc', 'TOTAL TTC')}</p>
-                                                <p className="text-lg font-black text-slate-800">{(wo.calcNet * (1 + recalcVatRate / 100)).toFixed(2)} €</p>
+                                                <p className="text-lg font-black text-slate-800">{(wo.calcNet * (1 + vatRate / 100)).toFixed(2)} €</p>
                                             </div>
                                         )}
                                     </div>
