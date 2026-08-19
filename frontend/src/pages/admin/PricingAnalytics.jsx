@@ -69,32 +69,37 @@ const CalculationModal = ({ wo, onClose }) => {
                                             <tr>
                                                 <th className="px-4 py-3">{t('analytics.description', 'Description')}</th>
                                                 <th className="px-4 py-3 text-right">{t('analytics.qty', 'Qté')}</th>
-                                                <th className="px-4 py-3 text-right">{t('analytics.unit_price', 'Prix Unitaire')}</th>
-                                                <th className="px-4 py-3 text-right">{t('analytics.total', 'Total')}</th>
+                                                <th className="px-4 py-3 text-right">{t('analytics.unit_price', 'PU HT')}</th>
+                                                <th className="px-4 py-3 text-right">{t('analytics.total_ht', 'Total HT')}</th>
+                                                <th className="px-4 py-3 text-right">{t('analytics.vat', 'TVA')} {vatRate > 0 ? `(${vatRate}%)` : ''}</th>
+                                                <th className="px-4 py-3 text-right">{t('analytics.total_ttc', 'Total TTC')}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
-                                            {displayItems.map((item, i) => (
-                                                <tr key={i} className="hover:bg-slate-50 transition-colors text-slate-700">
-                                                    <td className="px-4 py-3 font-medium whitespace-pre-line">{item.label}</td>
-                                                    <td className="px-4 py-3 text-right">{item.quantity} {item.unit || ''}</td>
-                                                    <td className="px-4 py-3 text-right">{item.price ? `${parseFloat(item.price).toFixed(2)} €` : '-'}</td>
-                                                    <td className="px-4 py-3 text-right font-bold">{item.total ? `${parseFloat(item.total).toFixed(2)} €` : '-'}</td>
-                                                </tr>
-                                            ))}
+                                            {displayItems.map((item, i) => {
+                                                const rowTotalHT = parseFloat(item.total || 0);
+                                                const rowTVA = rowTotalHT * (vatRate / 100);
+                                                const rowTotalTTC = rowTotalHT + rowTVA;
+                                                return (
+                                                    <tr key={i} className="hover:bg-slate-50 transition-colors text-slate-700">
+                                                        <td className="px-4 py-3 font-medium whitespace-pre-line">{item.label}</td>
+                                                        <td className="px-4 py-3 text-right">{item.quantity} {item.unit || ''}</td>
+                                                        <td className="px-4 py-3 text-right">{item.price ? `${parseFloat(item.price).toFixed(2)} €` : '-'}</td>
+                                                        <td className="px-4 py-3 text-right font-bold">{item.total ? `${rowTotalHT.toFixed(2)} €` : '-'}</td>
+                                                        <td className="px-4 py-3 text-right text-slate-500">{rowTVA > 0 ? `${rowTVA.toFixed(2)} €` : '-'}</td>
+                                                        <td className="px-4 py-3 text-right font-bold text-slate-900">{rowTotalTTC > 0 ? `${rowTotalTTC.toFixed(2)} €` : '-'}</td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
-                                        {vatRate > 0 && (
-                                            <tfoot className="bg-slate-50 border-t-2 border-slate-200">
-                                                <tr>
-                                                    <td colSpan={3} className="px-4 py-2 text-right font-bold text-slate-500 text-xs">{t('analytics.vat', 'TVA')} ({vatRate}%)</td>
-                                                    <td className="px-4 py-2 text-right font-bold text-slate-500">{(wo.calcNet * (vatRate / 100)).toFixed(2)} €</td>
-                                                </tr>
-                                                <tr>
-                                                    <td colSpan={3} className="px-4 py-3 text-right font-black text-slate-800 uppercase tracking-wider">{t('analytics.total_ttc', 'TOTAL TTC')}</td>
-                                                    <td className="px-4 py-3 text-right font-black text-slate-900 text-lg">{(wo.calcNet * (1 + vatRate / 100)).toFixed(2)} €</td>
-                                                </tr>
-                                            </tfoot>
-                                        )}
+                                        <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                                            <tr>
+                                                <td colSpan={3} className="px-4 py-3 text-right font-black text-slate-800 uppercase tracking-wider">TOTAL</td>
+                                                <td className="px-4 py-3 text-right font-bold text-slate-700">{wo.calcNet.toFixed(2)} €</td>
+                                                <td className="px-4 py-3 text-right font-bold text-slate-700">{(wo.calcNet * (vatRate / 100)).toFixed(2)} €</td>
+                                                <td className="px-4 py-3 text-right font-black text-slate-900 text-lg">{(wo.calcNet * (1 + vatRate / 100)).toFixed(2)} €</td>
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                 </div>
                             ) : (
@@ -104,38 +109,21 @@ const CalculationModal = ({ wo, onClose }) => {
                             );
                             })()}
 
-                            {/* Comparison and VAT Display */}
-                            <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
-                                <div className="grid grid-cols-2 divide-x divide-slate-200">
-                                    <div className="p-4 text-center">
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('analytics.net_saved', 'NET Sauvegardé (DB)')}</p>
-                                        <p className="text-xl font-black text-slate-700">{wo.savedNet.toFixed(2)} €</p>
-                                        {vatRate > 0 && (
-                                            <div className="mt-2 pt-2 border-t border-slate-100">
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{t('analytics.vat', 'TVA')} ({vatRate}%)</p>
-                                                <p className="text-sm font-bold text-slate-500">{(wo.savedNet * (vatRate / 100)).toFixed(2)} €</p>
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1.5 mb-0.5">{t('analytics.total_ttc', 'TOTAL TTC')}</p>
-                                                <p className="text-lg font-black text-slate-800">{(wo.savedNet * (1 + vatRate / 100)).toFixed(2)} €</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-4 text-center bg-slate-50">
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('analytics.net_recalculated', 'NET Recalculé')}</p>
-                                        <p className="text-xl font-black text-slate-700">{wo.calcNet.toFixed(2)} €</p>
-                                        {vatRate > 0 && (
-                                            <div className="mt-2 pt-2 border-t border-slate-200">
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{t('analytics.vat', 'TVA')} ({vatRate}%)</p>
-                                                <p className="text-sm font-bold text-slate-500">{(wo.calcNet * (vatRate / 100)).toFixed(2)} €</p>
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1.5 mb-0.5">{t('analytics.total_ttc', 'TOTAL TTC')}</p>
-                                                <p className="text-lg font-black text-slate-800">{(wo.calcNet * (1 + vatRate / 100)).toFixed(2)} €</p>
-                                            </div>
-                                        )}
+                            {wo.diff !== 0 ? (
+                                <div className="p-4 bg-red-50 text-red-700 border-2 border-red-200 rounded-xl text-sm flex flex-col sm:flex-row sm:items-center justify-between font-bold gap-2">
+                                    <span className="flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> {t('analytics.diff_detected', 'Écart détecté dans la DB')}</span>
+                                    <div className="flex items-center gap-3 text-xs sm:text-sm">
+                                        <span>{t('analytics.net_saved', 'Sauvegardé')}: <span className="line-through opacity-75">{wo.savedNet.toFixed(2)} €</span></span>
+                                        <span>{t('analytics.net_recalculated', 'Recalculé')}: <span>{wo.calcNet.toFixed(2)} €</span></span>
+                                        <span className="bg-red-200 text-red-800 px-2 py-1 rounded-md">Diff: {wo.diff > 0 ? '+' : ''}{wo.diff.toFixed(2)} €</span>
                                     </div>
                                 </div>
-                                <div className={`p-3 text-center border-t border-slate-200 font-bold ${wo.diff === 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
-                                    {t('analytics.net_difference', 'Différence NET')}: {wo.diff > 0 ? '+' : ''}{wo.diff.toFixed(2)} €
+                            ) : (
+                                <div className="p-3 bg-emerald-50 text-emerald-700 border-2 border-emerald-200 rounded-xl text-sm flex items-center justify-between font-bold">
+                                    <span className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> {t('analytics.no_diff', 'Calcul validé (Aucun écart)')}</span>
+                                    <span>Diff: 0.00 €</span>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>,
