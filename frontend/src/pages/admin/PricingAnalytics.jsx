@@ -86,12 +86,12 @@ const CalculationModal = ({ wo, onClose }) => {
                                         {vatRate > 0 && (
                                             <tfoot className="bg-slate-50 border-t-2 border-slate-200">
                                                 <tr>
-                                                    <td colSpan={3} className="px-4 py-2 text-right font-bold text-slate-500 text-xs">TVA ({vatRate}%)</td>
-                                                    <td className="px-4 py-2 text-right font-bold text-slate-500">{(wo.savedNet * (vatRate / 100)).toFixed(2)} €</td>
+                                                    <td colSpan={3} className="px-4 py-2 text-right font-bold text-slate-500 text-xs">{t('analytics.vat', 'TVA')} ({vatRate}%)</td>
+                                                    <td className="px-4 py-2 text-right font-bold text-slate-500">{(wo.calcNet * (vatRate / 100)).toFixed(2)} €</td>
                                                 </tr>
                                                 <tr>
-                                                    <td colSpan={3} className="px-4 py-3 text-right font-black text-slate-800 uppercase tracking-wider">Total TTC</td>
-                                                    <td className="px-4 py-3 text-right font-black text-slate-900 text-lg">{(wo.savedNet * (1 + vatRate / 100)).toFixed(2)} €</td>
+                                                    <td colSpan={3} className="px-4 py-3 text-right font-black text-slate-800 uppercase tracking-wider">{t('analytics.total_ttc', 'TOTAL TTC')}</td>
+                                                    <td className="px-4 py-3 text-right font-black text-slate-900 text-lg">{(wo.calcNet * (1 + vatRate / 100)).toFixed(2)} €</td>
                                                 </tr>
                                             </tfoot>
                                         )}
@@ -112,7 +112,6 @@ const CalculationModal = ({ wo, onClose }) => {
                                         <p className="text-xl font-black text-slate-700">{wo.savedNet.toFixed(2)} €</p>
                                         {vatRate > 0 && (
                                             <div className="mt-2 pt-2 border-t border-slate-100">
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">TVA ({vatRate}%)</p>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{t('analytics.vat', 'TVA')} ({vatRate}%)</p>
                                                 <p className="text-sm font-bold text-slate-500">{(wo.savedNet * (vatRate / 100)).toFixed(2)} €</p>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase mt-1.5 mb-0.5">{t('analytics.total_ttc', 'TOTAL TTC')}</p>
