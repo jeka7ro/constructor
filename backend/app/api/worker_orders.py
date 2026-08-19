@@ -138,7 +138,7 @@ def get_my_orders(
     # Get recent orders (last 60 days) to avoid fetching thousands.
     from datetime import datetime, timedelta
     from sqlalchemy.orm import joinedload
-    sixty_days_ago = datetime.utcnow() - timedelta(days=60)
+    sixty_days_ago = datetime.utcnow() - timedelta(days=365)
 
     from sqlalchemy import or_
     query = db.query(WorkOrder).options(

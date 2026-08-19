@@ -1,5 +1,5 @@
 import os
-os.environ["DATABASE_URL"] = "postgresql://postgres.ltxbghtnygnguoegtgfo:30Martie2026!@aws-1-eu-west-2.pooler.supabase.com:6543/postgres"
+os.environ["DATABASE_URL"] = "postgresql://postgres:30Martie2026!@db.ltxbghtnygnguoegtgfo.supabase.co:5432/postgres"
 
 from sqlalchemy import create_engine, text
 try:

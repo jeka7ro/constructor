@@ -35,13 +35,7 @@ const CalculationModal = ({ wo, onClose }) => {
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => window.open(`/admin/quotes/${wo.id}`, '_blank')}
-                                    className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors flex items-center gap-2 shadow-sm border border-blue-200"
-                                >
-                                    <ExternalLink className="w-4 h-4" />
-                                    <span className="text-[11px] font-black uppercase tracking-wider">{t('analytics.quote', 'Devis')}</span>
-                                </button>
+
                                 <button
                                     onClick={() => setPdfUrl(pdfSource)}
                                     className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-2 shadow-sm border border-slate-200"

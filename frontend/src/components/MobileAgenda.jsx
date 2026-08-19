@@ -323,7 +323,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                         <div className="p-3.5 flex flex-col gap-2.5 relative z-10">
                                                             <div className="flex items-center justify-between w-full gap-1">
                                                                 <div className="flex items-center gap-1 px-2 py-1 rounded-md shrink-0" style={{ backgroundColor: color + '26' }}>
-                                                                    <span className="text-xs font-extrabold text-slate-900 truncate max-w-[95px] drop-shadow-sm">#{legNumber}</span>
+                                                                    <span className="text-xs font-extrabold text-slate-900 truncate max-w-[120px] drop-shadow-sm">#{legNumber} {teamName}</span>
                                                                 </div>
                                                                 <div className="flex items-center justify-center flex-1">
                                                                     <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/70 dark:bg-slate-800/70 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">

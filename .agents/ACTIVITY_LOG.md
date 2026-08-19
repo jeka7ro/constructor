@@ -90,3 +90,22 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 - **Cause**: The backend route `update_work_order` (`backend/app/api/admin_work_orders.py`) tried to parse `float((wo.prices or {}).get("discount_pct", 0))` directly. If a previous version of the frontend saved an empty string `""` in the database, `float("")` crashed with a `ValueError`.
 - **Fix**: Added a `_safe_float(val, default=0.0)` helper function in `update_work_order` to safely parse values and default to `0.0` when encountering empty strings or `None`.
 - **Status**: Fixed.
+
+## 2026-08-19: Frontend UI/UX fixes and Bug Fixes
+- Fixed PDF preview opening in a new tab instead of modal in PricingAnalytics
+- Fixed preferential client pricing discrepancy (WorkOrderDetail now fetches client-specific pricingSettings instead of global ones)
+- Fixed 'vatRate is not defined' ReferenceError in WorkOrderDetail
+- Approved by user and pushed to main branch
+
+- **Date**: 19 August 2026
+- **Actions**: Fix pricing discrepancy by loading PricingSettings in backend audit mode. Fix VAT initialization in frontend UI to respect PricingSettings conditions instead of hardcoding. Fix visibility of un-scheduled online Devize for site managers. Show Surface and Thickness (from volumes) on Worker card.
+- **Confirmed**: Pushed successfully.
+- **Date**: 19 August 2026
+- **Actions**: Updated MobileAgenda (Map View) to remove Team Name pill and injected Surface / Thickness details for all materials (Chape/Iso).
+- **Confirmed**: Pushed successfully.
+- **Date**: 19 August 2026
+- **Actions**: Removed 'Chat' and 'Devis' tabs and notification buttons from the Worker/Team Leader order detail view (WorkerOrdersPage.jsx) as it was a security/privacy breach.
+- **Confirmed**: Pushed successfully.
+- **Date**: 19 August 2026
+- **Actions**: Replaced placeholder colored circles for materials in MobileAgenda with the standard application icons (Wind for PUR, Thermometer for EPS, Layers for Chape).
+- **Confirmed**: Pushed successfully.

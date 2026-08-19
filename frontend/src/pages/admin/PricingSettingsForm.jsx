@@ -236,6 +236,19 @@ export default function PricingSettingsForm({
 
                 {activeTab === 'logistics' && (
                     <>
+                        <SectionHeader label={t('pricing_settings.section_tva_rules', 'Règles TVA (Calcul Automatique)')} />
+                        <div className="text-[11px] text-slate-500 mb-4 leading-relaxed bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-800">
+                            <strong className="text-blue-800 dark:text-blue-300">{t('pricing_settings.tva_auto_info', 'L\'application de la TVA est automatique et suit ces règles stricte :')}</strong>
+                            <ul className="list-disc pl-4 mt-2 space-y-1 text-blue-700/80 dark:text-blue-200/80">
+                                <li><strong>0%</strong> : {t('pricing_settings.tva_0', 'Client Personne Morale / Juridique (Autoliquidation)')}</li>
+                                <li><strong>6%</strong> : {t('pricing_settings.tva_6', 'Client Personne Physique - Travaux de Rénovation')}</li>
+                                <li><strong>21%</strong> : {t('pricing_settings.tva_21', 'Client Personne Physique - Construction Neuve')}</li>
+                            </ul>
+                            <div className="mt-2 text-blue-600 dark:text-blue-400 font-medium italic">
+                                {t('pricing_settings.tva_note', '* La modification manuelle du taux n\'est possible qu\'à la Création Rapide ou dans l\'édition du devis individuel.')}
+                            </div>
+                        </div>
+
                         <SectionHeader label={t('pricing_settings.section_transport_chape', 'Transport Chape')} />
                         <PriceRow label={t('pricing_settings.truck_distance', 'Distance de facturation')} sublabel={t('pricing_settings.truck_distance_sub', 'Si trajet > km, appliquer frais')} value={settings.truck_distance_threshold_km} onChange={v => onSettingChange('truck_distance_threshold_km', v)} unit="km" />
                         <PriceRow label={t('pricing_settings.truck_price', 'Frais de transport (Fixe)')} value={settings.truck_extra_price_flat} onChange={v => onSettingChange('truck_extra_price_flat', v)} unit="€" />
