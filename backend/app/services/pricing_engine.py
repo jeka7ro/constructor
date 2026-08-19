@@ -250,15 +250,21 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
     
     # 7. VAT
     vat_rate = 21.0
-    client_type = payload.get('client_type', 'fizica')
-    if client_type == "juridica":
-        vat_rate = float(pricing.get('vat_legal_entity', 0.0))
+    if pricing.get('vat_type') is not None and pricing.get('vat_type') != '':
+        vat_rate = float(pricing.get('vat_type'))
     else:
-        work_type = payload.get('work_type', 'new')
-        if work_type == "repair":
-            vat_rate = float(pricing.get('vat_physical_repair', 6.0))
+        client_type = payload.get('client_type', 'fizica')
+        if client_type == "juridica":
+            vat_rate = float(pricing.get('vat_legal_entity', 0.0))
         else:
-            vat_rate = float(pricing.get('vat_physical_new', 21.0))
+            work_type = payload.get('work_type', 'new')
+            if work_type == "repair":
+                vat_rate = float(pricing.get('vat_physical_repair', 6.0))
+            else:
+                vat_rate = float(pricing.get('vat_physical_new', 21.0))
+                
+    if pricing.get('useVat') is False:
+        vat_rate = 0.0
             
     vat_amount = total_net * (vat_rate / 100.0)
 

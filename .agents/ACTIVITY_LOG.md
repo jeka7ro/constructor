@@ -69,3 +69,11 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
    - Pe baza explicațiilor despre discrepantele din pagina „Analiză Devize”, utilizatorul a intervenit și a rescris ierarhia de priorități în `pricingEngine.js`.
    - Modificarea impune ca motorul de calcul să caute prima dată în `wo.prices` (snapshot-ul de la momentul creării devizului/override-ul manual) pentru orice variabilă (inclusiv threshold-uri, EPS, discount-uri) și să folosească `pricingSettings` (tariful general actual) DOAR ca ultim fallback.
    - Astfel, `PricingAnalytics` aliniază calculele istorice cu cele teoretice, eliminând discrepanțele false de +146 EUR.
+
+## 19 August 2026 - Pricing Analytics Layout Fixes
+- **Acțiune**: Am adăugat coloanele `TVA` și `TOTAL TTC` în tabelul principal `DataTable` din pagina `PricingAnalytics.jsx`.
+- **Acțiune**: Am eliminat cutiile gigantice de comparație din interiorul modalului `PricingAnalytics`.
+- **Acțiune**: Am refăcut complet tabelul de materiale din interiorul modalului `PricingAnalytics` pentru a oglindi perfect structura de grid, spațierile și culorile generate în PDF (`DevisView.jsx`), eliminând tabelele clasice HTML.
+- **Acțiune**: Am adăugat clasa `whitespace-nowrap` pe toate rândurile de preț pentru a preveni trecerea semnului Euro pe rândul următor.
+- **Aprobare Utilizator**: Modificările vizuale au fost realizate la cererea expresă a utilizatorului, care a confirmat structura așteptată ("exact ca în PDF"). 
+- **Lecție Învățată**: Pagina de analiză devize are nevoie de consistență totală cu PDF-ul, nu trebuie folosite elemente UI disproporționate care aglomerează modalul, și trebuie respectate cu strictețe formatele de monedă.

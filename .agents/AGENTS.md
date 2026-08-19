@@ -111,3 +111,11 @@ Aceste reguli sunt **LEGE** și nu trebuie încălcate sub nicio formă la calcu
 - **CARDUL DE VREME (HourlyWeather)**: Cardul complet de vreme TREBUIE să fie plasat **ÎN STÂNGA HĂRȚII**, pe același rând cu harta (folosind prop-ul `leftPanelContent` al componentei `MapView`).
   - **ESTE STRICT INTERZISĂ** micșorarea cardului de vreme într-o pastilă mică ("tiny pill") sau suprapunerea lui direct pe hartă ca un overlay (ex: `overlayBottomLeft` sau `overlayBottomRight`). Cardul trebuie să își păstreze formatul mare, informativ, în coloana proprie de lângă hartă.
 - **BUTOANELE DE ACȚIUNE (Toolbar)**: S-a stabilit definitiv că butoanele de `Edit` și `Chat` NU mai apar deloc în acest toolbar. Butoanele care rămân (Șterge, Confirmă, Trimite Email) vor avea doar o iconiță, **fără text**. Butonul de trimitere email va fi vizibil de fiecare dată când există o adresă de email setată pe lucrare (`wo.client_email`), ignorând constrângerile de status.
+
+## 2. Pagina Analiză Devize (Pricing Analytics)
+- **STRUCTURA TABELULUI PRINCIPAL**: Tabelul mare (DataTable) din `/admin/pricing-analytics` TREBUIE OBLIGATORIU să conțină coloanele: `NET RECALCULAT`, `TVA`, `TOTAL TTC`, și `DIFFÉRENCE NET`. 
+- Calculul pentru TVA și TTC trebuie să țină cont dinamic de `row.recalc_vat_rate` sau `row.vat_rate`.
+- **FĂRĂ CUTII GIGANTICE**: Este strict interzisă adăugarea de cutii uriașe de comparație la baza modalului de analiză. Modalul trebuie să rămână curat, axat strict pe rândurile devizului.
+- **OGLINDIREA DESIGNULUI DIN PDF**: Tabelul din interiorul modalului de vizualizare (PricingAnalytics modal) TREBUIE să arate **EXACT ca tabelul generat în PDF (`DevisView.jsx`)**. 
+- Asta înseamnă că **este strict interzisă** folosirea tag-ului clasic HTML `<table>` în modal. Trebuie folosit sistemul de `grid grid-cols-12` (ex: `col-span-5` pentru descriere, `col-span-2` pentru preț), cu carduri `rounded-xl` pentru fiecare rând de item, și cutia neagră (`bg-slate-900`) pentru Total TTC, identic cu factura printată.
+- **ALINIEREA MONEDEI (EURO)**: Semnul Euro (`€`) nu are voie niciodată să cadă pe rândul următor. Toate celulele cu prețuri trebuie să aibă obligatoriu clasa Tailwind `whitespace-nowrap`.
