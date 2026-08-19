@@ -323,7 +323,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                         <div className="p-3.5 flex flex-col gap-2.5 relative z-10">
                                                             <div className="flex items-center justify-between w-full gap-1">
                                                                 <div className="flex items-center gap-1 px-2 py-1 rounded-md shrink-0" style={{ backgroundColor: color + '26' }}>
-                                                                    <span className="text-xs font-extrabold text-slate-900 truncate max-w-[95px] drop-shadow-sm">{teamName} #{legNumber}</span>
+                                                                    <span className="text-xs font-extrabold text-slate-900 truncate max-w-[95px] drop-shadow-sm">#{legNumber}</span>
                                                                 </div>
                                                                 <div className="flex items-center justify-center flex-1">
                                                                     <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/70 dark:bg-slate-800/70 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
@@ -358,6 +358,29 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                 <h4 className="font-bold text-[16px] leading-tight opacity-90">
                                                                     {wo.client?.name || wo.client_name || 'Client Necunoscut'}
                                                                 </h4>
+                                                                
+                                                                {/* Display Surface and Thickness from Volumes */}
+                                                                {wo.volumes && wo.volumes.some(v => parseFloat(v.quantity) > 0) && (
+                                                                    <div className="flex flex-col gap-0.5 mt-1">
+                                                                        {wo.volumes.map((v, idx) => {
+                                                                            const sq = parseFloat(v.quantity);
+                                                                            const th = parseFloat(v.thickness);
+                                                                            if (!sq && !th) return null;
+                                                                            const shortLabel = (v.label || '').toLowerCase().includes('izola') ? 'Izolație' : (v.label || `Volum ${idx + 1}`);
+                                                                            return (
+                                                                                <div key={idx} className="flex items-center gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
+                                                                                    <span className="truncate max-w-[80px] opacity-80">{shortLabel}:</span>
+                                                                                    <span>
+                                                                                        {sq > 0 ? `${sq} m²` : ''} 
+                                                                                        {sq > 0 && th > 0 ? ' × ' : ''} 
+                                                                                        {th > 0 ? `${th} cm` : ''}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )
+                                                                        })}
+                                                                    </div>
+                                                                )}
                                                             </div>
 
                                                             <div className="flex items-center gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: color + '26' }}>
@@ -462,9 +485,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                 <div className="flex-1 p-1.5 space-y-1.5 min-h-[120px]">
                                     {dayOrders.length > 0 ? dayOrders.map((wo) => {
                                         const color = wo.assigned_team_color || '#3b82f6';
-                                        const teamName = wo.team?.name || wo.assigned_team_name || '';
                                         const clientName = wo.client?.name || wo.client_name || '—';
-                                        const address = wo.site_address || wo.site?.address || wo.address || '';
                                         const isDone = wo.status === 'completed' || wo.status === 'done';
 
                                         return (
@@ -492,12 +513,25 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                 {wo.start_time?.substring(0, 5)}
                                                             </div>
                                                         )}
-                                                        {/* Team */}
-                                                        {teamName && (
-                                                            <div className="text-[9px] font-semibold mt-0.5 truncate" style={{ color }}>
-                                                                {teamName}
+                                                        <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-100 dark:border-slate-700/50">
+                                                            <div className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                                                                {wo.volumes && wo.volumes.map((v, idx) => {
+                                                                    const sq = parseFloat(v.quantity);
+                                                                    const th = parseFloat(v.thickness);
+                                                                    if (!sq && !th) return null;
+                                                                    return (
+                                                                        <div key={idx} className="flex items-center gap-1">
+                                                                            <span className="opacity-70">{v.label || `Volum ${idx + 1}`}:</span>
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-300">
+                                                                                {sq > 0 ? `${sq} m²` : ''} 
+                                                                                {sq > 0 && th > 0 ? ' × ' : ''} 
+                                                                                {th > 0 ? `${th} cm` : ''}
+                                                                            </span>
+                                                                        </div>
+                                                                    )
+                                                                })}
                                                             </div>
-                                                        )}
+                                                        </div>
                                                         {/* Status indicator */}
                                                         {isDone && (
                                                             <div className="flex items-center gap-0.5 mt-1">
