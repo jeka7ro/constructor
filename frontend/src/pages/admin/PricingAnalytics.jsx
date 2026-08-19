@@ -113,21 +113,6 @@ const CalculationModal = ({ wo, onClose }) => {
                             );
                             })()}
 
-                            {wo.diff !== 0 ? (
-                                <div className="p-4 bg-red-50 text-red-700 border-2 border-red-200 rounded-xl text-sm flex flex-col sm:flex-row sm:items-center justify-between font-bold gap-2">
-                                    <span className="flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> {t('analytics.diff_detected', 'Écart détecté dans la DB')}</span>
-                                    <div className="flex items-center gap-3 text-xs sm:text-sm">
-                                        <span>{t('analytics.net_saved', 'Sauvegardé')}: <span className="line-through opacity-75">{wo.savedNet.toFixed(2)} €</span></span>
-                                        <span>{t('analytics.net_recalculated', 'Recalculé')}: <span>{wo.calcNet.toFixed(2)} €</span></span>
-                                        <span className="bg-red-200 text-red-800 px-2 py-1 rounded-md">Diff: {wo.diff > 0 ? '+' : ''}{wo.diff.toFixed(2)} €</span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="p-3 bg-emerald-50 text-emerald-700 border-2 border-emerald-200 rounded-xl text-sm flex items-center justify-between font-bold">
-                                    <span className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> {t('analytics.no_diff', 'Calcul validé (Aucun écart)')}</span>
-                                    <span>Diff: 0.00 €</span>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>,
