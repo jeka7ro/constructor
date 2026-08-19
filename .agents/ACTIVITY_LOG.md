@@ -82,4 +82,5 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 - **Acțiune**: Am adăugat traducerile lipsă în limba română (`ro.json`) pentru capetele de tabel din `PricingAnalytics` (care apăreau în franceză chiar și când limba era setată pe RO, din cauză că fallback-ul standard e mereu în franceză).
 - **Acțiune**: Am eliminat iconița de "External Link" de lângă numele clientului din tabelul principal al paginii `PricingAnalytics` la cererea utilizatorului pentru a curăța interfața vizual.
 - **Acțiune**: Am eliminat cutiile uriașe roșii și verzi de alertă (diferență detectată) de la baza modalului din `PricingAnalytics`, respectând interdicția strictă din regulile proiectului (`AGENTS.md`) care obligă ca acel modal să reflecte strict un PDF curat.
+- **Acțiune**: Am adăugat o coloană nouă numită `PDF` la finalul tabelului principal din `PricingAnalytics`. Aceasta conține un buton de descărcare/vizualizare directă care deschide PDF-ul devizului sau proformei într-un tab nou, fără a mai fi necesară deschiderea modalului de detalii.
 

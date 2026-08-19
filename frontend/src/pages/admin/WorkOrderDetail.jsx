@@ -3312,8 +3312,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 onChange={e => setCalcEditForm(f => ({ ...f, client_type: e.target.value }))}
                                                 className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                             >
-                                                <option value="fizica">{t('quotes.pf', 'Particulier')}</option>
-                                                <option value="juridica">{t('quotes.pj', 'Entreprise')}</option>
+                                                <option value="pf">{t('quotes.pf', 'Particulier')}</option>
+                                                <option value="pj">{t('quotes.pj', 'Entreprise')}</option>
                                             </select>
                                         </div>
                                         <div>
