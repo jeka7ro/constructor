@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Clock, MapPin, Truck, ChevronRight, Navigation, Map, CheckCircle2, Calculator, ChevronLeft, Package, Check, Calendar, LayoutGrid, CalendarDays } from 'lucide-react';
+import { Clock, MapPin, Truck, ChevronRight, Navigation, Map, CheckCircle2, Calculator, ChevronLeft, Package, Check, Calendar, LayoutGrid, CalendarDays, Layers, Wind, Thermometer } from 'lucide-react';
 import StreetViewPhotos from './StreetViewPhotos';
 import WeatherWidget from './WeatherWidget';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek, subWeeks, addWeeks, parseISO } from 'date-fns';
@@ -367,9 +367,14 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                             const th = parseFloat(v.thickness);
                                                                             if (!sq && !th) return null;
                                                                             const shortLabel = (v.label || '').toLowerCase().includes('izola') ? 'Izolație' : (v.label || `Volum ${idx + 1}`);
+                                                                            const isPur = (v.label || '').toLowerCase().includes('pur');
+                                                                            const isEps = (v.label || '').toLowerCase().includes('eps');
+                                                                            const Icon = isPur ? Wind : (isEps ? Thermometer : Layers);
+                                                                            const iconColor = isPur ? 'text-indigo-500' : (isEps ? 'text-emerald-500' : 'text-slate-500');
+
                                                                             return (
-                                                                                <div key={idx} className="flex items-center gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-200">
-                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
+                                                                                <div key={idx} className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                                                                                    <Icon className={`w-3.5 h-3.5 ${iconColor} shrink-0`} />
                                                                                     <span className="truncate max-w-[80px] opacity-80">{shortLabel}:</span>
                                                                                     <span>
                                                                                         {sq > 0 ? `${sq} m²` : ''} 
@@ -519,8 +524,14 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                     const sq = parseFloat(v.quantity);
                                                                     const th = parseFloat(v.thickness);
                                                                     if (!sq && !th) return null;
+                                                                    const isPur = (v.label || '').toLowerCase().includes('pur');
+                                                                    const isEps = (v.label || '').toLowerCase().includes('eps');
+                                                                    const Icon = isPur ? Wind : (isEps ? Thermometer : Layers);
+                                                                    const iconColor = isPur ? 'text-indigo-500' : (isEps ? 'text-emerald-500' : 'text-slate-500');
+
                                                                     return (
                                                                         <div key={idx} className="flex items-center gap-1">
+                                                                            <Icon className={`w-3 h-3 ${iconColor} shrink-0`} />
                                                                             <span className="opacity-70">{v.label || `Volum ${idx + 1}`}:</span>
                                                                             <span className="font-bold text-slate-700 dark:text-slate-300">
                                                                                 {sq > 0 ? `${sq} m²` : ''} 
