@@ -12,6 +12,10 @@ Acest document descrie logica strictă a modului în care sunt calculate prețur
 - **Snapshot pe Deviz (`wo.prices`):** Când un utilizator (client) își generează un Deviz Online, sistemul "îngheață" acele prețuri curente și le salvează ca un dicționar (JSON) pe rândul comenzii: `wo.prices`.
 - Asta înseamnă că dacă adminul dublează prețurile mâine, Devizul făcut ieri va păstra prețurile din ziua generării (pentru că folosește dicționarul salvat pe `wo.prices`).
 
+## 3. Sincronizarea Logicilor de TVA (Python vs. JS)
+- Este **obligatoriu** ca logica de suprascriere (override) a TVA-ului din frontend (`frontend/src/utils/pricingEngine.js`) să fie oglindită exact în backend (`backend/app/services/pricing_engine.py`).
+- Când un utilizator sau administrator forțează un `vat_type` specific (ex. 0, 6, 21) sau debifează `useVat` (salvat în dicționarul `wo.prices`), motorul de audit din Python trebuie să citească și să aplice aceste excepții, ignorând tipul standard al clientului (Fizică/Juridică). Altfel, vor apărea discrepanțe grave între PDF-ul final și Analiza de Audit.
+
 ## 3. Sistemul de Audit (Analiză Devize - PricingAnalytics)
 - Pentru pagina de Analiză Devize, sistemul rulează pe un **`audit_mode = true`**. 
 - Acest mod preia `wo.prices` (snapshot-ul vechi al prețurilor) și `wo.volumes` (volumele și materialele selectate) și le trece **DIN NOU** prin funcția modernă de `calculate_quote_price()`.

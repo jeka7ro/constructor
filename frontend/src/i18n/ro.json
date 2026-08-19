@@ -3576,6 +3576,10 @@
     "net_diff": "DIFERENȚĂ NETĂ :",
     "col_gross_saved": "BRUT SALVAT (PDF)",
     "col_net_recalc": "NET RECALCULAT",
+    "col_net_saved": "NET SALVAT (DB)",
+    "col_tva": "TVA",
+    "col_total_ttc": "TOTAL TTC",
+    "col_diff_net": "DIFERENȚĂ NET",
     "col_vat_recalc": "TVA RECALCULAT",
     "col_gross_recalc": "BRUT (RECALCULAT)",
     "col_diff_tvac": "DIFERENȚĂ (TVAC)"

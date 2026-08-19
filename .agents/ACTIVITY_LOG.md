@@ -77,3 +77,5 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 - **Acțiune**: Am adăugat clasa `whitespace-nowrap` pe toate rândurile de preț pentru a preveni trecerea semnului Euro pe rândul următor.
 - **Aprobare Utilizator**: Modificările vizuale au fost realizate la cererea expresă a utilizatorului, care a confirmat structura așteptată ("exact ca în PDF"). 
 - **Lecție Învățată**: Pagina de analiză devize are nevoie de consistență totală cu PDF-ul, nu trebuie folosite elemente UI disproporționate care aglomerează modalul, și trebuie respectate cu strictețe formatele de monedă.
+
+- **Acțiune**: Am reparat logica de calcul TVA în backend (`backend/app/services/pricing_engine.py`) pentru a fi 100% identică cu cea din frontend (`frontend/src/utils/pricingEngine.js`). Backend-ul ignora override-urile de `vat_type` (ex. TVA 0 forțat sau 21%) salvate pe deviz, ceea ce cauza discrepanța dintre PDF (TVA 21%) și Analiză Devize (TVA -/0).
