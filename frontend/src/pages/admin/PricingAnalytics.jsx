@@ -63,44 +63,48 @@ const CalculationModal = ({ wo, onClose }) => {
                             {(() => {
                                 const displayItems = wo.recalculated_items?.length > 0 ? wo.recalculated_items : (wo.proforma_data?.items || []);
                                 return displayItems.length > 0 ? (
-                                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold tracking-wider">
-                                            <tr>
-                                                <th className="px-4 py-3">{t('analytics.description', 'Description')}</th>
-                                                <th className="px-4 py-3 text-right">{t('analytics.qty', 'Qté')}</th>
-                                                <th className="px-4 py-3 text-right">{t('analytics.unit_price', 'PU HT')}</th>
-                                                <th className="px-4 py-3 text-right">{t('analytics.total_ht', 'Total HT')}</th>
-                                                <th className="px-4 py-3 text-right">{t('analytics.vat', 'TVA')} {vatRate > 0 ? `(${vatRate}%)` : ''}</th>
-                                                <th className="px-4 py-3 text-right">{t('analytics.total_ttc', 'Total TTC')}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {displayItems.map((item, i) => {
-                                                const rowTotalHT = parseFloat(item.total || 0);
-                                                const rowTVA = rowTotalHT * (vatRate / 100);
-                                                const rowTotalTTC = rowTotalHT + rowTVA;
-                                                return (
-                                                    <tr key={i} className="hover:bg-slate-50 transition-colors text-slate-700">
-                                                        <td className="px-4 py-3 font-medium whitespace-pre-line">{item.label}</td>
-                                                        <td className="px-4 py-3 text-right">{item.quantity} {item.unit || ''}</td>
-                                                        <td className="px-4 py-3 text-right">{item.price ? `${parseFloat(item.price).toFixed(2)} €` : '-'}</td>
-                                                        <td className="px-4 py-3 text-right font-bold">{item.total ? `${rowTotalHT.toFixed(2)} €` : '-'}</td>
-                                                        <td className="px-4 py-3 text-right text-slate-500">{rowTVA > 0 ? `${rowTVA.toFixed(2)} €` : '-'}</td>
-                                                        <td className="px-4 py-3 text-right font-bold text-slate-900">{rowTotalTTC > 0 ? `${rowTotalTTC.toFixed(2)} €` : '-'}</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                        <tfoot className="bg-slate-50 border-t-2 border-slate-200">
-                                            <tr>
-                                                <td colSpan={3} className="px-4 py-3 text-right font-black text-slate-800 uppercase tracking-wider">TOTAL</td>
-                                                <td className="px-4 py-3 text-right font-bold text-slate-700">{wo.calcNet.toFixed(2)} €</td>
-                                                <td className="px-4 py-3 text-right font-bold text-slate-700">{(wo.calcNet * (vatRate / 100)).toFixed(2)} €</td>
-                                                <td className="px-4 py-3 text-right font-black text-slate-900 text-lg">{(wo.calcNet * (1 + vatRate / 100)).toFixed(2)} €</td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                <div className="w-full mt-2">
+                                    <div className="space-y-2 pb-2">
+                                        <div className="grid grid-cols-12 gap-3 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                            <div className="col-span-5">{t('analytics.description', 'Description')}</div>
+                                            <div className="col-span-2 text-center">{t('analytics.qty', 'Qté')}</div>
+                                            <div className="col-span-1 text-center">{t('analytics.unit', 'Unité')}</div>
+                                            <div className="col-span-2 text-right">{t('analytics.unit_price', 'PU')}</div>
+                                            <div className="col-span-2 text-right">{t('analytics.total', 'Total')}</div>
+                                        </div>
+                                        {displayItems.map((item, i) => (
+                                            <div key={i} className="grid grid-cols-12 gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-100 items-center break-inside-avoid">
+                                                <div className="col-span-5 text-slate-700 font-medium text-sm whitespace-pre-line">{item.label}</div>
+                                                <div className="col-span-2 text-center text-slate-600 font-medium text-sm">{item.quantity}</div>
+                                                <div className="col-span-1 text-center text-slate-500 font-bold text-[10px] uppercase">{item.unit || ''}</div>
+                                                <div className="col-span-2 text-right text-slate-600 text-sm">{item.price ? `${parseFloat(item.price).toFixed(2)} €` : '-'}</div>
+                                                <div className="col-span-2 text-right font-bold text-slate-800 text-sm">{item.total ? `${parseFloat(item.total).toFixed(2)} €` : '-'}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-end mt-4">
+                                        <div className="w-72 space-y-1 text-sm">
+                                            <div className="flex justify-between gap-2 py-1 px-4 text-slate-600 font-bold">
+                                                <span>Total Net (HTVA)</span>
+                                                <span className="whitespace-nowrap">{wo.calcNet.toFixed(2)} €</span>
+                                            </div>
+                                            {vatRate > 0 ? (
+                                                <div className="flex justify-between gap-2 py-1 px-4 text-slate-600 font-bold">
+                                                    <span>TVA ({vatRate}%)</span>
+                                                    <span className="whitespace-nowrap">{(wo.calcNet * (vatRate / 100)).toFixed(2)} €</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex justify-between gap-2 py-1 px-4 text-slate-400 text-xs italic">
+                                                    <span>TVA non appliquée</span>
+                                                    <span className="whitespace-nowrap">0.00 €</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between gap-2 py-3 px-4 rounded-xl mt-2 font-black text-white text-base bg-slate-900 shadow-lg">
+                                                <span>Total TTC</span>
+                                                <span className="whitespace-nowrap text-yellow-400">{(wo.calcNet * (1 + vatRate / 100)).toFixed(2)} €</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="bg-amber-50 text-amber-700 p-4 rounded-xl border border-amber-200 text-sm">
