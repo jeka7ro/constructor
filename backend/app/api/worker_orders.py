@@ -140,6 +140,7 @@ def get_my_orders(
     from sqlalchemy.orm import joinedload
     sixty_days_ago = datetime.utcnow() - timedelta(days=60)
 
+    from sqlalchemy import or_
     query = db.query(WorkOrder).options(
         joinedload(WorkOrder.site),
         joinedload(WorkOrder.client)
@@ -147,7 +148,7 @@ def get_my_orders(
         WorkOrder.organization_id == current_user.organization_id,
         WorkOrder.status.notin_(["cancelled", "isoflex"]),
         WorkOrder.is_quote == False,
-        WorkOrder.start_date >= sixty_days_ago.date()
+        or_(WorkOrder.start_date >= sixty_days_ago.date(), WorkOrder.start_date == None)
     )
     
     if not is_driver:

@@ -193,6 +193,31 @@ def _serialize_audit_mode(wo) -> dict:
             
             pricing_data = dict(wo.prices) if wo.prices else {}
             
+            # Fetch master pricing to use as fallback/etalon
+            try:
+                from sqlalchemy.orm import object_session
+                db_session = object_session(wo)
+                if db_session:
+                    from app.models import PricingSetting
+                    master_pricing = db_session.query(PricingSetting).filter(
+                        PricingSetting.organization_id == wo.organization_id,
+                        PricingSetting.client_id == (wo.client_id if wo.client_id else None)
+                    ).first()
+                    if not master_pricing and wo.client_id:
+                        master_pricing = db_session.query(PricingSetting).filter(
+                            PricingSetting.organization_id == wo.organization_id,
+                            PricingSetting.client_id == None
+                        ).first()
+                    
+                    if master_pricing:
+                        master_dict = {c.name: getattr(master_pricing, c.name) for c in master_pricing.__table__.columns}
+                        for k, v in master_dict.items():
+                            # Sursa etalon: apply only if missing or empty in pricing_data
+                            if k not in pricing_data or pricing_data[k] is None or pricing_data[k] == '':
+                                pricing_data[k] = v
+            except Exception as pe:
+                print(f"Error fetching master pricing for audit: {pe}")
+            
             # Mapare wo.prices (shorthand) -> pricing_engine (full names)
             field_map = {
                 'base': 'base_price_sqm',

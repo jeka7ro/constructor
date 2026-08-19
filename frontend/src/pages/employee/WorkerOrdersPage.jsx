@@ -233,6 +233,29 @@ function OrderCard({ order, onClick }) {
                     </div>
                 )}
 
+                {order.volumes && order.volumes.some(v => parseFloat(v.quantity) > 0) && (
+                    <div className="flex flex-col gap-1 text-xs text-slate-500 mb-1.5 mt-1">
+                        {order.volumes.map((v, idx) => {
+                            const sq = parseFloat(v.quantity);
+                            const th = parseFloat(v.thickness);
+                            if (!sq && !th) return null;
+                            return (
+                                <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded px-2 py-1">
+                                    <svg className="w-3.5 h-3.5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                    </svg>
+                                    <span className="flex-1 truncate">{translateDynamicLabel(v.label) || `Volume ${idx + 1}`}</span>
+                                    <span className="font-bold text-slate-700 whitespace-nowrap">
+                                        {sq > 0 ? `${sq} m²` : ''} 
+                                        {sq > 0 && th > 0 ? ' × ' : ''} 
+                                        {th > 0 ? `${th} cm` : ''}
+                                    </span>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
+
                 {order.route_distance_km !== null && order.route_distance_km !== undefined && (
                     <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
                         <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

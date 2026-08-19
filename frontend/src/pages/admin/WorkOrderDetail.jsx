@@ -552,7 +552,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 // Mark as read in the background
                 api.post(`/admin/work-orders/${id}/mark-read`).catch(err => console.error('Failed to mark read', err))
                 
-                // Init TVA based on client type and work type
+                // Init TVA based on client type and work type (fallback initially)
                 if (data.prices && data.prices.useVat !== false) {
                     setVatEnabled(true)
                     if (data.prices?.vat_type !== undefined) {
@@ -580,7 +580,17 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 const clientId = woRes.value.data.client_id;
                 const endpoint = clientId ? `/admin/pricing-settings?client_id=${clientId}` : '/admin/pricing-settings';
                 api.get(endpoint)
-                    .then(res => setPricingSettings(res.data))
+                    .then(res => {
+                        setPricingSettings(res.data);
+                        // Aplică condițiile etalon de aplicare TVA din Pagina de Tarife
+                        if (woRes.value.data.prices && woRes.value.data.prices.useVat !== false && woRes.value.data.prices.vat_type === undefined) {
+                            if (woRes.value.data.client_type === 'pj' || woRes.value.data.client_type === 'juridica') {
+                                setVatType(String(res.data.vat_legal_entity ?? 0));
+                            } else {
+                                setVatType(String(woRes.value.data.work_type === 'repair' ? (res.data.vat_physical_repair ?? 6) : (res.data.vat_physical_new ?? 21)));
+                            }
+                        }
+                    })
                     .catch(err => console.error('Failed to load pricing settings:', err));
             }
         } catch {} finally {
@@ -1352,11 +1362,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             // Sincronizare automată TVA în funcție de noile date de client/lucrare
             let newVatType = newPrices.vat_type;
             if (calcEditForm.client_type === 'pj' || calcEditForm.client_type === 'juridica') {
-                newVatType = '0';
+                newVatType = pricingSettings ? String(pricingSettings.vat_legal_entity ?? 0) : '0';
             } else if (calcEditForm.work_type === 'repair') {
-                newVatType = '6';
+                newVatType = pricingSettings ? String(pricingSettings.vat_physical_repair ?? 6) : '6';
             } else {
-                newVatType = '21';
+                newVatType = pricingSettings ? String(pricingSettings.vat_physical_new ?? 21) : '21';
             }
             newPrices.vat_type = newVatType;
 
