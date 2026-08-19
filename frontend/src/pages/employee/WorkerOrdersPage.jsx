@@ -308,8 +308,6 @@ function TabBar({ active, onChange, onHomePress, tenant, isDriver }) {
     const adminTabs = [
         { id: 'info',       label: 'Info',       icon: Info },
         { id: 'poze',       label: 'Photos',     icon: Camera },
-        { id: 'deviz',      label: 'Devis',      icon: FileText },
-        { id: 'chat',       label: 'Chat',       icon: MessageCircle },
         { id: 'materiale',  label: 'Matériaux',  icon: Package },
         { id: 'trimite',    label: 'Finaliser',  icon: Send },
     ]
@@ -1736,32 +1734,6 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                 showBack={false} 
                 rightContent={
                     <div className="flex items-center gap-2">
-                        {!isDriver && (
-                            <div className="flex items-center gap-2 mr-1">
-                                {/* Notificare Deviz */}
-                                <button onClick={() => setActiveTab('deviz')} className="relative p-2 bg-white/90 dark:bg-slate-800/90 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-200">
-                                    <FileText className="w-5 h-5" />
-                                    {selected.documents?.length > 0 && (
-                                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border-2 border-white dark:border-slate-900"></span>
-                                        </span>
-                                    )}
-                                </button>
-                                {/* Notificare Chat */}
-                                <button onClick={() => setActiveTab('chat')} className="relative p-2 bg-white/90 dark:bg-slate-800/90 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-200">
-                                    <MessageCircle className="w-5 h-5" />
-                                    {selected.unread_admin_messages_count > 0 && (
-                                        <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                            <span className="relative inline-flex items-center justify-center rounded-full h-4 w-4 bg-red-500 text-[9px] font-bold text-white border-2 border-white dark:border-slate-900">
-                                                {selected.unread_admin_messages_count}
-                                            </span>
-                                        </span>
-                                    )}
-                                </button>
-                            </div>
-                        )}
                         <button
                             onClick={() => setSelected(null)}
                             className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md w-10 h-10 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 active:scale-95 transition-all"
