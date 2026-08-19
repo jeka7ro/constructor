@@ -315,15 +315,6 @@ export default function PricingAnalytics() {
                         >
                             {row.is_quote ? `DEV${row.public_id || ''} - ${row.client_name}` : row.client_name}
                         </a>
-                        <a 
-                            href={`/admin/work-orders/${row.id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-slate-400 hover:text-blue-600 transition-colors"
-                            title="Ouvrir les détails (Nouvel onglet)"
-                        >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
                     </div>
                     {row.title && (
                         <span className="text-xs text-slate-500 truncate">{row.title}</span>
