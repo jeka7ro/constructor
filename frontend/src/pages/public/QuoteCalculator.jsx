@@ -445,30 +445,6 @@ export default function QuoteCalculator() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">{t('calculator.options', 'Options')}</label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_foil ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-slate-50 hover:border-yellow-200'}`}>
-                                        <div className="flex items-center gap-3">
-                                            <Layers className={`w-5 h-5 ${formData.has_foil ? 'text-yellow-600' : 'text-slate-400'}`} />
-                                            <span className="font-bold text-sm text-slate-900">{t('calculator.foil', 'Film plastique')}</span>
-                                        </div>
-                                        <input type="checkbox" checked={formData.has_foil} onChange={e => setFormData({ ...formData, has_foil: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
-                                    </label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_mesh ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-slate-50 hover:border-yellow-200'}`}>
-                                        <div className="flex items-center gap-3">
-                                            <Grid3x3 className={`w-5 h-5 ${formData.has_mesh ? 'text-yellow-600' : 'text-slate-400'}`} />
-                                            <span className="font-bold text-sm text-slate-900">{t('calculator.mesh', 'Treillis')}</span>
-                                        </div>
-                                        <input type="checkbox" checked={formData.has_mesh} onChange={e => setFormData({ ...formData, has_mesh: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
-                                    </label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_duramint ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-slate-50 hover:border-yellow-200'}`}>
-                                        <div className="flex items-center gap-3">
-                                            <Layers className={`w-5 h-5 ${formData.has_duramint ? 'text-yellow-600' : 'text-slate-400'}`} />
-                                            <span className="font-bold text-sm text-slate-900">{t('calculator.duramint', 'Fibre')}</span>
-                                        </div>
-                                        <input type="checkbox" checked={formData.has_duramint} onChange={e => setFormData({ ...formData, has_duramint: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
-                                    </label>
-                                </div>
 
                                 <button type="button" onClick={() => {
                                     if (!formData.surface || parseFloat(formData.surface) <= 0) {

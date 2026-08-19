@@ -1,0 +1,111 @@
+def sync_work_order_prices(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
+        
+    pricing = db.query(PricingSetting).filter(
+        PricingSetting.organization_id == current_admin.organization_id,
+        PricingSetting.client_id == (wo.client_id if wo.client_id else None)
+    ).first()
+    
+    if not pricing and wo.client_id:
+        pricing = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == current_admin.organization_id,
+            PricingSetting.client_id == None
+        ).first()
+        
+    if not pricing:
+        raise HTTPException(status_code=404, detail="Setările de preț globale nu au fost găsite.")
+        
+    try:
+        auto_net = 0
+        total_truck = 0
+        total_surface = sum(float(v.get('quantity') or 0) for v in (wo.volumes or []) if 'chape' in str(v.get('label') or '').lower() or 'sapa' in str(v.get('label') or '').lower() or 'şapă' in str(v.get('label') or '').lower() or 'șapă' in str(v.get('label') or '').lower())
+        
+        # Calculate truck cost based on total surface of chape
+        distance_km = 0
+        truck_cost = 0
+        if wo.site_address:
+            if total_surface <= getattr(pricing, 'truck_surface_threshold_free_sqm', 500.0):
+                # Import the LogisticBase model
+                from app.models import LogisticBase
+                bases = db.query(LogisticBase).filter(LogisticBase.organization_id == current_admin.organization_id).all()
+                if bases:
+                    # Calculate distance for all bases and take the minimum
+                    min_dist = 999999.0
+                    for base_record in bases:
+                        if base_record.address:
+                            dist = get_driving_distance_km(base_record.address, wo.site_address)
+                            if 0 < dist < min_dist:
+                                min_dist = dist
+                    
+                    if min_dist < 999999.0:
+                        distance_km = min_dist
+                        if distance_km > getattr(pricing, 'truck_distance_threshold_km', 50.0):
+                            truck_cost = getattr(pricing, 'truck_extra_price_flat', 0.0)
+                    
+        wo.prices = {
+            "base": pricing.base_price_sqm,
+            "base_large": pricing.base_price_sqm_large,
+            "base_threshold": pricing.base_large_threshold_sqm,
+            "extra": pricing.extra_thickness_price_per_cm,
+            "extra_large": getattr(pricing, 'extra_thickness_price_per_cm_large', pricing.extra_thickness_price_per_cm),
+            "extra_threshold": getattr(pricing, 'extra_thickness_large_threshold_sqm', 200.0),
+            "standard_thickness": pricing.standard_thickness_cm,
+            "foil": pricing.plastic_foil_price_sqm,
+            "mesh": pricing.metal_mesh_price_sqm,
+            "fiber": pricing.fiber_price_sqm if total_surface <= pricing.fiber_large_threshold_sqm else pricing.fiber_price_sqm_large,
+            "truck_cost": truck_cost,
+            "distance_km": distance_km
+        }
+        
+        for vol in (wo.volumes or []):
+            quantity = float(vol.get('quantity') or 0)
+            thickness = float(vol.get('thickness') or 0)
+            label = str(vol.get('label') or '').lower()
+            if 'chape' in label or 'sapa' in label or 'şapă' in label or 'șapă' in label:
+                if quantity > 0:
+                    base_rate = pricing.base_price_sqm if quantity <= pricing.base_large_threshold_sqm else pricing.base_price_sqm_large
+                    base = quantity * base_rate
+                    
+                    extra_cm = max(0, thickness - pricing.standard_thickness_cm)
+                    extra_thresh = getattr(pricing, 'extra_thickness_large_threshold_sqm', 200.0)
+                    extra_price = getattr(pricing, 'extra_thickness_price_per_cm_large', pricing.extra_thickness_price_per_cm) if quantity > extra_thresh else pricing.extra_thickness_price_per_cm
+                    extra_cost = quantity * extra_cm * extra_price
+                    
+                    foil_cost = quantity * pricing.plastic_foil_price_sqm if vol.get('has_foil') else 0
+                    mesh_cost = quantity * pricing.metal_mesh_price_sqm if vol.get('has_mesh') else 0
+                    
+                    fiber_rate = pricing.fiber_price_sqm if quantity <= pricing.fiber_large_threshold_sqm else pricing.fiber_price_sqm_large
+                    fiber_cost = quantity * fiber_rate if (vol.get('has_fiber') or vol.get('has_duramint')) else 0
+                    
+                    hidden_extra = 0
+                    if pricing.surface_thresholds:
+                        for thresh in pricing.surface_thresholds:
+                            min_s = float(thresh.get("min_sqm") or 0)
+                            max_s = float(thresh.get("max_sqm") or 999999)
+                            if min_s <= quantity < max_s:
+                                hidden_extra += float(thresh.get("extra_charge") or 0)
+                                
+                    auto_net += (base + extra_cost + foil_cost + mesh_cost + fiber_cost + hidden_extra)
+                    
+        if auto_net > 0 or truck_cost > 0:
+            wo.estimated_price = auto_net + truck_cost
+        
+        from datetime import datetime
+        wo.updated_at = datetime.utcnow()
+        db.commit()
+    except Exception as e:
+        print("Failed to auto-recalculate estimated price after sync:", str(e))
+        pass
+
+    return {"message": "Prices synchronized successfully", "prices": wo.prices, "estimated_price": wo.estimated_price}
+
+

@@ -1776,6 +1776,10 @@ def sync_work_order_prices(
             if full in pricing_data:
                 pricing_data[short] = pricing_data[full]
                 
+        # Curățăm flag-urile de override manual pentru că am sincronizat cu etalonul
+        pricing_data.pop('_modified_at', None)
+        pricing_data.pop('_modified_by', None)
+                
         wo.prices = pricing_data
         
         client_type = 'fizica'

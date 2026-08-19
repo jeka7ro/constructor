@@ -229,7 +229,53 @@ def get_public_work_order(token: str, lang: Optional[str] = None, db: Session = 
     # Permitem vizualizarea și pentru draft (Deviz)
     
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
-    return _public_serialize(wo, org)
+    
+    # Obținem setările de pricing pentru a asigura calculul corect al primului deviz în lipsa unui override manual
+    from app.models import PricingSetting
+    pricing_setting = db.query(PricingSetting).filter(
+        PricingSetting.organization_id == wo.organization_id,
+        PricingSetting.client_id == wo.client_id
+    ).first()
+    
+    if not pricing_setting:
+        pricing_setting = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == wo.organization_id,
+            PricingSetting.client_id.is_(None)
+        ).first()
+
+    ps_dict = {}
+    if pricing_setting:
+        ps_dict = {
+            "base_price_sqm": pricing_setting.base_price_sqm,
+            "base_price_sqm_large": pricing_setting.base_price_sqm_large,
+            "base_large_threshold_sqm": pricing_setting.base_large_threshold_sqm,
+            "extra_thickness_price_per_cm": pricing_setting.extra_thickness_price_per_cm,
+            "extra_thickness_price_per_cm_large": pricing_setting.extra_thickness_price_per_cm_large,
+            "extra_thickness_large_threshold_sqm": pricing_setting.extra_thickness_large_threshold_sqm,
+            "standard_thickness_cm": pricing_setting.standard_thickness_cm,
+            "plastic_foil_price_sqm": pricing_setting.plastic_foil_price_sqm,
+            "metal_mesh_price_sqm": pricing_setting.metal_mesh_price_sqm,
+            "fiber_price_sqm": pricing_setting.fiber_price_sqm,
+            "surface_thresholds": pricing_setting.surface_thresholds or [],
+            "eps_volume_thresholds": getattr(pricing_setting, 'eps_volume_thresholds', []),
+            "truck_cost": getattr(pricing_setting, 'truck_cost', None),
+            "truck_distance_threshold_km": getattr(pricing_setting, 'truck_distance_threshold_km', None),
+            "truck_extra_price_flat": getattr(pricing_setting, 'truck_extra_price_flat', None),
+            "truck_surface_threshold_free_sqm": getattr(pricing_setting, 'truck_surface_threshold_free_sqm', None),
+            "pur_base_price_3cm": getattr(pricing_setting, 'pur_base_price_3cm', 0),
+            "pur_step_price_up_to_10cm": getattr(pricing_setting, 'pur_step_price_up_to_10cm', 0),
+            "pur_extra_price_above_10cm": getattr(pricing_setting, 'pur_extra_price_above_10cm', 0),
+            "pur_opt_aspiration": getattr(pricing_setting, 'pur_opt_aspiration', 0),
+            "pur_opt_niveller": getattr(pricing_setting, 'pur_opt_niveller', 0),
+            "pur_opt_poncage": getattr(pricing_setting, 'pur_opt_poncage', 0),
+            "pur_opt_protection": getattr(pricing_setting, 'pur_opt_protection', 0),
+            "pur_discount_pct": getattr(pricing_setting, 'pur_discount_pct', 0),
+            "eps_discount_pct": getattr(pricing_setting, 'eps_discount_pct', 0)
+        }
+
+    res = _public_serialize(wo, org)
+    res["pricingSettings"] = ps_dict
+    return res
 
 # ──────────────────────────────────────────────────────────────────────────────
 # GET — Vizualizare Proformă (fără autentificare)
@@ -244,9 +290,54 @@ def get_public_proforma(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Proforma nu a fost găsită sau link-ul este invalid.")
     
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
+    
+    # Obținem setările de pricing pentru a asigura calculul corect al primului deviz în lipsa unui override manual
+    from app.models import PricingSetting
+    pricing_setting = db.query(PricingSetting).filter(
+        PricingSetting.organization_id == wo.organization_id,
+        PricingSetting.client_id == wo.client_id
+    ).first()
+    
+    if not pricing_setting:
+        pricing_setting = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == wo.organization_id,
+            PricingSetting.client_id.is_(None)
+        ).first()
+
+    ps_dict = {}
+    if pricing_setting:
+        ps_dict = {
+            "base_price_sqm": pricing_setting.base_price_sqm,
+            "base_price_sqm_large": pricing_setting.base_price_sqm_large,
+            "base_large_threshold_sqm": pricing_setting.base_large_threshold_sqm,
+            "extra_thickness_price_per_cm": pricing_setting.extra_thickness_price_per_cm,
+            "extra_thickness_price_per_cm_large": pricing_setting.extra_thickness_price_per_cm_large,
+            "extra_thickness_large_threshold_sqm": pricing_setting.extra_thickness_large_threshold_sqm,
+            "standard_thickness_cm": pricing_setting.standard_thickness_cm,
+            "plastic_foil_price_sqm": pricing_setting.plastic_foil_price_sqm,
+            "metal_mesh_price_sqm": pricing_setting.metal_mesh_price_sqm,
+            "fiber_price_sqm": pricing_setting.fiber_price_sqm,
+            "surface_thresholds": pricing_setting.surface_thresholds or [],
+            "eps_volume_thresholds": getattr(pricing_setting, 'eps_volume_thresholds', []),
+            "truck_cost": getattr(pricing_setting, 'truck_cost', None),
+            "truck_distance_threshold_km": getattr(pricing_setting, 'truck_distance_threshold_km', None),
+            "truck_extra_price_flat": getattr(pricing_setting, 'truck_extra_price_flat', None),
+            "truck_surface_threshold_free_sqm": getattr(pricing_setting, 'truck_surface_threshold_free_sqm', None),
+            "pur_base_price_3cm": getattr(pricing_setting, 'pur_base_price_3cm', 0),
+            "pur_step_price_up_to_10cm": getattr(pricing_setting, 'pur_step_price_up_to_10cm', 0),
+            "pur_extra_price_above_10cm": getattr(pricing_setting, 'pur_extra_price_above_10cm', 0),
+            "pur_opt_aspiration": getattr(pricing_setting, 'pur_opt_aspiration', 0),
+            "pur_opt_niveller": getattr(pricing_setting, 'pur_opt_niveller', 0),
+            "pur_opt_poncage": getattr(pricing_setting, 'pur_opt_poncage', 0),
+            "pur_opt_protection": getattr(pricing_setting, 'pur_opt_protection', 0),
+            "pur_discount_pct": getattr(pricing_setting, 'pur_discount_pct', 0),
+            "eps_discount_pct": getattr(pricing_setting, 'eps_discount_pct', 0)
+        }
+
     return {
         "workOrderData": _public_serialize(wo, org),
-        "config": getattr(wo, 'proforma_data', None)
+        "config": getattr(wo, 'proforma_data', None),
+        "pricingSettings": ps_dict
     }
 
 

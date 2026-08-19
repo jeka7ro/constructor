@@ -1,4 +1,5 @@
-import { getPrice } from "../../utils/pricingEngine";
+import { useAuthStore } from '../../store/authStore';
+import { getPrice, buildQuoteItems } from "../../utils/pricingEngine";
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { createPortal } from 'react-dom'
 import { SAND_STATIONS } from '../../data/sandStations'
@@ -7,7 +8,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check, ShieldCheck
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check, ShieldCheck, Plus
 } from 'lucide-react'
 import PdfThumbnail from '../../components/PdfThumbnail'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
@@ -172,6 +173,7 @@ function NavButtons({ lat, lon, address }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
+    const { user } = useAuthStore();
     const { tenant } = useTenantStore();
     const { t, i18n } = useTranslation()
     const params = useParams()
@@ -1018,128 +1020,46 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     
     const { purSurface: isoPurSurface, purThick: isoPurThick, epsM3: isoEpsM3, epsSurface: isoEpsSurface, epsThick: isoEpsThick } = getIsolationData();
 
-    let isAuto = false;
+    let isAuto = (wo.volumes && wo.volumes.length > 0);
     let surfaceForAuto = 0;
-    let extraThickForAuto = 0;
-    let chapeFlags = {}; // has_foil, has_mesh, has_fiber, has_duramint
-    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, discountPct: 0, isoPurBase: 0, isoPurOpt: 0, isoEpsBase: 0, purDiscount: 0, purDiscountPct: 0, epsDiscount: 0, epsDiscountPct: 0 };
-    let purOpts = { aspiration: 0, niveller: 0, poncage: 0, protection: 0 };
-
     (wo.volumes || []).forEach(vol => {
-        const surface = parseFloat(vol.quantity) || 0;
-        const thickness = parseFloat(vol.thickness) || 0;
         const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const isChape = /chape|[sșş]ap[aăâ]/i.test(labelSafe);
-        if (isChape && surface > 0) {
-            isAuto = true;
-            surfaceForAuto += surface;
-            chapeFlags = { has_foil: vol.has_foil, has_mesh: vol.has_mesh, has_fiber: vol.has_fiber, has_duramint: vol.has_duramint };
-            const c = computeChapeTotal(surface, thickness, chapeFlags, wo.prices);
-            extraThickForAuto = c.extraThick;
-            estimCalc.base  += c.base;
-            estimCalc.extra += c.extra;
-            estimCalc.foil  += c.foil;
-            estimCalc.mesh  += c.mesh;
-            estimCalc.fiber += c.fiber;
-            estimCalc.threshold += c.threshold;
-            estimCalc.truck_cost += c.truck_cost;
-            estimCalc.discount += c.discount;
-            estimCalc.discountPct = c.discountPct;
-            estimCalc.net   += c.net;
-            estimCalc.actualDistKm = c.actualDistKm;
-        } else if (/isolation\s*pur/i.test(labelSafe) && surface > 0) {
-            isAuto = true;
-            let purBase = getPriceVal(wo.prices?.pur_base_price_3cm, 13.95);
-            if (isoPurThick > 3 && isoPurThick <= 10) {
-                purBase += (isoPurThick - 3) * getPriceVal(wo.prices?.pur_step_price_up_to_10cm, 1.65);
-            } else if (isoPurThick > 10) {
-                purBase += 7 * getPriceVal(wo.prices?.pur_step_price_up_to_10cm, 1.65);
-                purBase += (isoPurThick - 10) * getPriceVal(wo.prices?.pur_extra_price_above_10cm, 2.10);
-            }
-            if (surface > 100) {
-                purBase += Math.floor((surface - 100) / 100) * getPriceVal(wo.prices?.pur_surface_discount_step, -0.50);
-            }
-            purBase = Math.max(0, purBase);
-            const isoPurBaseCost = purBase * surface;
-            estimCalc.isoPurBase += isoPurBaseCost;
-            
-            let thisPurTotal = isoPurBaseCost;
-            
-            if (vol.pur_aspiration) {
-                let cost = getPriceVal(wo.prices?.pur_opt_aspiration, 2.00) * surface;
-                estimCalc.isoPurOpt += cost;
-                purOpts.aspiration += cost;
-                thisPurTotal += cost;
-            }
-            if (vol.pur_niveller) {
-                let cost = getPriceVal(wo.prices?.pur_opt_niveller, 4.25) * surface;
-                estimCalc.isoPurOpt += cost;
-                purOpts.niveller += cost;
-                thisPurTotal += cost;
-            }
-            if (vol.pur_poncage) {
-                let cost = getPriceVal(wo.prices?.pur_opt_poncage, 1.50) * surface;
-                estimCalc.isoPurOpt += cost;
-                purOpts.poncage += cost;
-                thisPurTotal += cost;
-            }
-            if (vol.pur_protection) {
-                let cost = getPriceVal(wo.prices?.pur_opt_protection, 1.50) * surface;
-                estimCalc.isoPurOpt += cost;
-                purOpts.protection += cost;
-                thisPurTotal += cost;
-            }
-            let purDiscountPct = getPriceVal(wo.prices?.pur_discount_pct, 0);
-            let netPur = thisPurTotal * (1 - purDiscountPct / 100);
-            estimCalc.purDiscount = thisPurTotal * (purDiscountPct / 100);
-            estimCalc.purDiscountPct = purDiscountPct;
-            estimCalc.net += netPur;
-        } else if (/isolation\s*eps/i.test(labelSafe) && surface > 0) {
-            isAuto = true;
-            let epsVol = (surface * (thickness || 1)) / 100;
-            const epsTiers = wo.prices?.eps_volume_thresholds || [
-                { max_m3: 10, price_flat: 1495 },
-                { max_m3: 20, price_per_m3: 160 },
-                { max_m3: 40, price_per_m3: 155 },
-                { max_m3: 99999, price_per_m3: 150 }
-            ];
-            let epsPrice = 0;
-            for (let tier of epsTiers) {
-                if (epsVol <= parseFloat(tier.max_m3 || 99999)) {
-                    if (tier.price_flat) epsPrice = parseFloat(tier.price_flat);
-                    else epsPrice = epsVol * parseFloat(tier.price_per_m3 || 150);
-                    break;
-                }
-            }
-            
-            // overrides from devis explicitly
-            if (wo.prices?.custom_eps_price_flat !== undefined && wo.prices.custom_eps_price_flat !== null) {
-                epsPrice = parseFloat(wo.prices.custom_eps_price_flat);
-            } else if (wo.prices?.custom_eps_price_per_m3 !== undefined && wo.prices.custom_eps_price_per_m3 !== null) {
-                epsPrice = epsVol * parseFloat(wo.prices.custom_eps_price_per_m3);
-            }
-
-            estimCalc.isoEpsBase += epsPrice;
-            let epsDiscountPct = parseFloat(wo.prices?.eps_discount_pct || 0);
-            let netEps = epsPrice * (1 - epsDiscountPct / 100);
-            estimCalc.epsDiscount = epsPrice * (epsDiscountPct / 100);
-            estimCalc.epsDiscountPct = epsDiscountPct;
-            estimCalc.net += netEps;
+        if (/chape|[sșş]ap[aăâ]/i.test(labelSafe)) {
+            surfaceForAuto += parseFloat(vol.quantity) || 0;
         }
     });
 
+    let quote;
+    if (wo.proforma_data?.items?.length > 0) {
+        const net = wo.proforma_data.net || wo.proforma_data.items.reduce((s, i) => i.isHeader ? s : s + (i.qty * i.price), 0);
+        quote = {
+            items: wo.proforma_data.items,
+            net: net,
+            vatRate: wo.proforma_data.vatRate || 0,
+            vatAmount: wo.proforma_data.vatAmount || 0,
+            totalGross: wo.proforma_data.totalGross || net,
+            discountPct: wo.proforma_data.discountPct || 0,
+            discountAmount: wo.proforma_data.discountAmount || 0
+        };
+    } else {
+        quote = buildQuoteItems(wo, pricingSettings);
+    }
+    
     // Raccourcis pour compatibilitate cu codul existent
-    const autoBase  = estimCalc.base;
-    const autoExtra = estimCalc.extra;
-    const autoFoil  = estimCalc.foil;
-    const autoMesh  = estimCalc.mesh;
-    const autoFiber = estimCalc.fiber;
-    const autoNet   = estimCalc.net;
+    const autoNet = quote.net;
+    let autoVat = quote.vatAmount;
+    let totalGross = quote.totalGross;
 
-    // TVA is controlled by user toggle, NOT automatic
-    const vatRate = vatEnabled ? (vatType === '21' ? 0.21 : vatType === '6' ? 0.06 : 0) : 0;
-    let autoVat = autoNet * vatRate;
-    let totalGross = autoNet + autoVat;
+    let chapeFlags = { has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false };
+    (wo.volumes || []).forEach(vol => {
+        const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (/chape|[sșş]ap[aăâ]/i.test(labelSafe)) {
+            chapeFlags.has_foil = chapeFlags.has_foil || vol.has_foil;
+            chapeFlags.has_mesh = chapeFlags.has_mesh || vol.has_mesh;
+            chapeFlags.has_fiber = chapeFlags.has_fiber || vol.has_fiber;
+            chapeFlags.has_duramint = chapeFlags.has_duramint || vol.has_duramint;
+        }
+    });
 
     // Calculation Réel — pe baza datelor introduse de șeful de echipă
     const realSurface   = parseFloat(wo.actual_surface_m2)   || 0;
@@ -1436,13 +1356,20 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             }
             newPrices.vat_type = newVatType;
 
+            const tempWo = { ...wo, volumes: newVolumes, prices: newPrices, client_type: calcEditForm.client_type, work_type: calcEditForm.work_type };
+            const newQuote = buildQuoteItems(tempWo, pricingSettings);
+
             // Update the legacy proforma_data object so the public page sees the changes
             const newProformaData = {
                 ...(wo.proforma_data || {}),
                 discountPct: newPrices.discount_pct,
                 vatRate: newVatType,
-                // also resync items if we have them so the price update applies
-                items: null // clearing items forces the public page to re-render using the fallback logic which correctly uses `prices`
+                items: newQuote.items,
+                net: newQuote.net,
+                vatAmount: newQuote.vatAmount,
+                totalGross: newQuote.totalGross,
+                lastModifiedBy: user?.name || user?.email || 'Admin',
+                lastModifiedAt: new Date().toISOString()
             };
             
             const res = await api.put(`/admin/work-orders/${id}`, { 
@@ -2487,6 +2414,25 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 {/* ─── Calcul Cost ────────────────────────────────────────── */}
                 <div className="flex flex-col h-full">
                     <Section icon={Calculator} title={t('work_order_detail.invoicing.title_calc', 'Calcul des Coûts')} className="h-full">
+                        {wo.prices?._modified_by && (
+                            <div className="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                    <div>
+                                        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                                            {t('work_order_detail.prices_modified_title', 'Tarifs modifiés manuellement')}
+                                        </p>
+                                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                                            {t('work_order_detail.prices_modified_desc', 'par')} <strong>{wo.prices._modified_by}</strong> {t('work_order_detail.prices_modified_on', 'le')} <strong>{new Date(wo.prices._modified_at).toLocaleString('fr-FR')}</strong>
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-amber-600/80 dark:text-amber-400/80 leading-tight">
+                                    {t('work_order_detail.prices_modified_info', 'Ces prix sont bloqués et ne se mettront plus à jour automatiquement avec les tarifs globaux (Étalon).')}
+                                </p>
+                            </div>
+                        )}
+
                         {wo.estimated_price && !isAuto && (
                             <div className="mb-4">
                                 <Row label={t('work_order_detail.general_details.estimated_price', 'Prix Estimé')} value={`${parseFloat(wo.estimated_price).toFixed(2)} EUR`} />
@@ -2496,7 +2442,24 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {isAuto ? (
                             <div className="bg-white dark:bg-slate-900 rounded-xl p-0 border border-slate-200 dark:border-slate-700">
                                 <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
-                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">{t('work_order_detail.invoicing.calc', 'Calcul Chape')} <span className="text-slate-400 font-normal normal-case ml-1">({t('work_order_detail.calc_estimatif', 'estimatif')})</span></p>
+                                    <div className="flex flex-col">
+                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                                            {t('work_order_detail.invoicing.calc', 'Calcul Chape')} 
+                                            {!wo.proforma_data?.lastModifiedBy && (
+                                                <span className="text-slate-400 font-normal normal-case ml-1">({t('work_order_detail.calc_estimatif', 'estimatif')})</span>
+                                            )}
+                                        </p>
+                                        {wo.proforma_data?.lastModifiedBy && (
+                                            <div className="flex items-center gap-1.5 mt-1">
+                                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[10px] font-bold">
+                                                    <CheckCircle2 className="w-3 h-3" /> Modificat Manual
+                                                </span>
+                                                <span className="text-[10px] text-slate-500">
+                                                    de {wo.proforma_data.lastModifiedBy} pe {new Date(wo.proforma_data.lastModifiedAt).toLocaleDateString('ro-RO')}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-2">
                                         <button 
                                             onClick={handleSyncPrices}
@@ -2598,119 +2561,29 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     </div>
                                 )}
                                 <div className="p-4 space-y-2 text-sm">
-                                    {(wo.volumes || []).map((vol, idx) => {
-                                        const surface = parseFloat(vol.quantity) || 0;
-                                        if (surface <= 0) return null;
-                                        const rawLbl = vol.label || `Șapă ${idx + 1}`;
-                                        const lbl = rawLbl.replace(/chape/i, 'Șapă');
-                                        const thick = parseFloat(vol.thickness) || 5;
-                                        const extraThick = Math.max(0, thick - 5);
-                                        
-                                        const p = wo.prices || {};
-                                        const basePrice = getPrice(p.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5);
-                                        const foilPrice = getPrice(p.foil, pricingSettings?.plastic_foil_price_sqm, 1.2);
-                                        const meshPrice = getPrice(p.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5);
-                                        const fiberPrice = p.fiber_large !== undefined ? (surface > parseFloat(p.fiber_threshold) ? parseFloat(p.fiber_large) : parseFloat(p.fiber)) : getPriceVal(p.fiber, 2.5);
+                                    {quote.items.map((item, idx) => {
+                                        const isDiscount = item.type === 'discount';
+                                        const isTransport = item.type === 'transport';
+                                        const isMinAdj = item.id.startsWith('min_invoice_adj') || item.id === 'pur_min_adj';
+                                        const isThreshold = item.id.startsWith('threshold');
 
                                         return (
-                                            <Fragment key={idx}>
-                                                <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                                    <span className="font-medium">{lbl} - Bază</span>
-                                                    <span className="text-right tabular-nums">{surface} m² × {basePrice.toFixed(2)} = <b>{(surface * basePrice).toFixed(2)}&nbsp;EUR</b></span>
-                                                </div>
-                                                {extraThick > 0 && (
-                                                    <div className="flex justify-between text-slate-500 dark:text-slate-400 pl-4">
-                                                        <span className="font-medium">↳ Grosime Extra ({extraThick} cm)</span>
-                                                        <span className="text-right tabular-nums">{surface} m² × {extraThick} cm × 1.25 = <b>{(surface * extraThick * 1.25).toFixed(2)}&nbsp;EUR</b></span>
-                                                    </div>
-                                                )}
-                                                {vol.has_foil && (
-                                                    <div className="flex justify-between text-slate-600 dark:text-slate-400 pl-4">
-                                                        <span className="font-medium">↳ Folie plastic</span>
-                                                        <span className="text-right tabular-nums">{surface} m² × {foilPrice.toFixed(2)} = <b>{(surface * foilPrice).toFixed(2)}&nbsp;EUR</b></span>
-                                                    </div>
-                                                )}
-                                                {vol.has_mesh && (
-                                                    <div className="flex justify-between text-slate-600 dark:text-slate-400 pl-4">
-                                                        <span className="font-medium">↳ Plasă metalică</span>
-                                                        <span className="text-right tabular-nums">{surface} m² × {meshPrice.toFixed(2)} = <b>{(surface * meshPrice).toFixed(2)}&nbsp;EUR</b></span>
-                                                    </div>
-                                                )}
-                                                {(vol.has_fiber || vol.has_duramint) && (
-                                                    <div className="flex justify-between text-slate-600 dark:text-slate-400 pl-4">
-                                                        <span className="font-medium">↳ Fibră / Duramint</span>
-                                                        <span className="text-right tabular-nums">{surface} m² × {fiberPrice.toFixed(2)} = <b>{(surface * fiberPrice).toFixed(2)}&nbsp;EUR</b></span>
-                                                    </div>
-                                                )}
-                                            </Fragment>
+                                            <div key={idx} className={`flex justify-between ${
+                                                isDiscount ? 'text-emerald-600 dark:text-emerald-400 font-semibold mt-1' :
+                                                isTransport ? 'font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300' :
+                                                isThreshold || isMinAdj ? 'text-slate-700 dark:text-slate-300 font-semibold mt-2' :
+                                                item.id.endsWith('_base') || item.desc.includes('- Bază') || item.desc.includes('Isolation PUR') || item.desc.includes('Isolation EPS') ? 'text-slate-700 dark:text-slate-300 font-medium' :
+                                                'text-slate-600 dark:text-slate-400 pl-4'
+                                            }`}>
+                                                <span>{item.desc}</span>
+                                                <span className="text-right tabular-nums">
+                                                    {item.unit !== 'Forfait' && item.unit !== 'forfait' && item.qty > 1 ? `${item.qty} ${item.unit} × ${item.price.toFixed(2)} = ` : ''}
+                                                    <b>{(item.qty * item.price).toFixed(2)}&nbsp;EUR</b>
+                                                </span>
+                                            </div>
                                         );
                                     })}
-                                    {estimCalc.isoPurBase > 0 && (
-                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                            <span className="font-medium">Isolation PUR ({isoPurThick} cm)</span>
-                                            <span className="text-right tabular-nums">{isoPurSurface} m² = <b>{estimCalc.isoPurBase.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {purOpts.aspiration > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span className="font-medium">↳ Aspiration</span>
-                                            <span className="text-right tabular-nums"><b>{purOpts.aspiration.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {purOpts.niveller > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span className="font-medium">↳ Nivellement au laser</span>
-                                            <span className="text-right tabular-nums"><b>{purOpts.niveller.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {purOpts.poncage > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span className="font-medium">↳ Ponçage de la mousse</span>
-                                            <span className="text-right tabular-nums"><b>{purOpts.poncage.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {purOpts.protection > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span className="font-medium">↳ Protection au-dessus 1M</span>
-                                            <span className="text-right tabular-nums"><b>{purOpts.protection.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {estimCalc.purDiscount > 0 && (
-                                        <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.discount_pur', 'Remise PUR')} ({estimCalc.purDiscountPct}%)</span>
-                                            <span className="text-right tabular-nums">- <b>{estimCalc.purDiscount.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {estimCalc.isoEpsBase > 0 && (
-                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                            <span className="font-medium">Isolation EPS ({isoEpsM3.toFixed(2)} m³)</span>
-                                            <span className="text-right tabular-nums"><b>{estimCalc.isoEpsBase.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {estimCalc.epsDiscount > 0 && (
-                                        <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.discount_eps', 'Remise EPS')} ({estimCalc.epsDiscountPct}%)</span>
-                                            <span className="text-right tabular-nums">- <b>{estimCalc.epsDiscount.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {estimCalc.threshold > 0 && (
-                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Forfait')}</span>
-                                            <span className="text-right tabular-nums">+ <b>{estimCalc.threshold.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {estimCalc.discount > 0 && (
-                                        <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.discount_chape', 'Remise Chape')} ({estimCalc.discountPct}%)</span>
-                                            <span className="text-right tabular-nums">- <b>{estimCalc.discount.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
-                                    {estimCalc.truck_cost > 0 && (
-                                        <div className={`flex justify-between font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 ${estimCalc.truck_cost > 0 ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}`}>
-                                            <span className="font-medium">{t('work_order_detail.invoicing.transport', 'Transport')} ({Math.round(estimCalc.actualDistKm)} km)</span>
-                                            <span className="text-right tabular-nums">{estimCalc.truck_cost > 0 ? `+ ` : ''}<b>{estimCalc.truck_cost.toFixed(2)}&nbsp;EUR</b></span>
-                                        </div>
-                                    )}
+
                                     {/* TVA Auto-calculated */}
                                     <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
@@ -2718,9 +2591,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <span className="tabular-nums">{autoNet.toFixed(2)}&nbsp;EUR</span>
                                         </div>
                                         
-                                        {vatEnabled ? (
+                                        {quote.vatRate > 0 ? (
                                             <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium mt-1">
-                                                <span>TVA ({vatType}%)</span>
+                                                <span>TVA ({quote.vatRate}%)</span>
                                                 <span className="tabular-nums">{autoVat.toFixed(2)}&nbsp;EUR</span>
                                             </div>
                                         ) : (
@@ -4215,8 +4088,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 isOpen={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
                 onConfirm={() => {
-                    api.put(`/admin/work-orders/${id}`, { status: 'cancelled' })
-                       .then(() => navigate('/admin/quotes'))
+                    api.put(`/admin/work-orders/${id}`, { status: 'deleted' })
+                       .then(() => {
+                           if (window.history?.length > 2) {
+                               navigate(-1);
+                           } else {
+                               navigate('/admin/planning');
+                           }
+                       })
                        .catch((err) => {
                            console.error(err);
                            showToast(t('common.error', 'Erreur'), 'error');

@@ -1,27 +1,15 @@
-import requests
-try:
-    from app.database import get_db, SessionLocal
-    from app.models import Admin, AuditLog
-    from app.api.admin_auth import create_access_token
-    db = SessionLocal()
-    admin = db.query(Admin).filter(Admin.organization_id != None).first()
-    
-    # Create a fake audit log to test
-    log = AuditLog(organization_id=admin.organization_id, admin_id=admin.id, action="TEST_ACTION")
-    db.add(log)
-    db.commit()
-    
-    # Actually, we can just call the function directly!
-    from app.api.admin_audit import get_audit_logs
-    try:
-        res = get_audit_logs(page=1, limit=50, search=None, action=None, db=db, current_admin=admin)
-        print("RES:", res)
-    except Exception as inner_e:
-        import traceback
-        traceback.print_exc()
+from app.database import SessionLocal
+from app.models import WorkOrder
+from app.api.admin_work_orders import _serialize_audit_mode
 
-    # Clean up
-    db.delete(log)
-    db.commit()
-except Exception as e:
-    print(e)
+db = SessionLocal()
+wo = db.query(WorkOrder).filter(WorkOrder.is_quote == True).first()
+if wo:
+    import traceback
+    try:
+        res = _serialize_audit_mode(wo)
+        print("recalculated_net:", res.get("recalculated_net"))
+    except Exception as e:
+        traceback.print_exc()
+else:
+    print("No quote found")

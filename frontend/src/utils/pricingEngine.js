@@ -1,193 +1,308 @@
 /**
- * Calculates the exact pricing for a quote.
- * This is the Single Source of Truth for frontend calculations.
- * It is an exact clone of `backend/app/services/pricing_engine.py`.
- *
- * @param {Object} payload - { surface, thickness, has_foil, has_mesh, needs_isolation, isolation_type, isolation_surface, isolation_thickness, isolation_pur_aspiration, isolation_pur_niveller, isolation_pur_poncage, isolation_pur_protection, distance_km }
- * @param {Object} pricing - PricingSettings configuration object
- * @returns {Object} Pricing breakdown
+ * MOTOR UNIC DE CALCUL — Singura Sursă de Adevăr pentru Frontend.
+ * 
+ * Această funcție alimentează: ecranul (WorkOrderDetail), PDF-ul (ProformaView),
+ * devizul client (DevisView), și Analytics.
+ * 
+ * REGULI:
+ * - Toate prețurile vin din pricingSettings (Pagina de Tarife), inclusiv clienți preferențiali
+ * - TVA se determină automat: construcție nouă/veche × fizică/juridică
+ * - Valoarea 0 EUR este validă (clienți preferențiali) — nu se forțează la etalon
+ * - Dacă manual_override este true, nu se recalculează automat
  */
-export const calculateQuotePrice = (payload, pricing) => {
-    const surface = parseFloat(payload.surface || 0);
-    const thickness = parseFloat(payload.thickness || 0);
-    const distance_km = parseFloat(payload.distance_km || 0);
-    
-    if (surface <= 0) {
-        return {
-            base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, 
-            threshold: 0, truck_cost: 0, isolation_cost: 0, 
-            total_net: 0, vat_amount: 0, total_gross: 0, distance_km
-        };
-    }
 
-    // Helper functions
-    const getPricing = (key, defaultVal) => {
-        if (!pricing) return defaultVal;
-        return pricing[key] !== undefined && pricing[key] !== null && pricing[key] !== '' ? parseFloat(pricing[key]) : defaultVal;
+/**
+ * Helper: extrage preț din pricing settings cu fallback.
+ * Acceptă 0 ca valoare validă (clienți preferențiali).
+ */
+const getVal = (pricing, key, defaultVal) => {
+    if (!pricing) return defaultVal;
+    const v = pricing[key];
+    if (v !== undefined && v !== null && v !== '') return parseFloat(v);
+    return defaultVal;
+};
+
+/**
+ * Construiește lista completă de itemi și totaluri pentru un work order.
+ * 
+ * @param {Object} wo - Work Order complet din API (volumes, client_type, work_type, prices etc.)
+ * @param {Object} pricingSettings - Tarife din GET /admin/pricing-settings?client_id=...
+ * @param {Object} [options] - Opțiuni suplimentare
+ * @param {boolean} [options.useInvoiceData] - Dacă true, folosește datele reale (actual_surface_m2 etc.)
+ * @returns {{ items: Array, net: number, vatRate: number, vatAmount: number, totalGross: number, breakdown: Object }}
+ */
+export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
+    const woP = wo.prices ? { ...wo.prices } : {};
+    
+    // Mapare shorthand din online deviz -> full names
+    const fieldMap = {
+        'base': 'base_price_sqm',
+        'base_large': 'base_price_sqm_large',
+        'base_threshold': 'base_large_threshold_sqm',
+        'extra': 'extra_thickness_price_per_cm',
+        'extra_large': 'extra_thickness_price_per_cm_large',
+        'extra_threshold': 'extra_thickness_large_threshold_sqm',
+        'standard_thickness': 'standard_thickness_cm',
+        'foil': 'plastic_foil_price_sqm',
+        'mesh': 'metal_mesh_price_sqm',
+        'fiber': 'fiber_price_sqm',
+        'fiber_large': 'fiber_price_sqm_large',
+        'fiber_threshold': 'fiber_large_threshold_sqm',
     };
-
-    // 1. Base Cost
-    const base_large_threshold = getPricing('base_large_threshold_sqm', 200.0);
-    const base_rate = surface > base_large_threshold ? getPricing('base_price_sqm_large', 12.5) : getPricing('base_price_sqm', 12.5);
-    const base_cost = base_rate * surface;
-
-    // 2. Extra Thickness Cost
-    const standard_thickness = getPricing('standard_thickness_cm', 5.0);
-    const extra_thick = Math.max(0, thickness - standard_thickness);
-    const extra_thresh = getPricing('extra_thickness_large_threshold_sqm', 200.0);
-    const extra_price = surface > extra_thresh ? getPricing('extra_thickness_price_per_cm_large', 1.25) : getPricing('extra_thickness_price_per_cm', 1.25);
-    const extra_cost = extra_thick * extra_price * surface;
-
-    // 3. Materials Cost
-    const foil_cost = payload.has_foil ? getPricing('plastic_foil_price_sqm', 1.2) * surface : 0;
-    const mesh_cost = payload.has_mesh ? getPricing('metal_mesh_price_sqm', 2.5) * surface : 0;
-    
-    const fiber_thresh = getPricing('fiber_large_threshold_sqm', 200.0);
-    const fiber_rate = surface > fiber_thresh ? getPricing('fiber_price_sqm_large', 2.0) : getPricing('fiber_price_sqm', 2.5);
-    const fiber_cost = fiber_rate * surface;
-
-    // 4. Thresholds Cost
-    let hidden_extra = 0.0;
-    const thresholds = pricing?.surface_thresholds || [];
-    for (const thresh of thresholds) {
-        const min_s = parseFloat(thresh.min_sqm || 0);
-        const max_s = parseFloat(thresh.max_sqm || 999999);
-        if (surface >= min_s && surface <= max_s) {
-            hidden_extra += parseFloat(thresh.extra_charge || 0);
+    for (const [short, full] of Object.entries(fieldMap)) {
+        if (woP[short] !== undefined && woP[full] === undefined) {
+            woP[full] = woP[short];
         }
     }
 
-    // 5. Truck Cost
-    let truck_cost = 0.0;
-    const truck_surface_threshold = getPricing('truck_surface_threshold_free_sqm', 500.0);
-    if (surface <= truck_surface_threshold) {
-        const truck_distance_threshold = getPricing('truck_distance_threshold_km', 50.0);
-        if (distance_km > truck_distance_threshold) {
-            truck_cost = getPricing('truck_extra_price_flat', 0.0);
+    // Sursa Universală de Adevăr: Prioritate snapshot (woP), fallback la etalon (pricingSettings)
+    const ps = { ...(pricingSettings || {}) };
+    for (const key in woP) {
+        if (woP[key] !== undefined && woP[key] !== null && woP[key] !== '') {
+            ps[key] = woP[key];
         }
     }
-
-    // 6. Isolation Cost
-    let isolation_cost = 0.0;
-    let iso_pur_opt_total = 0.0;
-    let iso_pur_base = 0.0;
-    let iso_eps_base = 0.0;
     
-    if (payload.needs_isolation && payload.isolation_type && payload.isolation_surface) {
-        const iso_surface = parseFloat(payload.isolation_surface || 0);
-        const iso_thick = parseFloat(payload.isolation_thickness || 3.0);
+    const items = [];
+    
+    // ── Mapare câmpuri pricing settings → format intern ──
+    const baseRate = getVal(ps, 'base_price_sqm', 12.5);
+    const baseLargeRate = getVal(ps, 'base_price_sqm_large', baseRate);
+    const baseLargeThreshold = getVal(ps, 'base_large_threshold_sqm', 200);
+    const standardThickness = getVal(ps, 'standard_thickness_cm', 5);
+    const extraRate = getVal(ps, 'extra_thickness_price_per_cm', 1.25);
+    const extraLargeRate = getVal(ps, 'extra_thickness_price_per_cm_large', extraRate);
+    const extraLargeThreshold = getVal(ps, 'extra_thickness_large_threshold_sqm', 200);
+    const foilRate = getVal(ps, 'plastic_foil_price_sqm', 1.2);
+    const meshRate = getVal(ps, 'metal_mesh_price_sqm', 2.5);
+    const fiberRate = getVal(ps, 'fiber_price_sqm', 2.5);
+    const fiberLargeRate = getVal(ps, 'fiber_price_sqm_large', fiberRate);
+    const fiberLargeThreshold = getVal(ps, 'fiber_large_threshold_sqm', 200);
+    
+    // ── Iterez volumes[] ──
+    const volumes = wo.volumes || [];
+    let totalChapeSurface = 0;
+    
+    // Prima trecere: calculez suprafața totală de chape (pentru threshold-uri)
+    volumes.forEach(vol => {
+        const label = (vol.label || '');
+        if (/chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label)) {
+            totalChapeSurface += parseFloat(vol.quantity || 0);
+        }
+    });
+    
+    // A doua trecere: construiesc items
+    volumes.forEach((vol, idx) => {
+        const label = vol.label || '';
+        const labelNorm = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const surface = parseFloat(vol.quantity || 0);
+        const thickness = parseFloat(vol.thickness || 0);
         
-        if (payload.isolation_type === "pur") {
-            let pur_base = getPricing('pur_base_price_3cm', 13.95);
-            if (iso_thick > 3 && iso_thick <= 10) {
-                pur_base += (iso_thick - 3) * getPricing('pur_step_price_up_to_10cm', 1.65);
-            } else if (iso_thick > 10) {
-                pur_base += 7 * getPricing('pur_step_price_up_to_10cm', 1.65);
-                pur_base += (iso_thick - 10) * getPricing('pur_extra_price_above_10cm', 2.10);
+        if (surface <= 0) return;
+        
+        const isChape = /chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label);
+        const isPUR = /isolation\s*pur/i.test(labelNorm);
+        const isEPS = /isolation\s*eps/i.test(labelNorm);
+        
+        if (isChape) {
+            // ── CHAPE ──
+            const effectiveBaseRate = totalChapeSurface > baseLargeThreshold ? baseLargeRate : baseRate;
+            const effectiveExtraRate = totalChapeSurface > extraLargeThreshold ? extraLargeRate : extraRate;
+            const effectiveFiberRate = totalChapeSurface > fiberLargeThreshold ? fiberLargeRate : fiberRate;
+            const extraThick = Math.max(0, thickness - standardThickness);
+            
+            items.push({ id: `chape_base_${idx}`, type: 'chape', desc: `Chape - Base`, qty: surface, unit: 'm\u00b2', price: effectiveBaseRate });
+            
+            if (extraThick > 0) {
+                items.push({ id: `chape_extra_${idx}`, type: 'chape', desc: `Chape - Épaisseur Extra (${extraThick} cm)`, qty: surface, unit: 'm\u00b2', price: extraThick * effectiveExtraRate });
+            }
+            if (vol.has_foil) {
+                items.push({ id: `chape_foil_${idx}`, type: 'chape', desc: `Feuille de plastique (Visqueen)`, qty: surface, unit: 'm\u00b2', price: foilRate });
+            }
+            if (vol.has_mesh) {
+                items.push({ id: `chape_mesh_${idx}`, type: 'chape', desc: `Armature (Paillasse)`, qty: surface, unit: 'm\u00b2', price: meshRate });
+            }
+            if (vol.has_fiber || vol.has_duramint) {
+                items.push({ id: `chape_fiber_${idx}`, type: 'chape', desc: `Fibre / Duramint`, qty: surface, unit: 'm\u00b2', price: effectiveFiberRate });
             }
             
-            if (iso_surface > 100) {
-                const discount_steps = Math.floor((iso_surface - 100) / 100);
-                pur_base += discount_steps * getPricing('pur_surface_discount_step', -0.5);
+        } else if (isPUR) {
+            // ── ISOLATION PUR ──
+            let purBase = getVal(ps, 'pur_base_price_3cm', 13.95);
+            if (thickness > 3 && thickness <= 10) {
+                purBase += (thickness - 3) * getVal(ps, 'pur_step_price_up_to_10cm', 1.65);
+            } else if (thickness > 10) {
+                purBase += 7 * getVal(ps, 'pur_step_price_up_to_10cm', 1.65);
+                purBase += (thickness - 10) * getVal(ps, 'pur_extra_price_above_10cm', 2.10);
             }
+            if (surface > 100) {
+                purBase += Math.floor((surface - 100) / 100) * getVal(ps, 'pur_surface_discount_step', -0.50);
+            }
+            purBase = Math.max(0, purBase);
             
-            if (payload.isolation_pur_aspiration) iso_pur_opt_total += getPricing('pur_opt_aspiration', 2.0) * iso_surface;
-            if (payload.isolation_pur_niveller) iso_pur_opt_total += getPricing('pur_opt_niveller', 4.25) * iso_surface;
-            if (payload.isolation_pur_poncage) iso_pur_opt_total += getPricing('pur_opt_poncage', 1.5) * iso_surface;
-            if (payload.isolation_pur_protection) iso_pur_opt_total += getPricing('pur_opt_protection', 1.5) * iso_surface;
-
-            iso_pur_base = pur_base * iso_surface;
-            isolation_cost = Math.max(iso_pur_base, getPricing('pur_minimum_execution_price', 1375.0)) + iso_pur_opt_total;
-
-        } else if (payload.isolation_type === "eps") {
-            const vol_m3 = (iso_surface * iso_thick) / 100.0;
-            let eps_cost = 0;
+            items.push({ id: `pur_base_${idx}`, type: 'pur', desc: `Isolation PUR (${thickness} cm)`, qty: surface, unit: 'm\u00b2', price: purBase });
             
-            // Custom admin overrides
-            const customEpsFlat = getPricing('custom_eps_price_flat', null);
-            const customEpsPerM3 = getPricing('custom_eps_price_per_m3', null);
+            if (vol.pur_aspiration) items.push({ id: `pur_aspiration_${idx}`, type: 'pur', desc: `Aspiration`, qty: surface, unit: 'm\u00b2', price: getVal(ps, 'pur_opt_aspiration', 2.00) });
+            if (vol.pur_niveller) items.push({ id: `pur_niveller_${idx}`, type: 'pur', desc: `Nivellement au laser`, qty: surface, unit: 'm\u00b2', price: getVal(ps, 'pur_opt_niveller', 4.25) });
+            if (vol.pur_poncage) items.push({ id: `pur_poncage_${idx}`, type: 'pur', desc: `Pon\u00e7age de la mousse`, qty: surface, unit: 'm\u00b2', price: getVal(ps, 'pur_opt_poncage', 1.50) });
+            if (vol.pur_protection) items.push({ id: `pur_protection_${idx}`, type: 'pur', desc: `Protection au-dessus 1M`, qty: surface, unit: 'm\u00b2', price: getVal(ps, 'pur_opt_protection', 1.50) });
             
-            if (customEpsFlat !== null) {
-                eps_cost = customEpsFlat;
-            } else if (customEpsPerM3 !== null) {
-                eps_cost = vol_m3 * customEpsPerM3;
+        } else if (isEPS) {
+            // ── ISOLATION EPS ──
+            const epsVol = parseFloat(vol.volume_m3 || (surface * (thickness || 1) / 100));
+            let epsPrice = 0;
+            
+            // Prioritate: wo.prices (snapshot per deviz) → pricingSettings (Tarife)
+            const woP = wo.prices || {};
+            const customFlat = woP.custom_eps_price_flat !== undefined && woP.custom_eps_price_flat !== null
+                ? woP.custom_eps_price_flat : ps.custom_eps_price_flat;
+            const customPerM3 = woP.custom_eps_price_per_m3 !== undefined && woP.custom_eps_price_per_m3 !== null
+                ? woP.custom_eps_price_per_m3 : ps.custom_eps_price_per_m3;
+            
+            if (customFlat !== undefined && customFlat !== null && customFlat !== '' && !isNaN(customFlat)) {
+                epsPrice = parseFloat(customFlat);
+            } else if (customPerM3 !== undefined && customPerM3 !== null && customPerM3 !== '' && !isNaN(customPerM3)) {
+                epsPrice = epsVol * parseFloat(customPerM3);
             } else {
-                const eps_thresholds = pricing?.eps_volume_thresholds || [];
-                const sorted_thresholds = [...eps_thresholds].sort((a, b) => parseFloat(a.max_m3 || 99999) - parseFloat(b.max_m3 || 99999));
-                for (const t of sorted_thresholds) {
-                    if (vol_m3 <= parseFloat(t.max_m3 || 99999)) {
-                        if (t.price_flat !== undefined && t.price_flat !== null && t.price_flat !== '') {
-                            eps_cost = parseFloat(t.price_flat);
+                const tiers = woP.eps_volume_thresholds || ps.eps_volume_thresholds || [
+                    { max_m3: 10, price_flat: 1495 }, { max_m3: 20, price_per_m3: 160 },
+                    { max_m3: 40, price_per_m3: 155 }, { max_m3: 99999, price_per_m3: 150 }
+                ];
+                for (const tier of [...tiers].sort((a, b) => parseFloat(a.max_m3 || 99999) - parseFloat(b.max_m3 || 99999))) {
+                    if (epsVol <= parseFloat(tier.max_m3 || 99999)) {
+                        if (tier.price_flat !== undefined && tier.price_flat !== null && tier.price_flat !== '') {
+                            epsPrice = parseFloat(tier.price_flat);
                         } else {
-                            eps_cost = vol_m3 * parseFloat(t.price_per_m3 || 150);
+                            epsPrice = epsVol * parseFloat(tier.price_per_m3 || 150);
                         }
                         break;
                     }
                 }
             }
+
             
-            iso_eps_base = eps_cost;
-            isolation_cost = eps_cost;
-        }
-    }
-
-    // Apply discounts
-    const pur_discount_pct = getPricing('pur_discount_pct', 0);
-    const eps_discount_pct = getPricing('eps_discount_pct', 0);
-    const global_discount_pct = getPricing('discount_pct', 0);
-    
-    if (payload.isolation_type === "pur") {
-        isolation_cost = isolation_cost * (1 - pur_discount_pct / 100.0);
-    } else if (payload.isolation_type === "eps") {
-        isolation_cost = isolation_cost * (1 - eps_discount_pct / 100.0);
-    }
-    
-    const gross_before_discount = base_cost + extra_cost + foil_cost + mesh_cost + fiber_cost + hidden_extra + truck_cost;
-    const discount_amount = gross_before_discount * (global_discount_pct / 100.0);
-    const chape_net = gross_before_discount - discount_amount;
-
-    const total_net = chape_net + isolation_cost;
-    
-    // 7. VAT
-    let vat_rate = 21.0;
-    const client_type = payload.client_type || 'fizica';
-    if (client_type === "juridica") {
-        vat_rate = getPricing('vat_legal_entity', 0.0);
-    } else {
-        const work_type = payload.work_type || 'new';
-        if (work_type === "repair") {
-            vat_rate = getPricing('vat_physical_repair', 6.0);
+            items.push({ id: `eps_${idx}`, type: 'eps', desc: `Isolation EPS (${epsVol.toFixed(2)} m\u00b3)`, qty: 1, unit: 'forfait', price: epsPrice });
         } else {
-            vat_rate = getPricing('vat_physical_new', 21.0);
+            items.push({ id: `vol_${idx}`, type: 'other', desc: label || `Volume ${idx + 1}`, qty: surface, unit: 'm\u00b2', price: 0 });
+        }
+    });
+    
+    // ── Seuil de Surface (Forfait) ──
+    if (totalChapeSurface > 0) {
+        // Prioritate: 1. wo.prices.custom_threshold (override per deviz)
+        //             2. wo.prices.surface_thresholds (snapshot salvat la creare)
+        //             3. ps.surface_thresholds (din Tarife)
+        const woP = wo.prices || {};
+        const customThreshold = woP.custom_threshold !== undefined && woP.custom_threshold !== null && woP.custom_threshold !== ''
+            ? woP.custom_threshold
+            : ps.custom_threshold;
+        
+        if (customThreshold !== undefined && customThreshold !== null && customThreshold !== '') {
+            const charge = parseFloat(customThreshold) || 0;
+            if (charge > 0) items.push({ id: 'threshold', type: 'chape', desc: 'Forfait', qty: 1, unit: 'Forfait', price: charge });
+        } else {
+            const thresholds = woP.surface_thresholds || ps.surface_thresholds || [];
+            thresholds.forEach(thresh => {
+                const minS = parseFloat(thresh.min_sqm || 0);
+                const maxS = parseFloat(thresh.max_sqm || 999999);
+                if (totalChapeSurface >= minS && totalChapeSurface <= maxS) {
+                    const charge = parseFloat(thresh.extra_charge || 0);
+                    if (charge > 0) items.push({ id: `threshold_${minS}`, type: 'chape', desc: 'Forfait', qty: 1, unit: 'Forfait', price: charge });
+                }
+            });
         }
     }
-            
-    const vat_amount = total_net * (vat_rate / 100.0);
 
+    
+    // ── Transport ──
+    const distKm = parseFloat((wo.prices || {}).distance_km || 0);
+    let truckCost = parseFloat((wo.prices || {}).truck_cost || 0);
+    
+    if (truckCost <= 0 && distKm > 0 && totalChapeSurface > 0) {
+        const truckFlat = getVal(ps, 'truck_extra_price_flat', 0);
+        const distThreshold = getVal(ps, 'truck_distance_threshold_km', 50);
+        const surfThreshold = getVal(ps, 'truck_surface_threshold_free_sqm', 500);
+        if (truckFlat > 0 && distKm > distThreshold && totalChapeSurface <= surfThreshold) truckCost = truckFlat;
+    }
+    if (truckCost > 0) {
+        items.push({ id: 'transport', type: 'transport', desc: `Transport${distKm > 0 ? ` (${Math.round(distKm)} km)` : ''}`, qty: 1, unit: 'Forfait', price: truckCost });
+    }
+    
+    // ── Discounts ──
+    const chapeGross = items.filter(i => i.type === 'chape' || i.type === 'transport').reduce((s, i) => s + i.qty * i.price, 0);
+    const purGross = items.filter(i => i.type === 'pur').reduce((s, i) => s + i.qty * i.price, 0);
+    const epsGross = items.filter(i => i.type === 'eps').reduce((s, i) => s + i.qty * i.price, 0);
+    
+    // Discount: wo.prices (override per deviz) → pricingSettings (Tarife)
+    const woDisc = wo.prices || {};
+    const globalDiscountPct = parseFloat(woDisc.discount_pct !== undefined && woDisc.discount_pct !== null ? woDisc.discount_pct : getVal(ps, 'discount_pct', 0));
+    const purDiscountPct = parseFloat(woDisc.pur_discount_pct !== undefined && woDisc.pur_discount_pct !== null ? woDisc.pur_discount_pct : getVal(ps, 'pur_discount_pct', 0));
+    const epsDiscountPct = parseFloat(woDisc.eps_discount_pct !== undefined && woDisc.eps_discount_pct !== null ? woDisc.eps_discount_pct : getVal(ps, 'eps_discount_pct', 0));
+
+    
+    const chapeDiscount = chapeGross * (globalDiscountPct / 100);
+    const purDiscount = purGross * (purDiscountPct / 100);
+    const epsDiscount = epsGross * (epsDiscountPct / 100);
+    
+    if (globalDiscountPct > 0 && chapeDiscount > 0) items.push({ id: 'discount_chape', type: 'discount', desc: `Remise Chape (${globalDiscountPct}%)`, qty: 1, unit: 'forfait', price: -chapeDiscount });
+    if (purDiscountPct > 0 && purDiscount > 0) items.push({ id: 'discount_pur', type: 'discount', desc: `Remise PUR (${purDiscountPct}%)`, qty: 1, unit: 'forfait', price: -purDiscount });
+    if (epsDiscountPct > 0 && epsDiscount > 0) items.push({ id: 'discount_eps', type: 'discount', desc: `Remise EPS (${epsDiscountPct}%)`, qty: 1, unit: 'forfait', price: -epsDiscount });
+    
+    // PUR minimum execution price
+    const purMinPrice = getVal(ps, 'pur_minimum_execution_price', 1375);
+    const purNetBeforeMin = purGross - purDiscount;
+    if (purGross > 0 && purNetBeforeMin < purMinPrice) {
+        items.push({ id: 'pur_min_adj', type: 'pur', desc: `Ajustement minimum PUR`, qty: 1, unit: 'forfait', price: purMinPrice - purNetBeforeMin });
+    }
+    
+    // ── Facturare Minimă (Preferențiali) ──
+    const minThreshold = getVal(ps, 'min_invoice_threshold_sqm', 0);
+    const subtotalBeforeMin = items.reduce((s, i) => s + i.qty * i.price, 0);
+    
+    if (minThreshold > 0 && totalChapeSurface > 0) {
+        const fixedUnder = getVal(ps, 'min_invoice_fixed_price_under', 0);
+        const minOver = getVal(ps, 'min_invoice_min_price_over', 0);
+        if (totalChapeSurface <= minThreshold && fixedUnder > 0 && subtotalBeforeMin !== fixedUnder) {
+            items.push({ id: 'min_invoice_adj', type: 'chape', desc: 'Ajustement prix minimum chantier', qty: 1, unit: 'Forfait', price: fixedUnder - subtotalBeforeMin });
+        } else if (totalChapeSurface > minThreshold && minOver > 0 && subtotalBeforeMin < minOver) {
+            items.push({ id: 'min_invoice_adj', type: 'chape', desc: 'Ajustement prix minimum chantier', qty: 1, unit: 'Forfait', price: minOver - subtotalBeforeMin });
+        }
+    }
+    
+    // ── NET ──
+    const net = items.reduce((s, i) => s + i.qty * i.price, 0);
+    
+    // ── TVA ──
+    const clientType = wo.client_type || 'fizica';
+    const workType = wo.work_type || 'new';
+    let vatRate = 21;
+    
+    if ((wo.prices || {}).vat_type !== undefined) {
+        vatRate = parseFloat(wo.prices.vat_type);
+    } else if (clientType === 'juridica') {
+        vatRate = getVal(ps, 'vat_legal_entity', 0);
+    } else {
+        vatRate = workType === 'repair' ? getVal(ps, 'vat_physical_repair', 6) : getVal(ps, 'vat_physical_new', 21);
+    }
+    
+    const useVat = (wo.prices || {}).useVat !== false;
+    const effectiveVatRate = useVat ? vatRate : 0;
+    const vatAmount = net * (effectiveVatRate / 100);
+    
     return {
-        base: base_cost,
-        extra: extra_cost,
-        foil: foil_cost,
-        mesh: mesh_cost,
-        fiber: fiber_cost,
-        threshold: hidden_extra,
-        truck_cost: truck_cost,
-        isolation_cost: isolation_cost,
-        isolation_pur_base: iso_pur_base,
-        isolation_pur_opt: iso_pur_opt_total,
-        isolation_eps_base: iso_eps_base,
-        total_net: total_net,
-        vat_amount: vat_amount,
-        total_gross: total_net + vat_amount,
-        vat_rate: vat_rate,
-        distance_km: distance_km,
-        discount_amount: discount_amount,
-        discount_pct: global_discount_pct,
-        pur_discount_pct: pur_discount_pct,
-        eps_discount_pct: eps_discount_pct
+        items,
+        net,
+        vatRate: effectiveVatRate,
+        vatAmount,
+        totalGross: net + vatAmount,
+        breakdown: { chapeGross, purGross, epsGross, globalDiscountPct, chapeDiscount, purDiscountPct, purDiscount, epsDiscountPct, epsDiscount, truckCost, distKm, totalChapeSurface }
     };
 };
 
+/**
+ * Helper: extrage preț cu fallback.
+ * Acceptă 0 ca valoare validă (clienți preferențiali).
+ */
 export const getPrice = (woPrice, etalonPrice, defaultPrice) => {
     if (woPrice !== undefined && woPrice !== null && woPrice !== '') return parseFloat(woPrice);
     if (etalonPrice !== undefined && etalonPrice !== null && etalonPrice !== '') return parseFloat(etalonPrice);

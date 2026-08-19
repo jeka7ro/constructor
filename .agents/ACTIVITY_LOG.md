@@ -53,3 +53,19 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
    - **Problema:** Pe ecranul de *Analiză Devize (Pricing Analytics)* se afișa o diferență constantă în plus de preț (ex. +146.00 €) între prețul salvat și cel recalculat de Python pentru clienți precum *Eugeniu Cazmal*.
    - **Cauza:** În versiunea veche de backend, `pricing_engine.py` adăuga prețul fibrei/duramint necondiționat pe orice metru pătrat, iar `admin_work_orders.py` la formarea payload-ului pentru Analytics uita să extragă bifarea reală `has_fiber`.
    - **Soluția:** Am modificat `admin_work_orders.py` să încarce flag-urile reale (`has_fiber`, `has_duramint`) din DB în modul de audit și am pus condiții explicite de verificare în `pricing_engine.py` pentru a preveni adăugarea din oficiu a fibrei. Costurile pentru fibră, folie și grosimi adiționale se raportează acum la nivel granular (per poziție, nu per deviz global).
+
+## 19 August 2026 (Securizare Devize Publice și Analiză Diferențe Pricing)
+**Agent:** Antigravity (AI) + Utilizator
+**Status Aprobare:** Aprobat.
+
+### Modificări Efectuate:
+1. **Backend (`public_work_orders.py`):**
+   - Am injectat `pricingSettings` direct în răspunsul endpoint-ului public de vizualizare (fără autentificare) a devizului și proformei.
+   - Motivul: Dacă un client preferențial deschidea link-ul public înainte ca un admin să acceseze „Calcul Cost” pe platformă, PDF-ul nu avea de unde să știe tarifele lui preferențiale și randa cu 0 EUR sau cu prețurile standard greșite.
+2. **Frontend (`DevisView.jsx` & `ProformaView.jsx`):**
+   - Am adăugat logica care citește `pricingSettings` din payload-ul primit de la endpoint-ul public, sărind peste cererea extra (care era blocată de lipsa token-ului).
+   - Acum primul deviz este garantat 100% corect din punct de vedere al discount-urilor și setărilor de client, direct din prima secundă, chiar dacă adminul nu l-a deschis/validat niciodată manual.
+3. **Frontend (`pricingEngine.js` - Fixat de Utilizator):**
+   - Pe baza explicațiilor despre discrepantele din pagina „Analiză Devize”, utilizatorul a intervenit și a rescris ierarhia de priorități în `pricingEngine.js`.
+   - Modificarea impune ca motorul de calcul să caute prima dată în `wo.prices` (snapshot-ul de la momentul creării devizului/override-ul manual) pentru orice variabilă (inclusiv threshold-uri, EPS, discount-uri) și să folosească `pricingSettings` (tariful general actual) DOAR ca ultim fallback.
+   - Astfel, `PricingAnalytics` aliniază calculele istorice cu cele teoretice, eliminând discrepanțele false de +146 EUR.

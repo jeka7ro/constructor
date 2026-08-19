@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getPrice } from '../../utils/pricingEngine';
+import { getPrice, buildQuoteItems } from '../../utils/pricingEngine';
 import { Loader2, Printer, ArrowLeft, FileText, Mail } from 'lucide-react'
 import api from '../../lib/api'
 import { useTenantStore } from '../../store/tenantStore'
@@ -107,9 +107,15 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 const [pricingRes] = await Promise.all([pricingPromise]);
                 if (isMounted) {
                     setWo(woData);
-                    if (pricingRes.data) {
+                    
+                    if (woData.pricingSettings) {
+                        // Folosim tarifele injectate de backend pe endpointul public (ținând cont de client preferențial)
+                        setPricingSettings(woData.pricingSettings);
+                    } else if (pricingRes.data) {
+                        // Fallback pentru zona de admin
                         setPricingSettings(pricingRes.data);
                     }
+                    
                     if (woData.proforma_data?.items) {
                         setProformaItems(woData.proforma_data.items);
                     }
@@ -151,333 +157,66 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     const T = DEVIS_LANG[lang] || DEVIS_LANG['fr']
     const locale = lang === 'nl' ? 'nl-BE' : lang === 'en' ? 'en-GB' : 'fr-BE'
 
-    const buildItems = () => {
-        // PRIORITATE: proforma_data.items (prețuri din pagina de tarife, inclusiv prețuri preferențiale)
-        if (proformaItems) {
-            const parsedItems = proformaItems.map(item => {
-                let newDesc = item.desc || '';
-                const lang = tenant?.invoice_language || 'fr';
-                if (lang === 'fr' || i18nGlobal.language === 'fr') {
-                    const normalizedDesc = newDesc.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-                    if (normalizedDesc === 'sapa') {
-                        newDesc = 'Chape';
-                    } else if (normalizedDesc === 'manopera') {
-                        newDesc = "Main-d'œuvre";
-                    } else if (normalizedDesc === 'sapa + manopera') {
-                        newDesc = "Chape + Main-d'œuvre";
-                    } else {
-                        newDesc = newDesc.replace(/[sșş]ap[aăâ]/gi, 'Chape');
-                        newDesc = newDesc.replace(/manoper[aăâ]/gi, "Main-d'œuvre");
-                    }
-                }
-                
-                // Do not append km to PDF. Ensure we don't display 0.00 transport lines.
-                // We will handle filtering out 0 price transport lines after the map.
-
-                return {
-                    desc: newDesc,
-                    qty: parseFloat(item.qty || 1),
-                    unit: item.unit || 'm²',
-                    price: parseFloat(item.price || 0)
-                }
-            }).filter(item => {
-                // Remove Transport if price is 0
-                if (item.desc && (item.desc.toLowerCase().includes('transport') || item.desc.toLowerCase().includes('déplacement'))) {
-                    return item.price > 0;
-                }
-                return true;
-            });
-            
-            const hasTransport = parsedItems.some(i => i.desc?.toLowerCase().includes('transport') || i.desc?.toLowerCase().includes('déplacement'));
-            if (!hasTransport) {
-                let truckCost = parseFloat(wo.prices?.truck_cost || 0);
-                const distKm = parseFloat(wo.prices?.distance_km || 0);
-                
-                if (truckCost <= 0 && pricingSettings && distKm > 0) {
-                    const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
-                    const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
-                    const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
-                    const totalSurface = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
-                    if (truckFlat > 0 && distKm > distThreshold && totalSurface <= surfThreshold) {
-                        truckCost = truckFlat;
-                    }
-                }
-                if (truckCost > 0) {
-                    parsedItems.push({
-                        desc: `Transport`,
-                        qty: 1,
-                        unit: T.forfait,
-                        price: truckCost
-                    });
-                }
-            }
-            return parsedItems;
-        }
-        
-        // FALLBACK: calcul din grosimi (folosit doar dacă proforma_data lipsește)
-        const items = []
-        if (wo.volumes && wo.volumes.length > 0) {
-            wo.volumes.forEach((vol, idx) => {
-                const isChape = vol.label?.toLowerCase()?.includes('sapa') || /[sșş]ap[aăâ]/i.test(vol.label || '') || /chape/i.test(vol.label || '')
-                const surface = parseFloat(vol.quantity || 0)
-                const thick = parseFloat(vol.thickness || 0)
-                
-                if (surface > 0) {
-                    if (isChape) {
-                        // Section header for Chape
-                        if (items.length === 0 || !items[items.length - 1]?.isHeader) {
-                            items.push({ isHeader: true, headerLabel: 'CHAPE' });
-                        }
-                        const stdThick = parseFloat(wo.prices?.standard_thickness || 5)
-                        const extraThick = Math.max(0, thick - stdThick)
-                        
-                        items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) })
-                        if (extraThick > 0) {
-                            // Match computeChapeTotal: use extra_large when surface > extra_threshold
-                            let extraRate;
-                            if (wo.prices?.extra_large !== undefined && wo.prices?.extra_threshold !== undefined) {
-                                extraRate = surface > parseFloat(wo.prices.extra_threshold) ? parseFloat(wo.prices.extra_large) : parseFloat(wo.prices?.extra ?? 1.25);
-                            } else {
-                                extraRate = getPrice(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25);
-                            }
-                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * extraRate })
-                        }
-                        if (vol.has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) })
-                        if (vol.has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) })
-                        if (vol.has_fiber || vol.has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: getPrice(wo.prices?.fiber, surface <= 200 ? pricingSettings?.fiber_price_sqm : pricingSettings?.fiber_price_sqm_large, surface <= 200 ? 2.5 : 2.0) })
-                    } else if (/isolation\s*pur/i.test(vol.label || '')) {
-                        // Section header for Isolation PUR
-                        items.push({ isHeader: true, headerLabel: 'ISOLATION PUR' });
-                        // ── Isolation PUR ──
-                        const p = wo.prices || {};
-                        const purThick = parseFloat(vol.thickness || 3);
-                        let purBase = parseFloat(p.pur_base_price_3cm || 13.95);
-                        if (purThick > 3 && purThick <= 10) purBase += (purThick - 3) * parseFloat(p.pur_step_price_up_to_10cm || 1.65);
-                        else if (purThick > 10) {
-                            purBase += 7 * parseFloat(p.pur_step_price_up_to_10cm || 1.65);
-                            purBase += (purThick - 10) * parseFloat(p.pur_extra_price_above_10cm || 2.10);
-                        }
-                        if (surface > 100) purBase += Math.floor((surface - 100) / 100) * parseFloat(p.pur_surface_discount_step || -0.50);
-                        purBase = Math.max(0, purBase);
-                        
-                        items.push({ desc: T.purBase(purThick), qty: surface, unit: 'm²', price: purBase });
-                        if (vol.pur_aspiration) items.push({ desc: T.aspiration, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_aspiration || 2.00) });
-                        if (vol.pur_niveller) items.push({ desc: T.nivellement, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_niveller || 4.25) });
-                        if (vol.pur_poncage) items.push({ desc: T.poncage, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_poncage || 1.50) });
-                        if (vol.pur_protection) items.push({ desc: T.protection, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_protection || 1.50) });
-                        
-                        const purDiscountPct = parseFloat(p.pur_discount_pct || 0);
-                        if (purDiscountPct > 0) {
-                            let totalPurGross = items
-                                .filter(item => item.desc?.includes('PUR') || item.desc === T.aspiration || item.desc === T.nivellement || item.desc === T.poncage || item.desc === T.protection)
-                                .reduce((sum, item) => sum + (item.qty * item.price), 0);
-                            
-                            items.push({
-                                desc: `Remise PUR (${purDiscountPct}%)`,
-                                qty: 1,
-                                unit: T.forfait,
-                                price: -(totalPurGross * purDiscountPct / 100)
-                            });
-                        }
-                    } else if (/isolation\s*eps/i.test(vol.label || '')) {
-                        // Section header for Isolation EPS
-                        items.push({ isHeader: true, headerLabel: 'ISOLATION EPS' });
-                        // ── Isolation EPS ──
-                        const epsVol = parseFloat(vol.volume_m3 || (surface * parseFloat(vol.thickness || 1) / 100));
-                        const tiers = wo.prices?.eps_volume_thresholds || [
-                            { max_m3: 10, price_flat: 1495 }, { max_m3: 20, price_per_m3: 160 },
-                            { max_m3: 40, price_per_m3: 155 }, { max_m3: 99999, price_per_m3: 150 }
-                        ];
-                        let epsPrice = 0;
-                        if (wo.prices?.custom_eps_price_flat !== undefined && wo.prices.custom_eps_price_flat !== null && !isNaN(wo.prices.custom_eps_price_flat)) {
-                            epsPrice = parseFloat(wo.prices.custom_eps_price_flat);
-                        } else if (wo.prices?.custom_eps_price_per_m3 !== undefined && wo.prices.custom_eps_price_per_m3 !== null && !isNaN(wo.prices.custom_eps_price_per_m3)) {
-                            epsPrice = epsVol * parseFloat(wo.prices.custom_eps_price_per_m3);
-                        } else {
-                            for (const tier of tiers) {
-                                if (epsVol <= parseFloat(tier.max_m3 || 99999)) {
-                                    epsPrice = tier.price_flat ? parseFloat(tier.price_flat) : epsVol * parseFloat(tier.price_per_m3 || 150);
-                                    break;
-                                }
-                            }
-                        }
-                        items.push({ desc: T.epsBase(epsVol.toFixed(2)), qty: 1, unit: T.forfait, price: epsPrice });
-                        
-                        const epsDiscountPct = parseFloat(wo.prices?.eps_discount_pct || 0);
-                        if (epsDiscountPct > 0) {
-                            items.push({
-                                desc: `Remise EPS (${epsDiscountPct}%)`,
-                                qty: 1,
-                                unit: T.forfait,
-                                price: -(epsPrice * epsDiscountPct / 100)
-                            });
-                        }
-                    } else {
-                        items.push({ desc: vol.label || `Volume ${idx + 1}`, qty: surface, unit: 'm²', price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') / (surface || 1) })
-                    }
-                }
-            })
-        }
-
-        if (items.length === 0) {
-            const isSapaGeneral = wo.work_type === 'sapa_mecanizata' || (wo.title || '').toLowerCase().includes('isoflex') || (parseFloat(wo.surface_m2 || 0) > 0 && !parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0'));
-            if (isSapaGeneral) {
-                const surface = parseFloat(wo.surface_m2 || 0);
-                const thick = parseFloat(wo.thickness_cm || 5);
-                if (surface > 0) {
-                    const stdThick = parseFloat(wo.prices?.standard_thickness || 5);
-                    const extraThick = Math.max(0, thick - stdThick);
-                    
-                    items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) });
-                    if (extraThick > 0) {
-                        let extraRate;
-                        if (wo.prices?.extra_large !== undefined && wo.prices?.extra_threshold !== undefined) {
-                            extraRate = surface > parseFloat(wo.prices.extra_threshold) ? parseFloat(wo.prices.extra_large) : parseFloat(wo.prices?.extra ?? 1.25);
-                        } else {
-                            extraRate = getPrice(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25);
-                        }
-                        items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * extraRate });
-                    }
-                    if (wo.has_foil || wo.actual_has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) });
-                    if (wo.has_mesh || wo.actual_has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) });
-                    if (wo.has_fiber || wo.actual_has_fiber || wo.has_duramint || wo.actual_has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: getPrice(wo.prices?.fiber, surface <= 200 ? pricingSettings?.fiber_price_sqm : pricingSettings?.fiber_price_sqm_large, surface <= 200 ? 2.5 : 2.0) });
-                }
-            }
-            if (items.length === 0) {
-                items.push({ desc: wo.title || T.travaux, qty: 1, unit: T.forfait, price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') })
-            }
-        }
-        
-        // Add Transport (Frais de déplacement)
-        let truckCost = parseFloat(wo.prices?.truck_cost || 0);
-        
-        // Regulă strictă: Folosim EXCLUSIV distanța unică (one-way) calculată la crearea devizului
-        const actualDistKm = parseFloat(wo.prices?.distance_km || 0);
-        if (truckCost <= 0 && pricingSettings && actualDistKm > 0) {
-            const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
-            const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
-            const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
-            const totalSurface = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
-            if (truckFlat > 0 && actualDistKm > distThreshold && totalSurface <= surfThreshold) {
-                truckCost = truckFlat;
-            }
-        }
-        if (truckCost > 0) {
-            items.push({
-                desc: `Transport${actualDistKm > 0 ? ` (${Math.round(actualDistKm)} km)` : ''}`,
-                qty: 1,
-                unit: T.forfait,
-                price: truckCost
-            });
-        }
-        
-        return items
-    }
-
-    const items = buildItems()
+    // ── MOTOR UNIC DE CALCUL ──────────────────────────────────────────────────
+    const isManualOverride = wo.proforma_data?.manual_override === true;
     
-    // Calcul seuil de surface (Forfait)
-    let forfaitItem = null;
-    const surfCheck = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
+    let items, discountPct, discountAmount, netAfterDiscount, vatRate, vatAmount, totalGross;
     
-    if (wo.prices?.custom_threshold !== undefined && wo.prices?.custom_threshold !== null && wo.prices?.custom_threshold !== '') {
-        const charge = parseFloat(wo.prices.custom_threshold) || 0;
-        if (charge > 0) {
-            forfaitItem = {
-                desc: t('devis.flat_rate', 'Forfait'),
-                qty: 1,
-                unit: t('devis.flat_rate_unit', 'Forfait'),
-                price: charge
-            };
-        }
-    } else if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
-        const match = wo.prices.surface_thresholds.find(thresh => {
-            const minS = parseFloat(thresh.min_sqm || 0);
-            const maxS = parseFloat(thresh.max_sqm || 999999);
-            return surfCheck >= minS && surfCheck <= maxS;
+    if (wo.proforma_data?.items?.length > 0 && isManualOverride) {
+        items = wo.proforma_data.items;
+        discountPct = wo.proforma_data.discountPct || 0;
+        discountAmount = wo.proforma_data.discountAmount || 0;
+        netAfterDiscount = items.reduce((s, i) => i.isHeader ? s : s + (i.qty * i.price), 0);
+        vatRate = wo.proforma_data.vatRate || 0;
+        vatAmount = netAfterDiscount * (vatRate / 100);
+        totalGross = netAfterDiscount + vatAmount;
+    } else {
+        const calcResult = buildQuoteItems(wo, pricingSettings);
+        
+        // Filtrăm discount-urile din lista de items (le afișăm separat)
+        const nonDiscountItems = calcResult.items.filter(i => i.type !== 'discount');
+        
+        // Traduceri FR/NL/EN pentru deviz client
+        items = nonDiscountItems.map(item => {
+            let desc = item.desc;
+            if (desc) {
+                desc = desc.replace(/Chape - Baz[aăâ]/gi, T.chapeBase ? T.chapeBase(5).replace(/\s*\d+\s*cm/, '') : 'Pose de chape');
+                const extraMatch = desc.match(/Grosime Extra\s*\((\d+)\s*cm\)/i);
+                if (extraMatch) desc = T.chapeExtra(extraMatch[1]);
+                if (/Feuille de plastique/i.test(desc)) desc = T.foil;
+                if (/Armature/i.test(desc)) desc = T.mesh;
+                if (/Fibre \+ Duramint/i.test(desc)) desc = T.fiber;
+                const purMatch = desc.match(/Isolation PUR\s*\((\d+)\s*cm\)/i);
+                if (purMatch) desc = T.purBase(purMatch[1]);
+                if (/^Aspiration$/i.test(desc)) desc = T.aspiration;
+                if (/Nivellement/i.test(desc)) desc = T.nivellement;
+                if (/Pon[cç]age/i.test(desc)) desc = T.poncage;
+                if (/Protection/i.test(desc)) desc = T.protection;
+                const epsMatch = desc.match(/Isolation EPS\s*\(([0-9.]+)\s*m/i);
+                if (epsMatch) desc = T.epsBase(epsMatch[1]);
+                if (/^Transport/i.test(desc)) desc = 'Transport / Déplacement';
+                if (/^Forfait$/i.test(desc)) desc = T.forfait || 'Forfait';
+                if (/Ajustement/i.test(desc)) desc = 'Forfait minimum chantier';
+                
+                // Adăugăm grosimea la Chape base
+                const chapeSurf = (wo.volumes || []).find(v => /chape|[sșş]ap/i.test(v.label || ''));
+                if (/Pose de chape|Dekvloer|^Chape\b/i.test(desc) && chapeSurf) {
+                    const thick = parseFloat(chapeSurf.thickness || 5);
+                    desc = T.chapeBase(thick);
+                }
+            }
+            return { ...item, desc };
         });
-        if (match) {
-            const charge = parseFloat(match.extra_charge || 0);
-            if (charge > 0) {
-                forfaitItem = {
-                    desc: t('devis.flat_rate', 'Forfait'),
-                    qty: 1,
-                    unit: t('devis.flat_rate_unit', 'Forfait'),
-                    price: charge
-                };
-            }
-        }
-    }
-
-    if (forfaitItem) {
-        // Insert right before any non-CHAPE header to keep it in the CHAPE group
-        const insertIndex = items.findIndex(item => item.isHeader && item.headerLabel !== 'CHAPE');
-        if (insertIndex !== -1) {
-            items.splice(insertIndex, 0, forfaitItem);
-        } else {
-            items.push(forfaitItem);
-        }
-    }
-
-    // ── FACTURARE MINIMĂ (Preferențiali) ──────────────────────────────────────
-    const pSettings = pricingSettings || {};
-    const minThreshold = parseFloat(pSettings.min_invoice_threshold_sqm || 0);
-    
-    if (minThreshold > 0) {
-        const currentTotalNetForMin = items.reduce((s, i) => i.isHeader ? s : s + (i.qty * i.price), 0);
-        const fixedUnder = parseFloat(pSettings.min_invoice_fixed_price_under || 0);
-        const minOver = parseFloat(pSettings.min_invoice_min_price_over || 0);
         
-        if (surfCheck <= minThreshold && fixedUnder > 0) {
-            if (currentTotalNetForMin !== fixedUnder) {
-                items.push({
-                    isChape: true,
-                    desc: 'Ajustare preț minim șantier',
-                    qty: 1,
-                    unit: 'Forfait',
-                    price: fixedUnder - currentTotalNetForMin
-                });
-            }
-        } else if (surfCheck > minThreshold && minOver > 0) {
-            if (currentTotalNetForMin < minOver) {
-                items.push({
-                    isChape: true,
-                    desc: 'Ajustare preț minim șantier',
-                    qty: 1,
-                    unit: 'Forfait',
-                    price: minOver - currentTotalNetForMin
-                });
-            }
-        }
+        discountPct = calcResult.breakdown.globalDiscountPct;
+        const discountItems = calcResult.items.filter(i => i.type === 'discount');
+        discountAmount = discountItems.reduce((s, i) => s + Math.abs(i.qty * i.price), 0);
+        netAfterDiscount = calcResult.net;
+        vatRate = calcResult.vatRate;
+        vatAmount = calcResult.vatAmount;
+        totalGross = calcResult.totalGross;
     }
 
-    const totalNet = items.filter(i => !i.isHeader).reduce((s, i) => s + i.qty * i.price, 0)
-    
-    const isChapeItem = (desc) => {
-        const d = (desc || '').toLowerCase();
-        return !d.includes('eps') && !d.includes('pur') && !d.includes('isolation') && !d.includes('ponçage') && !d.includes('aspiration') && !d.includes('nivellement') && !d.includes('protection');
-    };
-    
-    const chapeTotalGross = items.filter(i => !i.isHeader && isChapeItem(i.desc)).reduce((s, i) => s + i.qty * i.price, 0);
-    
-    const discountPct = parseFloat(wo.prices?.discount_pct || 0)
-    const discountAmount = (chapeTotalGross * discountPct) / 100
-    const netAfterDiscount = totalNet - discountAmount
-    
-    let vatRate = 0
-    let vatEnabled = wo.prices?.useVat !== false // Default true unless explicitly false
-    if (vatEnabled) {
-        if (wo.prices?.vat_type !== undefined) {
-            vatRate = parseFloat(wo.prices.vat_type)
-        } else if (wo.client_type === 'pj' || wo.client_type === 'juridica') {
-            vatRate = 0 // Entreprise
-        } else {
-            vatRate = wo.work_type === 'repair' ? 6 : 21 // Particulier
-        }
-    }
-    
-    const vatAmount = netAfterDiscount * (vatRate / 100)
-    const totalGross = netAfterDiscount + vatAmount
 
     const devisNum = wo.quote_number || 'DEV 0905'
     const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')
@@ -601,7 +340,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                     <span>Total Net (HTVA)</span>
                                     <span className="whitespace-nowrap">{netAfterDiscount.toFixed(2)} €</span>
                                 </div>
-                                {vatEnabled ? (
+                                {vatRate > 0 ? (
                                     <div className="flex justify-between gap-2 py-1 px-4 text-slate-600 font-bold">
                                         <span>TVA ({vatRate}%)</span>
                                         <span className="whitespace-nowrap">{vatAmount.toFixed(2)} €</span>

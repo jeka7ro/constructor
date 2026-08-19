@@ -50,16 +50,22 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
 
     # 1. Base Cost
     base_large_threshold = float(pricing.get('base_large_threshold_sqm', 200.0))
-    base_rate = float(pricing.get('base_price_sqm_large', 12.5) if total_surface > base_large_threshold else pricing.get('base_price_sqm', 12.5))
+    base_rate_small = float(pricing.get('base_price_sqm', 12.5))
+    base_rate_large = float(pricing.get('base_price_sqm_large', base_rate_small))
+    base_rate = base_rate_large if total_surface > base_large_threshold else base_rate_small
 
     # 2. Extra Thickness Cost
     standard_thickness = float(pricing.get('standard_thickness_cm', 5.0))
     extra_thresh = float(pricing.get('extra_thickness_large_threshold_sqm', 200.0))
-    extra_price = float(pricing.get('extra_thickness_price_per_cm_large', 1.25) if total_surface > extra_thresh else pricing.get('extra_thickness_price_per_cm', 1.25))
+    extra_rate_small = float(pricing.get('extra_thickness_price_per_cm', 1.25))
+    extra_rate_large = float(pricing.get('extra_thickness_price_per_cm_large', extra_rate_small))
+    extra_price = extra_rate_large if total_surface > extra_thresh else extra_rate_small
 
     # 3. Materials Cost
     fiber_thresh = float(pricing.get('fiber_large_threshold_sqm', 200.0))
-    fiber_rate = float(pricing.get('fiber_price_sqm_large', 2.0) if total_surface > fiber_thresh else pricing.get('fiber_price_sqm', 2.5))
+    fiber_rate_small = float(pricing.get('fiber_price_sqm', 2.5))
+    fiber_rate_large = float(pricing.get('fiber_price_sqm_large', fiber_rate_small))
+    fiber_rate = fiber_rate_large if total_surface > fiber_thresh else fiber_rate_small
 
     base_cost = 0.0
     extra_cost = 0.0

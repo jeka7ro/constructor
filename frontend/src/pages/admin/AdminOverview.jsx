@@ -759,9 +759,9 @@ export default function AdminOverview() {
                 site_address: quickCreateForm.address,
                 site_latitude: quickCreateForm.latitude,
                 site_longitude: quickCreateForm.longitude,
-                start_date: quickCreateData.date,
-                start_time: quickCreateData.time,
-                assigned_team_id: quickCreateData.teamId || null,
+                start_date: quickCreateData?.date || null,
+                start_time: quickCreateData?.time || null,
+                assigned_team_id: quickCreateData?.teamId || null,
                 client_id: quickCreateForm.clientId || null,
                 work_type: quickCreateForm.work_type || 'new',
                 use_vat: quickCreateForm.use_vat !== false,
@@ -786,7 +786,11 @@ export default function AdminOverview() {
             }
         } catch (error) {
             console.error("Error quick creating work order:", error)
-            alert(t('overview.quick_create_error', 'Une erreur est survenue lors de la création rapide de la commande.'));
+            showToast(
+                t('common.error', 'Erreur'), 
+                error?.response?.data?.detail || error?.message || t('overview.quick_create_error', 'Une erreur est survenue lors de la création rapide de la commande.'), 
+                'error'
+            );
         } finally {
             setQuickCreateSaving(false)
         }
