@@ -77,8 +77,8 @@ const CalculationModal = ({ wo, onClose }) => {
                                                 <div className="col-span-5 text-slate-700 font-medium text-sm whitespace-pre-line">{item.label}</div>
                                                 <div className="col-span-2 text-center text-slate-600 font-medium text-sm">{item.quantity}</div>
                                                 <div className="col-span-1 text-center text-slate-500 font-bold text-[10px] uppercase">{item.unit || ''}</div>
-                                                <div className="col-span-2 text-right text-slate-600 text-sm">{item.price ? `${parseFloat(item.price).toFixed(2)} €` : '-'}</div>
-                                                <div className="col-span-2 text-right font-bold text-slate-800 text-sm">{item.total ? `${parseFloat(item.total).toFixed(2)} €` : '-'}</div>
+                                                <div className="col-span-2 text-right text-slate-600 text-sm whitespace-nowrap">{item.price ? `${parseFloat(item.price).toFixed(2)} €` : '-'}</div>
+                                                <div className="col-span-2 text-right font-bold text-slate-800 text-sm whitespace-nowrap">{item.total ? `${parseFloat(item.total).toFixed(2)} €` : '-'}</div>
                                             </div>
                                         ))}
                                     </div>
