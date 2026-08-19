@@ -387,7 +387,7 @@ export default function PricingAnalytics() {
         },
         {
             key: 'diff',
-            label: t('pricing_analytics.col_diff_net', 'DIFFÉRENCE NET'),
+            label: t('pricing_analytics.col_diff_net', 'DIFERENȚĂ NET'),
             sortable: true,
             sortValue: (row) => Math.abs(row.diff),
             render: (row) => (
@@ -410,6 +410,26 @@ export default function PricingAnalytics() {
                     )}
                 </div>
             )
+        },
+        {
+            key: 'pdf_action',
+            label: 'PDF',
+            sortable: false,
+            render: (row) => {
+                const pdfSource = (row.is_quote || !row.is_invoiced) ? `/admin/quotes/${row.id}/pdf` : (row.proforma_path || `/proforma/${row.id}?type=invoice`);
+                return (
+                    <a
+                        href={pdfSource}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 bg-slate-100 text-slate-500 hover:bg-blue-100 hover:text-blue-600 rounded-lg transition-colors flex items-center justify-center border border-slate-200"
+                        title="Deschide PDF"
+                    >
+                        <FileText className="w-4 h-4" />
+                    </a>
+                );
+            }
         }
     ];
 
