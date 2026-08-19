@@ -757,8 +757,8 @@ export default function AdminOverview() {
             const res = await api.post('/admin/work-orders', {
                 title: quickCreateForm.title,
                 site_address: quickCreateForm.address,
-                site_latitude: quickCreateForm.latitude,
-                site_longitude: quickCreateForm.longitude,
+                site_latitude: quickCreateForm.latitude ? parseFloat(quickCreateForm.latitude) : null,
+                site_longitude: quickCreateForm.longitude ? parseFloat(quickCreateForm.longitude) : null,
                 start_date: quickCreateData?.date || null,
                 start_time: quickCreateData?.time || null,
                 assigned_team_id: quickCreateData?.teamId || null,
@@ -820,8 +820,8 @@ export default function AdminOverview() {
             await api.put(`/admin/work-orders/${quickEditOrder.id}`, {
                 title: quickEditForm.title,
                 site_address: quickEditForm.address,
-                site_latitude: quickEditForm.latitude,
-                site_longitude: quickEditForm.longitude,
+                site_latitude: quickEditForm.latitude ? parseFloat(quickEditForm.latitude) : null,
+                site_longitude: quickEditForm.longitude ? parseFloat(quickEditForm.longitude) : null,
                 assigned_team_id: quickEditForm.teamId || null,
                 client_id: quickEditForm.clientId || null,
                 start_date: quickEditForm.date || undefined,

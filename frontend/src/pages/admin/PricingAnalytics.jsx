@@ -160,6 +160,7 @@ export default function PricingAnalytics() {
     const [filterType, setFilterType] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedWO, setSelectedWO] = useState(null);
+    const [globalPdfUrl, setGlobalPdfUrl] = useState(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -416,18 +417,18 @@ export default function PricingAnalytics() {
             label: 'PDF',
             sortable: false,
             render: (row) => {
-                const pdfSource = (row.is_quote || !row.is_invoiced) ? `/admin/quotes/${row.id}/pdf` : (row.proforma_path || `/proforma/${row.id}?type=invoice`);
+                const pdfUrl = (row.is_quote || !row.is_invoiced) ? `/admin/quotes/${row.id}/pdf` : (row.proforma_path || `/proforma/${row.id}?type=invoice`);
                 return (
-                    <a
-                        href={pdfSource}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1.5 bg-slate-100 text-slate-500 hover:bg-blue-100 hover:text-blue-600 rounded-lg transition-colors flex items-center justify-center border border-slate-200"
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setGlobalPdfUrl(pdfUrl);
+                        }}
+                        className="p-1.5 bg-slate-100 text-slate-500 hover:bg-blue-100 hover:text-blue-600 rounded-full transition-colors flex items-center justify-center border border-slate-200"
                         title="Deschide PDF"
                     >
                         <FileText className="w-4 h-4" />
-                    </a>
+                    </button>
                 );
             }
         }
@@ -537,6 +538,36 @@ export default function PricingAnalytics() {
                     wo={selectedWO} 
                     onClose={() => setSelectedWO(null)} 
                 />
+            )}
+
+            {globalPdfUrl && createPortal(
+                <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 sm:p-8 bg-slate-900/95 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+                    <div className="w-full max-w-[1200px] h-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
+                        <div className="absolute top-4 right-6 z-10 flex gap-2">
+                            <a 
+                                href={globalPdfUrl} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="px-4 py-2 bg-slate-800/90 hover:bg-slate-900 text-white rounded-xl font-bold shadow-lg transition-colors flex items-center gap-2 backdrop-blur-sm"
+                            >
+                                <FileText className="w-4 h-4" />
+                                {t('common.open_new_tab', 'Ouvrir dans un nouvel onglet')}
+                            </a>
+                            <button 
+                                onClick={() => setGlobalPdfUrl(null)}
+                                className="p-2 bg-white/90 text-slate-700 hover:text-slate-900 hover:bg-white rounded-xl shadow-lg transition-colors border border-slate-200 backdrop-blur-sm"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <iframe 
+                            src={globalPdfUrl} 
+                            className="w-full flex-1 border-0"
+                            title="PDF Preview"
+                        />
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

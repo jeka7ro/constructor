@@ -1297,11 +1297,19 @@ def update_work_order(
     
     update_data = payload.dict(exclude_unset=True)
     print("DEBUG update_data:", update_data)
+    def _safe_float(val, default=0.0):
+        try:
+            if val is None or val == "":
+                return default
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+
     old_start_date = str(wo.start_date) if wo.start_date else ""
     old_estimated_price = str(wo.estimated_price) if wo.estimated_price else ""
     old_prices_str = str(wo.prices) if wo.prices else ""
     old_volumes_str = str(wo.volumes) if wo.volumes else ""
-    old_discount = float((wo.prices or {}).get("discount_pct", 0))
+    old_discount = _safe_float((wo.prices or {}).get("discount_pct", 0))
 
     for f in fields:
         if f in update_data:
@@ -1339,7 +1347,7 @@ def update_work_order(
         flag_modified(wo, "date_history")
         
     new_prices = wo.prices or {}
-    new_discount = float(new_prices.get("discount_pct", 0))
+    new_discount = _safe_float(new_prices.get("discount_pct", 0))
     discount_changed = new_discount != old_discount
             
 
@@ -1764,7 +1772,13 @@ def sync_work_order_prices(
         # Merge current pricing settings into pricing_data
         pricing_dict = {}
         for column in pricing.__table__.columns:
-            pricing_dict[column.name] = getattr(pricing, column.name)
+            if column.name not in ('id', 'organization_id', 'client_id', 'created_at', 'updated_at'):
+                val = getattr(pricing, column.name)
+                # Fallback to convert datetime if any other exists
+                from datetime import datetime, date
+                if isinstance(val, (datetime, date)):
+                    val = val.isoformat()
+                pricing_dict[column.name] = val
             
         for k, v in pricing_dict.items():
             if k not in pricing_data or pricing_data[k] is None:
@@ -1803,6 +1817,7 @@ def sync_work_order_prices(
         wo.updated_at = datetime.utcnow()
         db.commit()
     except Exception as e:
+        db.rollback()
         print("Failed to auto-recalculate estimated price after sync:", str(e))
         pass
 

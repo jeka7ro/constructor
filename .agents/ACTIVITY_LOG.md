@@ -84,3 +84,9 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 - **Acțiune**: Am eliminat cutiile uriașe roșii și verzi de alertă (diferență detectată) de la baza modalului din `PricingAnalytics`, respectând interdicția strictă din regulile proiectului (`AGENTS.md`) care obligă ca acel modal să reflecte strict un PDF curat.
 - **Acțiune**: Am adăugat o coloană nouă numită `PDF` la finalul tabelului principal din `PricingAnalytics`. Aceasta conține un buton de descărcare/vizualizare directă care deschide PDF-ul devizului sau proformei într-un tab nou, fără a mai fi necesară deschiderea modalului de detalii.
 
+
+### 19 August 2026 - Fixed 500 Internal Server Error on Save
+- **Issue**: Saving the calculations (discount/client type) in `WorkOrderDetail.jsx` threw a `500 Internal Server Error`.
+- **Cause**: The backend route `update_work_order` (`backend/app/api/admin_work_orders.py`) tried to parse `float((wo.prices or {}).get("discount_pct", 0))` directly. If a previous version of the frontend saved an empty string `""` in the database, `float("")` crashed with a `ValueError`.
+- **Fix**: Added a `_safe_float(val, default=0.0)` helper function in `update_work_order` to safely parse values and default to `0.0` when encountering empty strings or `None`.
+- **Status**: Fixed.

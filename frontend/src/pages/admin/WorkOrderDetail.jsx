@@ -574,6 +574,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             if (msgRes.status === 'fulfilled') {
                 setMessages(msgRes.value.data || [])
             }
+            
+            // Fetch pricing settings (tarife) pentru calcul transport/preturi
+            if (woRes.status === 'fulfilled') {
+                const clientId = woRes.value.data.client_id;
+                const endpoint = clientId ? `/admin/pricing-settings?client_id=${clientId}` : '/admin/pricing-settings';
+                api.get(endpoint)
+                    .then(res => setPricingSettings(res.data))
+                    .catch(err => console.error('Failed to load pricing settings:', err));
+            }
         } catch {} finally {
             setLoading(false)
         }
@@ -582,12 +591,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     useEffect(() => { load() }, [load])
 
-    // Fetch pricing settings (tarife) pentru calcul transport
-    useEffect(() => {
-        api.get('/admin/pricing-settings')
-            .then(res => setPricingSettings(res.data))
-            .catch(err => console.error('Failed to load pricing settings:', err))
-    }, [])
 
     const handleTranslatePreview = async () => {
         if (!chatMessage.trim() || targetLang === 'none') return;
@@ -1190,6 +1193,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         }
     }
 
+    const vatRate = vatEnabled ? (parseFloat(vatType) / 100) : 0;
     const realVat   = realCalc ? realCalc.net * vatRate : 0;
     const realGross = realCalc ? realCalc.net + realVat : 0;
 
