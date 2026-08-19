@@ -382,6 +382,34 @@ export default function PricingAnalytics() {
             )
         },
         {
+            key: 'tva',
+            label: t('pricing_analytics.col_tva', 'TVA'),
+            sortable: false,
+            render: (row) => {
+                const vatRate = row.recalc_vat_rate !== undefined && row.recalc_vat_rate !== null ? row.recalc_vat_rate : (row.vat_rate !== undefined && row.vat_rate !== null ? row.vat_rate : 21);
+                const vatAmount = row.calcNet * (vatRate / 100);
+                return (
+                    <div className="text-slate-500 whitespace-nowrap text-[13px]">
+                        {vatAmount > 0 ? `${vatAmount.toFixed(2)} €` : '-'}
+                    </div>
+                );
+            }
+        },
+        {
+            key: 'total_ttc',
+            label: t('pricing_analytics.col_total_ttc', 'TOTAL TTC'),
+            sortable: false,
+            render: (row) => {
+                const vatRate = row.recalc_vat_rate !== undefined && row.recalc_vat_rate !== null ? row.recalc_vat_rate : (row.vat_rate !== undefined && row.vat_rate !== null ? row.vat_rate : 21);
+                const totalTtc = row.calcNet * (1 + vatRate / 100);
+                return (
+                    <div className="font-black text-slate-900 whitespace-nowrap">
+                        {totalTtc.toFixed(2)} €
+                    </div>
+                );
+            }
+        },
+        {
             key: 'diff',
             label: t('pricing_analytics.col_diff_net', 'DIFFÉRENCE NET'),
             sortable: true,
