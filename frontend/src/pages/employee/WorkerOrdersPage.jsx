@@ -424,7 +424,21 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
         <div className="pb-28 px-4 pt-4 space-y-4">
             {/* Suprafata si Épaisseur + Sable */}
             {order.volumes && order.volumes.length > 0 && (
-                <Section label="Détails du travail">
+                <Section 
+                    label="Détails du travail"
+                    rightContent={
+                        <div className="flex items-center gap-2">
+                            {order.start_date && (
+                                <span className="text-xs font-bold text-slate-800 capitalize">
+                                    {fmtDate(order.start_date)}
+                                </span>
+                            )}
+                            <div className="scale-75 origin-right">
+                                <WeatherWidget lat={order.site_lat || order.site_latitude || 50.8503} lon={order.site_lng || order.site_longitude || 4.3517} dateStr={order.start_date} />
+                            </div>
+                        </div>
+                    }
+                >
                     <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 space-y-2">
                         {order.volumes.map((v, idx) => {
                             const sq = parseFloat(v.quantity);
@@ -441,11 +455,6 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                             </span>
                                             <span className="text-xs text-slate-500 font-medium">{translateDynamicLabel(v.label) || `Zone ${idx + 1}`}</span>
                                         </div>
-                                        {idx === 0 && order.start_date && (
-                                            <span className="text-sm font-semibold text-slate-800 capitalize whitespace-nowrap text-right">
-                                                {fmtDate(order.start_date)}
-                                            </span>
-                                        )}
                                     </div>
                                     {idx === 0 && order.deadline_date && (
                                         <div className="text-right mt-1">
@@ -1281,10 +1290,13 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
 // ─────────────────────────────────────────────────────────────────────────────
 // REUSABLE: Section wrapper
 // ─────────────────────────────────────────────────────────────────────────────
-function Section({ label, children }) {
+function Section({ label, children, rightContent }) {
     return (
         <div className="px-4 pt-3 pb-1">
-            <h4 className="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-2">{label}</h4>
+            <div className="flex items-center justify-between mb-2">
+                <h4 className="text-[10px] font-bold text-blue-700 uppercase tracking-widest">{label}</h4>
+                {rightContent && <div className="text-right">{rightContent}</div>}
+            </div>
             <div className="space-y-1">{children}</div>
         </div>
     )
@@ -1359,7 +1371,8 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const [lightboxUrl, setLightboxUrl]               = useState(null)
 
     const roleCode = user?.role?.code?.toUpperCase() || ''
-    const isLeader = ['TEAM_LEADER', 'TEAM_LEAD', 'SEF_ECHIPA', 'ADMIN', 'MANAGER', 'COMPANY_ADMIN', 'SUPER_ADMIN'].includes(roleCode)
+    const isAdmin = ['ADMIN', 'MANAGER', 'COMPANY_ADMIN', 'SUPER_ADMIN'].includes(roleCode)
+    const isLeader = ['TEAM_LEADER', 'TEAM_LEAD', 'SEF_ECHIPA', ...(['ADMIN', 'MANAGER', 'COMPANY_ADMIN', 'SUPER_ADMIN'])].includes(roleCode)
     const isDriver = ['DRIVER', 'SOFER'].includes(roleCode)
 
     // GPS watch
@@ -1715,6 +1728,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                             currentDate={currentDate}
                             setCurrentDate={setCurrentDate}
                             isHistory={isHistory}
+                            showTeamName={isAdmin || isDriver}
                         />
                         
                         {/* Eliminat lista duplicată de comenzi, deoarece ShortWorksCalendar afiseaza deja comenzile */}

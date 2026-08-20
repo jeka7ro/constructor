@@ -118,3 +118,8 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 - **Acțiune**: Am eliminat butonul confuz de "Aplică TVA" manual din moment ce motorul de prețuri face acest calcul automatizat în funcție de tipul clientului și al lucrării (Nouă vs Renovare).
 - **Acțiune**: Am reparat numărătoarea secvențială a Șapelor (Șapă 1, Șapă 2, etc.) ignorând interpunerile de cutii de Izolații, atât vizual în interfață cât și în volumele trimise către baza de date pentru generarea devizului corect.
 - **Acțiune**: Am corectat traducerea pentru "One way" în "Dus" pentru fișierul `ro.json`.
+- **Date**: 20 August 2026
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat implicit de utilizator prin comanda curentă.
+- **Acțiune**: Am ascuns eticheta cu numele echipei (`#1 Echipa Petrea`) din MobileAgenda pentru Șeful de Echipă (WorkerOrdersPage.jsx), afișând-o doar pentru Admini și Șoferi.
+- **Acțiune**: Am mutat data lucrării din interiorul primului rând de materiale (unde apărea lângă "Chape 1") direct pe linia de titlu "Détails du travail" și am adăugat iconița de Vreme aliniată la dreapta, curățând astfel aspectul rândurilor de cantități.
