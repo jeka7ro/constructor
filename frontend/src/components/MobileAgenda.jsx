@@ -322,12 +322,16 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                         )}
                                                         <div className="p-3.5 flex flex-col gap-2.5 relative z-10">
                                                             <div className="flex items-center justify-between w-full gap-1">
-                                                                {showTeamName && (
+                                                                {showTeamName ? (
                                                                     <div className="flex items-center gap-1 px-2 py-1 rounded-md shrink-0" style={{ backgroundColor: color + '26' }}>
                                                                         <span className="text-xs font-extrabold text-slate-900 truncate max-w-[120px] drop-shadow-sm">#{legNumber} {teamName}</span>
                                                                     </div>
+                                                                ) : (
+                                                                    <h4 className="font-bold text-[16px] leading-tight opacity-90 truncate flex-1">
+                                                                        {wo.client?.name || wo.client_name || 'Client Necunoscut'}
+                                                                    </h4>
                                                                 )}
-                                                                <div className="flex items-center justify-center flex-1">
+                                                                <div className={`flex items-center justify-center ${showTeamName ? 'flex-1' : 'shrink-0'}`}>
                                                                     <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/70 dark:bg-slate-800/70 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                                                         <div className="text-[11px] font-bold shrink-0">
                                                                             {prevWo ? (
@@ -364,11 +368,15 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                 </div>
                                                             </div>
 
+                                                            {showTeamName && (
+                                                                <div className="space-y-1 mt-1">
+                                                                    <h4 className="font-bold text-[16px] leading-tight opacity-90">
+                                                                        {wo.client?.name || wo.client_name || 'Client Necunoscut'}
+                                                                    </h4>
+                                                                </div>
+                                                            )}
+                                                            
                                                             <div className="space-y-1 mt-1">
-                                                                <h4 className="font-bold text-[16px] leading-tight opacity-90">
-                                                                    {wo.client?.name || wo.client_name || 'Client Necunoscut'}
-                                                                </h4>
-                                                                
                                                                 {/* Display Surface and Thickness from Volumes */}
                                                                 {wo.volumes && wo.volumes.some(v => parseFloat(v.quantity) > 0) && (
                                                                     <div className="flex flex-col gap-0.5 mt-1">

@@ -127,3 +127,7 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 - **Agent**: Antigravity (AI)
 - **Status Aprobare**: Aprobat implicit de utilizator prin comanda curentă.
 - **Acțiune**: Am adăugat cantitatea de nisip (ex. "15.0 t") imediat lângă distanța în kilometri pe cardurile hartă din `MobileAgenda.jsx`, afișându-se cu culoarea specifică chihlimbar (amber) pentru vizibilitate.
+- **Date**: 20 August 2026
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat implicit de utilizator.
+- **Acțiune**: Am eliminat spațiul gol rămas după ascunderea numelui echipei în `MobileAgenda.jsx` pentru șefii de echipă. Când numele echipei lipsește, numele clientului (ex. "Eugeniu Cazmal") urcă automat pe primul rând în stânga, iar kilometrii, cantitatea de nisip și vremea rămân frumos aliniate în dreapta. Acest lucru economisește spațiu vertical prețios pe ecranul telefonului.
