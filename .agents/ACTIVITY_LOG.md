@@ -109,3 +109,12 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 - **Date**: 19 August 2026
 - **Actions**: Replaced placeholder colored circles for materials in MobileAgenda with the standard application icons (Wind for PUR, Thermometer for EPS, Layers for Chape).
 - **Confirmed**: Pushed successfully.
+- **Date**: 20 August 2026
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat pentru `git push` de către utilizator.
+- **Acțiune**: Am refăcut modalul de Quick Create (AdminOverview.jsx) pentru a susține adăugarea dinamică a Izolațiilor, separat de Șapă.
+- **Acțiune**: Am înlocuit dropdown-ul de selecție PUR/EPS cu două card-uri mari, clare, folosind iconițele `Wind` (PUR) și `Thermometer` (EPS) și am setat iconița `Layers` pentru Șape. Mărimea iconițelor a fost ajustată (`w-5 h-5`) pentru a corespunde mockup-ului original.
+- **Acțiune**: Am reparat logica de disabled a butonului "Confirmă Comanda", permițând utilizatorilor să trimită comanda chiar dacă rămân cutii ("Suprafața 1") necompletate, atâta timp cât cel puțin o cutie este corect completată.
+- **Acțiune**: Am eliminat butonul confuz de "Aplică TVA" manual din moment ce motorul de prețuri face acest calcul automatizat în funcție de tipul clientului și al lucrării (Nouă vs Renovare).
+- **Acțiune**: Am reparat numărătoarea secvențială a Șapelor (Șapă 1, Șapă 2, etc.) ignorând interpunerile de cutii de Izolații, atât vizual în interfață cât și în volumele trimise către baza de date pentru generarea devizului corect.
+- **Acțiune**: Am corectat traducerea pentru "One way" în "Dus" pentru fișierul `ro.json`.

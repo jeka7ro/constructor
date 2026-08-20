@@ -146,8 +146,7 @@ def get_my_orders(
         joinedload(WorkOrder.client)
     ).filter(
         WorkOrder.organization_id == current_user.organization_id,
-        WorkOrder.status.notin_(["cancelled", "isoflex"]),
-        WorkOrder.is_quote == False,
+        WorkOrder.status.notin_(["isoflex", "deleted"]),
         or_(WorkOrder.start_date >= sixty_days_ago.date(), WorkOrder.start_date == None)
     )
     

@@ -6,7 +6,7 @@ import {
     Loader2, Coffee, MapPin, RefreshCw, Timer, Trophy, AlertTriangle, Zap,
     ArrowUpRight, ArrowDownRight, ChevronRight, Eye, ShieldAlert, WifiOff,
     X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck, Plus, Edit2, Search, GripVertical,
-    Star, Copy, CalendarDays
+    Star, Copy, CalendarDays, Trash2, Wind, Thermometer, Layers
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -228,7 +228,15 @@ export default function AdminOverview() {
     };
 
     const [quickCreateData, setQuickCreateData] = useState(null) // { teamId, clientId, clientName, date, time }
-    const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '', work_type: 'new', use_vat: true, has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false })
+    const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', clientId: '', work_type: 'new', use_vat: true })
+    const [quickCreateItems, setQuickCreateItems] = useState([{ id: 1, type: 'chape', surface: '', thickness: '', has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false, isolation_type: 'PUR', pur_aspiration: false, pur_niveller: false, pur_poncage: false, pur_protection: false }])
+    
+    useEffect(() => {
+        if (!quickCreateData) {
+            setQuickCreateItems([{ id: Date.now(), type: 'chape', surface: '', thickness: '', has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false, isolation_type: 'PUR', pur_aspiration: false, pur_niveller: false, pur_poncage: false, pur_protection: false }]);
+        }
+    }, [quickCreateData]);
+
     const [quickEditOrder, setQuickEditOrder] = useState(null) // wo object
     const [fullscreenOrderId, setFullscreenOrderId] = useState(null)
     const [fullscreenNewOrder, setFullscreenNewOrder] = useState(null)
@@ -280,10 +288,12 @@ export default function AdminOverview() {
     const [quickRouteLoading, setQuickRouteLoading] = useState(false)
 
     const calculatedSand = useMemo(() => {
-        const s = parseFloat(quickCreateForm.surface) || 0
-        const t = parseFloat(quickCreateForm.thickness) || 0
-        return (s * t * 16) / 1000
-    }, [quickCreateForm.surface, quickCreateForm.thickness])
+        return quickCreateItems.filter(item => item.type === 'chape').reduce((acc, item) => {
+            const s = parseFloat(item.surface) || 0
+            const t = parseFloat(item.thickness) || 0
+            return acc + (s * t * 16) / 1000
+        }, 0)
+    }, [quickCreateItems])
 
     useEffect(() => {
         if (quickCreateStep === 1 && quickCreateForm.latitude && quickCreateForm.longitude) {
@@ -740,18 +750,19 @@ export default function AdminOverview() {
             let estimatedAmount = 0;
             let isAutoCalculated = false;
             
-            const surface = parseFloat(quickCreateForm.surface) || 0;
-            const thickness = parseFloat(quickCreateForm.thickness) || 0;
-            
-            if (surface > 0) {
-                const extraThickness = Math.max(0, thickness - 5);
-                const autoBase = 12.5 * surface;
-                const autoExtra = extraThickness * 1.25 * surface;
-                const autoFoil = quickCreateForm.has_foil ? 1.2 * surface : 0;
-                const autoMesh = quickCreateForm.has_mesh ? 2.5 * surface : 0;
-                // Duramint added as checkbox, price pending if required
-                estimatedAmount = autoBase + autoExtra + autoFoil + autoMesh;
-                isAutoCalculated = true;
+            const firstChape = quickCreateItems.find(i => i.type === 'chape');
+            if (firstChape) {
+                const surface = parseFloat(firstChape.surface) || 0;
+                const thickness = parseFloat(firstChape.thickness) || 0;
+                if (surface > 0) {
+                    const extraThickness = Math.max(0, thickness - 5);
+                    const autoBase = 12.5 * surface;
+                    const autoExtra = extraThickness * 1.25 * surface;
+                    const autoFoil = firstChape.has_foil ? 1.2 * surface : 0;
+                    const autoMesh = firstChape.has_mesh ? 2.5 * surface : 0;
+                    estimatedAmount = autoBase + autoExtra + autoFoil + autoMesh;
+                    isAutoCalculated = true;
+                }
             }
 
             const res = await api.post('/admin/work-orders', {
@@ -766,16 +777,26 @@ export default function AdminOverview() {
                 work_type: quickCreateForm.work_type || 'new',
                 use_vat: quickCreateForm.use_vat !== false,
                 status: 'draft',
-                volumes: (quickCreateForm.surface || quickCreateForm.thickness) ? [{
-                    label: 'Chape',
-                    quantity: parseFloat(quickCreateForm.surface) || 0,
-                    unit: 'm²',
-                    thickness: parseFloat(quickCreateForm.thickness) || 0,
-                    has_foil: !!quickCreateForm.has_foil,
-                    has_mesh: !!quickCreateForm.has_mesh,
-                    has_fiber: !!quickCreateForm.has_fiber,
-                    has_duramint: !!quickCreateForm.has_duramint
-                }] : [],
+                volumes: quickCreateItems.filter(i => parseFloat(i.surface) > 0).map((item, idx, arr) => {
+                    let chapeIndex = 1;
+                    if (item.type === 'chape') {
+                        chapeIndex = arr.slice(0, idx).filter(i => i.type === 'chape').length + 1;
+                    }
+                    return {
+                        label: item.type === 'chape' ? `Șapă ${chapeIndex}` : `Isolation ${item.isolation_type}`,
+                        quantity: parseFloat(item.surface) || 0,
+                        unit: 'm²',
+                        thickness: parseFloat(item.thickness) || 0,
+                        has_foil: !!item.has_foil,
+                        has_mesh: !!item.has_mesh,
+                        has_fiber: !!item.has_fiber,
+                        has_duramint: !!item.has_duramint,
+                        pur_aspiration: !!item.pur_aspiration,
+                        pur_niveller: !!item.pur_niveller,
+                        pur_poncage: !!item.pur_poncage,
+                        pur_protection: !!item.pur_protection
+                    };
+                }),
                 estimated_price: estimatedAmount > 0 ? String(estimatedAmount) : null,
                 is_auto_calculated: isAutoCalculated
             })
@@ -1448,14 +1469,7 @@ export default function AdminOverview() {
                                             return (
                                                 <div className="mt-3">
                                                     <div className="flex items-center justify-between mb-2">
-                                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.work_type', 'Type de Travail (TVA)')}</label>
-                                                        <label className="flex items-center gap-2 cursor-pointer">
-                                                            <span className="text-[10px] font-bold text-slate-500 uppercase">{t('dashboard.quick_create.apply_vat', 'Appliquer la TVA')}</span>
-                                                            <div className="relative inline-flex items-center">
-                                                                <input type="checkbox" className="sr-only peer" checked={quickCreateForm.use_vat !== false} onChange={(e) => setQuickCreateForm(p => ({...p, use_vat: e.target.checked}))} />
-                                                                <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
-                                                            </div>
-                                                        </label>
+                                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.work_type', 'Type de Travail')}</label>
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-xl cursor-pointer transition-colors ${quickCreateForm.work_type === 'new' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
@@ -1507,80 +1521,170 @@ export default function AdminOverview() {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface_mandatory', 'Surface (m²) *')}</label>
-                                            <input 
-                                                type="number"
-                                                min="0"
-                                                step="any"
-                                                value={quickCreateForm.surface}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, surface: e.target.value })}
-                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness_mandatory', 'Épaisseur (cm) *')}</label>
-                                            <input 
-                                                type="number"
-                                                min="5"
-                                                step="any"
-                                                value={quickCreateForm.thickness}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, thickness: e.target.value })}
-                                                placeholder={t('dashboard.quick_create.min_5_cm', 'Min 5 cm')}
-                                                className={`w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border ${quickCreateForm.thickness !== '' && parseFloat(quickCreateForm.thickness) < 5 ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500`}
-                                            />
-                                            {quickCreateForm.thickness !== '' && parseFloat(quickCreateForm.thickness) < 5 && (
-                                                <div className="text-[10px] font-bold text-red-500 mt-1">
-                                                    {t('dashboard.quick_create.min_thickness_5', 'L\'épaisseur minimum est de 5 cm.')}
+                                    <div className="flex items-center justify-between mt-4 mb-2">
+                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Suprafețe și Izolații</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {quickCreateItems.map((item, index) => (
+                                            <div key={item.id} className={`relative p-3 rounded-xl border ${item.type === 'chape' ? 'bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700' : 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800'}`}>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        {item.type === 'chape' ? (
+                                                            <Layers className="w-5 h-5 text-slate-500" strokeWidth={2.5} />
+                                                        ) : item.isolation_type === 'PUR' ? (
+                                                            <Wind className="w-5 h-5 text-indigo-500" strokeWidth={2.5} />
+                                                        ) : (
+                                                            <Thermometer className="w-5 h-5 text-emerald-500" strokeWidth={2.5} />
+                                                        )}
+                                                        <span className={`font-bold text-sm ${item.type === 'chape' ? 'text-slate-700 dark:text-slate-300' : item.isolation_type === 'PUR' ? 'text-indigo-800 dark:text-indigo-300' : 'text-emerald-800 dark:text-emerald-300'}`}>
+                                                            {item.type === 'chape' ? `Șapă ${quickCreateItems.slice(0, index).filter(i => i.type === 'chape').length + 1}` : `Izolare ${item.isolation_type}`}
+                                                        </span>
+                                                    </div>
+                                                    {quickCreateItems.length > 1 && (
+                                                        <button type="button" onClick={() => setQuickCreateItems(p => p.filter(i => i.id !== item.id))} className="text-red-400 hover:text-red-600 p-1 bg-white dark:bg-slate-900 rounded-md shadow-sm border border-slate-100 dark:border-slate-800">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
+                                                
+                                                {item.type === 'isolation' && (
+                                                    <div className="mb-4">
+                                                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">{t('work_order_detail.isolation_type', "Type d'isolation")}</label>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newItems = [...quickCreateItems];
+                                                                    newItems[index].isolation_type = 'PUR';
+                                                                    setQuickCreateItems(newItems);
+                                                                }}
+                                                                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                                                                    item.isolation_type === 'PUR'
+                                                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                                                                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-indigo-200 hover:bg-indigo-50/50'
+                                                                }`}
+                                                            >
+                                                                <Wind className="w-5 h-5 mb-1" strokeWidth={2.5} />
+                                                                <span className="font-bold text-sm">PUR</span>
+                                                            </button>
+                                                            
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newItems = [...quickCreateItems];
+                                                                    newItems[index].isolation_type = 'EPS';
+                                                                    setQuickCreateItems(newItems);
+                                                                }}
+                                                                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                                                                    item.isolation_type === 'EPS'
+                                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
+                                                                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-200 hover:bg-emerald-50/50'
+                                                                }`}
+                                                            >
+                                                                <Thermometer className="w-5 h-5 mb-1" strokeWidth={2.5} />
+                                                                <span className="font-bold text-sm">EPS</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Suprafață (m²)</label>
+                                                        <input 
+                                                            type="number" min="0" step="any"
+                                                            value={item.surface}
+                                                            onChange={e => {
+                                                                const newItems = [...quickCreateItems];
+                                                                newItems[index].surface = e.target.value;
+                                                                setQuickCreateItems(newItems);
+                                                            }}
+                                                            className="w-full h-10 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Grosime (cm)</label>
+                                                        <input 
+                                                            type="number" min="0" step="any"
+                                                            value={item.thickness}
+                                                            onChange={e => {
+                                                                const newItems = [...quickCreateItems];
+                                                                newItems[index].thickness = e.target.value;
+                                                                setQuickCreateItems(newItems);
+                                                            }}
+                                                            className="w-full h-10 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {item.type === 'chape' && (
+                                                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+                                                        {['foil', 'mesh', 'fiber', 'duramint'].map(bifa => (
+                                                            <label key={bifa} className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={!!item[`has_${bifa}`]}
+                                                                    onChange={e => {
+                                                                        const newItems = [...quickCreateItems];
+                                                                        newItems[index][`has_${bifa}`] = e.target.checked;
+                                                                        setQuickCreateItems(newItems);
+                                                                    }}
+                                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                                                                />
+                                                                <span className="capitalize">{bifa === 'mesh' ? 'Plasă' : bifa === 'foil' ? 'Folie' : bifa === 'fiber' ? 'Fibră' : 'Duramint'}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {item.type === 'isolation' && item.isolation_type === 'PUR' && (
+                                                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+                                                        {['aspiration', 'niveller', 'poncage', 'protection'].map(opt => (
+                                                            <label key={opt} className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={!!item[`pur_${opt}`]}
+                                                                    onChange={e => {
+                                                                        const newItems = [...quickCreateItems];
+                                                                        newItems[index][`pur_${opt}`] = e.target.checked;
+                                                                        setQuickCreateItems(newItems);
+                                                                    }}
+                                                                    className="rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
+                                                                />
+                                                                <span className="capitalize">{opt === 'aspiration' ? 'Aspirare' : opt === 'niveller' ? 'Nivelare Laser' : opt === 'poncage' ? 'Șlefuire' : 'Protecție (>1m)'}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    <div className="mt-2 text-right">
+                                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                            {t('dashboard.quick_create.sand_estimated', 'Sable estimé :')} {calculatedSand > 0 ? (
+                                                <span className="text-blue-600 dark:text-blue-500">{Math.round(calculatedSand)} {t('common.tons', 'Tonnes')}</span>
+                                            ) : (
+                                                <span className="opacity-60">-</span>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 -mt-1 pl-1">
-                                        {t('dashboard.quick_create.sand_estimated', 'Sable estimé :')} {calculatedSand > 0 ? (
-                                            <span className="text-blue-600 dark:text-blue-500">{Math.round(calculatedSand)} {t('common.tons', 'Tonnes')}</span>
-                                        ) : (
-                                            <span className="opacity-60">- {t('dashboard.quick_create.enter_sqm', '(Entrez m² et épaisseur)')}</span>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={!!quickCreateForm.has_foil}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_foil: e.target.checked })}
-                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                            />
-                                            {t('dashboard.quick_create.include_foil', 'Inclure Film plastique (1,2 EUR/m²)')}
-                                        </label>
-                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={!!quickCreateForm.has_mesh}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_mesh: e.target.checked })}
-                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                            />
-                                            {t('dashboard.quick_create.include_mesh', 'Inclure Treillis métallique (2,50 EUR/m²)')}
-                                        </label>
-                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={!!quickCreateForm.has_fiber}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_fiber: e.target.checked })}
-                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                            />
-                                            {t('dashboard.quick_create.include_fiber', 'Include Fibres')}
-                                        </label>
-                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={!!quickCreateForm.has_duramint}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_duramint: e.target.checked })}
-                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                            />
-                                            {t('dashboard.quick_create.include_duramint', 'Include Duramint')}
-                                        </label>
+
+                                    <div className="mt-4 mb-2 flex gap-2">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setQuickCreateItems([...quickCreateItems, { id: Date.now(), type: 'chape', surface: '', thickness: '', has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false, isolation_type: 'PUR', pur_aspiration: false, pur_niveller: false, pur_poncage: false, pur_protection: false }])}
+                                            className="flex-1 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors border border-blue-100 dark:border-blue-900/50"
+                                        >
+                                            <Plus className="w-4 h-4" /> Adaugă Șapă
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setQuickCreateItems([...quickCreateItems, { id: Date.now(), type: 'isolation', surface: '', thickness: '', has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false, isolation_type: 'PUR', pur_aspiration: false, pur_niveller: false, pur_poncage: false, pur_protection: false }])}
+                                            className="flex-1 py-2.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors border border-emerald-100 dark:border-emerald-900/50"
+                                        >
+                                            <Plus className="w-4 h-4" /> Adaugă Izolare
+                                        </button>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.allocated_team', 'Équipe Allouée')}</label>
@@ -1829,7 +1933,7 @@ export default function AdminOverview() {
                             <button type="button" onClick={() => setQuickCreateData(null)} className="h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
                                 {t('common.cancel', 'Annuler')}
                             </button>
-                            <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.clientId || !quickCreateForm.surface || !quickCreateForm.thickness || parseFloat(quickCreateForm.thickness) < 4} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
+                            <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.clientId || quickCreateItems.filter(i => parseFloat(i.surface) > 0).length === 0 || quickCreateItems.some(i => parseFloat(i.surface) > 0 && (!i.thickness || parseFloat(i.thickness) < 1))} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
                                 {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Confirmer la Commande')}
                             </button>
                         </div>

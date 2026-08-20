@@ -5,7 +5,8 @@ from sqlalchemy import create_engine, text
 try:
     engine = create_engine(os.environ["DATABASE_URL"], connect_args={'connect_timeout': 5})
     with engine.connect() as conn:
-        res = conn.execute(text("SELECT count(*) FROM work_orders"))
-        print("COUNT:", res.scalar())
+        res = conn.execute(text("SELECT table_schema, table_name FROM information_schema.tables WHERE table_name = 'work_orders'"))
+        rows = res.fetchall()
+        print("TABLES:", rows)
 except Exception as e:
     print("ERROR:", e)
