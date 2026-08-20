@@ -158,7 +158,14 @@ export function buildQuoteItems(wo, pricingSettings, options = {}) {
                         }
                     }
                 }
-                items.push({ id: 'eps_base', desc: `Isolation EPS (${epsVol.toFixed(2)} m³)`, qty: 1, unit: 'Forfait', price: epsPrice });
+                
+                // Allow custom surface multiplier
+                if (p.custom_eps_price_per_m2 != null && p.custom_eps_price_per_m2 !== '' && !isNaN(p.custom_eps_price_per_m2)) {
+                    epsPrice = surface * parseFloat(p.custom_eps_price_per_m2);
+                    items.push({ id: 'eps_base', desc: `Isolation EPS (${parseFloat(vol.thickness || 1)} cm)`, qty: surface, unit: 'm²', price: parseFloat(p.custom_eps_price_per_m2) });
+                } else {
+                    items.push({ id: 'eps_base', desc: `Isolation EPS (${surface} m², ${parseFloat(vol.thickness || 1)} cm)`, qty: 1, unit: 'Forfait', price: epsPrice });
+                }
                 
                 const epsDiscountPct = parseFloat(p.eps_discount_pct || 0);
                 if (epsDiscountPct > 0) {

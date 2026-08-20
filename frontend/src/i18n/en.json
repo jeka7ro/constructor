@@ -2587,7 +2587,7 @@
         "eps_thresholds": "Paliers de Prix",
         "section_transport_chape": "Transport Chape",
         "truck_distance": "Distance de facturation",
-        "truck_distance_sub": "Si trajet > km, appliquer frais",
+        "truck_distance_sub": "If one-way distance > km",
         "truck_price": "Frais de transport (Fixe)",
         "truck_free_surface": "Gratuit pour grande surface",
         "truck_free_surface_sub": "Pas de frais si surface >",
@@ -3023,7 +3023,8 @@
         "step_address": "Address",
         "step_date": "Date",
         "step_contact": "Contact",
-        "step_photos": "Photos"
+        "step_photos": "Photos",
+        "add_surface": "Add another surface"
     },
     "planning": {
         "cannot_complete_future": "You cannot complete a future work order.",

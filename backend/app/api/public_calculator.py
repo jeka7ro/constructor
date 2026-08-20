@@ -206,6 +206,22 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         )
         db.add(client)
         db.flush()
+    else:
+        # Client found by name, update their details with the newest request
+        if payload.client_type:
+            client.client_type = payload.client_type
+        if payload.client_email:
+            client.email = payload.client_email
+        if payload.client_phone:
+            client.phone = payload.client_phone
+        if payload.client_language:
+            client.preferred_language = payload.client_language
+        if payload.client_type == "juridica" and payload.client_company_vat:
+            client.cui = payload.client_company_vat
+        if payload.client_address:
+            client.address = payload.client_address
+        db.add(client)
+        db.flush()
         
     # 3. Calculate estimated price
     pricing = db.query(PricingSetting).filter(PricingSetting.organization_id == org.id, PricingSetting.client_id == None).first()

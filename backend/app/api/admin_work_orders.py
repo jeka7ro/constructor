@@ -1399,7 +1399,7 @@ def update_work_order(
             if "client_phone" not in update_data:
                 wo.client_phone = cl.phone
             if "client_language" not in update_data:
-                wo.client_language = cl.preferred_language or 'ro'
+                wo.client_language = wo.client_language or cl.preferred_language or 'ro'
     elif wo.client_name:
         # Create client automatically if missing
         cl = db.query(Client).filter(

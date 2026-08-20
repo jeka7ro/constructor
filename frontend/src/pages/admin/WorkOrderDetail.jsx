@@ -1087,7 +1087,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     let realCalc = null;
     let realPurOpts = { aspiration: 0, niveller: 0, poncage: 0, protection: 0 };
     if (hasRealData) {
-        realCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, discountPct: 0, isoPurBase: 0, isoPurOpt: 0, isoEpsBase: 0, purDiscount: 0, purDiscountPct: 0, epsDiscount: 0, epsDiscountPct: 0, extraThick: 0 };
+        realCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, discountPct: 0, isoPurBase: 0, isoPurOpt: 0, isoEpsBase: 0, isoEpsVol: 0, isoEpsSurface: 0, isoEpsThickness: 0, purDiscount: 0, purDiscountPct: 0, epsDiscount: 0, epsDiscountPct: 0, extraThick: 0 };
         
         const invoicePrices = { ...(wo.prices || {}), ...(wo.prices?.invoice || {}) };
         
@@ -1171,13 +1171,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         break;
                     }
                 }
-                if (invoicePrices.custom_eps_price_flat !== undefined && invoicePrices.custom_eps_price_flat !== null) {
+                if (invoicePrices.custom_eps_price_flat !== undefined && invoicePrices.custom_eps_price_flat !== null && invoicePrices.custom_eps_price_flat !== '') {
                     epsPrice = parseFloat(invoicePrices.custom_eps_price_flat);
-                } else if (invoicePrices.custom_eps_price_per_m3 !== undefined && invoicePrices.custom_eps_price_per_m3 !== null) {
+                } else if (invoicePrices.custom_eps_price_per_m2 !== undefined && invoicePrices.custom_eps_price_per_m2 !== null && invoicePrices.custom_eps_price_per_m2 !== '') {
+                    epsPrice = surface * parseFloat(invoicePrices.custom_eps_price_per_m2);
+                } else if (invoicePrices.custom_eps_price_per_m3 !== undefined && invoicePrices.custom_eps_price_per_m3 !== null && invoicePrices.custom_eps_price_per_m3 !== '') {
                     epsPrice = epsVol * parseFloat(invoicePrices.custom_eps_price_per_m3);
                 }
 
                 realCalc.isoEpsBase += epsPrice;
+                realCalc.isoEpsVol += epsVol;
+                realCalc.isoEpsSurface += surface;
+                realCalc.isoEpsThickness = parseFloat(vol.thickness || 1);
                 let epsDiscountPct = parseFloat(invoicePrices.eps_discount_pct || 0);
                 let netEps = epsPrice * (1 - epsDiscountPct / 100);
                 realCalc.epsDiscount = epsPrice * (epsDiscountPct / 100);
@@ -2728,7 +2733,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                     {realCalc.isoEpsBase > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                            <span className="font-medium">Isolation EPS</span>
+                                            <span className="font-medium">Isolation EPS ({realCalc.isoEpsSurface} m² &times; {realCalc.isoEpsThickness} cm)</span>
                                             <span className="text-right tabular-nums"><b>{realCalc.isoEpsBase.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}

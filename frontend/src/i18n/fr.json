@@ -2748,7 +2748,7 @@
         "section_transport_pur": "Transport Camion (PUR)",
         "section_transport_eps": "Transport Camion (EPS)",
         "truck_distance": "Distance de facturation",
-        "truck_distance_sub": "Si trajet > km",
+        "truck_distance_sub": "Si trajet (aller simple) > km",
         "truck_price": "Frais de transport (Fixe)",
         "truck_free_surface": "Gratuit pour grande surface",
         "truck_free_surface_sub": "Pas de frais si surface >"
@@ -3122,7 +3122,8 @@
         "isolation_question": "Avez-vous besoin d'isolation pour ce chantier ?",
         "duramint_always_included": "Toujours inclus",
         "pur_desc": "Mousse polyuréthane projetée",
-        "eps_desc": "Polystyrène expansé"
+        "eps_desc": "Polystyrène expansé",
+        "add_surface": "Ajouter une autre surface"
     },
     "planning": {
         "cannot_complete_future": "Vous ne pouvez pas terminer un travail dans le futur.",

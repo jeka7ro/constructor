@@ -27,7 +27,7 @@ const DEVIS_LANG = {
         nivellement: 'Nivellement au laser',
         poncage: 'Ponçage de la mousse',
         protection: 'Protection au-dessus 1M',
-        epsBase: (m3) => `Isolation EPS (${m3} m³)`,
+        epsBase: (text) => `Isolation EPS (${text})`,
     },
     en: {
         devis: 'QUOTE', validDays: 'Valid 30 days', date: 'Date:',
@@ -49,7 +49,7 @@ const DEVIS_LANG = {
         nivellement: 'Laser levelling',
         poncage: 'Foam sanding',
         protection: 'Protection above 1M',
-        epsBase: (m3) => `EPS Insulation (${m3} m³)`,
+        epsBase: (text) => `EPS Insulation (${text})`,
     },
     nl: {
         devis: 'OFFERTE', validDays: 'Geldig 30 dagen', date: 'Datum:',
@@ -71,7 +71,7 @@ const DEVIS_LANG = {
         nivellement: 'Laser nivellering',
         poncage: 'Schuimschuren',
         protection: 'Bescherming boven 1M',
-        epsBase: (m3) => `EPS Isolatie (${m3} m³)`,
+        epsBase: (text) => `EPS Isolatie (${text})`,
     },
 }
 
@@ -192,7 +192,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 if (/Nivellement/i.test(desc)) desc = T.nivellement;
                 if (/Pon[cç]age/i.test(desc)) desc = T.poncage;
                 if (/Protection/i.test(desc)) desc = T.protection;
-                const epsMatch = desc.match(/Isolation EPS\s*\(([0-9.]+)\s*m/i);
+                const epsMatch = desc.match(/Isolation EPS\s*\(([^)]+)\)/i);
                 if (epsMatch) desc = T.epsBase(epsMatch[1]);
                 if (/^Transport/i.test(desc)) desc = 'Transport / Déplacement';
                 if (/^Forfait$/i.test(desc)) desc = T.forfait || 'Forfait';

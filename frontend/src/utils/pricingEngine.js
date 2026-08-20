@@ -180,8 +180,16 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
                 }
             }
 
-            
-            items.push({ id: `eps_${idx}`, type: 'eps', desc: `Isolation EPS (${epsVol.toFixed(2)} m\u00b3)`, qty: 1, unit: 'forfait', price: epsPrice });
+            // Allow custom surface multiplier
+            if (woP.custom_eps_price_per_m2 !== undefined && woP.custom_eps_price_per_m2 !== null && woP.custom_eps_price_per_m2 !== '' && !isNaN(woP.custom_eps_price_per_m2)) {
+                epsPrice = surface * parseFloat(woP.custom_eps_price_per_m2);
+                items.push({ id: `eps_${idx}`, type: 'eps', desc: `Isolation EPS (${parseFloat(vol.thickness || 1)} cm)`, qty: surface, unit: 'm\u00b2', price: parseFloat(woP.custom_eps_price_per_m2) });
+            } else if (ps.custom_eps_price_per_m2 !== undefined && ps.custom_eps_price_per_m2 !== null && ps.custom_eps_price_per_m2 !== '' && !isNaN(ps.custom_eps_price_per_m2) && (woP.custom_eps_price_per_m2 === undefined || woP.custom_eps_price_per_m2 === null)) {
+                epsPrice = surface * parseFloat(ps.custom_eps_price_per_m2);
+                items.push({ id: `eps_${idx}`, type: 'eps', desc: `Isolation EPS (${parseFloat(vol.thickness || 1)} cm)`, qty: surface, unit: 'm\u00b2', price: parseFloat(ps.custom_eps_price_per_m2) });
+            } else {
+                items.push({ id: `eps_${idx}`, type: 'eps', desc: `Isolation EPS (${surface} m\u00b2, ${parseFloat(vol.thickness || 1)} cm)`, qty: 1, unit: 'forfait', price: epsPrice });
+            }
         } else {
             items.push({ id: `vol_${idx}`, type: 'other', desc: label || `Volume ${idx + 1}`, qty: surface, unit: 'm\u00b2', price: 0 });
         }

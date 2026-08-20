@@ -2447,7 +2447,7 @@
         "section_transport_pur": "Transport LKW (PUR)",
         "section_transport_eps": "Transport LKW (EPS)",
         "truck_distance": "Abrechnungsdistanz",
-        "truck_distance_sub": "Wenn Weg > km",
+        "truck_distance_sub": "Wenn Weg (einfache Fahrt) > km",
         "truck_price": "Transportkosten (Fest)",
         "truck_free_surface": "Kostenlos für große Fläche",
         "truck_free_surface_sub": "Keine Kosten wenn Fl. >",
@@ -3016,7 +3016,8 @@
         "pur_poncage": "Ponçage de la mousse",
         "pur_poncage_sub": "obligatoire pour chauffage au sol",
         "pur_protection": "Protection au-dessus 1M",
-        "eps_selected": "Isolation EPS sélectionnée"
+        "eps_selected": "Isolation EPS sélectionnée",
+        "add_surface": "Weitere Fläche hinzufügen"
     },
     "link": "link",
     "meta": "meta",

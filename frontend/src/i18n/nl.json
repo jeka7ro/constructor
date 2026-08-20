@@ -2476,7 +2476,7 @@
         "section_transport_pur": "Transport Vrachtwagen (PUR)",
         "section_transport_eps": "Transport Vrachtwagen (EPS)",
         "truck_distance": "Facturatieafstand",
-        "truck_distance_sub": "Als reis > km",
+        "truck_distance_sub": "Als reis (enkele reis) > km",
         "truck_price": "Transportkosten (Vast)",
         "truck_free_surface": "Gratis voor grote opp.",
         "truck_free_surface_sub": "Geen kosten als opp >"
@@ -2908,7 +2908,8 @@
         "step_address": "Adres",
         "step_date": "Datum",
         "step_contact": "Contact",
-        "step_photos": "Foto's"
+        "step_photos": "Foto's",
+        "add_surface": "Nog een oppervlakte toevoegen"
     },
     "planning": {
         "cannot_complete_future": "U kunt een toekomstige werkorder niet voltooien.",
