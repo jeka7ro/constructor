@@ -344,6 +344,14 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                                 />
                                                                             )}
                                                                         </div>
+                                                                        {wo.route_sand_kg > 0 && (
+                                                                            <>
+                                                                                <div className="w-px h-3 bg-slate-300 dark:bg-slate-600 mx-0.5"></div>
+                                                                                <div className="text-[11px] font-bold text-amber-600 dark:text-amber-500 shrink-0">
+                                                                                    {(wo.route_sand_kg / 1000).toFixed(1)} t
+                                                                                </div>
+                                                                            </>
+                                                                        )}
                                                                         {/* Removed materials and quantities as per user request */}
                                                                     </div>
                                                                 </div>
