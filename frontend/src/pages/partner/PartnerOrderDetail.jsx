@@ -345,29 +345,9 @@ export default function PartnerOrderDetail() {
                         {order.site_address}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    {['draft', 'pending', 'planning'].includes(order.status) && (
-                        <>
-                            <button
-                                onClick={() => setShowEditModal(true)}
-                                className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
-                                title={t.edit}
-                            >
-                                <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 transition-colors"
-                                title={t.delete}
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </>
-                    )}
-                    <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${STATUS_COLORS[order.status] || STATUS_COLORS.draft}`}>
-                        {getStatusLabel(order.status)}
-                    </span>
-                </div>
+                <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${STATUS_COLORS[order.status] || STATUS_COLORS.draft}`}>
+                    {getStatusLabel(order.status)}
+                </span>
             </div>
 
             {/* Map + Info Grid */}
