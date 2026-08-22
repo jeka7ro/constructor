@@ -350,7 +350,7 @@ export default function AdminOverview() {
                     const qId = String(q.id)
                     if (!knownQuotesRef.current.has(qId)) {
                         knownQuotesRef.current.add(qId)
-                        if (q.source_system === 'we-r' || q.source_system === 'devis_online') {
+                        if (q.source_system === 'we-r' || q.source_system === 'devis_online' || q.source_system === 'partner') {
                             newlyFound.push(q)
                         }
                     }
