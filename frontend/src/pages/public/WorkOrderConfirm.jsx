@@ -478,6 +478,10 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 input, select { border-radius: 6px !important; }
             `;
             document.head.appendChild(style);
+            return () => {
+                document.head.removeChild(link);
+                document.head.removeChild(style);
+            };
         }
     }, [isIframe]);
     

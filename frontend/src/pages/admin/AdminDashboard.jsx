@@ -9,7 +9,7 @@ import HeaderNotifications from '../../components/HeaderNotifications'
 import GlobalSearch from '../../components/GlobalSearch'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail, MapIcon, HardDrive
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail, MapIcon, HardDrive, Handshake
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -259,6 +259,7 @@ export default function AdminDashboard() {
             label: t('nav.cat_system', 'Système'),
             items: [
                 { path: '/admin/users', icon: Shield, label: t('nav.users', 'Utilisateurs') },
+                { path: '/admin/partners', icon: Handshake, label: t('nav.partners', 'Partenaires') },
                 { path: '/admin/pricing-settings', icon: Calculator, label: t('nav.pricing_settings', 'Tarifs') },
                 { path: '/admin/audit-logs', icon: History, label: t('nav.audit_logs', 'Journaux d\'Activité') },
                 { path: '/admin/emails', icon: Mail, label: t('nav.email_logs', 'Journaux d\'E-mails') },
@@ -407,6 +408,7 @@ export default function AdminDashboard() {
         if (p.includes('/alerts')) return t('nav.alerts', 'Avis');
         if (p.includes('/emergencies')) return t('nav.emergencies', 'Urgences');
         if (p.includes('/complaints')) return t('nav.complaints', 'Plaintes');
+        if (p.includes('/partners')) return t('nav.partners', 'Partenaires');
         if (p.includes('/users')) return t('nav.users', 'Utilisateurs');
         if (p.includes('/pricing-settings')) return t('nav.pricing_settings', 'Tarifs');
         if (p.includes('/settings')) return t('nav.settings', 'Paramètres');

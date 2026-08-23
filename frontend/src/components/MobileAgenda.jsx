@@ -288,7 +288,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                     prevAddress = prevWo.site_address || prevWo.address || prevWo.client_name;
                                                 }
 
-                                                const color = wo.assigned_team_color || '#3b82f6';
+                                                const color = wo.team?.color || wo.assigned_team_color || '#3b82f6';
                                                 const bgStyle = {
                                                     backgroundColor: color + '1a',
                                                     borderColor: color + '33',
@@ -384,7 +384,15 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                             const sq = parseFloat(v.quantity);
                                                                             const th = parseFloat(v.thickness);
                                                                             if (!sq && !th) return null;
-                                                                            const shortLabel = (v.label || '').toLowerCase().includes('izola') ? 'Izolație' : (v.label || `Volum ${idx + 1}`);
+                                                                            
+                                                                            let shortLabel = (v.label || `Chape ${idx === 0 ? '' : idx + 1}`).trim();
+                                                                            if (shortLabel.toLowerCase().includes('izola')) {
+                                                                                shortLabel = 'Izolație';
+                                                                            } else {
+                                                                                shortLabel = shortLabel.replace(/surface/i, 'Chape').replace(/volum/i, 'Chape').trim();
+                                                                                if (shortLabel.toLowerCase() === 'chape 1') shortLabel = 'Chape';
+                                                                            }
+
                                                                             const isPur = (v.label || '').toLowerCase().includes('pur');
                                                                             const isEps = (v.label || '').toLowerCase().includes('eps');
                                                                             const Icon = isPur ? Wind : (isEps ? Thermometer : Layers);
@@ -507,7 +515,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                 {/* Cards */}
                                 <div className="flex-1 p-1.5 space-y-1.5 min-h-[120px]">
                                     {dayOrders.length > 0 ? dayOrders.map((wo) => {
-                                        const color = wo.assigned_team_color || '#3b82f6';
+                                        const color = wo.team?.color || wo.assigned_team_color || '#3b82f6';
                                         const clientName = wo.client?.name || wo.client_name || '—';
                                         const isDone = wo.status === 'completed' || wo.status === 'done';
 
@@ -542,6 +550,15 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                     const sq = parseFloat(v.quantity);
                                                                     const th = parseFloat(v.thickness);
                                                                     if (!sq && !th) return null;
+                                                                    
+                                                                    let shortLabel = (v.label || `Chape ${idx === 0 ? '' : idx + 1}`).trim();
+                                                                    if (shortLabel.toLowerCase().includes('izola')) {
+                                                                        shortLabel = 'Izolație';
+                                                                    } else {
+                                                                        shortLabel = shortLabel.replace(/surface/i, 'Chape').replace(/volum/i, 'Chape').trim();
+                                                                        if (shortLabel.toLowerCase() === 'chape 1') shortLabel = 'Chape';
+                                                                    }
+
                                                                     const isPur = (v.label || '').toLowerCase().includes('pur');
                                                                     const isEps = (v.label || '').toLowerCase().includes('eps');
                                                                     const Icon = isPur ? Wind : (isEps ? Thermometer : Layers);
@@ -550,7 +567,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                     return (
                                                                         <div key={idx} className="flex items-center gap-1">
                                                                             <Icon className={`w-3 h-3 ${iconColor} shrink-0`} />
-                                                                            <span className="opacity-70">{v.label || `Volum ${idx + 1}`}:</span>
+                                                                            <span className="opacity-70">{shortLabel}:</span>
                                                                             <span className="font-bold text-slate-700 dark:text-slate-300">
                                                                                 {sq > 0 ? `${sq} m²` : ''} 
                                                                                 {sq > 0 && th > 0 ? ' × ' : ''} 

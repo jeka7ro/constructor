@@ -723,6 +723,11 @@ export default function QuotesManagement() {
                             {t('source.robaws', 'Robaws')}
                         </span>
                     )
+                    if (src === 'partner') return (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-500 whitespace-nowrap">
+                            {t('source.partner', 'Partenaire')}
+                        </span>
+                    )
                     if (src === 'manual') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">
                             {t('source.manual', 'Ajouté manuellement')}

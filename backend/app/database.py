@@ -13,12 +13,14 @@ else:
     engine = create_engine(
         settings.DATABASE_URL,
         poolclass=NullPool,
+        pool_pre_ping=True,
         connect_args={
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 10,
             "keepalives_count": 5,
-            "connect_timeout": 10
+            "connect_timeout": 10,
+            "options": "-c statement_timeout=15000"
         }
     )
 
@@ -52,12 +54,29 @@ class Base(_SanitizeMixin, _DeclarativeBase):  # type: ignore[misc]
     __abstract__ = True
 
 def get_db():
-    """Dependency for database sessions"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    """Dependency for database sessions with retry on connection failure"""
+    import time
+    last_err = None
+    for attempt in range(3):
+        try:
+            db = SessionLocal()
+            # Test the connection is alive
+            db.execute(text("SELECT 1"))
+            try:
+                yield db
+            finally:
+                db.close()
+            return
+        except Exception as e:
+            last_err = e
+            try:
+                db.close()
+            except:
+                pass
+            if attempt < 2:
+                time.sleep(0.5 * (attempt + 1))
+    # All retries failed
+    raise last_err
 
 def warmup_pool():
     """Pre-warm the connection pool to avoid cold-start latency."""

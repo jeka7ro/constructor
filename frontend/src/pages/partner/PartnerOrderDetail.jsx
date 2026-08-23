@@ -69,13 +69,20 @@ const T = {
         delete_confirm_desc: 'Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible.',
         cancel: 'Annuler',
         confirm: 'Confirmer',
+        chat: 'Discussion',
+        type_message: 'Écrivez un message...',
+        send: 'Envoyer',
+        no_messages: 'Aucun message pour le moment',
+        sending: 'Envoi...',
+        from_date: 'Du',
+        to_date: 'au'
     },
     nl: {
         back: 'Terug',
-        details: 'Bestelgegevens',
-        address: 'Adres van de werf',
+        details: 'Bestelling details',
+        address: 'Werfadres',
         work_type: 'Type werk',
-        new_work: 'Nieuw',
+        new_work: 'Nieuwbouw',
         repair_work: 'Renovatie',
         date: 'Geplande datum',
         status: 'Status',
@@ -83,46 +90,54 @@ const T = {
         surfaces: 'Oppervlakten',
         estimated: 'Geschat',
         actual: 'Werkelijk (gemeten)',
-        actual_surface: 'Werkelijke oppervlakte',
+        actual_surface: 'Werkelijke opp.',
         actual_thickness: 'Werkelijke dikte',
         thickness: 'Dikte',
-        photos: 'Foto\'s van de werf',
+        photos: 'Werffoto\'s',
         no_photos: 'Nog geen foto\'s beschikbaar',
-        photos_desc: 'Foto\'s worden door het team toegevoegd tijdens de interventie',
-        checkin: 'Aankomst op locatie',
-        checkout: 'Vertrek van locatie',
-        confirmed_by_team: 'Bevestigd door teamleider',
-        team_note: 'Opmerking teamleider',
+        photos_desc: 'Foto\'s worden toegevoegd door het team',
+        checkin: 'Aankomst op werf',
+        checkout: 'Vertrek van werf',
+        confirmed_by_team: 'Bevestigd door ploegbaas',
+        team_note: 'Notitie ploegbaas',
         timeline: 'Tijdlijn',
         created: 'Bestelling aangemaakt',
         notes: 'Opmerkingen',
         navigate: 'Navigeren',
         loading: 'Laden...',
         not_found: 'Bestelling niet gevonden',
-        foil: 'Plastic folie',
-        mesh: 'Metalen gaas',
-        fiber: 'Vezels + Duramint',
+        foil: 'Folie',
+        mesh: 'Netten',
+        fiber: 'Vezel + Duramint',
         pending: 'In afwachting',
         confirmed: 'Bevestigd',
         planning: 'Gepland',
-        in_progress: 'Bezig',
+        in_progress: 'In uitvoering',
         completed: 'Voltooid',
         draft: 'Concept',
         sent: 'Verzonden',
-        attachments: 'Bijgevoegde documenten',
-        upload_file: 'Bestand bijvoegen',
-        uploading: 'Bezig met uploaden...',
+        attachments: 'Bijlagen',
+        upload_file: 'Bestand toevoegen',
+        uploading: 'Uploaden...',
         upload_desc: 'PDF, foto\'s — max 20 MB',
-        no_attachments: 'Geen bijgevoegde documenten',
-        no_attachments_desc: 'Voeg PDF\'s of foto\'s toe voor deze bestelling',
+        no_attachments: 'Geen bijlagen',
+        no_attachments_desc: 'Voeg PDF\'s of foto\'s toe',
         delete_attachment: 'Verwijderen',
-        attachment_deleted: 'Document verwijderd',
+        attachment_deleted: 'Bijlage verwijderd',
         edit: 'Bewerken',
         delete: 'Verwijderen',
         delete_confirm_title: 'Bestelling verwijderen',
-        delete_confirm_desc: 'Weet u zeker dat u deze bestelling wilt verwijderen? Deze actie is onomkeerbaar.',
+        delete_confirm_desc: 'Weet u zeker dat u deze bestelling wilt verwijderen? Dit kan niet ongedaan worden gemaakt.',
         cancel: 'Annuleren',
         confirm: 'Bevestigen',
+        deleted_success: 'Bestelling verwijderd',
+        chat: 'Gesprek',
+        type_message: 'Typ een bericht...',
+        send: 'Verzenden',
+        no_messages: 'Nog geen berichten',
+        sending: 'Verzenden...',
+        from_date: 'Van',
+        to_date: 'tot'
     },
     en: {
         back: 'Back',
@@ -177,6 +192,8 @@ const T = {
         delete_confirm_desc: 'Are you sure you want to delete this order? This action is irreversible.',
         cancel: 'Cancel',
         confirm: 'Confirm',
+        from_date: 'From',
+        to_date: 'to'
     },
 }
 
@@ -197,12 +214,22 @@ function formatDateTime(iso, lang) {
     })
 }
 
-function formatDate(dateStr, lang) {
+function formatDateRange(dateStr, durationDays, lang, t) {
     if (!dateStr) return '—'
-    const d = new Date(dateStr + 'T00:00:00')
-    return d.toLocaleDateString(lang === 'nl' ? 'nl-BE' : lang === 'en' ? 'en-GB' : 'fr-BE', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-    })
+    const start = new Date(dateStr + 'T00:00:00')
+    const locale = lang === 'nl' ? 'nl-BE' : lang === 'en' ? 'en-GB' : 'fr-BE'
+    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+    const startStr = start.toLocaleDateString(locale, options)
+    
+    if (!durationDays || durationDays <= 1) {
+        return startStr
+    }
+    
+    const end = new Date(start)
+    end.setDate(end.getDate() + (durationDays - 1))
+    const endStr = end.toLocaleDateString(locale, options)
+    
+    return `${t.from_date} ${startStr} ${t.to_date} ${endStr}`
 }
 
 export default function PartnerOrderDetail() {
@@ -219,6 +246,23 @@ export default function PartnerOrderDetail() {
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const fileInputRef = useRef(null)
+    const chatEndRef = useRef(null)
+    const chatContainerRef = useRef(null)
+    const prevMessagesLength = useRef(0)
+
+    // Chat state
+    const [messages, setMessages] = useState([])
+    const [newMessage, setNewMessage] = useState('')
+    const [isSendingMsg, setIsSendingMsg] = useState(false)
+
+    const fetchOrder = useCallback(async () => {
+        try {
+            const res = await partnerApi.get(`/work-orders/${id}`)
+            setOrder(res.data)
+        } catch (err) {
+            console.error('Failed to fetch order', err)
+        }
+    }, [id])
 
     const fetchAttachments = useCallback(async () => {
         try {
@@ -229,28 +273,54 @@ export default function PartnerOrderDetail() {
         }
     }, [id])
 
-    useEffect(() => {
-        const fetchOrder = async () => {
-            setLoading(true)
-            try {
-                const res = await partnerApi.get(`/work-orders/${id}`)
-                setOrder(res.data)
-            } catch (err) {
-                console.error('Failed to fetch order', err)
-            } finally {
-                setLoading(false)
-            }
+    const fetchMessages = useCallback(async () => {
+        try {
+            const res = await partnerApi.get(`/work-orders/${id}/messages`)
+            setMessages(res.data || [])
+        } catch (err) {
+            console.error('Failed to fetch messages', err)
         }
-        fetchOrder()
-        fetchAttachments()
     }, [id])
 
-    const fetchOrder = async () => {
+    useEffect(() => {
+        const init = async () => {
+            setLoading(true)
+            await Promise.all([fetchOrder(), fetchAttachments(), fetchMessages()])
+            setLoading(false)
+        }
+        init()
+        
+        const interval = setInterval(fetchMessages, 3000)
+        return () => clearInterval(interval)
+    }, [id, fetchOrder, fetchAttachments, fetchMessages])
+
+    useEffect(() => {
+        if (messages.length > prevMessagesLength.current) {
+            if (chatContainerRef.current) {
+                chatContainerRef.current.scrollTo({
+                    top: chatContainerRef.current.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }
+        prevMessagesLength.current = messages.length;
+    }, [messages])
+
+    const handleSendMessage = async (e) => {
+        e.preventDefault()
+        if (!newMessage.trim() || isSendingMsg) return
+        
+        setIsSendingMsg(true)
         try {
-            const res = await partnerApi.get(`/work-orders/${id}`)
-            setOrder(res.data)
+            await partnerApi.post(`/work-orders/${id}/messages`, {
+                message: newMessage.trim()
+            })
+            setNewMessage('')
+            fetchMessages()
         } catch (err) {
-            console.error('Failed to fetch order', err)
+            console.error('Failed to send message', err)
+        } finally {
+            setIsSendingMsg(false)
         }
     }
 
@@ -285,7 +355,7 @@ export default function PartnerOrderDetail() {
 
     const vols = order.volumes || []
     const totalSurface = vols.reduce((s, v) => s + (parseFloat(v.quantity) || 0), 0)
-    const photos = order.photos || []
+    const photos = (order.photos || []).filter(p => p.photo_type !== 'partner_document')
 
     const adminDocs = (order?.documents || []).map(d => ({
         id: d.id,
@@ -345,9 +415,25 @@ export default function PartnerOrderDetail() {
                         {order.site_address}
                     </p>
                 </div>
-                <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${STATUS_COLORS[order.status] || STATUS_COLORS.draft}`}>
-                    {getStatusLabel(order.status)}
-                </span>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowEditModal(true)}
+                        className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                        title={t.edit}
+                    >
+                        <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 transition-colors"
+                        title={t.delete}
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                    <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${STATUS_COLORS[order.status] || STATUS_COLORS.draft}`}>
+                        {getStatusLabel(order.status)}
+                    </span>
+                </div>
             </div>
 
             {/* Map + Info Grid */}
@@ -393,32 +479,10 @@ export default function PartnerOrderDetail() {
                             <Calendar className="w-3.5 h-3.5" /> {t.date}
                         </div>
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                            {formatDate(order.start_date, lang)}
+                            {formatDateRange(order.start_date, order.duration_days, lang, t)}
                         </p>
                     </div>
 
-                    {/* Work type */}
-                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
-                        <div className="text-xs font-semibold text-slate-400 uppercase mb-1 flex items-center gap-1">
-                            <Wrench className="w-3.5 h-3.5" /> {t.work_type}
-                        </div>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${order.work_type === 'repair'
-                                ? 'bg-orange-100 text-orange-600'
-                                : 'bg-emerald-100 text-emerald-600'
-                            }`}>
-                            {order.work_type === 'repair' ? t.repair_work : t.new_work}
-                        </span>
-                    </div>
-
-                    {/* Team */}
-                    {order.team_name && (
-                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
-                            <div className="text-xs font-semibold text-slate-400 uppercase mb-1 flex items-center gap-1">
-                                <Users className="w-3.5 h-3.5" /> {t.team}
-                            </div>
-                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{order.team_name}</p>
-                        </div>
-                    )}
 
                     {/* Timeline */}
                     {timeline.length > 0 && (
@@ -442,6 +506,33 @@ export default function PartnerOrderDetail() {
                             </div>
                         </div>
                     )}
+
+                    {/* Équipe assignée */}
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                        <div className="text-xs font-semibold text-slate-400 uppercase mb-3 flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5" /> Équipe
+                        </div>
+                        {order.team_name ? (
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                    <Users className="w-4 h-4 text-emerald-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{order.team_name}</p>
+                                    <p className="text-[10px] text-emerald-500 font-medium">Assignée</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                    <Clock className="w-4 h-4 text-amber-500" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">En attente d'attribution</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -683,6 +774,75 @@ export default function PartnerOrderDetail() {
                 <p className="text-xs text-slate-400 mt-3">{t.upload_desc}</p>
             </div>
 
+            {/* Chat Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm mb-6 flex flex-col h-[500px]">
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
+                    <span className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                        <Users className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    </span>
+                    {t.chat}
+                </h3>
+                
+                <div ref={chatContainerRef} className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 mb-4">
+                    {messages.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                            <span className="text-xs">{t.no_messages}</span>
+                        </div>
+                    ) : (
+                        messages.map((msg) => {
+                            const isMe = msg.sender === 'partner'
+                            return (
+                                <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                    <div className="flex items-baseline gap-2 mb-1 px-1">
+                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                            {msg.sender_name || (msg.sender === 'admin' ? 'Support' : 'Client')}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400">
+                                            {formatDateTime(msg.created_at, lang)}
+                                        </span>
+                                    </div>
+                                    <div className={`px-4 py-2 rounded-2xl max-w-[85%] ${
+                                        isMe 
+                                            ? 'bg-blue-500 text-white rounded-tr-sm shadow-sm' 
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-tl-sm'
+                                    }`}>
+                                        <p className="text-sm whitespace-pre-wrap break-words">
+                                            {isMe ? msg.message : (msg.translations?.[lang] || msg.message)}
+                                        </p>
+                                    </div>
+                                </div>
+                            )
+                        })
+                    )}
+                    <div ref={chatEndRef} />
+                </div>
+
+                <form onSubmit={handleSendMessage} className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 shrink-0">
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder={t.type_message}
+                            disabled={order.is_chat_closed || isSendingMsg}
+                            className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all text-slate-800 dark:text-slate-200"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!newMessage.trim() || isSendingMsg || order.is_chat_closed}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            {isSendingMsg ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Navigation className="w-4 h-4 rotate-45" />
+                            )}
+                            <span className="hidden sm:inline">{t.send}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
             {/* Photos Gallery */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
@@ -777,6 +937,7 @@ export default function PartnerOrderDetail() {
                     onSaved={() => {
                         setShowEditModal(false)
                         fetchOrder()
+                        fetchAttachments()
                     }}
                 />
             )}

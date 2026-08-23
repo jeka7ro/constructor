@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useAdminStore } from './store/adminStore'
+import { usePartnerStore } from './store/partnerStore'
 import { useTenantStore } from './store/tenantStore'
 import api from './lib/api'
 import Login from './pages/Login'
@@ -64,6 +65,11 @@ const AdminBackups = lazy(() => import('./pages/admin/AdminBackups'))
 const PublicProformaView = lazy(() => import('./pages/PublicProformaView'))
 const PublicCalculator = lazy(() => import('./pages/PublicCalculator'))
 const DevisOnline = lazy(() => import('./pages/DevisOnline'))
+const PartnersManagement = lazy(() => import('./pages/admin/PartnersManagement'))
+const PartnerPlanning = lazy(() => import('./pages/partner/PartnerPlanning'))
+const PartnerLogin = lazy(() => import('./pages/partner/PartnerLogin'))
+const PartnerDashboard = lazy(() => import('./pages/partner/PartnerDashboard'))
+const PartnerOrderDetail = lazy(() => import('./pages/partner/PartnerOrderDetail'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
 const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMaterialRequests'))
 const TermsPage = lazy(() => import('./pages/public/legal/TermsPage'))
@@ -339,12 +345,29 @@ function App() {
                         <Route path="work-orders/:id" element={<WorkOrderDetail />} />
                         <Route path="work-orders/:id/edit" element={<WorkOrderForm />} />
                         <Route path="logistica/*" element={<LogisticsRouter />} />
+                        <Route path="partners" element={<PartnersManagement />} />
                     </Route>
 
                     {/* Public Order Routes */}
                     <Route path="/confirm/:token" element={<WorkOrderConfirm />} />
                     <Route path="/public/quotes/:token/pdf" element={<DevisView />} />
                     <Route path="/calculator" element={<PublicCalculator />} />
+
+                    {/* Partner Routes */}
+                    <Route path="/partner/login" element={
+                        <PublicPartnerRoute>
+                            <PartnerLogin />
+                        </PublicPartnerRoute>
+                    } />
+                    
+                    <Route path="/partner" element={
+                        <ProtectedPartnerRoute>
+                            <PartnerDashboard />
+                        </ProtectedPartnerRoute>
+                    }>
+                        <Route path="planning" element={<PartnerPlanning />} />
+                        <Route path="work-orders/:id" element={<PartnerOrderDetail />} />
+                    </Route>
 
                     {/* Public Routes */}
                     <Route path="/login" element={
@@ -530,6 +553,22 @@ function PublicAdminRoute({ children }) {
     const { admin } = useAdminStore()
     if (admin) {
         return <Navigate to="/admin/planning" replace />
+    }
+    return children
+}
+
+function PublicPartnerRoute({ children }) {
+    const { partner } = usePartnerStore()
+    if (partner) {
+        return <Navigate to="/partner/planning" replace />
+    }
+    return children
+}
+
+function ProtectedPartnerRoute({ children }) {
+    const { partner } = usePartnerStore()
+    if (!partner) {
+        return <Navigate to="/partner/login" replace />
     }
     return children
 }

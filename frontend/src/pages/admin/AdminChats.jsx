@@ -115,7 +115,7 @@ export default function AdminChats() {
         
         loadChatDetails()
         
-        // Auto-refresh chat every 15 seconds so we don't need to press F5
+        // Auto-refresh chat every 3 seconds so we don't need to press F5
         const interval = setInterval(() => {
             if (activeWoId) {
                 // Background refresh without triggering loading spinner
@@ -136,7 +136,7 @@ export default function AdminChats() {
                     loadChats() // Refresh the sidebar too
                 }).catch(e => console.error("Auto-refresh failed", e))
             }
-        }, 15000)
+        }, 3000)
         
         return () => clearInterval(interval)
     }, [activeWoId])

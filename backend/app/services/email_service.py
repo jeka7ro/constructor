@@ -509,6 +509,64 @@ def send_quote_update_email(to_email: str, client_name: str, client_language: st
         return False
 
 
+def send_admin_partner_reschedule_alert(admin_email: str, partner_name: str, client_name: str, address: str, new_date: str, new_time: str, org_id: str = None, wo_id: str = None):
+    """Trimite notificare pe e-mail catre admin cand un partener schimba data unei comenzi."""
+    brevo_api_key = os.getenv("BREVO_API_KEY")
+    if not brevo_api_key:
+        return False
+        
+    from_email = os.getenv("EMAIL_FROM", "info@davidechape.pontaj.app")
+    subject = f"NOTIFICATION: Modification de date par le partenaire {partner_name}"
+    
+    time_str = f" à {new_time}" if new_time else ""
+    date_str = f"{new_date}{time_str}" if new_date else "Non définie"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; border: 1px solid #ddd; max-width: 600px; margin: 0 auto; border-radius: 8px;">
+        <h2 style="color: #2b5c8f; margin-top: 0;">Modification de Planification</h2>
+        <p>Le partenaire <strong>{partner_name}</strong> a modifié la date de planification pour une commande.</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Nouvelle Date :</strong></td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>{date_str}</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Client :</strong></td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{client_name or '-'}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Adresse :</strong></td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{address or '-'}</td>
+            </tr>
+        </table>
+        <p style="color: #666; font-size: 12px; margin-top: 20px;">Veuillez vous connecter à la plateforme pour plus de détails.</p>
+    </div>
+    """
+    
+    payload = {
+        "sender": {"name": "SmartDevize Alerts", "email": from_email},
+        "to": [{"email": admin_email}],
+        "subject": subject,
+        "htmlContent": html_content
+    }
+    
+    try:
+        r = httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            json=payload,
+            headers={"api-key": brevo_api_key, "accept": "application/json", "content-type": "application/json"},
+            timeout=10.0
+        )
+        r.raise_for_status()
+        logger.info(f"Partner reschedule alert sent to {admin_email}")
+        _log_email(org_id, wo_id, admin_email, "Admin", subject, html_content, "sent")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send partner reschedule alert to {admin_email}: {e}")
+        _log_email(org_id, wo_id, admin_email, "Admin", subject, html_content, "failed", str(e))
+        return False
+
+
 def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone: str, proforma_url: str, org_id: str = None, wo_id: str = None):
     """Trimite notificare pe e-mail catre admin cand se face un deviz nou din site."""
     brevo_api_key = os.getenv("BREVO_API_KEY")

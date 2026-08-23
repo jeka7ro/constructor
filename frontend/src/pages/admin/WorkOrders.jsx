@@ -20,7 +20,7 @@ const STATUS_CONFIG = {
     confirmed:   { labelKey: 'status.confirmed', fallback: 'Confirmée',  color: 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800', dot: 'bg-emerald-500' },
     completed:   { labelKey: 'status.completed', fallback: 'Terminée',  color: 'bg-violet-50 text-violet-600 border border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800', dot: 'bg-violet-500' },
     cancelled:   { labelKey: 'status.cancelled', fallback: 'Annulée',     color: 'bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', dot: 'bg-red-500' },
-    isoflex:     { labelKey: 'status.isoflex', fallback: 'Isoflex',     color: 'bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800', dot: 'bg-indigo-500' },
+    isoflex:     { labelKey: 'status.isoflex', fallback: 'Isoflex',     color: 'bg-green-50 text-green-600 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800', dot: 'bg-green-500' },
 }
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''

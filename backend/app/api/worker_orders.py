@@ -99,6 +99,7 @@ def _serialize_order(wo: WorkOrder, user_id: str, db: Session) -> dict:
         "actual_thickness_cm": wo.actual_thickness_cm,
         "actual_sand_quantity": wo.actual_sand_quantity,
         "status": wo.status,
+        "is_quote": wo.is_quote,
         "assigned_team_id": wo.assigned_team_id,
         "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
             "assigned_team_color": wo.assigned_team.color if wo.assigned_team else None,
@@ -843,3 +844,109 @@ def delete_worker_photo(
     db.delete(photo)
     db.commit()
     return {"message": "Poza a fost stearsa."}
+
+# ── Chat Messages (Team Leader) ──
+
+from app.models import WorkOrderMessage
+
+class WorkerMessageCreate(BaseModel):
+    message: str
+
+@router.get("/{wo_id}/messages")
+def get_worker_work_order_messages(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get chat messages for a specific work order (only for team leaders)"""
+    if not _is_team_leader(current_user, db):
+        raise HTTPException(status_code=403, detail="Only team leaders can access chat")
+        
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_user.organization_id
+    ).first()
+    
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    messages = db.query(WorkOrderMessage).filter(
+        WorkOrderMessage.work_order_id == wo_id,
+        WorkOrderMessage.is_hidden == False
+    ).order_by(WorkOrderMessage.created_at.asc()).all()
+    
+    return [
+        {
+            "id": m.id,
+            "sender": m.sender,
+            "sender_name": m.sender_name,
+            "message": m.message,
+            "created_at": (m.created_at.isoformat() + "Z") if m.created_at else "",
+            "attachments": m.attachments or []
+        } for m in messages
+    ]
+
+@router.post("/{wo_id}/messages")
+def post_worker_work_order_message(
+    wo_id: str,
+    payload: WorkerMessageCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Post a new message to a work order from a team leader"""
+    if not _is_team_leader(current_user, db):
+        raise HTTPException(status_code=403, detail="Only team leaders can post chat messages")
+        
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_user.organization_id
+    ).first()
+    
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    if getattr(wo, 'is_chat_closed', False):
+        raise HTTPException(status_code=403, detail="Chat is closed")
+        
+    translations = {}
+    
+    # Auto-translate to the 3 public languages if deep_translator is available
+    try:
+        import time
+        from deep_translator import GoogleTranslator
+        for target_lang in ['fr', 'nl', 'en']:
+            for attempt in range(3):
+                try:
+                    translated = GoogleTranslator(source='auto', target=target_lang).translate(payload.message)
+                    if translated and ("Error 500" in translated or "That's an error" in translated or "Server Error" in translated):
+                        print(f"Translation attempt {attempt+1} for {target_lang} returned Error 500, retrying...")
+                        time.sleep(1)
+                        continue
+                    translations[target_lang] = translated
+                    break
+                except Exception as retry_err:
+                    print(f"Translation attempt {attempt+1} for {target_lang} failed: {retry_err}")
+                    if attempt < 2:
+                        time.sleep(1)
+    except Exception as e:
+        print(f"Auto-translation failed: {e}")
+
+    new_msg = WorkOrderMessage(
+        work_order_id=wo_id,
+        sender='admin', # Team leaders are internal, so sender is admin but with their name
+        sender_name=f"{current_user.first_name} {current_user.last_name} (Chef)",
+        message=payload.message,
+        is_read_by_admin=False,
+        translations=translations
+    )
+    db.add(new_msg)
+    db.commit()
+    db.refresh(new_msg)
+    
+    return {
+        "id": new_msg.id,
+        "sender": new_msg.sender,
+        "sender_name": new_msg.sender_name,
+        "message": new_msg.message,
+        "created_at": (new_msg.created_at.isoformat() + "Z") if new_msg.created_at else ""
+    }

@@ -4,9 +4,10 @@ import { useOutletContext, useNavigate } from 'react-router-dom'
 import { usePartnerStore } from '../../store/partnerStore'
 import partnerApi from '../../lib/partnerApi'
 import PartnerWorkOrderModal from './PartnerWorkOrderModal'
-import { Plus, LayoutList, CalendarDays, Loader2, Truck, MapPin, X } from 'lucide-react'
+import { Plus, LayoutList, CalendarDays, Loader2, Truck, MapPin, X, Navigation, CheckCircle2, Wind, Thermometer, Layers } from 'lucide-react'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
 import CalendarErrorBoundary from '../../components/CalendarErrorBoundary'
+import WeatherWidget from '../../components/WeatherWidget'
 
 const T = {
     fr: {
@@ -164,23 +165,28 @@ export default function PartnerPlanning() {
     const [showModal, setShowModal] = useState(false)
     const [editingOrder, setEditingOrder] = useState(null)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
-    const [teams, setTeams] = useState([{ id: 'partner_team', name: 'Mes chantiers', color: '#2563eb' }])
-    const [selectedTeamIds, setSelectedTeamIds] = useState(new Set(['partner_team']))
+    const [teams, setTeams] = useState([])
+    const [selectedTeamIds, setSelectedTeamIds] = useState(new Set())
     // Calendar state
     const [currentWeekStart, setCurrentWeekStart] = useState(() => getMonday(new Date()))
     const [viewMode, setViewMode] = useState('week') // 'week' | 'list'
+
+    const fetchTeams = useCallback(async () => {
+        try {
+            const res = await partnerApi.get('/teams')
+            const fetched = res.data || []
+            setTeams(fetched)
+            setSelectedTeamIds(new Set(fetched.map(t => t.id)))
+        } catch (err) {
+            console.error('Failed to fetch partner teams', err)
+        }
+    }, [])
 
     const fetchOrders = useCallback(async () => {
         setLoading(true)
         try {
             const res = await partnerApi.get('/work-orders')
-            const ordersWithDummyTeam = (res.data || []).map(o => ({ ...o, assigned_team_id: 'partner_team' }))
-            setOrders(ordersWithDummyTeam)
-            const resTeams = await partnerApi.get('/teams')
-            setTeams(resTeams.data || [])
-            if (selectedTeamIds.size === 0 && resTeams.data?.length > 0) {
-                setSelectedTeamIds(new Set(resTeams.data.map(t => t.id)))
-            }
+            setOrders(res.data || [])
         } catch (err) {
             console.error('Failed to fetch partner data', err)
         } finally {
@@ -188,7 +194,7 @@ export default function PartnerPlanning() {
         }
     }, [])
 
-    useEffect(() => { fetchOrders() }, [fetchOrders])
+    useEffect(() => { fetchTeams(); fetchOrders() }, [fetchTeams, fetchOrders])
 
     const handleDelete = async (id) => {
         try {
@@ -219,6 +225,20 @@ export default function PartnerPlanning() {
         }
     }
 
+    const handleOrderRescheduled = (woId, newDate, newTime, revert = false, durationDays = undefined) => {
+        if (woId && newDate && newTime) {
+            setOrders(prev => prev.map(wo => String(wo.id) === String(woId) ? {
+                ...wo,
+                start_date: newDate,
+                start_time: newTime,
+                ...(durationDays !== undefined ? { duration_days: durationDays } : {})
+            } : wo));
+        }
+        if (revert || !woId) {
+            fetchOrders();
+        }
+    }
+
     const getStatusLabel = (status) => t[status] || status
     const [isCalendarFull, setIsCalendarFull] = useState(false);
     const toggleCalendarFullscreen = () => setIsCalendarFull(p => !p);
@@ -235,27 +255,12 @@ export default function PartnerPlanning() {
     return (
         <div className="space-y-4 h-[calc(100vh-8rem)]">
             {/* Header Controls */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setViewMode('list')}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-400'}`}
-                    >
-                        <LayoutList className="w-4 h-4 inline mr-1.5" />
-                        List
-                    </button>
-                    <button
-                        onClick={() => setViewMode('week')}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${viewMode === 'week' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-400'}`}
-                    >
-                        <CalendarDays className="w-4 h-4 inline mr-1.5" />
-                        Matrix
-                    </button>
-                </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3">
+
                 <div className="flex items-center gap-2 relative">
                     <button
                         onClick={() => { setEditingOrder(null); setShowModal(true) }}
-                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm transition-all active:scale-95"
+                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm transition-all active:scale-95"
                     >
                         <Plus className="w-4 h-4" />
                         {t.add_order}
@@ -272,10 +277,12 @@ export default function PartnerPlanning() {
                             clients={[]}
                             apiClient={partnerApi}
                             apiBasePath="/work-orders"
-                            navBasePath="/partner/orders"
+                            navBasePath="/partner/work-orders"
                             isPartner={true}
-                            onOrderRescheduled={() => fetchOrders()}
-                            onOrderClick={(wo) => navigate('/partner/orders/' + wo.id)}
+                            isCalendarFull={true}
+                            onTeamDrop={handleTeamDropOnOrder}
+                            onOrderRescheduled={handleOrderRescheduled}
+                            onOrderClick={(wo) => navigate('/partner/work-orders/' + wo.id)}
                             onOrderEdit={(wo) => {
                                 setEditingOrder(wo);
                                 setShowModal(true);
@@ -294,12 +301,138 @@ export default function PartnerPlanning() {
                             No orders found.
                         </div>
                     ) : (
-                        orders.map(order => (
-                            <div key={order.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-2 cursor-pointer hover:shadow-md transition-all" onClick={() => navigate('/partner/orders/' + order.id)}>
-                                <div className="font-semibold text-slate-800 dark:text-slate-200">{order.site_address}</div>
-                                <div className="text-sm text-slate-500">Status: {getStatusLabel(order.status)}</div>
-                            </div>
-                        ))
+                        orders.map((wo, index) => {
+                            const color = wo.team?.color || wo.assigned_team_color || '#3b82f6';
+                            const bgStyle = {
+                                backgroundColor: color + '1a',
+                                borderColor: color + '33',
+                                backdropFilter: 'blur(8px)'
+                            };
+                            
+                            const lat = wo.site_latitude || wo.site_lat;
+                            const lng = wo.site_longitude || wo.site_lng;
+                            const address = wo.site_address || wo.address || wo.client_name;
+                            const staticMapLoc = (lat && lng) ? true : false;
+                            const teamName = wo.team?.name || wo.assigned_team_name || 'Echipă Neasignată';
+
+                            return (
+                                <button
+                                    key={wo.id}
+                                    onClick={() => navigate('/partner/work-orders/' + wo.id)}
+                                    className="relative w-full rounded-2xl border text-left overflow-hidden shadow-sm active:scale-[0.98] transition-all duration-200"
+                                    style={bgStyle}
+                                >
+                                    {staticMapLoc && (
+                                        <div 
+                                            className="absolute top-0 right-0 bottom-0 w-2/3 pointer-events-none overflow-hidden rounded-r-2xl opacity-40 dark:opacity-20 mix-blend-multiply dark:mix-blend-lighten" 
+                                            style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black)', maskImage: 'linear-gradient(to right, transparent, black)' }}
+                                        >
+                                            <img 
+                                                src={`https://static-maps.yandex.ru/1.x/?ll=${lng},${lat}&size=400,300&z=14&l=map`} 
+                                                alt="Map" 
+                                                className="w-full h-full object-cover" 
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="p-3.5 flex flex-col gap-2.5 relative z-10">
+                                        <div className="flex items-center justify-between w-full gap-1">
+                                            <div className="flex items-center gap-1 px-2 py-1 rounded-md shrink-0" style={{ backgroundColor: color + '26' }}>
+                                                <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate max-w-[120px] drop-shadow-sm">{teamName}</span>
+                                            </div>
+                                            <div className={`flex items-center justify-center flex-1`}>
+                                                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/70 dark:bg-slate-800/70 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
+                                                    <div className="text-[11px] font-bold shrink-0">
+                                                        <OsrmDistance 
+                                                            lat1={50.88243} lon1={4.39343} 
+                                                            lat2={lat} lon2={lng} 
+                                                            label=""
+                                                        />
+                                                    </div>
+                                                    {wo.route_sand_kg > 0 && (
+                                                        <>
+                                                            <div className="w-px h-3 bg-slate-300 dark:bg-slate-600 mx-0.5"></div>
+                                                            <div className="text-[11px] font-bold text-amber-600 dark:text-amber-500 shrink-0">
+                                                                {(wo.route_sand_kg / 1000).toFixed(1)} t
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="shrink-0 flex items-center justify-end">
+                                                {(lat && lng) && (
+                                                    <div className="scale-125 origin-right pr-2">
+                                                        <WeatherWidget lat={lat} lon={lng} dateStr={wo.start_date || wo.deadline_date} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1 mt-1">
+                                            <h4 className="font-bold text-[16px] leading-tight opacity-90 dark:text-white">
+                                                {wo.client?.name || wo.client_name || 'Client Necunoscut'}
+                                            </h4>
+                                        </div>
+                                        
+                                        <div className="space-y-1 mt-1">
+                                            {wo.volumes && wo.volumes.some(v => parseFloat(v.quantity) > 0) && (
+                                                <div className="flex flex-col gap-0.5 mt-1">
+                                                    {wo.volumes.map((v, idx) => {
+                                                        const sq = parseFloat(v.quantity);
+                                                        const th = parseFloat(v.thickness);
+                                                        if (!sq && !th) return null;
+                                                        const shortLabel = (v.label || '').toLowerCase().includes('izola') ? 'Izolație' : (v.label || `Volum ${idx + 1}`);
+                                                        const isPur = (v.label || '').toLowerCase().includes('pur');
+                                                        const isEps = (v.label || '').toLowerCase().includes('eps');
+                                                        const Icon = isPur ? Wind : (isEps ? Thermometer : Layers);
+                                                        const iconColor = isPur ? 'text-indigo-500' : (isEps ? 'text-emerald-500' : 'text-slate-500');
+
+                                                        return (
+                                                            <div key={idx} className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                                                                <Icon className={`w-3.5 h-3.5 ${iconColor} shrink-0`} />
+                                                                <span className="truncate max-w-[80px] opacity-80">{shortLabel}:</span>
+                                                                <span>
+                                                                    {sq > 0 ? `${sq} m²` : ''} 
+                                                                    {sq > 0 && th > 0 ? ' × ' : ''} 
+                                                                    {th > 0 ? `${th} cm` : ''}
+                                                                </span>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: color + '26' }}>
+                                            <MapPin className="w-4 h-4 shrink-0 opacity-70 dark:text-slate-300" />
+                                            <div className="flex flex-col flex-1">
+                                                <span className="text-xs font-medium leading-tight opacity-80 dark:text-slate-300">
+                                                    {address || 'Fără adresă'}
+                                                </span>
+                                            </div>
+                                            {wo.status === 'completed' || wo.status === 'done' ? (
+                                                <div 
+                                                    className="ml-auto w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"
+                                                    title={'Terminé'}
+                                                >
+                                                    <CheckCircle2 className="w-5 h-5" />
+                                                </div>
+                                            ) : (
+                                                <a 
+                                                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wo.site_address || wo.site?.address || wo.address || '')}`}
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="ml-auto w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors shrink-0"
+                                                >
+                                                    <Navigation className="w-4 h-4" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })
                     )}
                 </div>
             )}

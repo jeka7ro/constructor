@@ -39,8 +39,17 @@ import { isToday, isFuture, format, startOfDay, startOfWeek, addWeeks, subWeeks,
 import { ro, fr } from 'date-fns/locale'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTS
+// CONSTANTS & HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+const getFullImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const base = API_BASE.replace(/\/$/, '');
+    const path = url.startsWith('/') ? url : `/${url}`;
+    return `${base}${path}`;
+};
 
 const TABS = [
     { id: 'info',       label: 'Info',       icon: Info },
@@ -296,15 +305,6 @@ function OrderCard({ order, onClick }) {
 // SUB-COMPONENT: Tab Bar
 // ─────────────────────────────────────────────────────────────────────────────
 function TabBar({ active, onChange, onHomePress, tenant, isDriver }) {
-    const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
-    const getImageUrl = (url) => {
-        if (!url) return '';
-        if (url.startsWith('http') || url.startsWith('data:')) return url;
-        const base = API_BASE.replace(/\/$/, '');
-        const path = url.startsWith('/') ? url : `/${url}`;
-        return `${base}${path}`;
-    };
-
     const adminTabs = [
         { id: 'info',       label: 'Info',       icon: Info },
         { id: 'poze',       label: 'Photos',     icon: Camera },
@@ -349,12 +349,11 @@ function TabBar({ active, onChange, onHomePress, tenant, isDriver }) {
                     className={`absolute -top-14 flex flex-col items-center justify-center w-[68px] h-[68px] text-white rounded-full transition-all active:scale-95 border-4 border-white backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] bg-[color:var(--mobile-bg)]`}
                     style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                 >
-                    {tenant?.favicon_url ? (
-                        <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-8 h-8 object-contain drop-shadow-md rounded-xl" />
-                    ) : tenant?.logo_url ? (
-                        <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
-                    ) : (
-                        <Home className="w-7 h-7 drop-shadow-md text-white" />
+                    {tenant?.favicon_url && (
+                        <img src={getFullImageUrl(tenant.favicon_url)} alt="Favicon" className="w-8 h-8 object-contain drop-shadow-md rounded-xl" />
+                    )}
+                    {tenant?.logo_url && (
+                        <img src={getFullImageUrl(tenant.logo_url)} alt="Logo" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
                     )}
                 </button>
             </div>
@@ -422,6 +421,10 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
 
     return (
         <div className="pb-28 px-4 pt-4 space-y-4">
+            {order.is_quote && (
+                <TeamLeaderChat orderId={order.id} />
+            )}
+
             {/* Suprafata si Épaisseur + Sable */}
             {order.volumes && order.volumes.length > 0 && (
                 <Section 
@@ -660,11 +663,11 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                     {completionPhotos.map(p => (
                                         <button
                                             key={p.id}
-                                            onClick={() => onPhotoClick(p.url)}
+                                            onClick={() => onPhotoClick(getFullImageUrl(p.url))}
                                             className="block w-full aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-blue-400 transition-colors"
                                         >
                                             <img
-                                                src={p.url}
+                                                src={getFullImageUrl(p.url)}
                                                 alt="Photo finalisation"
                                                 className="w-full h-full object-cover"
                                             />
@@ -727,7 +730,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                         {documents.map(doc => (
                             <a 
                                 key={doc.id} 
-                                href={doc.url} 
+                                href={getFullImageUrl(doc.url)} 
                                 target="_blank" 
                                 rel="noreferrer"
                                 className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3 hover:border-blue-400 hover:shadow-md transition-all group"
@@ -757,7 +760,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                         {instPhotos.map(p => (
                             <button
                                 key={p.id}
-                                onClick={() => onPhotoClick(p.url)}
+                                onClick={() => onPhotoClick(getFullImageUrl(p.url))}
                                 className="w-full flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-3 py-3 hover:bg-slate-50 transition-colors text-left"
                             >
                                 <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
@@ -1014,6 +1017,91 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: EXTRA (poze interne — sef echipa)
 // ─────────────────────────────────────────────────────────────────────────────
+function TeamLeaderChat({ orderId }) {
+    const [messages, setMessages] = React.useState([])
+    const [newMessage, setNewMessage] = React.useState('')
+    const [isSending, setIsSending] = React.useState(false)
+    const chatEndRef = React.useRef(null)
+
+    const fetchMessages = React.useCallback(async () => {
+        try {
+            const res = await api.get(`/worker/orders/${orderId}/messages`)
+            setMessages(res.data || [])
+        } catch (err) {
+            console.error('Error fetching chat:', err)
+        }
+    }, [orderId])
+
+    React.useEffect(() => {
+        fetchMessages()
+        const interval = setInterval(fetchMessages, 3000)
+        return () => clearInterval(interval)
+    }, [fetchMessages])
+
+    React.useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [messages])
+
+    const handleSend = async (e) => {
+        e.preventDefault()
+        if (!newMessage.trim() || isSending) return
+        setIsSending(true)
+        try {
+            await api.post(`/worker/orders/${orderId}/messages`, { message: newMessage.trim() })
+            setNewMessage('')
+            fetchMessages()
+        } catch (err) {
+            console.error('Error sending message:', err)
+        } finally {
+            setIsSending(false)
+        }
+    }
+
+    return (
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col h-[400px]">
+            <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <MessageSquareWarning className="w-4 h-4 text-blue-500" />
+                Chat Partener
+            </h3>
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 mb-3 pr-1">
+                {messages.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-slate-400 text-xs">
+                        Niciun mesaj
+                    </div>
+                ) : (
+                    messages.map(msg => {
+                        const isMe = msg.sender === 'admin'
+                        return (
+                            <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                <span className="text-[10px] font-semibold text-slate-500 mb-0.5 px-1">{msg.sender_name}</span>
+                                <div className={`px-3 py-2 rounded-xl text-sm max-w-[85%] ${
+                                    isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'
+                                }`}>
+                                    {msg.message}
+                                </div>
+                            </div>
+                        )
+                    })
+                )}
+                <div ref={chatEndRef} />
+            </div>
+            <form onSubmit={handleSend} className="flex gap-2 pt-2 border-t border-slate-100 shrink-0">
+                <input
+                    type="text"
+                    value={newMessage}
+                    onChange={e => setNewMessage(e.target.value)}
+                    placeholder="Scrie un mesaj..."
+                    disabled={isSending}
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                />
+                <button type="submit" disabled={!newMessage.trim() || isSending} className="bg-blue-600 text-white p-2 rounded-xl disabled:opacity-50">
+                    <Send className="w-5 h-5" />
+                </button>
+            </form>
+        </div>
+    )
+}
+
 function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal, onPhotoClick }) {
     const internalPhotos = photos.filter(p => p.photo_type === 'internal')
     const fileRef = useRef(null)
@@ -1034,9 +1122,9 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
                         {internalPhotos.length > 0 && (
                             <div className="grid grid-cols-3 gap-2 mb-3">
                                 {internalPhotos.map(p => (
-                                    <button key={p.id} onClick={() => onPhotoClick(p.url)} className="block w-full text-left">
+                                    <button key={p.id} onClick={() => onPhotoClick(getFullImageUrl(p.url))} className="block w-full text-left">
                                         <img
-                                            src={p.url}
+                                            src={getFullImageUrl(p.url)}
                                             alt={p.description || 'Photo interne'}
                                             className="w-full aspect-square object-cover rounded-xl border border-slate-200"
                                         />
@@ -1105,8 +1193,8 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
                     <div className="grid grid-cols-3 gap-2 mb-3">
                         {completionPhotos.map(p => (
                             <div key={p.id} className="relative">
-                                <button onClick={() => onPhotoClick(p.url)} className="block w-full text-left">
-                                    <img src={p.url} alt="Photo finalisation" className="w-full aspect-square object-cover rounded-xl border border-slate-200" />
+                                <button onClick={() => onPhotoClick(getFullImageUrl(p.url))} className="block w-full text-left">
+                                    <img src={getFullImageUrl(p.url)} alt="Photo finalisation" className="w-full aspect-square object-cover rounded-xl border border-slate-200" />
                                 </button>
                                 {!isCompleted && (
                                     <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity">
@@ -1129,8 +1217,8 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
                     <div className="grid grid-cols-3 gap-2 mb-3">
                         {machinePhotos.map(p => (
                             <div key={p.id} className="relative">
-                                <button onClick={() => onPhotoClick(p.url)} className="block w-full text-left">
-                                    <img src={p.url} alt="Photo calculateur machine" className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm" />
+                                <button onClick={() => onPhotoClick(getFullImageUrl(p.url))} className="block w-full text-left">
+                                    <img src={getFullImageUrl(p.url)} alt="Photo calculateur machine" className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm" />
                                 </button>
                                 {!isCompleted && (
                                     <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity">
@@ -1369,6 +1457,16 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const [uploadingMachine, setUploadingMachine]     = useState(false)
     const [closing, setClosing]                       = useState(false)
     const [lightboxUrl, setLightboxUrl]               = useState(null)
+
+    const handleMediaClick = (url) => {
+        if (!url) return;
+        const cleanUrl = url.split('?')[0].toLowerCase();
+        if (cleanUrl.endsWith('.pdf')) {
+            window.open(url, '_blank');
+        } else {
+            setLightboxUrl(url);
+        }
+    };
 
     const roleCode = user?.role?.code?.toUpperCase() || ''
     const isAdmin = ['ADMIN', 'MANAGER', 'COMPANY_ADMIN', 'SUPER_ADMIN'].includes(roleCode)
@@ -1722,6 +1820,58 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                     </div>
                 ) : (
                     <div className="p-4 space-y-4">
+                        {/* STATISTICI PENTRU SEF DE ECHIPA */}
+                        {(isAdmin || isLeader) && (() => {
+                            const todayOrders = orders.filter(o => {
+                                const d1 = o.start_date || o.deadline_date;
+                                if (!d1) return false;
+                                return d1.split('T')[0] === currentDate.toISOString().split('T')[0];
+                            });
+                            
+                            const stats = {
+                                total: todayOrders.length,
+                                completed: todayOrders.filter(o => o.status === 'completed' || o.status === 'invoiced').length,
+                                surface: todayOrders.reduce((sum, o) => {
+                                    const finalVols = Array.isArray(o.volumes) ? o.volumes : [];
+                                    const sumVol = finalVols.reduce((s, v) => s + (parseFloat(v.quantity) || 0), 0);
+                                    const fallbackSurf = parseFloat(o.surface_area) || parseFloat(o.surface) || parseFloat(o.surface_m2) || 0;
+                                    const finalSurf = sumVol > 0 ? sumVol : fallbackSurf;
+                                    const estSurf = parseFloat(o.estimated_surface) || 0;
+                                    const isCompleted = o.status === 'completed' || o.status === 'invoiced';
+                                    const displaySurf = isCompleted && finalSurf > 0 ? finalSurf : (estSurf > 0 ? estSurf : finalSurf);
+                                    return sum + (displaySurf || 0);
+                                }, 0)
+                            };
+
+                            if (stats.total === 0) return null;
+
+                            return (
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-3 flex flex-col items-center justify-center text-center shadow-sm">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mb-1.5 shadow-inner">
+                                            <ClipboardList className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">{t('stats.total_orders', 'Total')}</span>
+                                        <span className="text-xl font-black text-blue-700 dark:text-blue-300 leading-none">{stats.total}</span>
+                                    </div>
+                                    <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-3 flex flex-col items-center justify-center text-center shadow-sm">
+                                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center mb-1.5 shadow-inner">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">{t('stats.completed', 'Terminé')}</span>
+                                        <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 leading-none">{stats.completed}</span>
+                                    </div>
+                                    <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl p-3 flex flex-col items-center justify-center text-center shadow-sm">
+                                        <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center mb-1.5 shadow-inner">
+                                            <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                        </div>
+                                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">{t('stats.surface', 'Surface')}</span>
+                                        <span className="text-xl font-black text-purple-700 dark:text-purple-300 leading-none">{stats.surface > 0 ? `${stats.surface}m²` : '-'}</span>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         <MobileAgenda
                             orders={orders}
                             onOrderClick={(wo, pLat, pLng, pName) => openOrder(wo, pLat, pLng, pName)}
@@ -1730,8 +1880,6 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                             isHistory={isHistory}
                             showTeamName={isAdmin || isDriver}
                         />
-                        
-                        {/* Eliminat lista duplicată de comenzi, deoarece ShortWorksCalendar afiseaza deja comenzile */}
                     </div>
                 )}
             </div>
@@ -1767,7 +1915,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         documents={documents}
                         onAcknowledge={handleAcknowledge}
                         acknowledging={acknowledging}
-                        onPhotoClick={setLightboxUrl}
+                        onPhotoClick={handleMediaClick}
                         sandStations={sandStations}
                         isDriver={isDriver}
                         completionPhotos={completionPhotos}
@@ -1788,7 +1936,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         isLeader={isLeader}
                         onUploadInternal={f => handleUploadPhoto(f, 'internal')}
                         uploadingInternal={uploadingInternal}
-                        onPhotoClick={setLightboxUrl}
+                        onPhotoClick={handleMediaClick}
                     />
                 )}
                 {activeTab === 'poze' && (
@@ -1802,7 +1950,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         uploadingMachine={uploadingMachine}
                         ocrData={ocrData}
                         onDeletePhoto={handleDeletePhoto}
-                        onPhotoClick={setLightboxUrl}
+                        onPhotoClick={handleMediaClick}
                     />
                 )}
                 {activeTab === 'trimite' && (

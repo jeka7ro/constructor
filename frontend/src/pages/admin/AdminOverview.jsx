@@ -900,7 +900,7 @@ export default function AdminOverview() {
         }
     };
 
-    const handleOrderRescheduled = async (woId, newDate, newTime, revert = false) => {
+    const handleOrderRescheduled = async (woId, newDate, newTime, revert = false, durationDays = undefined) => {
         if (woId && newDate && newTime) {
             const quoteInPending = pendingQuotes.find(q => String(q.id) === String(woId));
             
@@ -911,15 +911,16 @@ export default function AdminOverview() {
                     // Prevent duplicates: check if WO already exists
                     const exists = prev.some(w => String(w.id) === String(woId));
                     if (exists) {
-                        return prev.map(w => String(w.id) === String(woId) ? { ...w, start_date: newDate, start_time: newTime, status: 'planning' } : w);
+                        return prev.map(w => String(w.id) === String(woId) ? { ...w, start_date: newDate, start_time: newTime, status: 'planning', ...(durationDays !== undefined ? { duration_days: durationDays } : {}) } : w);
                     }
-                    return [...prev, { ...quoteInPending, start_date: newDate, start_time: newTime, status: 'planning' }];
+                    return [...prev, { ...quoteInPending, start_date: newDate, start_time: newTime, status: 'planning', ...(durationDays !== undefined ? { duration_days: durationDays } : {}) }];
                 });
             } else {
                 setAllWorkOrders(prev => prev.map(wo => String(wo.id) === String(woId) ? { 
                     ...wo, 
                     start_date: newDate, 
                     start_time: newTime,
+                    ...(durationDays !== undefined ? { duration_days: durationDays } : {}),
                     ...(wo.status === 'draft' ? { status: 'planning' } : {}) 
                 } : wo));
             }
@@ -1156,9 +1157,9 @@ export default function AdminOverview() {
                                 setQuickCreateForm(p => ({ 
                                     ...p, 
                                     title: clientName || '', 
-                                    address: c?.address || '', 
-                                    latitude: c?.latitude || '', 
-                                    longitude: c?.longitude || '', 
+                                    address: '', 
+                                    latitude: '', 
+                                    longitude: '', 
                                     surface: '', 
                                     thickness: '',
                                     clientId: clientId || ''
@@ -1296,7 +1297,10 @@ export default function AdminOverview() {
                                                     </span>
                                                 )}
                                                 {quote.volumes?.[0]?.quantity && (
-                                                    <span className="text-slate-500 shrink-0">· {quote.volumes[0].quantity}m²x{quote.volumes[0].thickness || '?'}</span>
+                                                    <span className="text-slate-500 shrink-0">
+                                                        · {quote.volumes[0].quantity}m²
+                                                        {quote.volumes[0].thickness ? ` × ${quote.volumes[0].thickness}cm` : ''}
+                                                    </span>
                                                 )}
                                                 {(() => {
                                                     let dist = 0;

@@ -138,3 +138,10 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 - **Acțiune**: Am reparat sincronizarea limbii (client_language) pentru devize. Backend-ul (public_calculator.py) actualizează acum corect profilul clienților recurenți, iar panoul de admin (admin_work_orders.py) nu mai suprascrie invizibil limba devizelor cu limba veche din profilul clientului la fiecare actualizare a documentului.
 - **Acțiune**: Am integrat calculul prețului pentru izolația EPS bazat pe Suprafețe (mp) în `priceCalculator.js` și `pricingEngine.js` utilizând variabila `custom_eps_price_per_m2`, pentru a acoperi cazurile în care prețul per volum (mc) nu se aplică.
 - **Acțiune**: Am actualizat textele din fișierele de traducere `i18n` pentru `truck_distance_sub`, specificând explicit în toate limbile că distanța luată în calcul este "doar dus" (ex. "Si trajet (aller simple) > km").
+
+- **Date**: 23 August 2026
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat explicit de utilizator.
+- **Acțiune**: Am rafinat design-ul cardurilor din calendarul desktop (`ShortWorksCalendar.jsx`). S-a forțat header-ul să acopere toată lățimea cu un background colorat, s-a clarificat numerotarea pentru multiple straturi de Șapă (Chape 1, Chape 2), s-a adăugat calculul explicit al `Total` suprafeței la nivelul header-ului, s-a adăugat linia despărțitoare subtilă deasupra adresei (asemenea `MobileAgenda`), iar miniatura hărții a fost mutată complet în dreapta-jos. 
+- **Acțiune**: Am scos funcționalitatea automată prin care, la drag&drop al unui client favorit pe grid, adresa lucrării se autocompleta cu sediul social al clientului (generând adrese eronate de tip "Belgique"). Adresa este acum curată și așteaptă adresa reală a șantierului.
+- **Acțiune**: Am creat un backup imutabil al logicii și design-ului de card în `.agents/calendar_card_design_v2.md` pentru a proteja modificările de viitoare suprascrieri accidentale de către alți agenți.

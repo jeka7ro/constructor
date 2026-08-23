@@ -82,6 +82,7 @@ class WorkOrderCreate(BaseModel):
     notes: Optional[str] = None
     start_date: Optional[str] = None
     start_time: Optional[str] = None
+    duration_days: Optional[int] = None
     deadline_date: Optional[str] = None
     # Locație
     site_id: Optional[str] = None
@@ -261,6 +262,7 @@ def _serialize_audit_mode(wo) -> dict:
         "id": wo.id,
         "title": wo.title,
         "status": wo.status,
+        "duration_days": getattr(wo, "duration_days", 1),
         "is_quote": bool(wo.is_quote),
         "created_at": str(wo.created_at) if wo.created_at else None,
         "start_date": str(wo.start_date) if wo.start_date else None,
@@ -282,7 +284,8 @@ def _serialize_audit_mode(wo) -> dict:
         "source_system": wo.source_system
     }
 
-def _serialize_slim(wo: WorkOrder) -> dict:
+def _serialize_slim(wo: WorkOrder, partner_colors: dict = None) -> dict:
+    partner_colors = partner_colors or {}
     """Versiune ultra-rapidă pentru planning — fără calcul preț, documente sau poze."""
     site_name = wo.site.name if wo.site else None
     client_display = wo.client_name or (wo.client.name if wo.client else None)
@@ -296,6 +299,7 @@ def _serialize_slim(wo: WorkOrder) -> dict:
         "is_quote": bool(wo.is_quote),
         "approximate_date": wo.approximate_date,
         "status": wo.status,
+        "duration_days": getattr(wo, "duration_days", 1),
         "source_system": wo.source_system,
         "site_id": wo.site_id,
         "site_name": site_name,
@@ -308,6 +312,7 @@ def _serialize_slim(wo: WorkOrder) -> dict:
         "client_phone": wo.client_phone,
         "client_type": wo.client.client_type if wo.client else "juridica",
         "client_language": wo.client_language,
+        "client_color": partner_colors.get(wo.id) if partner_colors else None,
         "volumes": wo.volumes or [],
         "assigned_team_id": wo.assigned_team_id,
         "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
@@ -342,7 +347,8 @@ def _serialize_slim(wo: WorkOrder) -> dict:
     }
 
 
-def _serialize_invoice_mode(wo: WorkOrder) -> dict:
+def _serialize_invoice_mode(wo: WorkOrder, partner_colors: dict = None) -> dict:
+    partner_colors = partner_colors or {}
     """Versiune optimizată pentru pagina de facturare — include proforma_data și date client, exclude poze, documente, etc."""
     site_name = wo.site.name if wo.site else None
     client_display = wo.client_name or (wo.client.name if wo.client else None)
@@ -355,6 +361,7 @@ def _serialize_invoice_mode(wo: WorkOrder) -> dict:
         "start_time": wo.start_time,
         "is_quote": bool(wo.is_quote),
         "status": wo.status,
+        "duration_days": getattr(wo, "duration_days", 1),
         "source_system": wo.source_system,
         "site_address": wo.site_address or (wo.site.address if wo.site else None),
         "client_id": wo.client_id,
@@ -391,14 +398,17 @@ def _serialize_invoice_mode(wo: WorkOrder) -> dict:
     }
 
 
-def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) -> dict:
+def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, partner_colors: dict = None) -> dict:
     """Serializează un WorkOrder pentru răspuns JSON."""
+    partner_colors = partner_colors or {}
     # ── CACHE FAST-PATH: lucrările mai vechi decât azi se servesc din snapshot ──
     from datetime import date as _date
     _today = _date.today()
     _is_past = wo.start_date is not None and wo.start_date < _today
     if not force_recalc and _is_past and getattr(wo, 'cached_snapshot', None):
-        return wo.cached_snapshot
+        cached = dict(wo.cached_snapshot)
+        cached['source_system'] = wo.source_system or 'manual'
+        return cached
     # ─────────────────────────────────────────────────────────────────────────────
 
     # Incarca pricing live din setari
@@ -590,6 +600,7 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
         "client_phone": wo.client_phone,
         "client_type": wo.client.client_type if wo.client else "juridica",
         "client_language": wo.client_language,
+        "client_color": partner_colors.get(wo.id) if partner_colors else None,
         "client_cui": wo.client.cui if wo.client else None,
         "client_reg_com": wo.client.reg_com if wo.client else None,
         "client_address": wo.client.address if wo.client else None,
@@ -601,6 +612,7 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
         "actual_thickness_cm": wo.actual_thickness_cm,
         "actual_sand_quantity": wo.actual_sand_quantity,
         "status": wo.status,
+        "duration_days": getattr(wo, "duration_days", 1),
         "prices": wo_prices,
         "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
         "confirmed_by_name": wo.confirmed_by_name,
@@ -817,14 +829,49 @@ def list_work_orders(
     if limit:
         q = q.limit(limit)
     wos = q.all()
+    print(f"DEBUG: Found {len(wos)} work orders for params {start_date} to {end_date}, status: {status}, is_quote: {is_quote}")
+    
+    # Fetch partner colors for these work orders
+    from app.models import Admin
+    
+    # 1. Partner color by client_id (for backwards compatibility)
+    client_ids = list({wo.client_id for wo in wos if wo.client_id})
+    partner_colors_by_client = {}
+    if client_ids:
+        partners_by_client = db.query(Admin.client_id, Admin.color).filter(
+            Admin.client_id.in_(client_ids),
+            Admin.role == 'PARTNER',
+            Admin.color != None
+        ).all()
+        partner_colors_by_client = {p.client_id: p.color for p in partners_by_client}
+        
+    # 2. Partner color by created_by (prioritize explicit creator)
+    creator_ids = list({wo.created_by for wo in wos if wo.source_system == 'partner' and wo.created_by})
+    partner_colors_by_creator = {}
+    if creator_ids:
+        partners_by_creator = db.query(Admin.id, Admin.color).filter(
+            Admin.id.in_(creator_ids),
+            Admin.role == 'PARTNER',
+            Admin.color != None
+        ).all()
+        partner_colors_by_creator = {p.id: p.color for p in partners_by_creator}
+
+    # Map color to wo.id
+    partner_colors = {}
+    for wo in wos:
+        if wo.source_system == 'partner' and wo.created_by and wo.created_by in partner_colors_by_creator:
+            partner_colors[wo.id] = partner_colors_by_creator[wo.created_by]
+        elif wo.client_id and wo.client_id in partner_colors_by_client:
+            partner_colors[wo.id] = partner_colors_by_client[wo.client_id]
+
     if slim:
-        return [_serialize_slim(wo) for wo in wos]
+        return [_serialize_slim(wo, partner_colors) for wo in wos]
     if invoice_mode:
-        return [_serialize_invoice_mode(wo) for wo in wos]
+        return [_serialize_invoice_mode(wo, partner_colors) for wo in wos]
     if audit_mode:
         wos = [wo for wo in wos if wo.source_system != 'we-r']
         return [_serialize_audit_mode(wo) for wo in wos]
-    return [_serialize(wo, db) for wo in wos]
+    return [_serialize(wo, db, partner_colors=partner_colors) for wo in wos]
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1158,13 +1205,30 @@ def get_work_order(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
-    wo = db.query(WorkOrder).filter(
+    wo = db.query(WorkOrder).options(
+        joinedload(WorkOrder.site),
+        joinedload(WorkOrder.client),
+        joinedload(WorkOrder.assigned_team),
+        joinedload(WorkOrder.assigned_vehicle),
+    ).filter(
         WorkOrder.id == wo_id,
         WorkOrder.organization_id == current_admin.organization_id
     ).first()
     if not wo:
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
-    return _serialize(wo, db)
+        
+    partner_colors = {}
+    if wo.client_id:
+        from app.models import Admin
+        partner = db.query(Admin).filter(
+            Admin.client_id == wo.client_id,
+            Admin.role == 'PARTNER',
+            Admin.color != None
+        ).first()
+        if partner:
+            partner_colors[wo.client_id] = partner.color
+            
+    return _serialize(wo, db, partner_colors=partner_colors)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1317,7 +1381,7 @@ def update_work_order(
         "client_email", "client_phone", "client_language", "requirements", "materials", "volumes", "prices",
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
         "estimated_price", "status", "is_quote", "work_type", "proforma_data",
-        "route_distance_km", "route_segments"
+        "route_distance_km", "route_segments", "duration_days"
     ]
     
     update_data = payload.dict(exclude_unset=True)
@@ -2952,6 +3016,7 @@ def get_work_order_messages(
         {
             "id": m.id,
             "sender": m.sender,
+            "sender_name": getattr(m, 'sender_name', None),
             "message": m.message,
             "created_at": (m.created_at.isoformat() + "Z") if m.created_at else "",
             "translations": m.translations,
@@ -3462,6 +3527,7 @@ def get_all_chats(
             "title": wo.title or f"CMD-{wo.id[:4]}",
             "client_name": wo.client_name,
             "status": wo.status,
+        "duration_days": getattr(wo, "duration_days", 1),
             "is_quote": wo.is_quote,
             "quote_number": getattr(wo, 'quote_number', None),
             "invoice_number": getattr(wo, 'invoice_number', None),

@@ -168,7 +168,7 @@ async def lifespan(app: FastAPI):
     # Startup — auto-create tables (needed for fresh PostgreSQL)
     from app.database import engine, Base, warmup_pool
     from app import models  # noqa: ensure all models are imported
-    Base.metadata.create_all(bind=engine)
+    # Base.metadata.create_all(bind=engine)
     # _run_migrations(engine)
     
     # Try to warm up pool to see if connection is alive, but don't block
@@ -431,6 +431,12 @@ from app.api import admin_emails
 app.include_router(admin_emails.router, prefix="/api")
 app.include_router(admin_backups.router, prefix="/api/admin", tags=["admin-backups"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
+
+from app.api import partner_work_orders
+app.include_router(partner_work_orders.router, prefix="/api/partner", tags=["partner"])
+
+from app.api import partner_auth
+app.include_router(partner_auth.router, prefix="/api/partner", tags=["partner-auth"])
 
 # ─── User: Sesizari ───────────────────────────────────────────────────────────
 from fastapi import Body

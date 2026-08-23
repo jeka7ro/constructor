@@ -8,9 +8,11 @@ import AddressAutocomplete from '../../components/AddressAutocomplete'
 import { reverseGeocode } from '../../lib/geocode'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
+import { useTenantStore } from '../../store/tenantStore'
 
 export default function ClientsManagement() {
     const { t } = useTranslation()
+    const { tenant } = useTenantStore()
     const navigate = useNavigate()
     const showToast = useUIStore(state => state.showToast)
     const [clients, setClients] = useState([])
@@ -338,7 +340,8 @@ export default function ClientsManagement() {
                     <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
                         <button
                             onClick={() => handleOpenModal()}
-                            className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                            className="flex items-center gap-1.5 px-5 h-10 rounded-full text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap hover:shadow-md hover:brightness-110"
+                            style={{ backgroundColor: tenant?.primary_color || '#4f46e5' }}
                         >
                             <Plus className="w-4 h-4" />
                             {t('clients.add_btn', 'Nouveau Client')}
@@ -722,7 +725,8 @@ export default function ClientsManagement() {
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="px-5 h-10 rounded-full text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm shadow-indigo-600/20 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        className="px-5 h-10 rounded-full text-sm font-bold text-white shadow-sm shadow-indigo-600/20 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed hover:brightness-110"
+                                        style={{ backgroundColor: tenant?.primary_color || '#4f46e5' }}
                                     >
                                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                         {t('common.save', 'Enregistrer')}

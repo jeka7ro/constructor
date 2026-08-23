@@ -1,7 +1,7 @@
 import MobileAgenda from "./MobileAgenda";
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star, Search, X, Move } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star, Search, X, Move, Layers } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro, enUS, nl, fr, de } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -111,7 +111,10 @@ export default function ShortWorksCalendar({
     onEmptyCellClick,
     onOrderClick,
     onOrderEdit,
-    onOrderComplete
+    onOrderComplete,
+    isPartner = false,
+    apiClient = api,
+    apiBasePath = '/admin/work-orders'
 }) {
     const [currentDate, setCurrentDate] = useState(() => {
         const params = new URLSearchParams(window.location.search);
@@ -139,6 +142,66 @@ export default function ShortWorksCalendar({
     const [planningTime, setPlanningTime] = useState('08:00');
     const [planningNotify, setPlanningNotify] = useState(false);
     const [isSelectingForHolding, setIsSelectingForHolding] = useState(false);
+    const [resizingOrder, setResizingOrder] = useState(null); // { id, duration }
+    
+    const handleResizeStart = (e, wo) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (e.pointerId) {
+            try {
+                e.currentTarget.setPointerCapture(e.pointerId);
+            } catch (err) {}
+        }
+        
+        const startX = e.clientX;
+        const startDuration = wo.duration_days || 1;
+        // Estimate the width of one day based on the card's current width and duration
+        const cellWidth = e.currentTarget.parentElement.offsetWidth / startDuration;
+        
+        setResizingOrder({ id: wo.id, duration: startDuration });
+        
+        const handleMouseMove = (moveEvent) => {
+            const dx = moveEvent.clientX - startX;
+            const durationDelta = Math.round(dx / cellWidth);
+            const newDuration = Math.max(1, startDuration + durationDelta);
+            setResizingOrder({ id: wo.id, duration: newDuration });
+        };
+        
+        const handleMouseUp = async (upEvent) => {
+            document.removeEventListener('pointermove', handleMouseMove);
+            document.removeEventListener('pointerup', handleMouseUp);
+            document.removeEventListener('pointercancel', handleMouseUp);
+            
+            const dx = upEvent.clientX - startX;
+            const durationDelta = Math.round(dx / cellWidth);
+            const finalDuration = Math.max(1, startDuration + durationDelta);
+            
+            if (finalDuration !== startDuration) {
+                try {
+                    await apiClient.put(`${apiBasePath}/${wo.id}`, { duration_days: finalDuration });
+                    toast.success(t('planning.duration_updated', 'Durata a fost actualizată cu succes'));
+                    if (onOrderRescheduled) {
+                        onOrderRescheduled(wo.id, wo.start_date || wo.deadline_date, wo.start_time || '08:00', false, finalDuration);
+                    } else {
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    console.error('Error updating duration:', err);
+                }
+            }
+            setResizingOrder(null);
+            if (upEvent.pointerId) {
+                try {
+                    upEvent.currentTarget.releasePointerCapture(upEvent.pointerId);
+                } catch (err) {}
+            }
+        };
+        
+        document.addEventListener('pointermove', handleMouseMove, { passive: false });
+        document.addEventListener('pointerup', handleMouseUp);
+        document.addEventListener('pointercancel', handleMouseUp);
+    };
     const containerRef = useRef(null);
     const { openDialog } = useUIStore();
     const { tenant } = useTenantStore();
@@ -162,7 +225,7 @@ export default function ShortWorksCalendar({
 
         setCompleting(wo.id);
         try {
-            await api.put(`/admin/work-orders/${wo.id}`, { status: 'completed' });
+            await apiClient.put(`${apiBasePath}/${wo.id}`, { status: 'completed' });
             if (onOrderComplete) onOrderComplete();
             else if (onOrderRescheduled) onOrderRescheduled();
             else window.location.reload();
@@ -194,7 +257,7 @@ export default function ShortWorksCalendar({
         setSyncing(true);
         try {
             await Promise.all(dayOrders.map(wo =>
-                api.put(`/admin/work-orders/${wo.id}`, { status: 'completed' })
+                apiClient.put(`${apiBasePath}/${wo.id}`, { status: 'completed' })
             ));
             if (onOrderComplete) onOrderComplete();
             else if (onOrderRescheduled) onOrderRescheduled();
@@ -209,7 +272,7 @@ export default function ShortWorksCalendar({
     const handleUncomplete = async (wo, e) => {
         e.stopPropagation();
         try {
-            await api.put(`/admin/work-orders/${wo.id}`, { status: 'confirmed' });
+            await apiClient.put(`${apiBasePath}/${wo.id}`, { status: 'confirmed' });
             if (onOrderComplete) onOrderComplete();
             else if (onOrderRescheduled) onOrderRescheduled();
             else window.location.reload();
@@ -229,7 +292,7 @@ export default function ShortWorksCalendar({
         setSyncing(true);
         try {
             await Promise.all(dayOrders.map(wo =>
-                api.put(`/admin/work-orders/${wo.id}`, { status: 'confirmed' })
+                apiClient.put(`${apiBasePath}/${wo.id}`, { status: 'confirmed' })
             ));
             if (onOrderComplete) onOrderComplete();
             else if (onOrderRescheduled) onOrderRescheduled();
@@ -263,7 +326,7 @@ export default function ShortWorksCalendar({
                 start_time: timeStr || '08:00',
                 status: 'confirmed'
             };
-            await api.put(`/admin/work-orders/${heldOrder.id}`, payload);
+            await apiClient.put(`${apiBasePath}/${heldOrder.id}`, payload);
             const droppedId = heldOrder.id;
             setHeldOrder(null);
             setIsSelectingForHolding(false);
@@ -381,17 +444,24 @@ export default function ShortWorksCalendar({
         setCurrentDate(prev => addDays(prev, dir * 7));
     };
 
-    const sandPerDay = useMemo(() => {
-        const sandMap = {};
+    const totalsPerDay = useMemo(() => {
+        const map = {};
         weeklyOrders.forEach(wo => {
             const dateStr = wo.start_date || wo.deadline_date;
             if (!dateStr) return;
             try {
                 const datePart = dateStr.split('T')[0];
-                sandMap[datePart] = (sandMap[datePart] || 0) + calculateOrderSand(wo);
+                if (!map[datePart]) map[datePart] = { sand: 0, surface: 0 };
+                
+                map[datePart].sand += calculateOrderSand(wo);
+                
+                const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
+                const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
+                const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+                map[datePart].surface += sumVol > 0 ? sumVol : fallbackSurf;
             } catch (e) {}
         });
-        return sandMap;
+        return map;
     }, [weeklyOrders]);
 
     const dynamicStartHour = useMemo(() => {
@@ -403,8 +473,6 @@ export default function ShortWorksCalendar({
             }
         });
         if (earliest === 24) return 7; // Dacă nu există comenzi, afișăm de la 07:00
-        if (earliest < 6) return earliest; // Dacă are comenzi la 05:00, afișăm de la 05:00!
-        if (earliest > 8) return 8; // Dacă prima e târziu (ex. 10:00), pornim de la 08:00
         return earliest;
     }, [weeklyOrders]);
 
@@ -420,11 +488,7 @@ export default function ShortWorksCalendar({
         return isNaN(finalRow) ? 3 : finalRow;
     };
 
-    // Auto-scroll to earliest event — only once per week change, not on every data refresh
-    useEffect(() => {
-        hasAutoScrolled.current = false; // reset when week changes
-    }, [currentDate]);
-
+    // Auto-scroll to earliest event — only once per calendar load
     useEffect(() => {
         if (containerRef.current && !hasAutoScrolled.current && weeklyOrders.length > 0) {
             let earliestRow = END_HOUR - dynamicStartHour;
@@ -449,19 +513,25 @@ export default function ShortWorksCalendar({
             
             if (hasEvents) {
                 const targetRow = Math.max(1, earliestRow - 1);
-                const newScrollTop = (targetRow - 1) * 70;
-                containerRef.current.scrollTop = newScrollTop;
+                // Ensure we don't scroll if targetRow is already visible or if it's huge
+                const newScrollTop = Math.max(0, (targetRow - 1) * 100);
+                
+                // Only scroll if we actually need to go down significantly
+                if (newScrollTop > 0) {
+                    containerRef.current.scrollTo({ top: newScrollTop, behavior: 'smooth' });
+                }
+                
                 hasAutoScrolled.current = true;
 
                 const clientH = containerRef.current.clientHeight || 480;
                 const visibleBottom = newScrollTop + clientH;
-                const eventsBottom = latestRow * 70;
+                const eventsBottom = latestRow * 100;
                 setShowScrollHint(eventsBottom > visibleBottom);
             } else {
                 setShowScrollHint(false);
             }
         }
-    }, [weeklyOrders, currentDate]);
+    }, [weeklyOrders, dynamicStartHour]);
 
     const [swipeDir, setSwipeDir] = useState(0);
     const [swipePhase, setSwipePhase] = useState('idle');
@@ -588,14 +658,44 @@ export default function ShortWorksCalendar({
                 onTouchEnd={onTouchEndEvent}
             >
                 {/* Header */}
-            <div className="flex flex-col border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
-                <div className="px-4 h-[60px] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <CalendarIcon className="w-5 h-5 text-white/90" />
-                        <h2 className="text-lg font-bold text-white capitalize">
-                            {format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
-                        </h2>
+            <div className="bg-[#0ba5e9] px-4 py-3 flex flex-col gap-2 shadow-inner border-b border-[#0284c7]">
+                {/* Top Row: Date, Teams, and Controls */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <CalendarIcon className="w-5 h-5 text-white" />
+                            <h2 className="text-lg font-black text-white capitalize tracking-tight">
+                                {format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
+                            </h2>
+                        </div>
+                        
+                        {/* Echipe mutată aici, lângă lună */}
+                        {isCalendarFull && teams && teams.length > 0 && (
+                            <div className="flex items-center gap-2 shrink-0 ml-4 hidden md:flex">
+                                <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1" title={t('admin_overview.trucks_teams', 'Équipes')}>
+                                    <Truck className="w-4 h-4"/>
+                                </span>
+                                <div className="flex gap-2 items-center">
+                                    {teams.map(team => (
+                                        <div 
+                                            key={team.id}
+                                            draggable
+                                            onDragStart={(e) => {
+                                                e.dataTransfer.setData("type", "team")
+                                                e.dataTransfer.setData("id", String(team.id))
+                                            }}
+                                            className="px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-1.5"
+                                            style={{ backgroundColor: team.color || '#3b82f6', color: 'white' }}
+                                        >
+                                            <Truck className="w-3 h-3 shrink-0" />
+                                            {team.name.replace(/^echipa\s*/i, '')}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
+                    
                     <div className="flex items-center gap-3">
                         {/* Next Holiday Box */}
                         {(() => {
@@ -637,52 +737,6 @@ export default function ShortWorksCalendar({
                                                 </div>
                                             </div>
                                         )}
-                                    </div>
-                                );
-                            }
-                            return null;
-                        })()}
-
-                        {/* Favorite Clients Box */}
-                        {(() => {
-                            const favoriteClients = clients.filter(c => c.is_favorite);
-                            if (favoriteClients.length > 0) {
-                                return (
-                                    <div className="group relative hidden md:flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl text-white mr-2 cursor-pointer hover:bg-white/20 transition-colors">
-                                        <div className="bg-white/20 rounded p-1">
-                                            <Star className="w-3.5 h-3.5" />
-                                        </div>
-                                        <div className="flex flex-col text-left leading-tight">
-                                            <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">{t('planning.favorites', 'Clients')}</span>
-                                            <span className="text-xs font-bold">{t('planning.favorite_clients', 'Favoris')}</span>
-                                        </div>
-
-                                        <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 text-white rounded-xl shadow-xl p-3 text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] border border-slate-700 pointer-events-auto">
-                                            <div className="font-bold mb-2 pb-2 border-b border-slate-700 text-slate-300">
-                                                {t('planning.drag_client', 'Glisser dans le calendrier')}
-                                            </div>
-                                            <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1">
-                                                {favoriteClients.map((c) => (
-                                                    <div 
-                                                        key={c.id} 
-                                                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-700 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-600 transition-colors"
-                                                        draggable
-                                                        onDragStart={(e) => {
-                                                            e.dataTransfer.setData("type", "client");
-                                                            e.dataTransfer.setData("id", c.id);
-                                                            e.dataTransfer.setData("name", c.name);
-                                                        }}
-                                                    >
-                                                        <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0">
-                                                            <span className="text-[10px] font-bold">{c.name.substring(0, 2).toUpperCase()}</span>
-                                                        </div>
-                                                        <span className="font-medium text-slate-100 truncate flex-1" title={c.name}>
-                                                            {c.name}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
                                     </div>
                                 );
                             }
@@ -762,84 +816,19 @@ export default function ShortWorksCalendar({
                                 }
                             </button>
                         )}
-                        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg p-1 border border-blue-500 dark:border-slate-700 shadow-sm">
-                        <button onClick={() => navigateWeek(-1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <span className="px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 min-w-[110px] text-center">{weekLabel}</span>
-                        <button onClick={() => navigateWeek(1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1 bg-white/10 dark:bg-slate-800/50 rounded-lg p-1 border border-white/20 dark:border-slate-700 shadow-sm backdrop-blur-sm">
+                            <button onClick={() => navigateWeek(-1)} className="p-1 hover:bg-white/20 dark:hover:bg-slate-700 rounded-md transition-colors text-white">
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <span className="px-3 text-sm font-semibold text-white min-w-[110px] text-center">{weekLabel}</span>
+                            <button onClick={() => navigateWeek(1)} className="p-1 hover:bg-white/20 dark:hover:bg-slate-700 rounded-md transition-colors text-white">
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
                         </div>
                     </div>
                 </div>
-
-                {isCalendarFull && (
-                    <div className="px-4 pb-3 flex items-center gap-6 overflow-x-auto custom-scrollbar">
-                        {/* Echipe */}
-                        <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Truck className="w-3.5 h-3.5"/> {t('admin_overview.trucks_teams', 'Équipes')}</span>
-                            <div className="flex gap-2 items-center">
-                                {teams?.map(team => (
-                                    <div 
-                                        key={team.id}
-                                        draggable
-                                        onDragStart={(e) => {
-                                            e.dataTransfer.setData("type", "team")
-                                            e.dataTransfer.setData("id", String(team.id))
-                                        }}
-                                        className="px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-1.5"
-                                        style={{ backgroundColor: team.color || '#3b82f6', color: 'white' }}
-                                    >
-                                        <Truck className="w-3 h-3 shrink-0" />
-                                        {team.name.replace(/^echipa\s*/i, '')}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Divizor */}
-                        <div className="w-px h-6 bg-white/20 shrink-0"></div>
-
-                        {/* Clienti */}
-                        <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Building2 className="w-3.5 h-3.5"/> {t('admin_overview.frequent_clients', 'Clients')}</span>
-                            <div className="flex gap-2 items-center">
-                                {clients?.filter(c => c.is_favorite).map(client => (
-                                    <div 
-                                        key={`fav-${client.id}`}
-                                        draggable
-                                        onDragStart={(e) => {
-                                            e.dataTransfer.setData("type", "client")
-                                            e.dataTransfer.setData("id", String(client.id))
-                                            e.dataTransfer.setData("name", client.name)
-                                        }}
-                                        className="px-2.5 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-1.5"
-                                        style={{ 
-                                            backgroundColor: tenant?.primary_color || '#2563eb',
-                                            color: 'white',
-                                            border: '2px solid white'
-                                        }}
-                                    >
-                                        <Star className="w-3 h-3 shrink-0 fill-white" />
-                                        {client.name}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
 
-            {/* Overlay Badge */}
-            {!isScrollable && showScrollHint && (
-                <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none hidden md:block">
-                    <div className="bg-slate-900/80 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
-                        <Hand className="w-3.5 h-3.5" />
-                        {t('admin_overview.click_to_scroll', 'Click pentru a derula')}
-                    </div>
-                </div>
-            )}
 
             {/* Calendar Swipe Animation Wrapper */}
             <div className="flex-1 relative overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-950">
@@ -909,7 +898,7 @@ export default function ShortWorksCalendar({
                 <div className="w-10 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
                     {Array.from({ length: END_HOUR - dynamicStartHour }).map((_, i) => (
-                        <div key={i} className="h-[70px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[11px] text-slate-500 font-bold pt-1.5 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div key={i} className="h-[100px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[11px] text-slate-500 font-bold pt-1.5 bg-slate-50/50 dark:bg-slate-900/50">
                             {`${(i + dynamicStartHour).toString().padStart(2, '0')}:00`}
                         </div>
                     ))}
@@ -923,8 +912,9 @@ export default function ShortWorksCalendar({
                         {weekDays.map((day, i) => {
                             const isToday = isSameDay(day, new Date());
                             const dayStr = format(day, 'yyyy-MM-dd');
-                            const dailySand = sandPerDay[dayStr] || 0;
-                            const sandDisplay = dailySand > 0 ? `${dailySand.toFixed(1)}T` : '';
+                            const dailyTotals = totalsPerDay[dayStr] || { sand: 0, surface: 0 };
+                            const sandDisplay = dailyTotals.sand > 0 ? `${dailyTotals.sand.toFixed(1)}T` : '';
+                            const surfDisplay = dailyTotals.surface > 0 ? `${dailyTotals.surface.toFixed(0)}m²` : '';
                             const holidayInfo = PUBLIC_HOLIDAYS_BE.find(h => h.date === dayStr);
 
                             return (
@@ -942,10 +932,22 @@ export default function ShortWorksCalendar({
                                     <span className={`text-sm font-black leading-none mt-0.5 ${isToday ? 'text-blue-600 dark:text-blue-400' : (holidayInfo ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-200')}`}>
                                         {format(day, 'd')}
                                     </span>
-                                    {dailySand > 0 && !holidayInfo && (
-                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 mt-0.5" title={t('admin_overview.total_sand_day', 'Total nisip estimat pentru această zi')}>
-                                            {sandDisplay}
-                                        </span>
+                                    {(dailyTotals.sand > 0 || dailyTotals.surface > 0) && !holidayInfo && (
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            {dailyTotals.sand > 0 && (
+                                                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500" title={t('admin_overview.total_sand_day', 'Total nisip estimat pentru această zi')}>
+                                                    {sandDisplay}
+                                                </span>
+                                            )}
+                                            {dailyTotals.sand > 0 && dailyTotals.surface > 0 && (
+                                                <span className="text-[9px] text-slate-300">|</span>
+                                            )}
+                                            {dailyTotals.surface > 0 && (
+                                                <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400" title={t('admin_overview.total_surf_day', 'Total suprafață (m²) pentru această zi')}>
+                                                    {surfDisplay}
+                                                </span>
+                                            )}
+                                        </div>
                                     )}
                                     {holidayInfo && (
                                         <span className="text-[9px] font-bold text-red-500 uppercase tracking-tight mt-0.5 max-w-[90%] truncate">
@@ -971,7 +973,7 @@ export default function ShortWorksCalendar({
                     </div>
 
                     {/* Events Grid */}
-                    <div className="relative grid bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr', gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(70px, 70px))` }}>
+                    <div className="relative grid bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr', gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(100px, 100px))` }}>
                         {weeklyOrders.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                 <span className="text-slate-400 text-sm">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
@@ -1121,9 +1123,17 @@ export default function ShortWorksCalendar({
                                 
                                 // Calculate offset to avoid overlap for custom grid
                                 const totalFr = 6.6;
-                                const colFr = wo.dayIndex === 6 ? 0.6 : 1;
+                                const currentDuration = resizingOrder?.id === wo.id ? resizingOrder.duration : (wo.duration_days || 1);
+                                const maxDurationVis = Math.min(currentDuration, 7 - wo.dayIndex);
+                                
+                                let spanFr = 0;
+                                for (let i = 0; i < maxDurationVis; i++) {
+                                    const dIdx = wo.dayIndex + i;
+                                    spanFr += dIdx === 6 ? 0.6 : 1;
+                                }
+                                
                                 const leftPercent = (wo.dayIndex / totalFr) * 100;
-                                const widthValue = `calc(${(colFr / totalFr) * 100}% - 8px)`;
+                                const widthValue = `calc(${(spanFr / totalFr) * 100}% - 8px)`;
                                 const isThisDragged = draggedOrder === wo.id;
                                 const isCompleted = wo.status === 'completed';
                                 
@@ -1134,15 +1144,20 @@ export default function ShortWorksCalendar({
                                 todayObj.setHours(0, 0, 0, 0);
                                 const isPast = woDateObj < todayObj;
 
+                                const clientColorHex = (wo.client_color && wo.client_color.startsWith('#')) ? wo.client_color : colorHex;
+                                const borderLeftColorVal = colorHex;
+                                const borderColorVal = isCompleted ? '#cbd5e1' : `${borderLeftColorVal}30`;
+                                const isExternalSource = ['public_calculator', 'partner_portal', 'devis_online'].includes(wo.source_system) || wo.is_quote;
+
+                                const lat = wo.site_latitude || wo.site_lat;
+                                const lng = wo.site_longitude || wo.site_lng;
+                                const staticMapLoc = (lat && lng) ? `${lat},${lng}` : null;
+
                                 return (
                                     <div 
                                         key={wo.id}
-                                        draggable={!isPast}
+                                        draggable={!resizingOrder}
                                         onDragStart={(e) => {
-                                            if (isPast) {
-                                                e.preventDefault();
-                                                return;
-                                            }
                                             e.stopPropagation();
                                             e.dataTransfer.setData("text/plain", String(wo.id));
                                             e.dataTransfer.setData("type", "workOrder");
@@ -1156,23 +1171,23 @@ export default function ShortWorksCalendar({
                                             setIsDragging(false);
                                             setDraggedOrder(null);
                                         }}
-                                        className={`absolute p-1.5 overflow-hidden rounded-md shadow-sm transition-all ${isPast ? '' : 'cursor-move'} mx-1 
-                                            ${!wo.assigned_team_id ? 'bg-white dark:bg-slate-900 border-2 border-red-500 border-l-[6px] border-l-red-500' : 'border-l-4'}
-                                            ${isThisDragged ? 'opacity-50 ring-2 ring-blue-500' : ''} 
+                                        className={`group absolute flex flex-col p-1.5 rounded-xl shadow-sm border transition-all duration-200 overflow-hidden select-none ${isPast ? '' : 'cursor-move'}
+                                            ${!wo.assigned_team_id ? 'border-red-400 border-2 border-dashed bg-red-50/80 dark:bg-red-900/20 z-20' : 'border-l-[4px] bg-white dark:bg-slate-900 z-10 hover:z-30 hover:scale-[1.02]'}
+                                            ${isThisDragged ? 'opacity-50 scale-95 ring-2 ring-blue-500 shadow-xl z-50' : ''}
                                             ${syncing ? 'opacity-70 pointer-events-none' : ''} 
                                             ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}
                                             ${wo.status === 'planning' && wo.client_notified === false ? 'ring-2 ring-red-500 ring-offset-1 dark:ring-offset-slate-900 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : ''}
-                                            ${animatingOrder === wo.id ? 'ring-4 ring-green-500 bg-green-100 dark:bg-green-900/50 scale-[1.02] z-[60]' : ''}
+                                            ${animatingOrder === wo.id ? 'animate-pulse ring-2 ring-green-500 scale-105 z-40' : ''}
                                             ${isSelectingForHolding && !isPast ? 'ring-2 ring-yellow-400 animate-pulse cursor-pointer' : ''}
                                             ${heldOrder?.id === wo.id ? 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/50' : ''}`}
                                         style={{
-                                            top: `${(wo.rowStart - 1) * 70 + 4}px`,
-                                            height: '60px',
+                                            top: `${(wo.rowStart - 1) * 100 + 4}px`,
+                                            height: 'auto',
+                                            minHeight: '88px',
                                             left: `calc(${leftPercent}% + 5px)`,
-                                            width: `calc(${(colFr / totalFr) * 100}% - 10px)`,
-                                            backgroundColor: !wo.assigned_team_id ? undefined : `${colorHex}25`,
-                                            borderLeftColor: !wo.assigned_team_id ? undefined : colorHex,
-                                            borderColor: isCompleted ? '#22c55e' : (!wo.assigned_team_id ? undefined : `${colorHex}50`),
+                                            width: `calc(${(spanFr / totalFr) * 100}% - 10px)`,
+                                            borderLeftColor: borderLeftColorVal,
+                                            borderColor: borderColorVal,
                                             borderWidth: isCompleted ? '2px' : undefined,
                                             borderStyle: isCompleted ? 'dashed' : undefined,
                                             opacity: 1,
@@ -1256,12 +1271,12 @@ export default function ShortWorksCalendar({
                                             setSyncing(true);
                                             try {
                                                 // Update dragged order
-                                                await api.put(`/admin/work-orders/${draggedWo.id}`, {
+                                                await apiClient.put(`${apiBasePath}/${draggedWo.id}`, {
                                                     start_date: targetDate,
                                                     start_time: targetTime
                                                 });
                                                 // Update target order to dragged order's original time
-                                                await api.put(`/admin/work-orders/${wo.id}`, {
+                                                await apiClient.put(`${apiBasePath}/${wo.id}`, {
                                                     start_date: sourceDate,
                                                     start_time: sourceTime
                                                 });
@@ -1279,74 +1294,125 @@ export default function ShortWorksCalendar({
                                         }}
                                         title={`${(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)} — trageți pentru a muta`}
                                     >
-                                        {/* SURFATA - SUS DREAPTA */}
-                                        {(() => {
-                                            const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
-                                            const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
-                                            const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
-                                            const finalSurf = sumVol > 0 ? sumVol : fallbackSurf;
-                                            const estSurf = parseFloat(wo.estimated_surface) || 0;
-                                            const isCompleted = wo.status === 'completed' || wo.status === 'invoiced';
-                                            const isReal = isCompleted && finalSurf > 0;
-                                            const displaySurf = isReal ? finalSurf : (estSurf > 0 ? estSurf : finalSurf);
-                                            
-                                            if (displaySurf > 0) {
-                                                return (
-                                                    <div className={`absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 text-[10px] font-bold ${isReal ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`} title={isReal ? "Surface Réelle" : "Surface Estimée"}>
-                                                        {displaySurf}m²
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        })()}
-
-                                        {/* VREMEA - JOS DREAPTA */}
-                                        {!isCompleted && (
-                                            <div className={`absolute bottom-1 right-1 z-10 opacity-70`}>
-                                                <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} />
+                                        {staticMapLoc && (
+                                            <div 
+                                                className="absolute right-0 bottom-0 w-[55%] pointer-events-none overflow-hidden rounded-br-xl opacity-60 dark:opacity-40 mix-blend-multiply dark:mix-blend-lighten z-0" 
+                                                style={{ top: '26px', WebkitMaskImage: 'linear-gradient(to right, transparent, black 60%)', maskImage: 'linear-gradient(to right, transparent, black 60%)' }}
+                                            >
+                                                <img 
+                                                    src={`https://static-maps.yandex.ru/1.x/?ll=${lng},${lat}&size=400,300&z=14&l=map`} 
+                                                    alt="Map" 
+                                                    draggable="false"
+                                                    className="w-full h-full object-cover pointer-events-none select-none" 
+                                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                                />
                                             </div>
                                         )}
+                                        <div className="flex flex-col flex-1 w-full">
+                                            {/* TOP ROW: Name and Total Surface */}
+                                            <div className="flex items-center justify-between -mx-1.5 -mt-1.5 px-1.5 py-1 mb-1 border-b rounded-t-xl" style={{ backgroundColor: borderLeftColorVal + '40', borderColor: borderLeftColorVal }}>
+                                                <div className="flex items-center gap-1.5 truncate pr-2 shrink-0">
+                                                    {isCompleted ? (
+                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                                    ) : isExternalSource ? (
+                                                        <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: clientColorHex }} title="Sursă externă / Partener" />
+                                                    ) : null}
+                                                    <span className="text-[11px] font-extrabold text-slate-900 truncate">
+                                                        {(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}
+                                                    </span>
+                                                </div>
+                                                {(() => {
+                                                    const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
+                                                    const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
+                                                    const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+                                                    const displaySurf = sumVol > 0 ? parseFloat(sumVol.toFixed(2)) : parseFloat(fallbackSurf.toFixed(2));
+                                                    if (displaySurf > 0) {
+                                                        const isMultiple = finalVols.length > 1;
+                                                        return <span className="text-[10px] font-bold text-slate-800 shrink-0 bg-white/40 px-1 rounded-sm shadow-sm">{isMultiple ? 'Total: ' : ''}{displaySurf} m²</span>;
+                                                    }
+                                                    return null;
+                                                })()}
+                                            </div>
 
-                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}>
-                                            {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalisée" />}
-                                            {wo.is_quote && <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 shadow-sm" title="Devis / Calculator" />}
-                                            <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
-                                        </div>
-                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none">
-                                            <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                            <span className="truncate">{formatAddressCityFirst((wo.site_name || wo.site_address) || t('common.no_location', 'Aucune adresse'))}</span>
-                                        </div>
-                                        {(() => {
-                                            const distText = getDistanceTextForOrder(wo);
-                                            const sandVal = calculateOrderSand(wo);
-                                            
-                                            const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
-                                            const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
-                                            const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
-                                            const finalSurf = sumVol > 0 ? sumVol : fallbackSurf;
-                                            const estSurf = parseFloat(wo.estimated_surface) || 0;
-                                            const isCompleted = wo.status === 'completed' || wo.status === 'invoiced';
-                                            const displaySurf = isCompleted && finalSurf > 0 ? finalSurf : (estSurf > 0 ? estSurf : finalSurf);
-                                            const isReal = isCompleted && finalSurf > 0;
-                                            
-                                            if (!distText && !(displaySurf > 0) && !(sandVal > 0)) return null;
+                                            {/* MIDDLE ROW: Volumes / Layers */}
+                                            <div className="flex flex-col gap-[1px] mt-0.5 w-full">
+                                                {(() => {
+                                                    const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
+                                                    const sandVal = calculateOrderSand(wo);
+                                                    const distText = getDistanceTextForOrder(wo);
+                                                    
+                                                    if (finalVols.length > 0) {
+                                                        return finalVols.map((vol, idx) => {
+                                                            let displayName = vol.name;
+                                                            if (!displayName || displayName.toLowerCase() === 'chape') {
+                                                                displayName = finalVols.length > 1 ? `Chape ${idx + 1}` : 'Chape';
+                                                            }
+                                                            return (
+                                                                <div key={idx} className="flex items-center text-[9px] text-slate-700/90 font-semibold w-full">
+                                                                    <Layers className="w-3 h-3 text-slate-600/70 mr-1 shrink-0" />
+                                                                    <span className="truncate">{displayName}: {vol.quantity}m²&times;{vol.thickness}cm</span>
+                                                                    {idx === 0 && sandVal > 0 && (
+                                                                        <span className="ml-auto text-[9px] text-amber-600 font-bold bg-white/90 px-1 rounded-sm shadow-sm shrink-0">
+                                                                            {sandVal.toFixed(1)}T
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        });
+                                                    } else {
+                                                        const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+                                                        if (fallbackSurf > 0) {
+                                                            return (
+                                                                <div className="flex items-center text-[9px] text-slate-700/90 font-semibold w-full">
+                                                                    <Layers className="w-3 h-3 text-slate-600/70 mr-1 shrink-0" />
+                                                                    <span className="truncate">Chape: {fallbackSurf}m²</span>
+                                                                    {sandVal > 0 && (
+                                                                        <span className="ml-auto text-[9px] text-amber-600 font-bold bg-white/90 px-1 rounded-sm shadow-sm shrink-0">
+                                                                            {sandVal.toFixed(1)}T
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        }
+                                                    }
+                                                    return null;
+                                                })()}
+                                            </div>
 
-                                            return (
-                                                <div className="mt-1 flex items-center gap-3 w-fit max-w-full overflow-hidden bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700/50">
-                                                    {distText && (
-                                                        <span className="text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-400 whitespace-nowrap" title="Distanță Rută (Planning)">
-                                                            {distText}
-                                                        </span>
-                                                    )}
-                                                    {/* Suprafata a fost mutata in dreapta sus */}
-                                                    {sandVal > 0 && (
-                                                        <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold whitespace-nowrap">
-                                                            {sandVal.toFixed(1)}T
+                                            {/* BOTTOM ROW: Location, KM, and Weather */}
+                                            <div className="flex items-center justify-between mt-auto pt-1 border-t" style={{ borderColor: borderLeftColorVal + '40' }}>
+                                                <div className="flex items-center gap-1 text-[9px] text-slate-600/80 font-medium truncate pr-1">
+                                                    <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                                    <span className="truncate">{(wo.site_address || wo.site?.address || wo.address) || t('common.no_location', 'Aucune adresse')}</span>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    {(() => {
+                                                        const distText = getDistanceTextForOrder(wo);
+                                                        return distText ? <span className="text-[9px] text-fuchsia-600 font-bold">{distText}</span> : null;
+                                                    })()}
+                                                    
+                                                    {!isCompleted && (
+                                                        <span className="text-[9px] text-slate-600/80 font-bold">
+                                                            <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} compact={true} />
                                                         </span>
                                                     )}
                                                 </div>
-                                            );
-                                        })()}
+                                            </div>
+                                            
+                                            {/* RESIZE HANDLE */}
+                                            {!isCompleted && isPartner && (
+                                                <div 
+                                                    className="absolute right-0 bottom-0 w-12 h-12 cursor-ew-resize z-20 flex items-end justify-end touch-none"
+                                                    onPointerDown={(e) => handleResizeStart(e, wo)}
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                    title="Trage pentru a extinde durata"
+                                                >
+                                                    <div className="w-0 h-0 border-l-[18px] border-l-transparent border-b-[18px] border-b-slate-700 dark:border-b-slate-500 rounded-br-[10px] opacity-90"></div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 );
                             });
@@ -1421,8 +1487,12 @@ export default function ShortWorksCalendar({
                                         />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className={`text-sm font-semibold leading-5 ${planningNotify ? 'text-blue-900 dark:text-blue-100' : 'text-slate-900 dark:text-white'}`}>{t('planning.send_notification', 'Envoyer une notification au client')}</span>
-                                        <span className={`text-xs ${planningNotify ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>{t('planning.notification_desc', 'Email et WhatsApp avec les détails du rendez-vous')}</span>
+                                        <span className={`text-sm font-semibold leading-5 ${planningNotify ? 'text-blue-900 dark:text-blue-100' : 'text-slate-900 dark:text-white'}`}>
+                                            {isPartner ? 'Envoyer une notification à Davide Chape' : t('planning.send_notification', 'Envoyer une notification au client')}
+                                        </span>
+                                        <span className={`text-xs ${planningNotify ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                                            {isPartner ? 'Un email sera envoyé avec les détails de la modification' : t('planning.notification_desc', 'Email et WhatsApp avec les détails du rendez-vous')}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -1446,7 +1516,7 @@ export default function ShortWorksCalendar({
                                                 send_notification: planningNotify,
                                                 ...(status ? { status } : {})
                                             };
-                                            await api.put(`/admin/work-orders/${id}`, updatePayload);
+                                            await apiClient.put(`${apiBasePath}/${id}`, updatePayload);
                                             if (onOrderRescheduled) {
                                                 onOrderRescheduled(id, start_date, planningTime);
                                             } else {
@@ -1494,7 +1564,7 @@ export default function ShortWorksCalendar({
                                         setDeletedIds(prev => new Set(prev).add(idToDelete)); // Optimistic delete (instant)
                                         setOrderToDelete(null); // Close popup instantly
                                         try {
-                                            await api.delete(`/admin/work-orders/${idToDelete}`);
+                                            await apiClient.delete(`${apiBasePath}/${idToDelete}`);
                                             if (onOrderRescheduled) onOrderRescheduled();
                                             else window.location.reload();
                                         } catch (e) {

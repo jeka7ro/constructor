@@ -97,6 +97,10 @@ export default function PublicCalculator() {
                 .bg-white { background-color: #FFFFFF !important; }
             `;
             document.head.appendChild(style);
+            return () => {
+                document.head.removeChild(link);
+                document.head.removeChild(style);
+            };
         }
     }, [isIframe]);
 

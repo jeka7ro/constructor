@@ -369,6 +369,14 @@ class Admin(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     is_super_admin = Column(Boolean, default=False, nullable=False, server_default='false')
     receive_quote_alerts = Column(Boolean, default=False, nullable=False, server_default='false')
+    
+    # Partner specific fields
+    client_id = Column(String(36), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
+    preferred_language = Column(String(10), default="ro")
+    allowed_team_ids = Column(JSON, nullable=True)
+    color = Column(String(7), nullable=True) # HEX color for partner
+
+
     accepted_terms_at = Column(DateTime, nullable=True)
     accepted_dpa_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -1064,6 +1072,7 @@ class WorkOrder(Base):
     is_quote         = Column(Boolean, default=False, nullable=False, index=True)
     approximate_date = Column(String(255), nullable=True)    # Dată cerută de client pe devis
     work_type        = Column(String(50), default="new", nullable=False) # 'new' or 'repair'
+    duration_days    = Column(Integer, default=1, nullable=False)
 
     # ── Locație ──────────────────────────────────────────────────────────────
     site_id              = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
@@ -1215,7 +1224,8 @@ class WorkOrderMessage(Base):
 
     id              = Column(String(36), primary_key=True, default=generate_uuid)
     work_order_id   = Column(String(36), ForeignKey("work_orders.id", ondelete="CASCADE"), nullable=False)
-    sender          = Column(String(20), nullable=False) # 'admin' | 'client'
+    sender          = Column(String(20), nullable=False) # 'admin' | 'client' | 'partner'
+    sender_name     = Column(String(100), nullable=True)
     message         = Column(Text, nullable=True)
     is_read_by_admin= Column(Boolean, default=False)
     is_hidden       = Column(Boolean, default=False)

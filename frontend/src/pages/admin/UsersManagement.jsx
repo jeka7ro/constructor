@@ -5,6 +5,7 @@ import { Shield, Plus, Search, Edit2, Trash2, Loader2, Mail, Phone, X, Save, Eye
 import { createPortal } from 'react-dom'
 import { useUIStore } from '../../store/uiStore'
 import { useAdminStore } from '../../store/adminStore'
+import { useTenantStore } from '../../store/tenantStore'
 import AvatarCropModal from '../../components/AvatarCropModal'
 import Pagination from '../../components/Pagination'
 import useViewPreferencesStore from '../../store/viewPreferencesStore'
@@ -31,6 +32,7 @@ const EMPTY_FORM = {
 
 export default function UsersManagement() {
     const { t } = useTranslation()
+    const { tenant } = useTenantStore()
     const { showDialog, showToast } = useUIStore()
     const admin = useAdminStore(state => state.admin)
     const isSuperAdmin = admin?.is_super_admin === true
@@ -371,7 +373,8 @@ export default function UsersManagement() {
                     <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
                         <button 
                             onClick={openAdd} 
-                            className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                            className="flex items-center gap-1.5 px-5 h-10 rounded-full text-white text-sm font-bold shadow-sm hover:shadow-md transition-all whitespace-nowrap hover:brightness-110"
+                            style={{ backgroundColor: tenant?.primary_color || '#3b82f6' }}
                         >
                             <Plus className="w-4 h-4" /> {t('users.add_user', 'Ajouter Utilizator')}
                         </button>
@@ -736,7 +739,12 @@ export default function UsersManagement() {
                             <button onClick={() => setShowModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-slate-300 rounded-full transition-colors">
                                 {t('common.cancel', 'Anulează')}
                             </button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-sm font-bold shadow-sm transition-all flex items-center gap-2 disabled:opacity-50">
+                            <button 
+                                onClick={handleSave} 
+                                disabled={saving} 
+                                className="px-5 h-10 text-white rounded-full text-sm font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2 disabled:opacity-50 hover:brightness-110"
+                                style={{ backgroundColor: tenant?.primary_color || '#3b82f6' }}
+                            >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 {editingUser ? t('users_modal.save', 'Enregistrer') : t('users_modal.create', 'Creează')}
                             </button>
