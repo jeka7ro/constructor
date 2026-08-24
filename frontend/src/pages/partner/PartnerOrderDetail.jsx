@@ -688,15 +688,15 @@ export default function PartnerOrderDetail() {
 
                 {allDocs.length > 0 ? (
                     <div className="space-y-2">
-                        {attachments.map((att) => {
-                            const isPdf = att.photo_path?.toLowerCase().endsWith('.pdf')
-                            const imgUrl = getImgUrl(att.photo_path)
-                            const fileSize = att.file_size ? (att.file_size > 1024 * 1024
-                                ? `${(att.file_size / 1024 / 1024).toFixed(1)} MB`
-                                : `${Math.round(att.file_size / 1024)} KB`) : ''
+                        {allDocs.map((doc) => {
+                            const isPdf = doc.url?.toLowerCase().endsWith('.pdf')
+                            const imgUrl = getImgUrl(doc.url)
+                            const fileSize = doc.size ? (doc.size > 1024 * 1024
+                                ? `${(doc.size / 1024 / 1024).toFixed(1)} MB`
+                                : `${Math.round(doc.size / 1024)} KB`) : ''
 
                             return (
-                                <div key={att.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 border border-slate-200 dark:border-slate-600 group">
+                                <div key={doc.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 border border-slate-200 dark:border-slate-600 group">
                                     {/* Icon / Thumbnail */}
                                     {isPdf ? (
                                         <div 
@@ -715,11 +715,12 @@ export default function PartnerOrderDetail() {
                                     {/* Info */}
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
-                                            {att.description || 'Document'}
+                                            {doc.name || 'Document'}
                                         </p>
                                         <div className="flex items-center gap-2 text-xs text-slate-400">
                                             {fileSize && <span>{fileSize}</span>}
-                                            {att.uploaded_at && <span>{formatDateTime(att.uploaded_at, lang)}</span>}
+                                            {doc.date && <span>{formatDateTime(doc.date, lang)}</span>}
+                                            {!doc.canDelete && <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">ADMIN</span>}
                                         </div>
                                     </div>
 
@@ -744,20 +745,22 @@ export default function PartnerOrderDetail() {
                                             <Download className="w-4 h-4" />
                                         </a>
                                         {/* Delete */}
-                                        <button
-                                            onClick={async () => {
-                                                try {
-                                                    await partnerApi.delete(`/work-orders/${id}/attachments/${att.id}`)
-                                                    setAttachments(prev => prev.filter(a => a.id !== att.id))
-                                                } catch (err) {
-                                                    console.error('Delete failed', err)
-                                                }
-                                            }}
-                                            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                                            title={t.delete_attachment}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {doc.canDelete && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await partnerApi.delete(`/work-orders/${id}/attachments/${doc.deleteId}`)
+                                                        setAttachments(prev => prev.filter(a => a.id !== doc.deleteId))
+                                                    } catch (err) {
+                                                        console.error('Delete failed', err)
+                                                    }
+                                                }}
+                                                className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                                title={t.delete_attachment}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )
