@@ -204,6 +204,7 @@ def list_partner_work_orders(partner: Admin = Depends(get_current_partner), db: 
     ).filter(
         WorkOrder.organization_id == partner.organization_id,
         WorkOrder.client_id == partner.client_id,
+        WorkOrder.source_system == "partner",
         WorkOrder.status.notin_(["cancelled", "deleted"])
     ).order_by(WorkOrder.start_date.desc().nullslast(), WorkOrder.created_at.desc()).all()
     
@@ -220,7 +221,8 @@ def get_partner_work_order(wo_id: str, partner: Admin = Depends(get_current_part
     ).filter(
         WorkOrder.id == wo_id,
         WorkOrder.organization_id == partner.organization_id,
-        WorkOrder.client_id == partner.client_id
+        WorkOrder.client_id == partner.client_id,
+        WorkOrder.source_system == "partner"
     ).first()
     
     if not wo:
