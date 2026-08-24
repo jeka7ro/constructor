@@ -357,7 +357,7 @@ export default function PartnerOrderDetail() {
     const totalSurface = vols.reduce((s, v) => s + (parseFloat(v.quantity) || 0), 0)
     const photos = (order.photos || []).filter(p => p.photo_type !== 'partner_document')
 
-    const adminDocs = (order?.documents || []).map(d => ({
+    const adminDocs = (order?.documents || []).filter(d => d.source !== 'partner').map(d => ({
         id: d.id,
         url: d.file_path,
         name: d.filename,
@@ -366,8 +366,8 @@ export default function PartnerOrderDetail() {
     }))
     const partnerDocs = attachments.map(a => ({
         id: a.id,
-        url: a.photo_path,
-        name: a.description || t.attachments + ' ' + a.id.slice(0,4),
+        url: a.file_path,
+        name: a.filename || t.attachments + ' ' + a.id.slice(0,4),
         date: a.uploaded_at,
         canDelete: true,
         deleteId: a.id

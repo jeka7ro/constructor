@@ -11,8 +11,9 @@ from typing import Optional, List
 import secrets
 
 from app.database import get_db
-from app.models import Admin, Client, WorkOrder, WorkOrderPhoto, Organization, Team
+from app.models import Admin, Client, WorkOrder, WorkOrderPhoto, WorkOrderDocument, Organization, Team
 from app.api.partner_auth import get_current_partner
+from app.storage import get_file_url
 
 router = APIRouter()
 
@@ -102,8 +103,8 @@ def _serialize_wo(wo):
         for p in wo.photos:
             photos.append({
                 "id": p.id,
-                "photo_path": p.photo_path,
-                "thumbnail_path": p.thumbnail_path,
+                "photo_path": get_file_url(p.photo_path) if p.photo_path else None,
+                "thumbnail_path": get_file_url(p.thumbnail_path) if p.thumbnail_path else None,
                 "description": p.description,
                 "photo_type": p.photo_type,
                 "uploaded_at": p.uploaded_at.isoformat() if p.uploaded_at else None,
@@ -116,7 +117,7 @@ def _serialize_wo(wo):
             documents.append({
                 "id": d.id,
                 "filename": d.filename,
-                "file_path": d.file_path,
+                "file_path": get_file_url(d.file_path) if d.file_path else None,
                 "file_size": d.file_size,
                 "content_type": d.content_type,
                 "source": getattr(d, 'source', 'admin'),
@@ -203,7 +204,6 @@ def list_partner_work_orders(partner: Admin = Depends(get_current_partner), db: 
     ).filter(
         WorkOrder.organization_id == partner.organization_id,
         WorkOrder.client_id == partner.client_id,
-        WorkOrder.created_by == partner.id,
         WorkOrder.status.notin_(["cancelled", "deleted"])
     ).order_by(WorkOrder.start_date.desc().nullslast(), WorkOrder.created_at.desc()).all()
     
@@ -244,11 +244,17 @@ def create_partner_work_order(
         
         volumes = _build_volumes(payload)
         
-        # Parse start_date
+        # Parse start_date and start_time
         parsed_date = None
+        parsed_time = None
         if payload.start_date:
             try:
-                parsed_date = date.fromisoformat(payload.start_date)
+                date_str = payload.start_date.split('T')[0]
+                parsed_date = date.fromisoformat(date_str)
+                if 'T' in payload.start_date:
+                    time_part = payload.start_date.split('T')[1]
+                    # truncate to HH:MM
+                    parsed_time = time_part[:5] if len(time_part) >= 5 else None
             except ValueError:
                 pass
         
@@ -261,6 +267,8 @@ def create_partner_work_order(
             work_type=payload.work_type or "new",
             site_address=payload.site_address,
             start_date=parsed_date,
+            start_time=parsed_time,
+            approximate_date=payload.start_date.split('T')[0] if payload.start_date else None,
             notes=payload.notes,
             client_id=client.id,
             client_name=client.name,
@@ -461,19 +469,24 @@ async def upload_partner_attachment(
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="Le fichier dépasse la taille maximale de 20 MB")
     
-    # Save file
-    safe_filename = f"{_uuid.uuid4().hex}{ext}"
-    file_path = os.path.join(PARTNER_UPLOAD_DIR, safe_filename)
-    with open(file_path, "wb") as f:
-        f.write(contents)
+    # Save file to Supabase Storage
+    safe_filename = f"partner_doc_{_uuid.uuid4().hex[:8]}{ext}"
+    storage_path = f"partner_attachments/{wo_id}/{safe_filename}"
     
-    # Create DB record using WorkOrderPhoto with type 'partner_document'
-    attachment = WorkOrderPhoto(
+    try:
+        from app.storage import upload_file, get_content_type
+        file_url = upload_file(contents, storage_path, get_content_type(safe_filename))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+    
+    # Create DB record using WorkOrderDocument
+    attachment = WorkOrderDocument(
         work_order_id=wo_id,
-        photo_path=f"/{file_path}",
-        description=description or file.filename,
+        filename=file.filename,
+        file_path=storage_path,
         file_size=len(contents),
-        photo_type="partner_document",
+        content_type=get_content_type(safe_filename),
+        source="partner",
     )
     db.add(attachment)
     db.commit()
@@ -481,11 +494,11 @@ async def upload_partner_attachment(
     
     return {
         "id": attachment.id,
-        "photo_path": attachment.photo_path,
-        "description": attachment.description,
+        "filename": attachment.filename,
+        "file_path": get_file_url(attachment.file_path) if attachment.file_path else None,
         "file_size": attachment.file_size,
-        "photo_type": attachment.photo_type,
-        "original_filename": file.filename,
+        "content_type": attachment.content_type,
+        "source": attachment.source,
         "uploaded_at": attachment.uploaded_at.isoformat() if attachment.uploaded_at else None,
     }
 
@@ -506,17 +519,18 @@ def list_partner_attachments(
     if not wo:
         raise HTTPException(status_code=404, detail="Work order not found")
     
-    attachments = db.query(WorkOrderPhoto).filter(
-        WorkOrderPhoto.work_order_id == wo_id,
-        WorkOrderPhoto.photo_type == "partner_document"
-    ).order_by(WorkOrderPhoto.uploaded_at.desc()).all()
+    attachments = db.query(WorkOrderDocument).filter(
+        WorkOrderDocument.work_order_id == wo_id,
+        WorkOrderDocument.source == "partner"
+    ).order_by(WorkOrderDocument.uploaded_at.desc()).all()
     
     return [{
         "id": a.id,
-        "photo_path": a.photo_path,
-        "description": a.description,
+        "filename": a.filename,
+        "file_path": get_file_url(a.file_path) if a.file_path else None,
         "file_size": a.file_size,
-        "photo_type": a.photo_type,
+        "content_type": a.content_type,
+        "source": a.source,
         "uploaded_at": a.uploaded_at.isoformat() if a.uploaded_at else None,
     } for a in attachments]
 
@@ -538,22 +552,21 @@ def delete_partner_attachment(
     if not wo:
         raise HTTPException(status_code=404, detail="Work order not found")
     
-    attachment = db.query(WorkOrderPhoto).filter(
-        WorkOrderPhoto.id == attachment_id,
-        WorkOrderPhoto.work_order_id == wo_id,
-        WorkOrderPhoto.photo_type == "partner_document"
+    attachment = db.query(WorkOrderDocument).filter(
+        WorkOrderDocument.id == attachment_id,
+        WorkOrderDocument.work_order_id == wo_id,
+        WorkOrderDocument.source == "partner"
     ).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
-    
-    # Delete file from disk
+        
+    # Delete from Supabase Storage
     try:
-        file_path = attachment.photo_path.lstrip('/')
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception:
-        pass
-    
+        if attachment.file_path:
+            from app.storage import delete_file
+            delete_file(attachment.file_path)
+    except Exception as e:
+        print(f"Failed to delete file from storage: {e}")
     db.delete(attachment)
     db.commit()
     

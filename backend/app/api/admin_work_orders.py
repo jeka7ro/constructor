@@ -264,6 +264,7 @@ def _serialize_audit_mode(wo) -> dict:
         "status": wo.status,
         "duration_days": getattr(wo, "duration_days", 1),
         "is_quote": bool(wo.is_quote),
+        "approximate_date": wo.approximate_date,
         "created_at": str(wo.created_at) if wo.created_at else None,
         "start_date": str(wo.start_date) if wo.start_date else None,
         "client_name": wo.client_name or (wo.client.name if wo.client else None),

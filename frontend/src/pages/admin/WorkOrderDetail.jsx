@@ -2408,6 +2408,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         {t('work_order_detail.documents.from_client', 'Du client')}
                                                     </span>
                                                 )}
+                                                {doc.source === 'partner' && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 uppercase tracking-widest shrink-0 border border-emerald-200">
+                                                        Partenaire
+                                                    </span>
+                                                )}
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                                 {doc.file_size ? (doc.file_size / 1024).toFixed(0) + ' KB' : t('work_order_detail.documents.attachment', 'Pièce jointe')}
@@ -3254,14 +3259,42 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         )}
 
                         {/* Alte poze */}
-                        {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion' && p.photo_type !== 'partner_document').length > 0 && (
+                        {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion').length > 0 && (
                             <div>
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('work_order_detail.photos.other_photos', 'Autres Photos (Internes)')}</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                                    {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion' && p.photo_type !== 'partner_document').map((p, i) => {
+                                    {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion').map((p, i) => {
                                         const rawSrc = p.url || p.file_url || p.path || '';
                                         const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
                                         const fallbackSrc = `https://cmr.up.railway.app${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
+                                        const isPdf = rawSrc.toLowerCase().endsWith('.pdf');
+                                        
+                                        if (p.photo_type === 'partner_document' || rawSrc.toLowerCase().endsWith('.pdf')) {
+                                            return (
+                                                <a key={`pdoc-${i}`}
+                                                    href={src}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex flex-col gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:border-emerald-400 transition-colors group"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                                                            {isPdf ? <FileText className="w-5 h-5 text-emerald-600" /> : <Camera className="w-5 h-5 text-emerald-600" />}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{p.description || rawSrc.split('/').pop()}</p>
+                                                            <p className="text-[10px] text-slate-400">{isPdf ? 'PDF' : 'Image'}</p>
+                                                        </div>
+                                                    </div>
+                                                    {p.source === 'partner' && (
+                                                        <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md self-start">
+                                                            {t('source.partner', 'Partenaire')}
+                                                        </span>
+                                                    )}
+                                                </a>
+                                            );
+                                        }
+
                                         return (
                                             <div key={`alt-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:shadow-md transition-all"
@@ -3278,42 +3311,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     })}
                                 </div>
                             </div>
-                        )}
-
-                        {/* Documents Partenaire */}
-                        {photos.filter(p => p.photo_type === 'partner_document').length > 0 && (
-                            <div>
-                                <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                                    <Paperclip className="w-3.5 h-3.5" />
-                                    {t('work_order_detail.photos.partner_documents', 'Documents Partenaire')}
-                                </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                    {photos.filter(p => p.photo_type === 'partner_document').map((p, i) => {
-                                        const rawSrc = p.url || p.file_url || p.path || '';
-                                        const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
-                                        const isPdf = rawSrc.toLowerCase().endsWith('.pdf');
-                                        const filename = p.description || rawSrc.split('/').pop() || `Document ${i + 1}`;
-                                        return (
-                                            <a key={`pdoc-${i}`}
-                                                href={src}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-3 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors group"
-                                            >
-                                                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                                                    {isPdf ? <FileText className="w-5 h-5 text-emerald-600" /> : <Camera className="w-5 h-5 text-emerald-600" />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{filename}</p>
-                                                    <p className="text-[10px] text-slate-400">{isPdf ? 'PDF' : 'Image'} · {t('source.partner', 'Partenaire')}</p>
-                                                </div>
-                                                <Download className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
-                                            </a>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-                        )}
                     </div>
                 ) : (
                     <div className="flex flex-col items-center py-10 gap-3">
