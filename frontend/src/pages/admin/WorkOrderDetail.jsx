@@ -3311,6 +3311,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     })}
                                 </div>
                             </div>
+                        )}
                     </div>
                 ) : (
                     <div className="flex flex-col items-center py-10 gap-3">
