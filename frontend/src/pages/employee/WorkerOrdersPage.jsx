@@ -745,24 +745,23 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                 <Section label="Documente / Planuri Atașate">
                     <div className="space-y-2">
                         {documents.map(doc => (
-                            <a 
+                            <button 
                                 key={doc.id} 
-                                href={getFullImageUrl(doc.url)} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3 hover:border-blue-400 hover:shadow-md transition-all group"
+                                onClick={() => onPhotoClick(getFullImageUrl(doc.url))}
+                                style={{ WebkitUserDrag: 'none', WebkitTouchCallout: 'none' }}
+                                className="w-full text-left flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3 hover:border-blue-400 hover:shadow-md transition-all group select-none active:scale-[0.98]"
                             >
                                 <div className="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-red-500 group-hover:text-white transition-colors">
                                     <FileText className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-slate-800 truncate">{doc.filename}</p>
-                                    <p className="text-[10px] text-slate-500 uppercase mt-0.5">
+                                    <p className="text-sm font-bold text-slate-800 truncate select-none">{doc.filename}</p>
+                                    <p className="text-[10px] text-slate-500 uppercase mt-0.5 select-none">
                                         Fichier téléchargé • {Math.round(doc.file_size / 1024)} KB
                                     </p>
                                 </div>
                                 <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
-                            </a>
+                            </button>
                         ))}
                     </div>
                 </Section>
@@ -778,16 +777,17 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                             <button
                                 key={p.id}
                                 onClick={() => onPhotoClick(getFullImageUrl(p.url))}
-                                className="w-full flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-3 py-3 hover:bg-slate-50 transition-colors text-left"
+                                style={{ WebkitUserDrag: 'none', WebkitTouchCallout: 'none' }}
+                                className="w-full flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-3 py-3 hover:bg-slate-50 transition-colors text-left select-none active:scale-[0.98]"
                             >
                                 <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
                                     <FileImage className="w-5 h-5 text-slate-400" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-slate-800 truncate">
+                                    <p className="text-sm font-semibold text-slate-800 truncate select-none">
                                         {p.description || 'Photo instruction'}
                                     </p>
-                                    <p className="text-xs text-slate-400">{fmtTime(p.uploaded_at)}</p>
+                                    <p className="text-xs text-slate-400 select-none">{fmtTime(p.uploaded_at)}</p>
                                 </div>
                                 <ExternalLink className="w-4 h-4 text-slate-400 shrink-0" />
                             </button>
