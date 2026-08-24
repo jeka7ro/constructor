@@ -319,9 +319,9 @@ function PartnerFormModal({ partner, clients = [], teams = [], onClose, onSaved 
 
     return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700 shrink-0">
                     <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
                         <Handshake className="w-5 h-5 text-blue-600" />
                         {isEdit ? t('partners.edit_title', 'Modifier le partenaire') : t('partners.add_title', 'Nouveau partenaire')}
@@ -331,7 +331,7 @@ function PartnerFormModal({ partner, clients = [], teams = [], onClose, onSaved 
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-5 space-y-4">
+                <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
                     {/* Full Name */}
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">

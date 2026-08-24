@@ -56,27 +56,32 @@ class Base(_SanitizeMixin, _DeclarativeBase):  # type: ignore[misc]
 def get_db():
     """Dependency for database sessions with retry on connection failure"""
     import time
+    db = None
     last_err = None
     for attempt in range(3):
         try:
             db = SessionLocal()
             # Test the connection is alive
             db.execute(text("SELECT 1"))
-            try:
-                yield db
-            finally:
-                db.close()
-            return
+            break  # Connection works, exit retry loop
         except Exception as e:
             last_err = e
-            try:
-                db.close()
-            except:
-                pass
+            if db:
+                try:
+                    db.close()
+                except:
+                    pass
+                db = None
             if attempt < 2:
                 time.sleep(0.5 * (attempt + 1))
-    # All retries failed
-    raise last_err
+    
+    if db is None:
+        raise last_err
+    
+    try:
+        yield db
+    finally:
+        db.close()
 
 def warmup_pool():
     """Pre-warm the connection pool to avoid cold-start latency."""

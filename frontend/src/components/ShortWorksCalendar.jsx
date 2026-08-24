@@ -465,15 +465,8 @@ export default function ShortWorksCalendar({
     }, [weeklyOrders]);
 
     const dynamicStartHour = useMemo(() => {
-        let earliest = 24;
-        weeklyOrders.forEach(wo => {
-            if (wo.start_time) {
-                const h = parseInt(wo.start_time.split(':')[0], 10);
-                if (!isNaN(h) && h < earliest) earliest = h;
-            }
-        });
-        if (earliest === 24) return 7; // Dacă nu există comenzi, afișăm de la 07:00
-        return earliest;
+        // Always start from 06:00 so users can scroll to earlier hours
+        return 6;
     }, [weeklyOrders]);
 
     const END_HOUR = 21; // Calendar ends at 21:00
@@ -488,43 +481,31 @@ export default function ShortWorksCalendar({
         return isNaN(finalRow) ? 3 : finalRow;
     };
 
-    // Auto-scroll to earliest event — only once per calendar load
+    // Auto-scroll to 09:00 on load — only once per calendar load
     useEffect(() => {
-        if (containerRef.current && !hasAutoScrolled.current && weeklyOrders.length > 0) {
-            let earliestRow = END_HOUR - dynamicStartHour;
-            let latestRow = 1;
-            let hasEvents = false;
-            
-            weeklyOrders.forEach(wo => {
-                const dateStr = wo.start_date || wo.deadline_date;
-                if (!dateStr) return;
-                try {
-                    const datePart = dateStr.split('T')[0];
-                    const [year, month, day] = datePart.split('T')[0].split('-').map(Number);
-                    const woDate = new Date(year, month - 1, day, 12, 0, 0);
-                    if (weekDays.some(d => isSameDay(d, woDate))) {
-                        hasEvents = true;
-                        const row = getGridRowFromTime(wo.start_time);
-                        earliestRow = Math.min(earliestRow, row);
-                        latestRow = Math.max(latestRow, row);
-                    }
-                } catch (e) {}
-            });
-            
-            if (hasEvents) {
-                const targetRow = Math.max(1, earliestRow - 1);
-                // Ensure we don't scroll if targetRow is already visible or if it's huge
-                const newScrollTop = Math.max(0, (targetRow - 1) * 100);
-                
-                // Only scroll if we actually need to go down significantly
-                if (newScrollTop > 0) {
-                    containerRef.current.scrollTo({ top: newScrollTop, behavior: 'smooth' });
-                }
-                
-                hasAutoScrolled.current = true;
+        if (containerRef.current && !hasAutoScrolled.current) {
+            // Scroll to 09:00 → row index 3 (09 - 06 = 3) × 100px per row
+            const scrollTo9AM = (9 - dynamicStartHour) * 100;
+            containerRef.current.scrollTo({ top: scrollTo9AM, behavior: 'smooth' });
+            hasAutoScrolled.current = true;
 
+            if (weeklyOrders.length > 0) {
+                let latestRow = 1;
+                weeklyOrders.forEach(wo => {
+                    const dateStr = wo.start_date || wo.deadline_date;
+                    if (!dateStr) return;
+                    try {
+                        const datePart = dateStr.split('T')[0];
+                        const [year, month, day] = datePart.split('-').map(Number);
+                        const woDate = new Date(year, month - 1, day, 12, 0, 0);
+                        if (weekDays.some(d => isSameDay(d, woDate))) {
+                            const row = getGridRowFromTime(wo.start_time);
+                            latestRow = Math.max(latestRow, row);
+                        }
+                    } catch (e) {}
+                });
                 const clientH = containerRef.current.clientHeight || 480;
-                const visibleBottom = newScrollTop + clientH;
+                const visibleBottom = scrollTo9AM + clientH;
                 const eventsBottom = latestRow * 100;
                 setShowScrollHint(eventsBottom > visibleBottom);
             } else {
@@ -1255,7 +1236,7 @@ export default function ShortWorksCalendar({
                                                 return;
                                             }
                                             
-                                            // Handle Work Order Swap
+                                            // Handle Work Order Drop → reschedule dragged order to this card's time
                                             const draggedWoId = e.dataTransfer.getData("text/plain");
                                             if (!draggedWoId || draggedWoId === String(wo.id)) return;
                                             
@@ -1264,33 +1245,18 @@ export default function ShortWorksCalendar({
 
                                             const targetDate = wo.start_date || wo.deadline_date;
                                             const targetTime = wo.start_time || '07:00';
-                                            
-                                            const sourceDate = draggedWo.start_date || draggedWo.deadline_date;
-                                            const sourceTime = draggedWo.start_time || '07:00';
 
-                                            setSyncing(true);
-                                            try {
-                                                // Update dragged order
-                                                await apiClient.put(`${apiBasePath}/${draggedWo.id}`, {
-                                                    start_date: targetDate,
-                                                    start_time: targetTime
-                                                });
-                                                // Update target order to dragged order's original time
-                                                await apiClient.put(`${apiBasePath}/${wo.id}`, {
-                                                    start_date: sourceDate,
-                                                    start_time: sourceTime
-                                                });
-                                                
-                                                if (onOrderRescheduled) {
-                                                    onOrderRescheduled();
-                                                } else {
-                                                    window.location.reload();
-                                                }
-                                            } catch (error) {
-                                                console.error("Eroare la schimbul de comenzi:", error);
-                                            } finally {
-                                                setSyncing(false);
-                                            }
+                                            // If same date and same time, nothing to do
+                                            if (draggedWo.start_date?.startsWith(targetDate) && draggedWo.start_time === targetTime) return;
+
+                                            setPlanningTime(targetTime);
+                                            setPlanningNotify(false);
+                                            setPendingReschedule({
+                                                id: draggedWoId,
+                                                start_date: targetDate,
+                                                start_time: targetTime,
+                                                status: draggedWo.status === 'draft' ? 'planning' : undefined
+                                            });
                                         }}
                                         title={`${(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)} — trageți pentru a muta`}
                                     >
