@@ -1,10 +1,8 @@
-from app.database import SessionLocal
-from app.models import Admin
+import sys
+from app.database import engine
+from sqlalchemy import text
 
-db = SessionLocal()
-admin = db.query(Admin).filter(Admin.email == 'jeka7ro@gmail.com').first()
-if admin:
-    print(f"Admin found: {admin.email}, active: {admin.is_active}, role: {admin.role}")
-else:
-    print("Admin NOT found!")
-db.close()
+with engine.connect() as conn:
+    res = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'admins'"))
+    cols = [r[0] for r in res]
+    print(f"Columns in admins table: {cols}")

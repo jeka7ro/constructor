@@ -1,14 +1,17 @@
-import sys
 import os
+import psycopg2
 from dotenv import load_dotenv
+
 load_dotenv()
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.database import engine
-from sqlalchemy import inspect
-
-def main():
-    inspector = inspect(engine)
-    print(inspector.get_table_names())
-
-if __name__ == "__main__":
-    main()
+db_url = os.environ.get('DATABASE_URL')
+conn = psycopg2.connect(db_url)
+conn.autocommit = True
+cur = conn.cursor()
+try:
+    cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")
+    print(cur.fetchall())
+except Exception as e:
+    print(f"Error: {e}")
+finally:
+    cur.close()
+    conn.close()

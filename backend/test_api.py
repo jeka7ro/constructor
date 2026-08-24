@@ -1,31 +1,13 @@
-from app.database import SessionLocal
-from app.models import WorkOrder
-from app.api.admin_work_orders import list_work_orders
-from pydantic import BaseModel
+from fastapi.testclient import TestClient
+from main import app
+from app.api.admin_auth import create_access_token
 
-class MockAdmin(BaseModel):
-    organization_id: str = "org_123"
-    id: str = "admin_123"
+client = TestClient(app)
+token = open("token.txt").read().strip() if open("token.txt").read().strip() else "mock"
 
-db = SessionLocal()
-admin = db.query(WorkOrder).first().client.organization if db.query(WorkOrder).first() else None
-org_id = admin.id if admin else db.query(WorkOrder).first().organization_id
-mock_admin = MockAdmin(organization_id=org_id)
-
-try:
-    res = list_work_orders(
-        status=None,
-        start_date=None,
-        end_date=None,
-        is_quote=None,
-        ignore_quote_filter=True,
-        limit=2000,
-        slim=False,
-        invoice_mode=False,
-        audit_mode=True,
-        db=db,
-        current_admin=mock_admin
-    )
-    print(f"Total returned from API function: {len(res)}")
-except Exception as e:
-    print("Error:", e)
+response = client.get(
+    "/api/admin/work-orders?start_date=2026-02-01&end_date=2027-08-28&slim=true",
+    headers={"Authorization": f"Bearer {token}"}
+)
+print("Status:", response.status_code)
+print("Response:", response.text)
