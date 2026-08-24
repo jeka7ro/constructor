@@ -443,26 +443,26 @@ export default function PartnerOrderDetail() {
                 <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
                     <ClipboardList className="w-5 h-5 text-slate-500" />
                     <h2 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wide">
-                        {t('work_order_detail.general_details.title', 'Détails Généraux')}
+                        Détails Généraux
                     </h2>
                 </div>
                 <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
-                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.quote_number', 'Numéro de Devis')}</p>
+                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">Numéro de Devis</p>
                         <p className="text-sm font-black tracking-widest text-slate-800 dark:text-white">{order.quote_number || order.id?.slice(0, 8).toUpperCase()}</p>
                     </div>
                     <div>
-                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.type', 'Type d\'intervention')}</p>
+                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">Type d'intervention</p>
                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 capitalize">{order.work_type}</p>
                     </div>
                     <div>
-                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.date', 'Date d\'intervention')}</p>
+                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">Date d'intervention</p>
                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                             {order.start_date ? new Date(order.start_date).toLocaleDateString(lang === 'nl' ? 'nl-BE' : lang === 'en' ? 'en-GB' : 'fr-BE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                         </p>
                     </div>
                     <div>
-                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.time', 'Heure d\'intervention')}</p>
+                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">Heure d'intervention</p>
                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                             {order.start_time || '-'}
                         </p>
