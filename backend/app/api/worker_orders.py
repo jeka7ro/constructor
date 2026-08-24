@@ -232,6 +232,8 @@ def get_my_orders(
             "my_checkin_at": my_checkin.checkin_at.isoformat() if my_checkin else None,
             "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
             "route_segments": wo.route_segments or [],
+            "source_system": wo.source_system,
+            "duration_days": wo.duration_days,
         }
 
     return [_fast_serialize(wo) for wo in orders]

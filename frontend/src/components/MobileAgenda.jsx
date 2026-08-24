@@ -84,8 +84,20 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
 
         orders.forEach(wo => {
             const woDateStr = (wo.start_date || wo.deadline_date || '').split('T')[0];
-            if (grouped[woDateStr]) {
-                grouped[woDateStr].push(wo);
+            if (!woDateStr) return;
+
+            const duration = parseInt(wo.duration_days) || 1;
+            const startDate = parseISO(woDateStr);
+
+            for (let i = 0; i < duration; i++) {
+                const currentDate = addDays(startDate, i);
+                const dateStr = format(currentDate, 'yyyy-MM-dd');
+                if (grouped[dateStr]) {
+                    // Prevent duplicates if multiple components loop over it
+                    if (!grouped[dateStr].find(o => o.id === wo.id)) {
+                        grouped[dateStr].push(wo);
+                    }
+                }
             }
         });
 

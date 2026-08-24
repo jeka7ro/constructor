@@ -32,8 +32,9 @@ import {
     AlertCircle, Navigation, Package, Camera, Upload,
     Check, X, Plus, Trash2, ClipboardList, Info,
     Timer, Layers, Send, LogIn, LogOut, Lock, Eye, Home,
-    FileText, MessageCircle, Bell, ExternalLink, Loader2, Sun, Moon
+    FileText, MessageCircle, Bell, ExternalLink, Loader2, Sun, Moon, MessageSquareWarning
 } from 'lucide-react'
+import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import { useUIStore } from '../../store/uiStore'
 import { isToday, isFuture, format, startOfDay, startOfWeek, addWeeks, subWeeks, isSameWeek, isSameDay, addDays, parseISO } from 'date-fns'
 import { ro, fr } from 'date-fns/locale'
@@ -349,11 +350,12 @@ function TabBar({ active, onChange, onHomePress, tenant, isDriver }) {
                     className={`absolute -top-14 flex flex-col items-center justify-center w-[68px] h-[68px] text-white rounded-full transition-all active:scale-95 border-4 border-white backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] bg-[color:var(--mobile-bg)]`}
                     style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                 >
-                    {tenant?.favicon_url && (
+                    {tenant?.favicon_url ? (
                         <img src={getFullImageUrl(tenant.favicon_url)} alt="Favicon" className="w-8 h-8 object-contain drop-shadow-md rounded-xl" />
-                    )}
-                    {tenant?.logo_url && (
+                    ) : tenant?.logo_url ? (
                         <img src={getFullImageUrl(tenant.logo_url)} alt="Logo" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
+                    ) : (
+                        <Home className="w-8 h-8" />
                     )}
                 </button>
             </div>
@@ -419,12 +421,27 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
         .map(l => l.trim())
         .filter(Boolean)
 
+    const [showChat, setShowChat] = useState(false);
+
     return (
         <div className="pb-28 px-4 pt-4 space-y-4">
-            {order.is_quote && (
-                <TeamLeaderChat orderId={order.id} />
+            {order.source_system === 'partner' && (
+                <div className="mb-4">
+                    <button 
+                        onClick={() => setShowChat(!showChat)}
+                        className="w-full flex items-center justify-center gap-2 bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 py-3 px-4 rounded-xl font-bold transition-colors"
+                    >
+                        <MessageSquareWarning className="w-5 h-5" />
+                        {showChat ? 'Ascunde Chat Partener' : 'Deschide Chat Partener'}
+                    </button>
+                    {showChat && (
+                        <div className="mt-3">
+                            <TeamLeaderChat orderId={order.id} />
+                        </div>
+                    )}
+                </div>
             )}
-
+            
             {/* Suprafata si Épaisseur + Sable */}
             {order.volumes && order.volumes.length > 0 && (
                 <Section 
@@ -1456,16 +1473,14 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const [uploadingInternal, setUploadingInternal]   = useState(false)
     const [uploadingMachine, setUploadingMachine]     = useState(false)
     const [closing, setClosing]                       = useState(false)
-    const [lightboxUrl, setLightboxUrl]               = useState(null)
+    const [previewDoc, setPreviewDoc]                 = useState(null)
 
     const handleMediaClick = (url) => {
         if (!url) return;
         const cleanUrl = url.split('?')[0].toLowerCase();
-        if (cleanUrl.endsWith('.pdf')) {
-            window.open(url, '_blank');
-        } else {
-            setLightboxUrl(url);
-        }
+        
+        // Deschidem totul (și poze și PDF) în modalul nativ ca să nu plece pe alt tab
+        setPreviewDoc(url);
     };
 
     const roleCode = user?.role?.code?.toUpperCase() || ''
@@ -1825,7 +1840,13 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                             const todayOrders = orders.filter(o => {
                                 const d1 = o.start_date || o.deadline_date;
                                 if (!d1) return false;
-                                return d1.split('T')[0] === currentDate.toISOString().split('T')[0];
+                                
+                                const startDate = parseISO(d1.split('T')[0]);
+                                const duration = parseInt(o.duration_days) || 1;
+                                const endDate = addDays(startDate, duration - 1);
+                                const current = parseISO(currentDate.toISOString().split('T')[0]);
+                                
+                                return current >= startDate && current <= endDate;
                             });
                             
                             const stats = {
@@ -2023,7 +2044,13 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                 <TabBar active={activeTab} onChange={setActiveTab} onHomePress={() => navigate('/')} tenant={tenant} isDriver={isDriver} />
             </div>
 
-            <Lightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+            {previewDoc && (
+                <DocumentPreviewModal 
+                    documents={[{ url: previewDoc, name: "Document" }]} 
+                    initialIndex={0} 
+                    onClose={() => setPreviewDoc(null)} 
+                />
+            )}
         </div>
     )
 }

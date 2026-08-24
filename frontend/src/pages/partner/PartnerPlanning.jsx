@@ -218,7 +218,13 @@ export default function PartnerPlanning() {
                 assigned_team_id: teamId
             })
             // Update local state optimistic
-            setOrders(prev => prev.map(o => o.id === workOrderId ? { ...o, assigned_team_id: teamId } : o))
+            const selectedTeam = teams.find(t => String(t.id) === String(teamId));
+            setOrders(prev => prev.map(o => String(o.id) === String(workOrderId) ? { 
+                ...o, 
+                assigned_team_id: teamId,
+                team_name: selectedTeam ? selectedTeam.name : null,
+                assigned_team_color: selectedTeam ? selectedTeam.color : null
+            } : o))
         } catch (err) {
             console.error('Failed to assign team', err)
             fetchOrders() // revert on error
@@ -226,11 +232,11 @@ export default function PartnerPlanning() {
     }
 
     const handleOrderRescheduled = (woId, newDate, newTime, revert = false, durationDays = undefined) => {
-        if (woId && newDate && newTime) {
+        if (woId) {
             setOrders(prev => prev.map(wo => String(wo.id) === String(woId) ? {
                 ...wo,
-                start_date: newDate,
-                start_time: newTime,
+                ...(newDate ? { start_date: newDate } : {}),
+                ...(newTime ? { start_time: newTime } : {}),
                 ...(durationDays !== undefined ? { duration_days: durationDays } : {})
             } : wo));
         }

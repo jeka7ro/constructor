@@ -38,6 +38,9 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
     const isImg = doc.content_type?.startsWith('image/') || 
                   doc.filename?.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i) ||
                   fileUrl?.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|heic)(\?.*)?$/i);
+    const isPdf = doc.content_type?.includes('pdf') ||
+                  doc.filename?.toLowerCase().endsWith('.pdf') ||
+                  fileUrl?.toLowerCase().includes('.pdf');
 
     return createPortal(
         <div className="fixed inset-0 bg-slate-900/90 z-[99999] flex flex-col backdrop-blur-sm">
@@ -88,6 +91,12 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                             src={fileUrl}
                             alt={doc.filename}
                             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                        />
+                    ) : isPdf ? (
+                        <iframe
+                            src={fileUrl}
+                            title={doc.filename}
+                            className="w-full h-full max-w-6xl max-h-[90vh] bg-white rounded-lg shadow-2xl border-0"
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center bg-white rounded-2xl p-12 max-w-sm w-full text-center shadow-2xl">
