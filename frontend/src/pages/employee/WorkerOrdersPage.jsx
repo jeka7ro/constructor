@@ -2046,7 +2046,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
 
             {previewDoc && (
                 <DocumentPreviewModal 
-                    documents={[{ url: previewDoc, name: "Document" }]} 
+                    documents={[{ file_url: previewDoc, filename: "Document" }]} 
                     initialIndex={0} 
                     onClose={() => setPreviewDoc(null)} 
                 />

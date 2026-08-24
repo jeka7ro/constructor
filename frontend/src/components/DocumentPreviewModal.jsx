@@ -33,7 +33,8 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
     };
 
     const doc = documents[currentIndex];
-    const rawUrl = doc.file_url || doc.file_path;
+    const rawUrl = doc.file_url || doc.file_path || doc.url;
+    const filename = doc.filename || doc.name || 'Document';
     const fileUrl = rawUrl?.startsWith('http') ? rawUrl : `${API_BASE}${rawUrl?.startsWith('/') ? '' : '/'}${rawUrl}`;
     const isImg = doc.content_type?.startsWith('image/') || 
                   doc.filename?.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i) ||
@@ -47,7 +48,7 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
             {/* Header */}
             <div className="flex items-center justify-between p-4 text-white">
                 <div>
-                    <h3 className="font-semibold text-lg">{doc.filename}</h3>
+                    <h3 className="font-semibold text-lg">{filename}</h3>
                     <p className="text-sm text-slate-300">
                         {currentIndex + 1} {t('common.of', 'sur')} {documents.length} • {doc.source === 'client' ? t('common.uploaded_by_client', 'Téléchargé par le client') : t('common.document', 'Document')}
                     </p>
@@ -55,7 +56,7 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                 <div className="flex items-center gap-3">
                     <a
                         href={fileUrl}
-                        download={doc.filename}
+                        download={filename}
                         target="_blank"
                         rel="noreferrer"
                         className="p-2 hover:bg-slate-800 rounded-full transition-colors flex items-center gap-2 text-sm font-medium"
@@ -89,19 +90,19 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                     {isImg ? (
                         <img
                             src={fileUrl}
-                            alt={doc.filename}
+                            alt={filename}
                             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                         />
                     ) : isPdf ? (
                         <iframe
                             src={fileUrl}
-                            title={doc.filename}
+                            title={filename}
                             className="w-full h-full max-w-6xl max-h-[90vh] bg-white rounded-lg shadow-2xl border-0"
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center bg-white rounded-2xl p-12 max-w-sm w-full text-center shadow-2xl">
                             <FileText className="w-24 h-24 text-blue-500 mb-6" />
-                            <h4 className="text-xl font-bold text-slate-800 mb-2 truncate w-full">{doc.filename}</h4>
+                            <h4 className="text-xl font-bold text-slate-800 mb-2 truncate w-full">{filename}</h4>
                             <p className="text-slate-500 mb-6">{t('common.preview_not_available', 'Aperçu non disponible pour ce type de fichier.')}</p>
                             <a
                                 href={fileUrl}
