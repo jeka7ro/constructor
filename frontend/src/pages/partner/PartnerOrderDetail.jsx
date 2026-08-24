@@ -359,18 +359,20 @@ export default function PartnerOrderDetail() {
 
     const adminDocs = (order?.documents || []).filter(d => d.source !== 'partner').map(d => ({
         id: d.id,
-        url: d.file_path,
+        url: d.file_path?.startsWith('http') ? d.file_path : (d.file_path ? `/uploads/${d.file_path}` : ''),
         name: d.filename,
         date: d.uploaded_at,
-        canDelete: false
+        canDelete: false,
+        size: d.file_size
     }))
     const partnerDocs = attachments.map(a => ({
         id: a.id,
-        url: a.file_path,
+        url: a.file_path?.startsWith('http') ? a.file_path : (a.file_path ? `/uploads/${a.file_path}` : ''),
         name: a.filename || t.attachments + ' ' + a.id.slice(0,4),
         date: a.uploaded_at,
         canDelete: true,
-        deleteId: a.id
+        deleteId: a.id,
+        size: a.file_size
     }))
     const allDocs = [...adminDocs, ...partnerDocs].sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0))
 
@@ -651,18 +653,21 @@ export default function PartnerOrderDetail() {
                         <input
                             ref={fileInputRef}
                             type="file"
+                            multiple
                             accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.heic,.bmp,.tiff"
                             className="hidden"
                             onChange={async (e) => {
-                                const file = e.target.files?.[0]
-                                if (!file) return
+                                const files = Array.from(e.target.files || [])
+                                if (files.length === 0) return
                                 setUploading(true)
                                 try {
-                                    const formData = new FormData()
-                                    formData.append('file', file)
-                                    await partnerApi.post(`/work-orders/${id}/attachments`, formData, {
-                                        headers: { 'Content-Type': 'multipart/form-data' }
-                                    })
+                                    for (const file of files) {
+                                        const formData = new FormData()
+                                        formData.append('file', file)
+                                        await partnerApi.post(`/work-orders/${id}/attachments`, formData, {
+                                            headers: { 'Content-Type': 'multipart/form-data' }
+                                        })
+                                    }
                                     fetchAttachments()
                                 } catch (err) {
                                     console.error('Upload failed', err)
