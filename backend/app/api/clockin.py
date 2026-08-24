@@ -924,14 +924,7 @@ def push_worker_location(
     now = get_local_now()
 
     # Auto-migrate GPS columns if missing (Railway cold start)
-    try:
-        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lat FLOAT"))
-        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lng FLOAT"))
-        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP"))
-        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_speed FLOAT"))
-        db.commit()
-    except Exception as _me:
-        db.rollback()
+    # The ALTER TABLE migrations have been moved to startup/migrations to prevent deadlocks.
 
     try:
         db.execute(sqlt(
@@ -1002,21 +995,8 @@ def get_live_vehicles(
     from sqlalchemy import text as sqlt
     from datetime import timedelta
 
-    # Auto-migrate GPS columns if missing (with correct saas_app schema)
-    try:
-        db.execute(sqlt("ALTER TABLE saas_app.users ADD COLUMN IF NOT EXISTS last_lat FLOAT"))
-        db.execute(sqlt("ALTER TABLE saas_app.users ADD COLUMN IF NOT EXISTS last_lng FLOAT"))
-        db.execute(sqlt("ALTER TABLE saas_app.users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP"))
-        db.execute(sqlt("ALTER TABLE saas_app.users ADD COLUMN IF NOT EXISTS last_speed FLOAT"))
-        
-        db.execute(sqlt("ALTER TABLE saas_app.vehicles ADD COLUMN IF NOT EXISTS last_lat FLOAT"))
-        db.execute(sqlt("ALTER TABLE saas_app.vehicles ADD COLUMN IF NOT EXISTS last_lng FLOAT"))
-        db.execute(sqlt("ALTER TABLE saas_app.vehicles ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP"))
-        db.execute(sqlt("ALTER TABLE saas_app.vehicles ADD COLUMN IF NOT EXISTS last_speed FLOAT"))
-        db.commit()
-    except Exception as _me:
-        db.rollback()
-        print(f"GPS migration note: {_me}")
+    # The ALTER TABLE migrations have been moved to startup/migrations to prevent deadlocks.
+    # We just fetch data directly now.
 
     try:
         cutoff = datetime.utcnow() - timedelta(hours=24)  # Show vehicles active in last 24h (UTC, matching Flespi timestamps)

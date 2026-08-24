@@ -12,8 +12,11 @@ if settings.DATABASE_URL.startswith("sqlite"):
 else:
     engine = create_engine(
         settings.DATABASE_URL,
-        poolclass=NullPool,
+        pool_size=15,
+        max_overflow=30,
+        pool_timeout=30,
         pool_pre_ping=True,
+        pool_recycle=1800,
         connect_args={
             "keepalives": 1,
             "keepalives_idle": 30,
@@ -54,30 +57,8 @@ class Base(_SanitizeMixin, _DeclarativeBase):  # type: ignore[misc]
     __abstract__ = True
 
 def get_db():
-    """Dependency for database sessions with retry on connection failure"""
-    import time
-    db = None
-    last_err = None
-    for attempt in range(3):
-        try:
-            db = SessionLocal()
-            # Test the connection is alive
-            db.execute(text("SELECT 1"))
-            break  # Connection works, exit retry loop
-        except Exception as e:
-            last_err = e
-            if db:
-                try:
-                    db.close()
-                except:
-                    pass
-                db = None
-            if attempt < 2:
-                time.sleep(0.5 * (attempt + 1))
-    
-    if db is None:
-        raise last_err
-    
+    """Dependency for database sessions"""
+    db = SessionLocal()
     try:
         yield db
     finally:

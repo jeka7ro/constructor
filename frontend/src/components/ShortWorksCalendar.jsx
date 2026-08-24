@@ -481,38 +481,48 @@ export default function ShortWorksCalendar({
         return isNaN(finalRow) ? 3 : finalRow;
     };
 
-    // Auto-scroll to 09:00 on load — only once per calendar load
+    // Auto-scroll to 09:00 on load (or earlier if there are morning events)
+    const hasAutoScrolledToData = useRef(false);
+
     useEffect(() => {
-        if (containerRef.current && !hasAutoScrolled.current) {
-            // Scroll to 09:00 → row index 3 (09 - 06 = 3) × 100px per row
-            const scrollTo9AM = (9 - dynamicStartHour) * 100;
-            containerRef.current.scrollTo({ top: scrollTo9AM, behavior: 'smooth' });
+        if (containerRef.current && !hasAutoScrolledToData.current && weeklyOrders.length > 0) {
+            let targetScrollTop = (9 - dynamicStartHour) * 100; // Default to 09:00 (300px)
+            let latestRow = 1;
+            let earliestEventRow = END_HOUR - dynamicStartHour + 1;
+            
+            weeklyOrders.forEach(wo => {
+                const row = getGridRowFromTime(wo.start_time);
+                earliestEventRow = Math.min(earliestEventRow, row);
+                latestRow = Math.max(latestRow, row);
+            });
+            
+            // If there's an event before 09:00, scroll to it
+            if (earliestEventRow < 4) {
+                targetScrollTop = Math.max(0, (earliestEventRow - 1) * 100);
+            }
+
+            containerRef.current.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+            hasAutoScrolledToData.current = true;
             hasAutoScrolled.current = true;
 
-            if (weeklyOrders.length > 0) {
-                let latestRow = 1;
-                weeklyOrders.forEach(wo => {
-                    const dateStr = wo.start_date || wo.deadline_date;
-                    if (!dateStr) return;
-                    try {
-                        const datePart = dateStr.split('T')[0];
-                        const [year, month, day] = datePart.split('-').map(Number);
-                        const woDate = new Date(year, month - 1, day, 12, 0, 0);
-                        if (weekDays.some(d => isSameDay(d, woDate))) {
-                            const row = getGridRowFromTime(wo.start_time);
-                            latestRow = Math.max(latestRow, row);
-                        }
-                    } catch (e) {}
-                });
-                const clientH = containerRef.current.clientHeight || 480;
-                const visibleBottom = scrollTo9AM + clientH;
-                const eventsBottom = latestRow * 100;
-                setShowScrollHint(eventsBottom > visibleBottom);
-            } else {
-                setShowScrollHint(false);
-            }
+            const clientH = containerRef.current.clientHeight || 480;
+            const visibleBottom = targetScrollTop + clientH;
+            const eventsBottom = latestRow * 100;
+            setShowScrollHint(eventsBottom > visibleBottom);
         }
     }, [weeklyOrders, dynamicStartHour]);
+
+    // Fallback if the week actually has 0 orders
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (containerRef.current && !hasAutoScrolled.current) {
+                const targetScrollTop = (9 - dynamicStartHour) * 100;
+                containerRef.current.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+                hasAutoScrolled.current = true;
+            }
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, [dynamicStartHour]);
 
     const [swipeDir, setSwipeDir] = useState(0);
     const [swipePhase, setSwipePhase] = useState('idle');
