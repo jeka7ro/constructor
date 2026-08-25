@@ -336,7 +336,8 @@ def update_partner_work_order(
     
     if payload.start_date is not None:
         try:
-            wo.start_date = date.fromisoformat(payload.start_date) if payload.start_date else None
+            date_str = payload.start_date.split("T")[0] if payload.start_date else None
+            wo.start_date = date.fromisoformat(date_str) if date_str else None
             if wo.status in ["draft", "planning", "pending"]:
                 wo.status = "planning" if wo.start_date else "pending"
         except ValueError:
@@ -344,7 +345,8 @@ def update_partner_work_order(
 
     if payload.deadline_date is not None:
         try:
-            wo.deadline_date = date.fromisoformat(payload.deadline_date) if payload.deadline_date else None
+            deadline_str = payload.deadline_date.split("T")[0] if payload.deadline_date else None
+            wo.deadline_date = date.fromisoformat(deadline_str) if deadline_str else None
         except ValueError:
             pass
     

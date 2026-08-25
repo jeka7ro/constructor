@@ -179,10 +179,10 @@ export default function ShortWorksCalendar({
             
             if (finalDuration !== startDuration) {
                 try {
-                    await apiClient.put(`${apiBasePath}/${wo.id}`, { duration_days: finalDuration });
-                    toast.success(t('planning.duration_updated', 'Durata a fost actualizată cu succes'));
+                    const res = await apiClient.put(`${apiBasePath}/${wo.id}`, { duration_days: finalDuration });
+                    showToast(t('planning.duration_updated', 'La durée a été mise à jour avec succès'), 'success');
                     if (onOrderRescheduled) {
-                        onOrderRescheduled(wo.id, wo.start_date || wo.deadline_date, wo.start_time || '08:00', false, finalDuration);
+                        onOrderRescheduled(wo.id, wo.start_date || wo.deadline_date, wo.start_time || '08:00', false, finalDuration, res.data);
                     } else {
                         window.location.reload();
                     }
@@ -203,7 +203,7 @@ export default function ShortWorksCalendar({
         document.addEventListener('pointercancel', handleMouseUp);
     };
     const containerRef = useRef(null);
-    const { openDialog } = useUIStore();
+    const { openDialog, showToast } = useUIStore();
     const { tenant } = useTenantStore();
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
@@ -365,7 +365,17 @@ export default function ShortWorksCalendar({
     // Filter work orders that fall in this week - highly optimized string matching + dedup
     const weeklyOrders = useMemo(() => {
         const seen = new Set();
-        return workOrders.filter(wo => {
+        const result = workOrders.map(wo => {
+            if (pendingReschedule && String(wo.id) === String(pendingReschedule.id)) {
+                console.log(`[weeklyOrders] Overriding date for ${wo.id} to ${pendingReschedule.start_date}`);
+                return {
+                    ...wo,
+                    start_date: pendingReschedule.start_date,
+                    start_time: planningTime || pendingReschedule.start_time
+                };
+            }
+            return wo;
+        }).filter(wo => {
             if (seen.has(wo.id)) return false;
             seen.add(wo.id);
             const dateStr = wo.start_date || wo.deadline_date;
@@ -373,7 +383,8 @@ export default function ShortWorksCalendar({
             const ds = dateStr.split('T')[0];
             return weekDayStrings.includes(ds);
         });
-    }, [workOrders, weekDayStrings]);
+        return result;
+    }, [workOrders, weekDayStrings, pendingReschedule, planningTime]);
 
     // O(N) grouping by date to prevent O(N * 7) filtering during render
     const ordersByDateStr = useMemo(() => {
@@ -1056,17 +1067,33 @@ export default function ShortWorksCalendar({
                                         const woId = e.dataTransfer.getData("text/plain");
                                         if (!woId) return;
 
-                                        const wo = workOrders.find(o => o.id === woId);
-                                        if (wo && wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;
+                                        const wo = workOrders.find(o => String(o.id) === woId);
+                                        if (!wo) return;
+                                        if (wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;
 
-                                        setPlanningTime(targetTime);
-                                        setPlanningNotify(false);
+                                        console.log(`[onDrop Empty] setting pendingReschedule for ${woId} to ${targetDate}`);
                                         setPendingReschedule({
                                             id: woId,
                                             start_date: targetDate,
                                             start_time: targetTime,
-                                            status: wo?.status === 'draft' ? 'planning' : undefined
+                                            status: wo?.status === 'draft' ? 'planning' : undefined,
+                                            instantSave: true
                                         });
+
+                                        try {
+                                            const res = await apiClient.put(`${apiBasePath}/${woId}`, {
+                                                start_date: targetDate,
+                                                start_time: targetTime,
+                                                ...(wo?.status === 'draft' ? { status: 'planning' } : {})
+                                            });
+                                            if (onOrderRescheduled) {
+                                                onOrderRescheduled(woId, targetDate, targetTime, false, undefined, res.data);
+                                            }
+                                        } catch (err) {
+                                            console.error("Failed to instant save rescheduled order", err);
+                                        } finally {
+                                            setPendingReschedule(null);
+                                        }
                                     }}
                                 >
                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full flex items-center justify-center shadow-md pointer-events-none" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
@@ -1164,13 +1191,14 @@ export default function ShortWorksCalendar({
                                         }}
                                         className={`group absolute flex flex-col p-1.5 rounded-xl shadow-sm border transition-all duration-200 overflow-hidden select-none ${isPast ? '' : 'cursor-move'}
                                             ${!wo.assigned_team_id ? 'border-red-400 border-2 border-dashed bg-red-50/80 dark:bg-red-900/20 z-20' : 'border-l-[4px] bg-white dark:bg-slate-900 z-10 hover:z-30 hover:scale-[1.02]'}
-                                            ${isThisDragged ? 'opacity-50 scale-95 ring-2 ring-blue-500 shadow-xl z-50' : ''}
+                                            ${isThisDragged ? 'opacity-50 scale-95 ring-2 ring-blue-500 shadow-xl z-50 !transition-none' : ''}
                                             ${syncing ? 'opacity-70 pointer-events-none' : ''} 
                                             ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}
                                             ${wo.status === 'planning' && wo.client_notified === false ? 'ring-2 ring-red-500 ring-offset-1 dark:ring-offset-slate-900 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : ''}
                                             ${animatingOrder === wo.id ? 'animate-pulse ring-2 ring-green-500 scale-105 z-40' : ''}
                                             ${isSelectingForHolding && !isPast ? 'ring-2 ring-yellow-400 animate-pulse cursor-pointer' : ''}
-                                            ${heldOrder?.id === wo.id ? 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/50' : ''}`}
+                                            ${heldOrder?.id === wo.id ? 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/50' : ''}
+                                            ${(pendingReschedule && String(pendingReschedule.id) === String(wo.id)) ? '!transition-none z-[60]' : ''}`}
                                         style={{
                                             top: `${(wo.rowStart - 1) * 100 + 4}px`,
                                             height: 'auto',
@@ -1259,14 +1287,28 @@ export default function ShortWorksCalendar({
                                             // If same date and same time, nothing to do
                                             if (draggedWo.start_date?.startsWith(targetDate) && draggedWo.start_time === targetTime) return;
 
-                                            setPlanningTime(targetTime);
-                                            setPlanningNotify(false);
                                             setPendingReschedule({
                                                 id: draggedWoId,
                                                 start_date: targetDate,
                                                 start_time: targetTime,
-                                                status: draggedWo.status === 'draft' ? 'planning' : undefined
+                                                status: draggedWo.status === 'draft' ? 'planning' : undefined,
+                                                instantSave: true
                                             });
+
+                                            try {
+                                                const res = await apiClient.put(`${apiBasePath}/${draggedWoId}`, {
+                                                    start_date: targetDate,
+                                                    start_time: targetTime,
+                                                    ...(draggedWo.status === 'draft' ? { status: 'planning' } : {})
+                                                });
+                                                if (onOrderRescheduled) {
+                                                    onOrderRescheduled(draggedWoId, targetDate, targetTime, false, undefined, res.data);
+                                                }
+                                            } catch (err) {
+                                                console.error("Failed to instant save rescheduled order", err);
+                                            } finally {
+                                                setPendingReschedule(null);
+                                            }
                                         }}
                                         title={`${(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)} — trageți pentru a muta`}
                                     >
@@ -1397,7 +1439,7 @@ export default function ShortWorksCalendar({
                 </div>
             </div>
             {/* Planning Modal */}
-            {pendingReschedule && createPortal(
+            {pendingReschedule && !pendingReschedule.instantSave && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="p-5">
@@ -1482,9 +1524,12 @@ export default function ShortWorksCalendar({
                                 </button>
                                 <button 
                                     onClick={async () => {
+                                        if (!pendingReschedule) return;
+                                        if (syncing) return;
+                                        
                                         const { id, start_date, status } = pendingReschedule;
                                         setSyncing(true);
-                                        setPendingReschedule(null); // Close modal
+                                        
                                         try {
                                             const updatePayload = {
                                                 start_date,
@@ -1492,21 +1537,27 @@ export default function ShortWorksCalendar({
                                                 send_notification: planningNotify,
                                                 ...(status ? { status } : {})
                                             };
-                                            await apiClient.put(`${apiBasePath}/${id}`, updatePayload);
+                                            const res = await apiClient.put(`${apiBasePath}/${id}`, updatePayload);
                                             if (onOrderRescheduled) {
-                                                onOrderRescheduled(id, start_date, planningTime);
+                                                onOrderRescheduled(id, start_date, planningTime, false, undefined, res.data);
                                             } else {
                                                 window.location.reload();
                                             }
+                                            setPendingReschedule(null); // Close modal only after success
                                         } catch (error) {
                                             console.error("Eroare la mutare/planificare comanda:", error);
                                         } finally {
                                             setSyncing(false);
                                         }
                                     }}
-                                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                                    disabled={syncing}
+                                    className={`flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${syncing ? 'opacity-70 cursor-wait' : ''}`}
                                 >
-                                    {t('planning.save_btn', 'Enregistrer')}
+                                    {syncing ? (
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                    ) : (
+                                        t('planning.save_btn', 'Enregistrer')
+                                    )}
                                 </button>
                             </div>
                         </div>

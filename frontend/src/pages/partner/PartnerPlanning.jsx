@@ -185,7 +185,7 @@ export default function PartnerPlanning() {
     const fetchOrders = useCallback(async () => {
         setLoading(true)
         try {
-            const res = await partnerApi.get('/work-orders')
+            const res = await partnerApi.get(`/work-orders?_t=${new Date().getTime()}`)
             setOrders(res.data || [])
         } catch (err) {
             console.error('Failed to fetch partner data', err)
@@ -231,15 +231,23 @@ export default function PartnerPlanning() {
         }
     }
 
-    const handleOrderRescheduled = (woId, newDate, newTime, revert = false, durationDays = undefined) => {
+    const handleOrderRescheduled = (woId, newDate, newTime, revert = false, durationDays = undefined, updatedWo = null) => {
         if (woId) {
-            setOrders(prev => prev.map(wo => String(wo.id) === String(woId) ? {
-                ...wo,
-                ...(newDate ? { start_date: newDate } : {}),
-                ...(newTime ? { start_time: newTime } : {}),
-                ...(durationDays !== undefined ? { duration_days: durationDays } : {})
-            } : wo));
+            setOrders(prev => prev.map(wo => {
+                if (String(wo.id) === String(woId)) {
+                    if (updatedWo) return updatedWo;
+                    return {
+                        ...wo,
+                        ...(newDate !== undefined ? { start_date: newDate } : {}),
+                        ...(newTime !== undefined ? { start_time: newTime } : {}),
+                        ...(durationDays !== undefined ? { duration_days: Number(durationDays) } : {}),
+                        status: 'planning' // Backend always sets to planning if start_date is set
+                    };
+                }
+                return wo;
+            }));
         }
+        
         if (revert || !woId) {
             fetchOrders();
         }
@@ -280,9 +288,8 @@ export default function PartnerPlanning() {
                         <ShortWorksCalendar 
                             workOrders={orders}
                             teams={teams}
-                            clients={[]}
-                            apiClient={partnerApi}
                             apiBasePath="/work-orders"
+                            apiClient={partnerApi}
                             navBasePath="/partner/work-orders"
                             isPartner={true}
                             isCalendarFull={true}

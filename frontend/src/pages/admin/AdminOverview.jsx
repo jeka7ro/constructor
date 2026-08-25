@@ -900,8 +900,8 @@ export default function AdminOverview() {
         }
     };
 
-    const handleOrderRescheduled = async (woId, newDate, newTime, revert = false, durationDays = undefined) => {
-        if (woId && newDate && newTime) {
+    const handleOrderRescheduled = async (woId, newDate, newTime, revert = false, durationDays = undefined, updatedWo = null) => {
+        if (woId) {
             const quoteInPending = pendingQuotes.find(q => String(q.id) === String(woId));
             
             if (quoteInPending) {
@@ -911,18 +911,43 @@ export default function AdminOverview() {
                     // Prevent duplicates: check if WO already exists
                     const exists = prev.some(w => String(w.id) === String(woId));
                     if (exists) {
-                        return prev.map(w => String(w.id) === String(woId) ? { ...w, start_date: newDate, start_time: newTime, status: 'planning', ...(durationDays !== undefined ? { duration_days: durationDays } : {}) } : w);
+                        return prev.map(w => {
+                            if (String(w.id) === String(woId)) {
+                                if (updatedWo) return updatedWo;
+                                return { 
+                                    ...w, 
+                                    ...(newDate !== undefined ? { start_date: newDate } : {}),
+                                    ...(newTime !== undefined ? { start_time: newTime } : {}),
+                                    status: 'planning', 
+                                    ...(durationDays !== undefined ? { duration_days: Number(durationDays) } : {}) 
+                                };
+                            }
+                            return w;
+                        });
                     }
-                    return [...prev, { ...quoteInPending, start_date: newDate, start_time: newTime, status: 'planning', ...(durationDays !== undefined ? { duration_days: durationDays } : {}) }];
+                    if (updatedWo) return [...prev, updatedWo];
+                    return [...prev, { 
+                        ...quoteInPending, 
+                        ...(newDate !== undefined ? { start_date: newDate } : {}),
+                        ...(newTime !== undefined ? { start_time: newTime } : {}),
+                        status: 'planning', 
+                        ...(durationDays !== undefined ? { duration_days: Number(durationDays) } : {}) 
+                    }];
                 });
             } else {
-                setAllWorkOrders(prev => prev.map(wo => String(wo.id) === String(woId) ? { 
-                    ...wo, 
-                    start_date: newDate, 
-                    start_time: newTime,
-                    ...(durationDays !== undefined ? { duration_days: durationDays } : {}),
-                    ...(wo.status === 'draft' ? { status: 'planning' } : {}) 
-                } : wo));
+                setAllWorkOrders(prev => prev.map(wo => {
+                    if (String(wo.id) === String(woId)) {
+                        if (updatedWo) return updatedWo;
+                        return {
+                            ...wo,
+                            ...(newDate !== undefined ? { start_date: newDate } : {}),
+                            ...(newTime !== undefined ? { start_time: newTime } : {}),
+                            ...(durationDays !== undefined ? { duration_days: Number(durationDays) } : {}),
+                            ...(wo.status === 'draft' ? { status: 'planning' } : {})
+                        };
+                    }
+                    return wo;
+                }));
             }
         }
         if (!revert) {
@@ -1117,6 +1142,7 @@ export default function AdminOverview() {
                             workOrders={allWorkOrders} 
                             teams={teams}
                             clients={clients}
+                            apiBasePath="/admin/work-orders"
                             onOrderRescheduled={handleOrderRescheduled} 
                             onTeamDrop={handleTeamDropOnOrder}
                             onClientDrop={handleClientDropOnOrder}

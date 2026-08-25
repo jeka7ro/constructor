@@ -14,7 +14,7 @@
  *  - Photos interne (sef echipa) separate de poze client
  */
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
 import LanguageSelector from '../../components/LanguageSelector'

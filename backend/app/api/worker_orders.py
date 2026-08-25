@@ -860,13 +860,13 @@ def get_worker_work_order_messages(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get chat messages for a specific work order (only for team leaders)"""
-    if not _is_team_leader(current_user, db):
-        raise HTTPException(status_code=403, detail="Only team leaders can access chat")
+    """Get chat messages for a specific work order"""
+    user_team_ids = _get_user_teams(current_user.id, current_user.organization_id, db)
         
     wo = db.query(WorkOrder).filter(
         WorkOrder.id == wo_id,
-        WorkOrder.organization_id == current_user.organization_id
+        WorkOrder.organization_id == current_user.organization_id,
+        WorkOrder.assigned_team_id.in_(user_team_ids)
     ).first()
     
     if not wo:
@@ -895,13 +895,13 @@ def post_worker_work_order_message(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Post a new message to a work order from a team leader"""
-    if not _is_team_leader(current_user, db):
-        raise HTTPException(status_code=403, detail="Only team leaders can post chat messages")
+    """Post a chat message for a specific work order"""
+    user_team_ids = _get_user_teams(current_user.id, current_user.organization_id, db)
         
     wo = db.query(WorkOrder).filter(
         WorkOrder.id == wo_id,
-        WorkOrder.organization_id == current_user.organization_id
+        WorkOrder.organization_id == current_user.organization_id,
+        WorkOrder.assigned_team_id.in_(user_team_ids)
     ).first()
     
     if not wo:

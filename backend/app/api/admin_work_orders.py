@@ -1403,7 +1403,10 @@ def update_work_order(
 
     for f in fields:
         if f in update_data:
-            setattr(wo, f, update_data[f])
+            val = update_data[f]
+            if f in ["start_date", "deadline_date"] and isinstance(val, str) and "T" in val:
+                val = val.split("T")[0]
+            setattr(wo, f, val)
             
     if "client_type" in update_data and wo.client:
         wo.client.client_type = update_data["client_type"]

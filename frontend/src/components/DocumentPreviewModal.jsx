@@ -7,6 +7,8 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
 export default function DocumentPreviewModal({ documents, initialIndex = 0, onClose }) {
     const { t } = useTranslation();
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
+    const [touchStart, setTouchStart] = useState(null);
+    const [touchEnd, setTouchEnd] = useState(null);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -29,6 +31,27 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
     const handlePrev = () => {
         if (currentIndex > 0) {
             setCurrentIndex(currentIndex - 1);
+        }
+    };
+
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEndHandler = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        if (distance > minSwipeDistance) {
+            handleNext();
+        } else if (distance < -minSwipeDistance) {
+            handlePrev();
         }
     };
 
@@ -74,7 +97,12 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
             </div>
 
             {/* Content area */}
-            <div className="flex-1 flex items-center justify-center overflow-hidden relative p-4">
+            <div 
+                className="flex-1 flex items-center justify-center overflow-hidden relative p-4"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEndHandler}
+            >
                 {/* Left Arrow */}
                 {currentIndex > 0 && (
                     <button
@@ -91,7 +119,9 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                         <img
                             src={fileUrl}
                             alt={filename}
-                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                            draggable={false}
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl select-none"
+                            style={{ WebkitUserDrag: 'none', WebkitUserSelect: 'none' }}
                         />
                     ) : isPdf ? (
                         <iframe
@@ -139,7 +169,7 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                                 className={`w-16 h-16 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${currentIndex === idx ? 'border-blue-500 scale-110 shadow-lg shadow-blue-500/50' : 'border-transparent opacity-50 hover:opacity-100'}`}
                             >
                                 {isImg ? (
-                                    <img src={d.file_url?.startsWith('http') ? d.file_url : `${API_BASE}${d.file_url?.startsWith('/') || d.file_path?.startsWith('/') ? '' : '/'}${d.file_url || d.file_path}`} alt="thumbnail" className="w-full h-full object-cover" />
+                                    <img src={d.file_url?.startsWith('http') ? d.file_url : `${API_BASE}${d.file_url?.startsWith('/') || d.file_path?.startsWith('/') ? '' : '/'}${d.file_url || d.file_path}`} alt="thumbnail" draggable={false} className="w-full h-full object-cover select-none" style={{ WebkitUserDrag: 'none' }} />
                                 ) : (
                                     <div className="w-full h-full bg-slate-800 flex items-center justify-center">
                                         <FileText className="w-6 h-6 text-slate-400" />

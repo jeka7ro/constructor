@@ -37,15 +37,15 @@ export function ToastOverlay() {
 
     return (
         <div className="fixed top-6 right-0 left-0 sm:left-auto sm:right-6 mx-4 sm:mx-0 z-[999999] flex justify-center sm:justify-end animate-in slide-in-from-top-5 fade-in duration-300">
-            <div className={`flex items-center gap-3.5 p-3.5 rounded-[2rem] border shadow-2xl shadow-blue-900/10 max-w-sm w-full ${config.bg}`}>
-                <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm overflow-hidden">
+            <div className={`flex items-center gap-2.5 p-2 rounded-2xl border shadow-2xl shadow-blue-900/10 max-w-xs w-full ${config.bg}`}>
+                <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-white shadow-sm overflow-hidden">
                     {iconUrl ? (
-                        <img src={iconUrl} alt="Favicon" className="w-6 h-6 object-contain drop-shadow-sm" />
+                        <img src={iconUrl} alt="Favicon" className="w-5 h-5 object-contain drop-shadow-sm" />
                     ) : (
                         config.icon
                     )}
                 </div>
-                <div className="flex-1 text-[13px] font-bold pr-2 whitespace-pre-wrap break-words leading-tight">
+                <div className="flex-1 text-[12px] font-bold pr-2 whitespace-pre-wrap break-words leading-tight">
                     {typeof toast.message === 'string' ? toast.message : JSON.stringify(toast.message)}
                 </div>
                 <button 
