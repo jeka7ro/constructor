@@ -1123,12 +1123,10 @@ export default function ShortWorksCalendar({
                                     
                                     let rowStart = getGridRowFromTime(wo.start_time);
                                     
-                                    if (!dayOccupancy[dayIndex]) dayOccupancy[dayIndex] = new Set();
+                                    if (!dayOccupancy[dayIndex]) dayOccupancy[dayIndex] = {};
+                                    if (!dayOccupancy[dayIndex][rowStart]) dayOccupancy[dayIndex][rowStart] = [];
                                     
-                                    while (dayOccupancy[dayIndex].has(rowStart)) {
-                                        rowStart++;
-                                    }
-                                    dayOccupancy[dayIndex].add(rowStart);
+                                    dayOccupancy[dayIndex][rowStart].push(wo.id);
                                     
                                     if (!deletedIds.has(wo.id)) {
                                         renderableOrders.push({ ...wo, dayIndex, rowStart });
@@ -1150,8 +1148,22 @@ export default function ShortWorksCalendar({
                                     spanFr += dIdx === 6 ? 0.6 : 1;
                                 }
                                 
-                                const leftPercent = (wo.dayIndex / totalFr) * 100;
-                                const widthValue = `calc(${(spanFr / totalFr) * 100}% - 8px)`;
+                                const baseLeftPercent = (wo.dayIndex / totalFr) * 100;
+                                let leftValue = `calc(${baseLeftPercent}% + 5px)`;
+                                let widthValue = `calc(${(spanFr / totalFr) * 100}% - 10px)`;
+                                
+                                const overlappingWos = (dayOccupancy[wo.dayIndex] && dayOccupancy[wo.dayIndex][wo.rowStart]) || [wo.id];
+                                const overlapCount = overlappingWos.length;
+                                const overlapIndex = overlappingWos.indexOf(wo.id);
+                                
+                                if (overlapCount > 1 && maxDurationVis <= 1) {
+                                    const baseWidthPercent = (1 / totalFr) * 100;
+                                    const adjustedLeftPercent = baseLeftPercent + (baseWidthPercent * (overlapIndex / overlapCount));
+                                    leftValue = `calc(${adjustedLeftPercent}% + 3px)`;
+                                    const adjustedWidthPercent = baseWidthPercent / overlapCount;
+                                    widthValue = `calc(${adjustedWidthPercent}% - 6px)`;
+                                }
+                                
                                 const isThisDragged = draggedOrder === wo.id;
                                 const isCompleted = wo.status === 'completed';
                                 
@@ -1203,8 +1215,8 @@ export default function ShortWorksCalendar({
                                             top: `${(wo.rowStart - 1) * 100 + 4}px`,
                                             height: 'auto',
                                             minHeight: '88px',
-                                            left: `calc(${leftPercent}% + 5px)`,
-                                            width: `calc(${(spanFr / totalFr) * 100}% - 10px)`,
+                                            left: leftValue,
+                                            width: widthValue,
                                             borderLeftColor: borderLeftColorVal,
                                             borderColor: borderColorVal,
                                             borderWidth: isCompleted ? '2px' : undefined,

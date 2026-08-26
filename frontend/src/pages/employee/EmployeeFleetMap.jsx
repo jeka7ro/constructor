@@ -406,33 +406,57 @@ export default function EmployeeFleetMap() {
             ))}
 
             {/* Sand Stations Markers */}
-            {isDavideChape && showSandStations && sandStations.filter(s => s.latitude && s.longitude).map((s) => (
-                <Marker 
-                    key={`sand-${s.id}`} 
-                    position={[s.latitude, s.longitude]} 
-                    icon={L.divIcon({
-                        html: `<div style="background-color: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;">S</div>`,
-                        className: '',
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12],
-                        popupAnchor: [0, -12]
-                    })}
-                >
-                    <Popup className="tracking-popup">
-                        <div className="font-bold text-sm text-slate-900">{s.name}</div>
-                        <div className="text-xs text-slate-500 mt-1">{s.address}</div>
-                        <a 
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl py-2 px-3 flex items-center justify-center gap-2 font-bold transition-colors shadow-sm text-xs"
-                        >
-                            <Navigation className="w-3.5 h-3.5" />
-                            Naviguer
-                        </a>
-                    </Popup>
-                </Marker>
-            ))}
+            {isDavideChape && showSandStations && (() => {
+                const validPrices = sandStations.map(s => parseFloat(s.price_per_ton)).filter(p => !isNaN(p));
+                const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+                const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : 0;
+
+                const getPriceColor = (priceStr) => {
+                    if (priceStr == null || priceStr === '') return '#64748b'; // slate-500
+                    const price = parseFloat(priceStr);
+                    if (isNaN(price)) return '#64748b';
+                    if (minPrice === maxPrice) return '#10b981'; // green if they are all the same
+                    
+                    const ratio = (price - minPrice) / (maxPrice - minPrice);
+                    if (ratio < 0.33) return '#10b981'; // emerald-500 (cheap)
+                    if (ratio < 0.66) return '#f59e0b'; // amber-500 (medium)
+                    return '#ef4444'; // red-500 (expensive)
+                };
+
+                return sandStations.filter(s => s.latitude && s.longitude).map((s) => (
+                    <Marker 
+                        key={`sand-${s.id}`} 
+                        position={[s.latitude, s.longitude]} 
+                        icon={L.divIcon({
+                            html: `<div style="background-color: ${getPriceColor(s.price_per_ton)}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;">S</div>`,
+                            className: '',
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12],
+                            popupAnchor: [0, -12]
+                        })}
+                    >
+                        <Popup className="tracking-popup">
+                            <div className="font-bold text-sm text-slate-900">{s.name}</div>
+                            <div className="text-xs text-slate-500 mt-1">{s.address}</div>
+                            {s.price_per_ton != null && s.price_per_ton !== '' && (
+                                <div className="text-xs font-bold text-slate-700 mt-2 bg-slate-50 p-2 border border-slate-100 rounded-lg flex items-center justify-between">
+                                    <span>Preț:</span>
+                                    <span className="text-emerald-600 text-sm">{s.price_per_ton} € / tonă</span>
+                                </div>
+                            )}
+                            <a 
+                                href={`https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl py-2 px-3 flex items-center justify-center gap-2 font-bold transition-colors shadow-sm text-xs"
+                            >
+                                <Navigation className="w-3.5 h-3.5" />
+                                Naviguer
+                            </a>
+                        </Popup>
+                    </Marker>
+                ));
+            })()}
 
             {vehicles.length > 0 && <FitBounds vehicles={vehicles} userLoc={userLoc} />}
             <MapResizer isMapFull={isMapFull} />

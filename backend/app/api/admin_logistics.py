@@ -102,6 +102,7 @@ class LogisticSandStationSchema(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    price_per_ton: Optional[float] = None
 
 class LogisticSandStationResponse(LogisticSandStationSchema):
     id: str
