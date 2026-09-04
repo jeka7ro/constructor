@@ -399,9 +399,13 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     async def generate_and_send_pdf():
         from app.services.pdf_generator import generate_quote_pdf
         pdf_path = await generate_quote_pdf(wo, client)
-        send_quote_email(client.email, client.name, effective_lang, proforma_url, pdf_path)
+        if client.email:
+            send_quote_email(client.email, client.name, effective_lang, proforma_url, pdf_path)
+        if client.phone:
+            from app.services.whatsapp_service import send_quote_whatsapp
+            send_quote_whatsapp(client.phone, client.name, effective_lang, proforma_url, pdf_path, wo.quote_number)
 
-    if client.email:
+    if client.email or client.phone:
         background_tasks.add_task(generate_and_send_pdf)
 
     def send_alerts_to_admins():

@@ -1,8 +1,146 @@
 import os
 import httpx
 import logging
+import re
 
 logger = logging.getLogger(__name__)
+
+def normalize_phone_number(phone_number: str) -> str:
+    """
+    Cleans and converts phone numbers to international format without plus sign.
+    e.g.:
+    - Belgian mobile: '0488 12 34 56' -> '32488123456'
+    - French mobile: '06 12 34 56 78' -> '33612345678'
+    - Romanian mobile: '0722 123 456' -> '40722123456'
+    - With country code: '+32 488 12 34 56' -> '32488123456'
+    - With double zero: '0032 488 12 34 56' -> '32488123456'
+    """
+    if not phone_number:
+        return ""
+    
+    digits = re.sub(r"[^\d]", "", str(phone_number))
+    
+    if digits.startswith("00"):
+        digits = digits[2:]
+        
+    # Belgian mobile numbers (04xx xxx xxx -> 10 digits)
+    if digits.startswith("04") and len(digits) == 10:
+        digits = "32" + digits[1:]
+    # Belgian landline or general (02, 03, 09 etc -> 9 digits)
+    elif digits.startswith("0") and len(digits) == 9:
+        digits = "32" + digits[1:]
+    # French mobile numbers (06, 07 -> 10 digits)
+    elif digits.startswith("06") and len(digits) == 10:
+        digits = "33" + digits[1:]
+    elif digits.startswith("07") and len(digits) == 10:
+        digits = "40" + digits[1:]
+            
+    return digits
+
+
+def send_quote_whatsapp(
+    phone_number: str,
+    client_name: str,
+    client_language: str,
+    signing_url: str,
+    pdf_path_or_url: str,
+    quote_number: str = "Devis"
+) -> bool:
+    """
+    Sends the quote via WhatsApp using Meta Cloud API with the 'devis_client' template.
+    Template requires:
+    - Document Header: PDF link
+    - Body parameter 1: Client name
+    - Body parameter 2: Signing URL
+    """
+    access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
+    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1285477127985012")
+
+    formatted_phone = normalize_phone_number(phone_number)
+    if not formatted_phone:
+        logger.warning("Empty or invalid phone number provided for WhatsApp.")
+        return False
+
+    if not access_token or not phone_number_id:
+        logger.warning("WHATSAPP credentials not set in env. Falling back to UltraMsg if available.")
+        return send_whatsapp_message(formatted_phone, client_name, client_language, signing_url)
+
+    # Normalize language for Meta template ('fr', 'nl', 'en')
+    lang_clean = (client_language or "fr").lower().split("-")[0].strip()
+    if lang_clean not in ["fr", "nl", "en"]:
+        lang_clean = "fr"
+
+    meta_lang_code = lang_clean
+
+    # Determine public PDF URL
+    if pdf_path_or_url and (pdf_path_or_url.startswith("http://") or pdf_path_or_url.startswith("https://")):
+        pdf_public_url = pdf_path_or_url
+    elif pdf_path_or_url:
+        filename = os.path.basename(pdf_path_or_url)
+        pdf_public_url = f"https://davidechape.pontaj.app/uploads/pdfs/{filename}"
+    else:
+        pdf_public_url = signing_url
+
+    clean_quote_no = str(quote_number or "Devis").replace("/", "_").replace(" ", "")
+
+    url = f"https://graph.facebook.com/v21.0/{phone_number_id}/messages"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": formatted_phone,
+        "type": "template",
+        "template": {
+            "name": "devis_client",
+            "language": {
+                "code": meta_lang_code
+            },
+            "components": [
+                {
+                    "type": "header",
+                    "parameters": [
+                        {
+                            "type": "document",
+                            "document": {
+                                "link": pdf_public_url,
+                                "filename": f"Devis_{clean_quote_no}.pdf"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "body",
+                    "parameters": [
+                        {
+                            "type": "text",
+                            "text": str(client_name or "Client")
+                        },
+                        {
+                            "type": "text",
+                            "text": str(signing_url)
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+
+    try:
+        response = httpx.post(url, json=payload, headers=headers, timeout=15.0)
+        res_data = response.json()
+        if response.status_code >= 400:
+            logger.error(f"Meta WhatsApp send error ({response.status_code}): {res_data}")
+            return False
+        logger.info(f"Meta WhatsApp quote sent successfully to {formatted_phone}: {res_data}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send Meta WhatsApp quote to {formatted_phone}: {e}")
+        return False
+
 
 def send_whatsapp_message(phone_number: str, client_name: str, client_language: str, signing_url: str):
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")

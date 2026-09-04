@@ -452,18 +452,19 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     proforma_url = f"https://davidechape.pontaj.app/confirm/{wo.token}"
 
     from app.services.email_service import send_quote_email, send_admin_new_quote_alert
-    from app.services.whatsapp_service import send_whatsapp_message, send_admin_new_quote_whatsapp
+    from app.services.whatsapp_service import send_quote_whatsapp, send_admin_new_quote_whatsapp
     
-    # Generate PDF and send email
+    # Generate PDF and send email / WhatsApp
     async def generate_and_send_pdf():
         from app.services.pdf_generator import generate_quote_pdf
         pdf_path = await generate_quote_pdf(wo, client)
-        send_quote_email(client.email, client.name, wo.client_language, proforma_url, pdf_path)
+        if client.email:
+            send_quote_email(client.email, client.name, wo.client_language, proforma_url, pdf_path)
+        if client.phone:
+            send_quote_whatsapp(client.phone, client.name, wo.client_language, proforma_url, pdf_path, wo.quote_number)
 
-    if client.email:
+    if client.email or client.phone:
         background_tasks.add_task(generate_and_send_pdf)
-    if client.phone:
-        background_tasks.add_task(send_whatsapp_message, client.phone, client.name, wo.client_language, proforma_url)
 
     # Notificari pentru Admin
     def send_alerts_to_admins():
