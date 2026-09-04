@@ -1,14 +1,93 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from app.database import get_db
 from app.models import WorkOrder, WorkOrderMessage
 import logging
 import re
+import os
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+@router.get("/whatsapp")
+async def verify_whatsapp_webhook(request: Request):
+    """
+    Verification endpoint for Meta WhatsApp Cloud API Webhook.
+    """
+    params = request.query_params
+    mode = params.get("hub.mode")
+    token = params.get("hub.verify_token")
+    challenge = params.get("hub.challenge")
+    
+    verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "davide_whatsapp_secret_2026")
+    
+    if mode == "subscribe" and token == verify_token:
+        logger.info("WhatsApp webhook verified successfully by Meta.")
+        return PlainTextResponse(content=challenge or "", status_code=200)
+    else:
+        logger.warning(f"WhatsApp webhook verification failed. Token received: {token}")
+        raise HTTPException(status_code=403, detail="Verification token mismatch")
+
+@router.post("/whatsapp")
+async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Webhook for receiving incoming WhatsApp messages from Meta Cloud API.
+    """
+    try:
+        payload = await request.json()
+        logger.info(f"Meta WhatsApp webhook received: {payload}")
+    except Exception as e:
+        logger.error(f"Failed to parse Meta WhatsApp payload: {e}")
+        return {"status": "error", "message": "Invalid JSON"}
+
+    entry = payload.get("entry", [])
+    if not entry:
+        return {"status": "ignored"}
+
+    for item in entry:
+        changes = item.get("changes", [])
+        for change in changes:
+            value = change.get("value", {})
+            messages = value.get("messages", [])
+            for msg_item in messages:
+                sender = msg_item.get("from", "")
+                msg_type = msg_item.get("type", "text")
+                body = ""
+                if msg_type == "text":
+                    body = msg_item.get("text", {}).get("body", "")
+                elif msg_type == "button":
+                    body = msg_item.get("button", {}).get("text", "")
+                elif msg_type == "interactive":
+                    body = msg_item.get("interactive", {}).get("button_reply", {}).get("title", "")
+                else:
+                    body = f"[{msg_type}]"
+
+                if not sender or len(sender) < 9:
+                    continue
+
+                phone_suffix = sender[-9:]
+                recent_wo = db.query(WorkOrder).filter(
+                    WorkOrder.client_phone.ilike(f"%{phone_suffix}%"),
+                    WorkOrder.status != 'deleted'
+                ).order_by(desc(WorkOrder.created_at)).first()
+
+                if recent_wo:
+                    new_msg = WorkOrderMessage(
+                        work_order_id=recent_wo.id,
+                        sender="client",
+                        message=body if body else "Mesaj primit via WhatsApp",
+                        is_read_by_admin=False,
+                        translations={},
+                        attachments=[]
+                    )
+                    db.add(new_msg)
+                    db.commit()
+                    logger.info(f"WhatsApp message from {sender} attached to WorkOrder {recent_wo.id}")
+
+    return {"status": "success"}
 
 @router.post("/ultramsg")
 async def ultramsg_webhook(request: Request, db: Session = Depends(get_db)):
