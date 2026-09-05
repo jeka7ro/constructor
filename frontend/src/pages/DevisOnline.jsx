@@ -162,7 +162,7 @@ export default function DevisOnline() {
                 language: chosenLang,
                 lang: chosenLang,
                 domain, 
-                is_iframe: isIframe, 
+                is_iframe: false, 
                 source: urlSource 
             };
             // Remove fields not expected by backend
@@ -215,7 +215,7 @@ export default function DevisOnline() {
                         isolation_surface: formData.isolations?.[0]?.surface || formData.isolation_surface,
                         isolation_thickness: formData.isolations?.[0]?.thickness || formData.isolation_thickness,
                         source_domain: domain,
-                        is_iframe: isIframe,
+                        is_iframe: false,
                         submitted_at: new Date().toISOString(),
                         signing_url: signingUrl,
                         pricing_details: {
@@ -228,14 +228,7 @@ export default function DevisOnline() {
                         }
                     });
                 } catch (webhookErr) { console.error('Webhook n8n failed:', webhookErr); }
-                if (isIframe) {
-                    const lang = chosenLang;
-                    if (lang === 'nl') window.top.location.href = 'https://davide-chape.webflow.io/nl/confirmation-contact';
-                    else if (lang === 'en') window.top.location.href = 'https://davide-chape.webflow.io/en/confirmation-contact';
-                    else window.top.location.href = 'https://davide-chape.webflow.io/confirmation-contact';
-                } else {
-                    navigate(`/public/proforma/${res.data.token}?lang=${chosenLang}`);
-                }
+                navigate(`/public/proforma/${res.data.token}?lang=${chosenLang}`);
             }
         } catch (err) {
             console.error(err);

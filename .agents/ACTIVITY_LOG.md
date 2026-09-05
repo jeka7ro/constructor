@@ -446,3 +446,4 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
   1. În `DevisOnline.jsx`: eliminat complet blocul `isIframe` și injecția de stiluri; `<header>`-ul este acum permanent și necondiționat vizibil în capul paginii.
   2. În `PublicCalculator.jsx`: corectată logica `isIframe` pentru a ascunde header-ul exclusiv atunci când rulează într-adevăr într-un iframe extern sau cu parametrul `?iframe=true`, nu și la accesarea directă din browser.
   3. Rulat `npm run build` în `frontend` (compilare cu succes, fără erori).
+  4. Corectat referințele reziduale `is_iframe: isIframe` din `handleSubmit` în `DevisOnline.jsx` la `is_iframe: false` pentru a preveni `ReferenceError` la trimiterea devizului.
