@@ -235,3 +235,27 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
        - ✓ `Check` (un bifat) când mesajul a fost trimis.
        - ✓✓ `CheckCheck` gri când mesajul a fost livrat pe telefonul clientului.
        - ✓✓ `CheckCheck` bleu/cyan intens (`text-sky-300`) când mesajul a fost citit de către client în WhatsApp.
+
+### 05 Septembrie 2026 - Descărcare Directă PDF, Număr Deviz în WhatsApp și Alerte Grup Companie
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat de Utilizator (utilizatorul a aprobat explicit testarea și publicarea).
+- **Probleme adresate**:
+  1. Utilizatorul dorea descărcarea directă a PDF-ului devizului pe calculator, fără deschiderea ferestrei browserului de imprimare.
+  2. Numărul devizului (DEV...) lipsea din mesajele automate WhatsApp către client, îngreunând căutarea rapidă a conversațiilor în WhatsApp.
+  3. Directorul General și Directorul de Vânzări doreau să primească toate alertele de deviz nou, confirmare și mesaje de la clienți direct într-un grup intern de WhatsApp (`Davide Chape APP`), având link direct pentru a răspunde clientului privat.
+  4. Mesajele din chat-ul cu clientul erau trimise de pe numărul de test Meta Cloud API din SUA (+1 555...), creând confuzie.
+- **Modificări implementate**:
+  1. **Frontend - Descărcare directă PDF (`WorkOrderDetail.jsx`)**:
+     - Integrat pachetul `html2pdf.js` pentru salvarea directă a devizului/facturii ca fișier `.pdf` (fără pop-up de print al browserului).
+     - Butoanele « Télécharger PDF » din bara de facturare și din sertarul mare (drawer) descarcă acum instant fișierul cu denumirea curată `{quote_number}_{client_name}.pdf`.
+     - Tab-urile DEVIS și FACTURE afișează numărul documentului (`DEVIS · DEV...` / `FACTURE · INV...`).
+  2. **Backend - Număr Deviz în WhatsApp Client (`whatsapp_service.py`)**:
+     - Mesajul transmis clientului include acum explicit: `📄 Numéro de devis : {quote_number}` în toate limbile suportate (FR/RO/NL/EN).
+  3. **Backend - Alerte Grup WhatsApp (`devis_online.py`, `public_work_orders.py`, `webhooks.py`)**:
+     - Configurat grupul companiei `Davide Chape APP` (`120363427568793073@g.us`).
+     - La deviz nou: grupul primește alertă cu numărul devizului, clientul, adresa șantierului, suma și buton/link direct `https://wa.me/{phone}`.
+     - La deviz confirmat: grupul primește alertă cu confirmarea, semnatarul, data dorită și linkul în aplicație.
+     - La mesaj primit de la client: webhook-ul redirecționează mesajul în grup cu link direct pentru ca oricare director să poată da tap și să răspundă privat de pe propriul WhatsApp.
+     - Prevenite buclele infinite și mesajele de grup în webhook prin filtrarea `@g.us` și `from_me`.
+  4. **Backend - Chat exclusiv de pe numărul oficial UltraMsg (`whatsapp_service.py`)**:
+     - Eliminat numărul de test Meta (+1 555...) din `send_chat_text_whatsapp` și `send_chat_attachment_whatsapp`. Chat-ul cu clientul se trimite acum strict de pe numărul companiei prin UltraMsg.
