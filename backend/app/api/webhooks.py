@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy import desc, text
 from app.database import get_db
 from app.models import WorkOrder, WorkOrderMessage
 import logging
@@ -34,7 +35,7 @@ async def verify_whatsapp_webhook(request: Request):
 @router.post("/whatsapp")
 async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
     """
-    Webhook for receiving incoming WhatsApp messages from Meta Cloud API.
+    Webhook for receiving incoming WhatsApp messages, reactions and delivery statuses from Meta Cloud API.
     """
     try:
         payload = await request.json()
@@ -51,10 +52,62 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         changes = item.get("changes", [])
         for change in changes:
             value = change.get("value", {})
+            
+            # 1. Handle delivery statuses (sent, delivered, read, failed)
+            statuses = value.get("statuses", [])
+            for status_item in statuses:
+                status_id = status_item.get("id")
+                status_str = status_item.get("status")
+                if status_id and status_str:
+                    try:
+                        target_msg = db.query(WorkOrderMessage).filter(text("translations->>'_wamid' = :wamid")).params(wamid=status_id).first()
+                        if target_msg:
+                            trans = dict(target_msg.translations or {})
+                            trans["_delivery_status"] = status_str
+                            trans["_delivery_channel"] = "whatsapp"
+                            target_msg.translations = trans
+                            flag_modified(target_msg, "translations")
+                            db.commit()
+                            logger.info(f"Updated WhatsApp status for message {status_id} -> {status_str}")
+                    except Exception as err:
+                        logger.error(f"Error updating WhatsApp status for {status_id}: {err}")
+                        db.rollback()
+
+            # 2. Handle incoming messages & reactions
             messages = value.get("messages", [])
             for msg_item in messages:
                 sender = msg_item.get("from", "")
+                msg_id = msg_item.get("id", "")
                 msg_type = msg_item.get("type", "text")
+                
+                # Handle client emoji reaction from WhatsApp
+                if msg_type == "reaction":
+                    reaction_data = msg_item.get("reaction", {})
+                    target_wamid = reaction_data.get("message_id")
+                    emoji = reaction_data.get("emoji")
+                    if target_wamid:
+                        try:
+                            reacted_msg = db.query(WorkOrderMessage).filter(text("translations->>'_wamid' = :wamid")).params(wamid=target_wamid).first()
+                            if reacted_msg:
+                                reactions = dict(reacted_msg.reactions or {})
+                                for e in list(reactions.keys()):
+                                    if "client" in reactions[e]:
+                                        reactions[e].remove("client")
+                                        if not reactions[e]:
+                                            del reactions[e]
+                                if emoji:
+                                    if emoji not in reactions:
+                                        reactions[emoji] = []
+                                    reactions[emoji].append("client")
+                                reacted_msg.reactions = reactions
+                                flag_modified(reacted_msg, "reactions")
+                                db.commit()
+                                logger.info(f"Updated client WhatsApp reaction '{emoji}' on message {target_wamid}")
+                        except Exception as err:
+                            logger.error(f"Error updating client reaction for {target_wamid}: {err}")
+                            db.rollback()
+                    continue
+
                 body = ""
                 if msg_type == "text":
                     body = msg_item.get("text", {}).get("body", "")
@@ -80,7 +133,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         sender="client",
                         message=body if body else "Mesaj primit via WhatsApp",
                         is_read_by_admin=False,
-                        translations={},
+                        translations={"_wamid": msg_id, "_delivery_status": "delivered", "_delivery_channel": "whatsapp"} if msg_id else {},
                         attachments=[]
                     )
                     db.add(new_msg)

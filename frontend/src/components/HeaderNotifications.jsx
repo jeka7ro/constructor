@@ -65,18 +65,29 @@ export default function HeaderNotifications() {
         window.addEventListener('quotesViewed', handleQuotesViewed);
         window.addEventListener('refresh-notifications', handleRefreshNotifications);
         
+        const handleFocusOrVisible = () => {
+            if (document.visibilityState === 'visible') {
+                fetchMessages();
+                fetchQuotes();
+            }
+        };
+        window.addEventListener('focus', handleFocusOrVisible);
+        document.addEventListener('visibilitychange', handleFocusOrVisible);
+
         fetchMessages()
         fetchQuotes()
-        // Poll every 15s for better responsiveness
+        // Poll every 6s for fast real-time notifications
         const interval = setInterval(() => {
             fetchMessages()
             fetchQuotes()
-        }, 15000) 
+        }, 6000) 
         
         return () => {
             clearInterval(interval)
             window.removeEventListener('quotesViewed', handleQuotesViewed)
             window.removeEventListener('refresh-notifications', handleRefreshNotifications)
+            window.removeEventListener('focus', handleFocusOrVisible)
+            document.removeEventListener('visibilitychange', handleFocusOrVisible)
         }
     }, [])
 

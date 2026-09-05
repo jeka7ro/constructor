@@ -8,7 +8,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check, ShieldCheck, Plus
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check, CheckCheck, ShieldCheck, Plus
 } from 'lucide-react'
 import PdfThumbnail from '../../components/PdfThumbnail'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
@@ -601,6 +601,46 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     useEffect(() => { load() }, [load])
 
+    // Auto-refresh chat messages in real time (every 2 seconds) + instant refresh on window focus / tab visibility
+    useEffect(() => {
+        if (!id) return;
+
+        const fetchLatestMessages = async () => {
+            try {
+                const res = await api.get(`/admin/work-orders/${id}/messages`);
+                if (res.data) {
+                    setMessages(prev => {
+                        if (JSON.stringify(prev) !== JSON.stringify(res.data)) {
+                            return res.data;
+                        }
+                        return prev;
+                    });
+                }
+            } catch (err) {
+                // Silent catch for background polling
+            }
+        };
+
+        // Poll every 2 seconds for snappy updates
+        const interval = setInterval(fetchLatestMessages, 2000);
+
+        // Instantly refresh when returning to tab/window (e.g. from WhatsApp or phone)
+        const handleFocusOrVisible = () => {
+            if (document.visibilityState === 'visible') {
+                fetchLatestMessages();
+            }
+        };
+
+        window.addEventListener('focus', handleFocusOrVisible);
+        document.addEventListener('visibilitychange', handleFocusOrVisible);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', handleFocusOrVisible);
+            document.removeEventListener('visibilitychange', handleFocusOrVisible);
+        };
+    }, [id]);
+
 
     const handleTranslatePreview = async () => {
         if (!chatMessage.trim() || targetLang === 'none') return;
@@ -608,15 +648,17 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         try {
             const res = await api.post('/admin/translate', {
                 text: chatMessage,
-                target_lang: targetLang
+                target_lang: (targetLang || 'fr').toLowerCase()
             });
             setPreviewTranslation(res.data.translatedText);
         } catch (e) {
             console.error("Translation error", e);
+            showToast("Erreur lors de la traduction: " + (e.response?.data?.detail || e.message), "error");
         } finally {
             setIsTranslating(false);
         }
     }
+
 
     const handleSendMessage = async () => {
         if ((!chatMessage.trim() && selectedFiles.length === 0) || sendingMessage || isUploadingFiles) return;
@@ -664,7 +706,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const handleToggleReaction = async (msgId, emoji) => {
         try {
             const res = await api.post(`/admin/work-orders/${id}/messages/${msgId}/react`, { emoji })
-            setMessages(prev => prev.map(m => m.id === msgId ? res.data : m))
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, ...res.data, reactions: res.data.reactions } : m))
             setShowEmojiPickerFor(null)
         } catch (err) {
             showToast(t('admin.error_reacting', "Erreur lors de l'ajout de la réaction"), 'error')
@@ -2056,7 +2098,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {t('admin.no_messages', 'Aucun message')}
                                 </div>
                             ) : (
-                                messages.map(msg => {
+                                messages.filter(msg => msg.message !== '[reaction]').map(msg => {
                                     const isSystem = msg.sender === 'system' || msg.is_hidden;
                                     const isOwn = !isSystem && msg.sender !== 'client';
                                     return (
@@ -2096,9 +2138,32 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 {msg.sender === 'client' ? wo?.client_name : (msg.sender === 'admin' ? (wo?.client_language === 'nl' || wo?.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape') : t('admin.system', 'Sistem'))}
                                                             </span>
                                                         </span>
-                                                        <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                            {isOwn && (
+                                                                <span className="inline-flex items-center" title={
+                                                                    (msg.delivery_channel || msg.translations?._delivery_channel) === 'email'
+                                                                        ? "Transmis pe Email (clientul nu are WhatsApp)"
+                                                                        : (msg.delivery_status || msg.translations?._delivery_status) === 'read'
+                                                                        ? "Citit de client pe WhatsApp"
+                                                                        : (msg.delivery_status || msg.translations?._delivery_status) === 'delivered'
+                                                                        ? "Livrat pe WhatsApp"
+                                                                        : "Trimis via WhatsApp"
+                                                                }>
+                                                                    {(msg.delivery_channel || msg.translations?._delivery_channel) === 'email' ? (
+                                                                        <Mail className="w-3.5 h-3.5 text-blue-200 hover:text-white transition-colors" />
+                                                                    ) : (msg.delivery_status || msg.translations?._delivery_status) === 'read' ? (
+                                                                        <CheckCheck className="w-3.5 h-3.5 text-sky-300 stroke-[2.5]" />
+                                                                    ) : (msg.delivery_status || msg.translations?._delivery_status) === 'delivered' ? (
+                                                                        <CheckCheck className="w-3.5 h-3.5 text-blue-200/80 stroke-[2]" />
+                                                                    ) : (
+                                                                        <Check className="w-3.5 h-3.5 text-blue-200/80 stroke-[2]" />
+                                                                    )}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <div className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${isOwn ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                                                         {msg.message}

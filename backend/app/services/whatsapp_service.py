@@ -75,6 +75,18 @@ def send_quote_whatsapp(
     # Determine public PDF URL
     if pdf_path_or_url and (pdf_path_or_url.startswith("http://") or pdf_path_or_url.startswith("https://")):
         pdf_public_url = pdf_path_or_url
+    elif pdf_path_or_url and os.path.exists(pdf_path_or_url):
+        try:
+            from app.storage import upload_file
+            filename = os.path.basename(pdf_path_or_url)
+            with open(pdf_path_or_url, "rb") as f:
+                content = f.read()
+            pdf_public_url = upload_file(content, f"pdfs/{filename}", "application/pdf")
+            logger.info(f"Uploaded quote PDF to storage: {pdf_public_url}")
+        except Exception as e:
+            logger.error(f"Failed to upload PDF to storage: {e}")
+            filename = os.path.basename(pdf_path_or_url)
+            pdf_public_url = f"https://davidechape.pontaj.app/uploads/pdfs/{filename}"
     elif pdf_path_or_url:
         filename = os.path.basename(pdf_path_or_url)
         pdf_public_url = f"https://davidechape.pontaj.app/uploads/pdfs/{filename}"
@@ -133,8 +145,32 @@ def send_quote_whatsapp(
         response = httpx.post(url, json=payload, headers=headers, timeout=15.0)
         res_data = response.json()
         if response.status_code >= 400:
-            logger.error(f"Meta WhatsApp send error ({response.status_code}): {res_data}")
-            return False
+            logger.warning(f"Meta WhatsApp template send error ({response.status_code}): {res_data}. Trying direct document fallback...")
+            caption_text = f"Bonjour {client_name},\n\nMerci d'avoir demandé un devis chez Davide Chape.\nVous trouverez ci-joint votre devis officiel (PDF).\n\nConsulter et valider en ligne :\n{signing_url}\n\nCordialement,\nL'équipe Davide Chape"
+            if lang_clean == "nl":
+                caption_text = f"Hallo {client_name},\n\nBedankt voor uw offerteaanvraag bij Davide Chape.\nIn de bijlage vindt u uw officiële offerte (PDF).\n\nBekijken en ondertekenen :\n{signing_url}\n\nMet vriendelijke groet,\nHet Davide Chape Team"
+            elif lang_clean == "en":
+                caption_text = f"Hello {client_name},\n\nThank you for requesting a quote with Davide Chape.\nPlease find your official quote attached (PDF).\n\nReview and sign online :\n{signing_url}\n\nBest regards,\nDavide Chape Team"
+
+            doc_payload = {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": formatted_phone,
+                "type": "document",
+                "document": {
+                    "link": pdf_public_url,
+                    "caption": caption_text,
+                    "filename": f"Devis_{clean_quote_no}.pdf"
+                }
+            }
+            doc_res = httpx.post(url, json=doc_payload, headers=headers, timeout=15.0)
+            if doc_res.status_code < 400:
+                logger.info(f"Meta WhatsApp direct document quote sent successfully to {formatted_phone}: {doc_res.json()}")
+                return True
+            else:
+                logger.error(f"Meta WhatsApp direct document also failed ({doc_res.status_code}): {doc_res.json()}")
+                return False
+
         logger.info(f"Meta WhatsApp quote sent successfully to {formatted_phone}: {res_data}")
         return True
     except Exception as e:
@@ -241,47 +277,162 @@ def send_admin_new_quote_whatsapp(admin_phone: str, client_name: str, client_pho
         return False
 
 def send_chat_text_whatsapp(phone_number: str, text: str):
+    access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
+    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1285477127985012")
+
+    formatted_phone = normalize_phone_number(phone_number)
+    if not formatted_phone or not text:
+        return False
+
+    # 1. Try Meta Cloud API
+    if access_token and phone_number_id:
+        url = f"https://graph.facebook.com/v21.0/{phone_number_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": formatted_phone,
+            "type": "text",
+            "text": {
+                "preview_url": True,
+                "body": text
+            }
+        }
+        try:
+            res = httpx.post(url, json=payload, headers=headers, timeout=10.0)
+            res_data = res.json()
+            if res.status_code < 400:
+                wamid = None
+                if "messages" in res_data and len(res_data["messages"]) > 0:
+                    wamid = res_data["messages"][0].get("id")
+                logger.info(f"Chat text sent via Meta WhatsApp to {formatted_phone}: {res_data}")
+                return {"success": True, "wamid": wamid}
+            else:
+                logger.error(f"Meta WhatsApp chat send error ({res.status_code}): {res_data}")
+                return {"success": False, "wamid": None, "error": res_data.get("error", {}).get("message", "send_failed")}
+        except Exception as e:
+            logger.error(f"Failed to send Meta WhatsApp chat text to {formatted_phone}: {e}")
+            return {"success": False, "wamid": None, "error": str(e)}
+
+    # 2. Fallback to UltraMsg if configured
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
     
-    if not instance_id or not api_token or not phone_number:
-        return False
+    if not instance_id or not api_token:
+        return {"success": False, "wamid": None, "error": "not_configured"}
 
     url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-    formatted_phone = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+    formatted_phone_ultramsg = phone_number.replace("+", "").replace(" ", "").replace("-", "")
 
     payload = {
         "token": api_token,
-        "to": formatted_phone,
+        "to": formatted_phone_ultramsg,
         "body": text
     }
 
     try:
         response = httpx.post(url, data=payload, timeout=10.0)
         response.raise_for_status()
-        logger.info(f"Chat text sent via WhatsApp to {formatted_phone}")
-        return True
+        logger.info(f"Chat text sent via UltraMsg WhatsApp to {formatted_phone_ultramsg}")
+        return {"success": True, "wamid": None}
     except Exception as e:
-        logger.error(f"Failed to send WhatsApp chat text to {formatted_phone}: {e}")
+        logger.error(f"Failed to send UltraMsg WhatsApp chat text to {formatted_phone_ultramsg}: {e}")
+        return {"success": False, "wamid": None, "error": str(e)}
+
+def send_whatsapp_reaction(phone_number: str, message_wamid: str, emoji: str):
+    """
+    Sends an emoji reaction to a specific WhatsApp message via Meta Cloud API.
+    To remove a reaction, emoji should be an empty string "".
+    """
+    access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
+    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1285477127985012")
+
+    formatted_phone = normalize_phone_number(phone_number)
+    if not formatted_phone or not message_wamid:
         return False
 
+    if access_token and phone_number_id:
+        url = f"https://graph.facebook.com/v21.0/{phone_number_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": formatted_phone,
+            "type": "reaction",
+            "reaction": {
+                "message_id": message_wamid,
+                "emoji": emoji or ""
+            }
+        }
+        try:
+            res = httpx.post(url, json=payload, headers=headers, timeout=10.0)
+            if res.status_code < 400:
+                logger.info(f"Reaction '{emoji}' sent via Meta WhatsApp for {message_wamid}: {res.json()}")
+                return True
+            else:
+                logger.error(f"Meta WhatsApp reaction error ({res.status_code}): {res.json()}")
+                return False
+        except Exception as e:
+            logger.error(f"Failed to send Meta WhatsApp reaction: {e}")
+            return False
+
+    return False
+
 def send_chat_attachment_whatsapp(phone_number: str, file_url: str, filename: str):
+    access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
+    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1285477127985012")
+
+    formatted_phone = normalize_phone_number(phone_number)
+    if not formatted_phone or not file_url:
+        return False
+
+    # 1. Try Meta Cloud API
+    if access_token and phone_number_id:
+        url = f"https://graph.facebook.com/v21.0/{phone_number_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": formatted_phone,
+            "type": "document",
+            "document": {
+                "link": file_url,
+                "filename": filename or "document.pdf"
+            }
+        }
+        try:
+            res = httpx.post(url, json=payload, headers=headers, timeout=15.0)
+            if res.status_code < 400:
+                logger.info(f"Chat attachment sent via Meta WhatsApp to {formatted_phone}: {res.json()}")
+                return True
+            else:
+                logger.error(f"Meta WhatsApp attachment send error ({res.status_code}): {res.json()}")
+        except Exception as e:
+            logger.error(f"Failed to send Meta WhatsApp attachment to {formatted_phone}: {e}")
+
+    # 2. Fallback to UltraMsg if configured
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
     
-    if not instance_id or not api_token or not phone_number:
+    if not instance_id or not api_token:
         return False
 
-    formatted_phone = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+    formatted_phone_ultramsg = phone_number.replace("+", "").replace(" ", "").replace("-", "")
     
-    # UltraMsg has /messages/document and /messages/image. 
-    # For simplicity and flexibility, /messages/document works for most files (PDFs, Images, etc.)
-    # We will use /document
     url = f"https://api.ultramsg.com/{instance_id}/messages/document"
 
     payload = {
         "token": api_token,
-        "to": formatted_phone,
+        "to": formatted_phone_ultramsg,
         "document": file_url,
         "filename": filename
     }
@@ -289,8 +440,8 @@ def send_chat_attachment_whatsapp(phone_number: str, file_url: str, filename: st
     try:
         response = httpx.post(url, data=payload, timeout=15.0)
         response.raise_for_status()
-        logger.info(f"Chat attachment sent via WhatsApp to {formatted_phone}")
+        logger.info(f"Chat attachment sent via UltraMsg WhatsApp to {formatted_phone_ultramsg}")
         return True
     except Exception as e:
-        logger.error(f"Failed to send WhatsApp chat attachment to {formatted_phone}: {e}")
+        logger.error(f"Failed to send UltraMsg WhatsApp chat attachment to {formatted_phone_ultramsg}: {e}")
         return False

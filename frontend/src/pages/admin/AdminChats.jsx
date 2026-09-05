@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import {
-    MessageSquare, Send, Trash2, Search, ArrowLeft, CheckCircle2, XCircle, Clock, FileText, ClipboardList, EyeOff, Edit2, Eye, Mail, Smile, Globe, X, Paperclip, Download
+    MessageSquare, Send, Trash2, Search, ArrowLeft, CheckCircle2, XCircle, Clock, FileText, ClipboardList, EyeOff, Edit2, Eye, Mail, Smile, Globe, X, Paperclip, Download, Check, CheckCheck
 } from 'lucide-react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
@@ -57,73 +57,58 @@ export default function AdminChats() {
     };
 
     // Load list of chats
-    const loadChats = async () => {
+    // Load list of chats
+    const loadChats = async (isBackground = false) => {
         try {
             const res = await api.get('/admin/chats')
             setChats(res.data)
         } catch (err) {
             console.error(err)
-            showToast(t('admin.error_loading_chats', 'Erreur lors du chargement des conversations'), "error")
+            if (!isBackground) {
+                showToast(t('admin.error_loading_chats', 'Erreur lors du chargement des conversations'), "error")
+            }
         } finally {
-            setLoading(false)
+            if (!isBackground) setLoading(false)
         }
     }
 
     useEffect(() => {
         loadChats()
+        // Keep left sidebar updated in real time (every 3 seconds)
+        const chatListInterval = setInterval(() => {
+            loadChats(true)
+        }, 3000)
+
+        const handleFocusOrVisible = () => {
+            if (document.visibilityState === 'visible') {
+                loadChats(true)
+            }
+        }
+        window.addEventListener('focus', handleFocusOrVisible)
+        document.addEventListener('visibilitychange', handleFocusOrVisible)
+
+        return () => {
+            clearInterval(chatListInterval)
+            window.removeEventListener('focus', handleFocusOrVisible)
+            document.removeEventListener('visibilitychange', handleFocusOrVisible)
+        }
     }, [])
 
     // Load specific chat messages
     useEffect(() => {
         if (!activeWoId) return
         
-        const loadChatDetails = async () => {
-            setLoadingMessages(true)
+        const loadChatDetails = async (isBackground = false) => {
+            if (!isBackground) setLoadingMessages(true)
             try {
-                // Fetch WO details to get status and is_chat_closed
-                const [woRes, msgRes] = await Promise.all([
-                    api.get(`/admin/work-orders/${activeWoId}`),
-                    api.get(`/admin/work-orders/${activeWoId}/messages`)
-                ])
-                setActiveWo(woRes.data)
-                
-                let msgs = [];
-                if (Array.isArray(msgRes.data)) {
-                    msgs = msgRes.data;
-                } else if (msgRes.data && Array.isArray(msgRes.data.data)) {
-                    msgs = msgRes.data.data;
-                } else if (msgRes.data && Array.isArray(msgRes.data.messages)) {
-                    msgs = msgRes.data.messages;
-                }
-                setMessages(msgs)
-                
-                // update URL
-                setSearchParams({ wo_id: activeWoId }, { replace: true })
-                
-                // if there were unread messages for this chat, mark read might be needed
-                // We dispatch an event to force the HeaderNotifications bell to refresh immediately
-                window.dispatchEvent(new CustomEvent('refresh-notifications'))
-                // We could refresh chats list to update unread count
-                loadChats()
-            } catch (err) {
-                console.error(err)
-                showToast(t('admin.error_loading_messages', 'Erreur lors du chargement des messages'), "error")
-            } finally {
-                setLoadingMessages(false)
-            }
-        }
-        
-        loadChatDetails()
-        
-        // Auto-refresh chat every 3 seconds so we don't need to press F5
-        const interval = setInterval(() => {
-            if (activeWoId) {
-                // Background refresh without triggering loading spinner
-                Promise.all([
-                    api.get(`/admin/work-orders/${activeWoId}`),
-                    api.get(`/admin/work-orders/${activeWoId}/messages`)
-                ]).then(([woRes, msgRes]) => {
+                if (!isBackground) {
+                    // Initial load: fetch both WO details and messages
+                    const [woRes, msgRes] = await Promise.all([
+                        api.get(`/admin/work-orders/${activeWoId}`),
+                        api.get(`/admin/work-orders/${activeWoId}/messages`)
+                    ])
                     setActiveWo(woRes.data)
+                    
                     let msgs = [];
                     if (Array.isArray(msgRes.data)) {
                         msgs = msgRes.data;
@@ -133,12 +118,60 @@ export default function AdminChats() {
                         msgs = msgRes.data.messages;
                     }
                     setMessages(msgs)
-                    loadChats() // Refresh the sidebar too
-                }).catch(e => console.error("Auto-refresh failed", e))
+                    setSearchParams({ wo_id: activeWoId }, { replace: true })
+                    window.dispatchEvent(new CustomEvent('refresh-notifications'))
+                    loadChats(true)
+                } else {
+                    // Background poll: fetch only messages to avoid heavy load
+                    const msgRes = await api.get(`/admin/work-orders/${activeWoId}/messages`)
+                    let msgs = [];
+                    if (Array.isArray(msgRes.data)) {
+                        msgs = msgRes.data;
+                    } else if (msgRes.data && Array.isArray(msgRes.data.data)) {
+                        msgs = msgRes.data.data;
+                    } else if (msgRes.data && Array.isArray(msgRes.data.messages)) {
+                        msgs = msgRes.data.messages;
+                    }
+                    setMessages(prev => {
+                        if (JSON.stringify(prev) !== JSON.stringify(msgs)) {
+                            loadChats(true) // update snippet in sidebar if new message
+                            return msgs;
+                        }
+                        return prev;
+                    })
+                }
+            } catch (err) {
+                if (!isBackground) {
+                    console.error(err)
+                    showToast(t('admin.error_loading_messages', 'Erreur lors du chargement des messages'), "error")
+                }
+            } finally {
+                if (!isBackground) setLoadingMessages(false)
             }
-        }, 3000)
+        }
         
-        return () => clearInterval(interval)
+        loadChatDetails()
+        
+        // Auto-refresh chat every 2 seconds so incoming messages appear near-instantly
+        const interval = setInterval(() => {
+            if (activeWoId) {
+                loadChatDetails(true)
+            }
+        }, 2000)
+
+        const handleFocusOrVisible = () => {
+            if (document.visibilityState === 'visible' && activeWoId) {
+                loadChatDetails(true)
+            }
+        }
+        window.addEventListener('focus', handleFocusOrVisible)
+        document.addEventListener('visibilitychange', handleFocusOrVisible)
+        
+        return () => {
+            clearInterval(interval)
+            window.removeEventListener('focus', handleFocusOrVisible)
+            document.removeEventListener('visibilitychange', handleFocusOrVisible)
+        }
     }, [activeWoId])
 
     useEffect(() => {
@@ -162,7 +195,7 @@ export default function AdminChats() {
         try {
             const res = await api.post('/admin/translate', {
                 text: chatMessage,
-                target_lang: targetLang
+                target_lang: (targetLang || 'nl').toLowerCase()
             });
             setPreviewTranslation(res.data.translatedText);
         } catch (e) {
@@ -528,7 +561,7 @@ export default function AdminChats() {
                                     </div>
                                 ) : (
                                     <div className="space-y-4 md:max-w-3xl md:mx-auto w-full">
-                                        {(messages || []).map(msg => {
+                                        {(messages || []).filter(msg => msg.message !== '[reaction]').map(msg => {
                                             const isSystem = msg.sender === 'system' || msg.is_hidden;
                                             const isOwn = !isSystem && msg.sender !== 'client';
                                             return (
@@ -568,9 +601,32 @@ export default function AdminChats() {
                                                                         {msg.sender === 'client' ? activeWo.client_name : (msg.sender === 'admin' ? (activeWo.client_language === 'nl' || activeWo.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape') : t('admin.system', 'Sistem'))}
                                                                     </span>
                                                                 </span>
-                                                                <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                </span>
+                                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                                    <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                    </span>
+                                                                    {isOwn && (
+                                                                        <span className="inline-flex items-center" title={
+                                                                            (msg.delivery_channel || msg.translations?._delivery_channel) === 'email'
+                                                                                ? "Transmis pe Email (clientul nu are WhatsApp)"
+                                                                                : (msg.delivery_status || msg.translations?._delivery_status) === 'read'
+                                                                                ? "Citit de client pe WhatsApp"
+                                                                                : (msg.delivery_status || msg.translations?._delivery_status) === 'delivered'
+                                                                                ? "Livrat pe WhatsApp"
+                                                                                : "Trimis via WhatsApp"
+                                                                        }>
+                                                                            {(msg.delivery_channel || msg.translations?._delivery_channel) === 'email' ? (
+                                                                                <Mail className="w-3.5 h-3.5 text-blue-200 hover:text-white transition-colors" />
+                                                                            ) : (msg.delivery_status || msg.translations?._delivery_status) === 'read' ? (
+                                                                                <CheckCheck className="w-3.5 h-3.5 text-sky-300 stroke-[2.5]" />
+                                                                            ) : (msg.delivery_status || msg.translations?._delivery_status) === 'delivered' ? (
+                                                                                <CheckCheck className="w-3.5 h-3.5 text-blue-200/80 stroke-[2]" />
+                                                                            ) : (
+                                                                                <Check className="w-3.5 h-3.5 text-blue-200/80 stroke-[2]" />
+                                                                            )}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                             {msg.attachments && msg.attachments.length > 0 && (
                                                                 <div className="mb-2 flex flex-col gap-2">

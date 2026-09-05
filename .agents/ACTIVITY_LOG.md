@@ -153,3 +153,74 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 - **Acțiune**: (Backend) Am reparat configurația bazei de date. Din cauza deadlock-ului anterior, se trecuse la `NullPool` (fără reutilizare de conexiuni) care deschidea zeci de fire simultan, sugrumând baza de date Supabase/Render. Am revenit la `QueuePool(pool_size=15, max_overflow=30)` care menține performanța ridicată fără a satura TCP-ul.
 - **Acțiune**: (Frontend) Am corectat logica de `auto-scroll` în `ShortWorksCalendar.jsx`. Calendarul rula un timeout ascuns de 1 secundă care, dacă datele întârziau din cauza serverului lent, forța scroll la ora 09:00 și îngheța (bloca) interfața acolo, ignorând apariția ulterioară a devizelor de la ora 07:00 sau 08:00. Acum așteaptă prezența datelor reale înainte de a derula inteligent la prima lucrare de dimineață.
 - **Aprobare**: S-a dat push pe producție pentru a salva platforma picată.
+
+## 04 Septembrie 2026 - Integrare Oficială WhatsApp Meta Cloud API (Devize Trilingve cu PDF)
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat explicit de utilizator (comenzi "ok", "ok push").
+- **Acțiuni Efectuate**:
+  1. **Configurare Meta for Developers & WhatsApp Business API**:
+     - Creat aplicația `Davide Chape Devize` legată la portofoliul de afaceri `Davide Chape`.
+     - Validat numărul de test și webhook-ul prin handshake criptat cu Meta (`hub.challenge` și `hub.verify_token = davide_whatsapp_secret_2026`).
+     - Creat modelul oficial de mesaj `devis_client` de tip Utilitare cu suport pentru antet document PDF și variabile dinamice pentru client (`{{1}}`) și link-ul de semnare/confirmare (`{{2}}`).
+     - Înregistrat toate cele 3 limbi suportate de platformă: **Franceză (FR)**, **Olandeză (NL)** și **Engleză (EN)**.
+  2. **Implementare Backend (`whatsapp_service.py`)**:
+     - Dezvoltat funcția `normalize_phone_number` pentru conversia inteligentă a numerelor locale din Belgia (`04...` -> `324...`), Franța (`06/07...` -> `33...`) și internaționale.
+     - Implementat funcția `send_quote_whatsapp` prin Meta Graph API `v21.0/{phone_number_id}/messages` cu payload JSON de tip `template` (`devis_client`), trimițând fișierul PDF atașat la antet și link-ul securizat de confirmare în corpul mesajului.
+  3. **Integrare Formulare Publice**:
+     - `devis_online.py`: Declanșează automat trimiterea WhatsApp imediat după ce Playwright generează PDF-ul devizului pe disc.
+     - `public_calculator.py`: Declanșează automat trimiterea WhatsApp similar, menținând separarea strictă și izolarea arhitecturală a celor două sisteme (conform Regulii 12).
+     - `webhooks.py`: Rute dedicate `GET /api/webhooks/whatsapp` (verificare handshake Meta) și `POST /api/webhooks/whatsapp` (preluare răspunsuri/replies ale clienților direct în `WorkOrderMessage`).
+  4. **Deployment**:
+     - Modificările de cod au fost verificate local prin compilare Python și teste unitare de normalizare, comise și urcate pe GitHub prin commit-urile `335d424` și `db9d9f5`.
+     - Variabilele de mediu au fost configurate în Railway și `.env`.
+
+## 05 Septembrie 2026 - Conectare Chat WhatsApp, Fix Numerotare Secvențială (DEV1034+) și Upload PDF Supabase
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat explicit de utilizator ("DA!111" și instrucțiuni succesive).
+- **Acțiuni Efectuate**:
+  1. **Rezolvare Numerotare Secvențială (Eliminare DEV1000 repetitiv)**:
+     - **Problema**: Codul vechi rula `func.max(WorkOrder.quote_number)` în SQL pe un câmp `String`. SQL sorta alfabetic (`'DEV999' > 'DEV1033'`), returnând perpetuu `'DEV999'`, ceea ce forța `999 + 1 = 1000` pentru fiecare deviz nou creat.
+     - **Soluția**: Creat serviciul centralizat `backend/app/services/sequence_service.py` (`get_next_quote_number` și `get_next_invoice_number`) care extrage valorile numerice reale (Integer) din istoricul complet și returnează garantat `MAXIM ISTORIC + 1`.
+     - Integrat noul serviciu în `devis_online.py`, `public_calculator.py` și `admin_work_orders.py`.
+     - Renumerotat cele 3 devize duplicate existente în baza de date cu confirmarea utilizatorului: `DEV1034` (Fat Frumos), `DEV1035` (Eugeniu Cazmal) și `DEV1036` (Eugeniu Cazmal). Următorul deviz va fi automat `DEV1037`.
+  2. **Încărcare Automată PDF în Cloud Storage (Supabase) & Fallback WhatsApp**:
+     - În `whatsapp_service.py`, adăugat încărcarea automată a fișierelor PDF locale pe Supabase Storage (`upload_file`) pentru a genera URL-uri HTTPS publice accesibile de către Meta.
+     - Implementat fallback automat către mesaj direct de tip `document` dacă șablonul `devis_client` se află în status `PENDING` la Meta, garantând livrarea instantanee a devizului cu fișier PDF și link de semnare.
+  3. **Conectare Chat Admin la Meta Cloud API & Trimitere Strictă în Limba Clientului**:
+     - Upgradat funcțiile `send_chat_text_whatsapp` și `send_chat_attachment_whatsapp` din `whatsapp_service.py` să folosească Meta WhatsApp Cloud API (Graph API v21.0).
+     - **Fix Traduceri Chat**: Anterior, backend-ul trimitea pe WhatsApp textul brut `payload.message` (draft-ul în română al adminului), ignorând traducerea generată. Am modificat `admin_work_orders.py` să trimită pe WhatsApp obligatoriu versiunea tradusă (`target_lang` sau `client_language` - Franceză/Olandeză/Engleză), respectând regulile stricte ale proiectului.
+
+### 05 Septembrie 2026 - Fix Traducere (Buton Glob) și Sincronizare Chat în Timp Real
+- **Problemă raportată**:
+  1. Utilizatorul a sesizat că apăsarea butonului Glob nu mai traducea textul.
+  2. Mesajele din chat nu apăreau automat în timp real decât după un refresh manual (F5) al paginii.
+- **Cauză tehnică identificată**:
+  1. `deep_translator` apela vechiul web scraper Google Translate (`translate.google.com/m`) care a returnat pagină HTML de eroare 500 (`Error 500 Server Error`), blocând endpoint-ul `/api/admin/translate`. În plus, trimiterea de mesaje întârzia câte 9 secunde din cauza celor 3 retry-uri eșuate pe `fr`, `nl`, `en`. De asemenea, codurile de limbă trimise cu majuscule (ex. `FR`) nu erau normalizate.
+  2. În interfață, intervalul de polling era setat prea rar (4 secunde), iar la schimbarea tab-urilor/revenirea în pagină nu exista un trigger de `focus`/`visibilitychange`. În pagina dedicată de chat (`/admin/chats`), lista din stânga nu se actualiza automat în fundal, iar afișarea mesajelor provoca re-randări continue din cauza lipsei comparației de stare.
+- **Soluție implementată**:
+  1. Creat `app/services/translation_service.py` folosind direct API-ul rapid Google Translate GTX (`translate.googleapis.com`), cu suport de normalizare automată a codurilor de limbă (`FR` -> `fr`) și fallback elegant. Răspunsul este acum instant (sub 0.1s), fără erori 500.
+  2. Actualizat `admin_work_orders.py` la toate endpoint-urile (`/translate`, trimitere și editare mesaje) să folosească `translation_service`.
+  3. Redus intervalul de polling pentru chat la 2 secunde în `WorkOrderDetail.jsx` și `AdminChats.jsx`, adăugat listeneri de `focus` și `visibilitychange` (reîmprospătare instantanee când revii pe tab din WhatsApp), și optimizat `HeaderNotifications.jsx` la 6 secunde cu trigger instant la revenirea în fereastră.
+  4. Corectat `api.js` pentru Super Admin pe `localhost` să injecteze corect `X-Tenant-Subdomain` din `tenant-storage`.
+
+### 05 Septembrie 2026 - Statusuri Livrare WhatsApp (✓/✓✓), Fallback Email și Reacții Emoji
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat de Utilizator (plan de implementare `implementation_plan.md` aprobat explicit).
+- **Probleme adresate**:
+  1. Utilizatorul nu putea vedea statusul mesajelor trimise către client (dacă a fost trimis, livrat sau citit ca în WhatsApp).
+  2. Nu exista un indicator clar când clientul nu are număr de WhatsApp și mesajul a fost transmis pe Email.
+  3. Reacțiile cu emoji puse de admin din interfață nu se sincronizau pe telefonul clientului în WhatsApp.
+- **Modificări implementate**:
+  1. **Webhook Meta Cloud API (`webhooks.py`)**:
+     - Conectat evenimentele `statuses` trimise de Meta (`sent`, `delivered`, `read`, `failed`). La fiecare actualizare, mesajul corespunzător este identificat prin `translations->>'_wamid'` și statusul este actualizat direct în baza de date.
+     - Conectat evenimentele `messages` de tip `reaction` trimise de Meta când clientul reacționează din WhatsApp, actualizând dicționarul `reactions` al mesajului.
+  2. **Trimitere Mesaje & Fallback Email (`admin_work_orders.py` & `whatsapp_service.py`)**:
+     - `send_chat_text_whatsapp` returnează acum `wamid`-ul emis de Meta Graph API v21.0 și este stocat în mesaj.
+     - Dacă trimiterea pe WhatsApp eșuează sau clientul nu are număr de telefon setat, se declanșează automat trimiterea notificării pe Email (`send_chat_notification_email`), iar mesajul este marcat cu `delivery_channel = 'email'` și `delivery_status = 'email_sent'`.
+     - Adăugată funcția `send_whatsapp_reaction(phone_number, message_wamid, emoji)` în `whatsapp_service.py` și conectată în endpoint-ul `/react` din `admin_work_orders.py`: la adăugarea sau eliminarea unei reacții emoji de către admin, aceasta este expediată instantaneu către WhatsApp pe telefonul clientului.
+  3. **Interfață Utilizator (`WorkOrderDetail.jsx` & `AdminChats.jsx`)**:
+     - Adăugate iconițe de status lângă ora fiecărui mesaj trimis de admin:
+       - ✉️ `Mail` (cu tooltip *"Transmis pe Email (clientul nu are WhatsApp)"*) când canalul este email.
+       - ✓ `Check` (un bifat) când mesajul a fost trimis.
+       - ✓✓ `CheckCheck` gri când mesajul a fost livrat pe telefonul clientului.
+       - ✓✓ `CheckCheck` bleu/cyan intens (`text-sky-300`) când mesajul a fost citit de către client în WhatsApp.

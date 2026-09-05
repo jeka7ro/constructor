@@ -59,11 +59,20 @@ api.interceptors.request.use(
         // Inject tenant subdomain for Super Admin impersonation support
         try {
             const hostname = window.location.hostname;
-            if (hostname) {
-                const subdomain = hostname.split('.')[0];
-                if (subdomain && !['localhost', '127', 'pontaj'].includes(subdomain)) {
-                    config.headers['X-Tenant-Subdomain'] = subdomain;
-                }
+            let subdomain = hostname ? hostname.split('.')[0] : null;
+            if (!subdomain || ['localhost', '127', 'pontaj'].includes(subdomain)) {
+                try {
+                    const tenantStorage = localStorage.getItem('tenant-storage');
+                    if (tenantStorage) {
+                        const parsed = JSON.parse(tenantStorage);
+                        if (parsed.state?.tenant?.slug) {
+                            subdomain = parsed.state.tenant.slug;
+                        }
+                    }
+                } catch (err) {}
+            }
+            if (subdomain && !['localhost', '127', 'pontaj'].includes(subdomain)) {
+                config.headers['X-Tenant-Subdomain'] = subdomain;
             }
         } catch (e) { }
 

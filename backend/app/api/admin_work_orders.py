@@ -24,6 +24,8 @@ from app.storage import get_file_url
 from datetime import date as date_today_import
 from sqlalchemy import func
 from app.services.audit_service import log_audit
+import logging
+logger = logging.getLogger(__name__)
 
 def sync_work_order_reservations(db: Session, org_id: str, old_materials: list, new_materials: list):
     """Calculeaza diferenta de materiale si ajusteaza reserved_quantity in Magazie."""
@@ -1020,34 +1022,12 @@ def create_work_order(
     db.add(wo)
     db.flush()  # obtine ID-ul
 
-    # Auto-generate quote_number (IST0001, IST0002...) sau invoice_number (INV001...)
-    from sqlalchemy import func
+    # Auto-generate quote_number (DEV1001...) sau invoice_number (INV001...)
+    from app.services.sequence_service import get_next_quote_number, get_next_invoice_number
     if wo.is_quote:
-        max_quote = db.query(func.max(WorkOrder.quote_number)).filter(
-            WorkOrder.organization_id == current_admin.organization_id,
-            WorkOrder.quote_number.like('DEV%')
-        ).scalar()
-        if max_quote:
-            try:
-                next_num = int(max_quote.replace('DEV', '')) + 1
-            except ValueError:
-                next_num = 905
-        else:
-            next_num = 905
-        wo.quote_number = f"DEV{next_num}"
+        wo.quote_number = get_next_quote_number(db, current_admin.organization_id, "DEV")
     else:
-        max_inv = db.query(func.max(WorkOrder.invoice_number)).filter(
-            WorkOrder.organization_id == current_admin.organization_id,
-            WorkOrder.invoice_number.like('INV%')
-        ).scalar()
-        if max_inv:
-            try:
-                next_num = int(max_inv.replace('INV', '')) + 1
-            except ValueError:
-                next_num = 1
-        else:
-            next_num = 1
-        wo.invoice_number = f"INV{str(next_num).zfill(3)}"
+        wo.invoice_number = get_next_invoice_number(db, current_admin.organization_id, "INV")
 
     if payload.materials:
         sync_work_order_reservations(db, current_admin.organization_id, [], payload.materials)
@@ -2847,22 +2827,8 @@ def generate_proforma(
     
     # Genereaza numar secvential DEV daca nu exista
     if not wo.quote_number:
-        from sqlalchemy import func
-        max_quote = db.query(func.max(WorkOrder.quote_number)).filter(
-            WorkOrder.organization_id == current_admin.organization_id,
-            WorkOrder.quote_number.like('DEV%')
-        ).scalar()
-        
-        if max_quote:
-            try:
-                num_part = max_quote.replace('DEV', '')
-                next_num = int(num_part) + 1
-            except ValueError:
-                next_num = 905
-        else:
-            next_num = 905
-            
-        wo.quote_number = f"DEV{next_num}"
+        from app.services.sequence_service import get_next_quote_number
+        wo.quote_number = get_next_quote_number(db, current_admin.organization_id, "DEV")
     
     if payload:
         # Extrage si salveaza clientul
@@ -3027,8 +2993,11 @@ def get_work_order_messages(
             "reactions": m.reactions,
             "attachments": m.attachments or [],
             "is_hidden": m.is_hidden,
-            "is_read_by_admin": m.is_read_by_admin
-        } for m in messages
+            "is_read_by_admin": m.is_read_by_admin,
+            "delivery_channel": (m.translations or {}).get("_delivery_channel", "whatsapp" if (m.translations or {}).get("_wamid") else ("email" if m.sender == "admin" and not getattr(wo, 'client_phone', None) else ("whatsapp" if m.sender == "admin" else None))),
+            "delivery_status": (m.translations or {}).get("_delivery_status", "read" if m.sender != "admin" else "sent"),
+            "wamid": (m.translations or {}).get("_wamid")
+        } for m in messages if m.message != '[reaction]'
     ]
     
     return initial_messages + db_messages
@@ -3049,26 +3018,12 @@ def translate_text_preview(
     current_admin: Admin = Depends(get_current_admin)
 ):
     try:
-        import time
-        from deep_translator import GoogleTranslator
-        
-        last_error = None
-        for attempt in range(3):
-            try:
-                translated = GoogleTranslator(source='auto', target=payload.target_lang).translate(payload.text)
-                if translated and ("Error 500" in translated or "That's an error" in translated or "Server Error" in translated):
-                    last_error = "Server Error string returned"
-                    time.sleep(1)
-                    continue
-                return {"translatedText": translated}
-            except Exception as retry_err:
-                last_error = str(retry_err)
-                if attempt < 2:
-                    time.sleep(1)
-        
-        raise HTTPException(status_code=500, detail=f"Traducerea a eșuat după 3 încercări: {last_error}")
+        from app.services.translation_service import translate_text
+        translated = translate_text(payload.text, payload.target_lang)
+        return {"translatedText": translated}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/work-orders/{wo_id}/chat-attachment")
 async def upload_chat_attachment(
@@ -3137,41 +3092,74 @@ def post_work_order_message(
         
     translations = payload.translations or {}
     
-    # Auto-translate to the 3 public languages if deep_translator is available
+    # Auto-translate to the 3 public languages
     try:
-        import time
-        from deep_translator import GoogleTranslator
+        from app.services.translation_service import translate_text
         for target_lang in ['fr', 'nl', 'en']:
             if target_lang not in translations:
-                for attempt in range(3):
-                    try:
-                        translated = GoogleTranslator(source='auto', target=target_lang).translate(payload.message)
-                        if translated and ("Error 500" in translated or "That's an error" in translated or "Server Error" in translated):
-                            print(f"Translation attempt {attempt+1} for {target_lang} returned Error 500, retrying...")
-                            time.sleep(1)
-                            continue
-                        translations[target_lang] = translated
-                        break
-                    except Exception as retry_err:
-                        print(f"Translation attempt {attempt+1} for {target_lang} failed: {retry_err}")
-                        if attempt < 2:
-                            time.sleep(1)
+                translations[target_lang] = translate_text(payload.message, target_lang)
     except Exception as e:
         print(f"Auto-translation failed: {e}")
         
-    # Anti-spam: check if we should send an email notification to the client
-    try:
-        from app.services.email_service import send_chat_notification_email
-        import os
-        from datetime import datetime, timedelta
-        
-        if wo.client_email:
-            last_admin_msg = db.query(WorkOrderMessage).filter(
-                WorkOrderMessage.work_order_id == wo.id, 
-                WorkOrderMessage.sender == "admin"
-            ).order_by(WorkOrderMessage.created_at.desc()).first()
+
+    # WhatsApp / Email Delivery Channel resolution
+    whatsapp_sent = False
+    wamid = None
+    delivery_channel = "chat"
+    delivery_status = "sent"
+
+    client_phone = getattr(wo, 'client_phone', None)
+    if client_phone:
+        try:
+            from app.services.whatsapp_service import send_chat_text_whatsapp, send_chat_attachment_whatsapp
+            import os
             
-            if not last_admin_msg or (datetime.utcnow() - last_admin_msg.created_at) > timedelta(minutes=5):
+            if payload.message and payload.message.strip():
+                client_lang = (getattr(wo, 'client_language', 'fr') or 'fr').lower().split('-')[0].strip()
+                target_l = (getattr(payload, 'target_lang', None) or '').lower().split('-')[0].strip()
+                
+                text_to_send = None
+                if target_l in translations and translations[target_l] and str(translations[target_l]).strip():
+                    text_to_send = str(translations[target_l]).strip()
+                elif client_lang in translations and translations[client_lang] and str(translations[client_lang]).strip():
+                    text_to_send = str(translations[client_lang]).strip()
+                elif 'fr' in translations and translations['fr'] and str(translations['fr']).strip():
+                    text_to_send = str(translations['fr']).strip()
+                else:
+                    text_to_send = payload.message.strip()
+                
+                res = send_chat_text_whatsapp(client_phone, text_to_send)
+                if isinstance(res, dict) and res.get("success"):
+                    whatsapp_sent = True
+                    wamid = res.get("wamid")
+                    delivery_channel = "whatsapp"
+                    delivery_status = "sent"
+                else:
+                    logger.warning(f"WhatsApp text send failed or not delivered to {client_phone}: {res}")
+            
+            # Send attachments
+            if payload.attachments:
+                for att in payload.attachments:
+                    att_url = att.get('url', '')
+                    if not att_url.startswith('http'):
+                        backend_url = os.getenv("API_URL", "https://api.pontaj.app")
+                        att_url = f"{backend_url}/{att_url.lstrip('/')}"
+                    
+                    att_res = send_chat_attachment_whatsapp(client_phone, att_url, att.get('name', 'Fisier'))
+                    if att_res:
+                        whatsapp_sent = True
+                        delivery_channel = "whatsapp"
+        except Exception as e:
+            logger.error(f"Failed to send chat WhatsApp notification: {e}")
+
+    # Fallback to Email if WhatsApp was NOT sent (client has no phone or WhatsApp failed)
+    if not whatsapp_sent:
+        delivery_channel = "email"
+        delivery_status = "email_sent"
+        if wo.client_email:
+            try:
+                from app.services.email_service import send_chat_notification_email
+                import os
                 frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
                 client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
                 chat_url = f"{frontend_url}/public/proforma/{wo.token}?lang={client_lang}"
@@ -3184,31 +3172,14 @@ def post_work_order_message(
                     org_id=wo.organization_id,
                     wo_id=wo.id
                 )
-    except Exception as e:
-        print(f"Failed to send chat notification email: {e}")
+                logger.info(f"Fallback email successfully sent to {wo.client_email}")
+            except Exception as e:
+                logger.error(f"Failed to send fallback chat email: {e}")
 
-    # WhatsApp Integration
-    try:
-        from app.services.whatsapp_service import send_chat_text_whatsapp, send_chat_attachment_whatsapp
-        import os
-        
-        client_phone = getattr(wo, 'client_phone', None)
-        if client_phone:
-            # Send text
-            if payload.message and payload.message.strip():
-                send_chat_text_whatsapp(client_phone, payload.message)
-            
-            # Send attachments
-            if payload.attachments:
-                for att in payload.attachments:
-                    att_url = att.get('url', '')
-                    if not att_url.startswith('http'):
-                        backend_url = os.getenv("API_URL", "https://api.pontaj.app")
-                        att_url = f"{backend_url}/{att_url.lstrip('/')}"
-                    
-                    send_chat_attachment_whatsapp(client_phone, att_url, att.get('name', 'Fisier'))
-    except Exception as e:
-        print(f"Failed to send chat WhatsApp notification: {e}")
+    if wamid:
+        translations["_wamid"] = wamid
+    translations["_delivery_channel"] = delivery_channel
+    translations["_delivery_status"] = delivery_status
             
     msg = WorkOrderMessage(
         work_order_id=wo.id,
@@ -3229,7 +3200,10 @@ def post_work_order_message(
         "created_at": msg.created_at.isoformat() + "Z",
         "translations": msg.translations,
         "reactions": msg.reactions,
-        "attachments": msg.attachments
+        "attachments": msg.attachments,
+        "delivery_channel": delivery_channel,
+        "delivery_status": delivery_status,
+        "wamid": wamid
     }
 
 class ReactionToggle(BaseModel):
@@ -3274,6 +3248,18 @@ def toggle_work_order_message_reaction(
     
     db.commit()
     db.refresh(msg)
+
+    # Sync reaction to WhatsApp via Meta Cloud API if message has _wamid and wo has client_phone
+    try:
+        from app.services.whatsapp_service import send_whatsapp_reaction
+        target_wamid = (msg.translations or {}).get("_wamid")
+        wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id).first()
+        if target_wamid and wo and wo.client_phone:
+            reaction_emoji = "" if was_toggling_off else emoji
+            send_whatsapp_reaction(wo.client_phone, target_wamid, reaction_emoji)
+            logger.info(f"Synced reaction '{reaction_emoji}' to WhatsApp for {target_wamid}")
+    except Exception as e:
+        logger.error(f"Failed to sync reaction to WhatsApp: {e}")
     
     return {
         "id": msg.id,
@@ -3304,23 +3290,10 @@ def put_work_order_message(
     
     translations = payload.translations or {}
     try:
-        import time
-        from deep_translator import GoogleTranslator
+        from app.services.translation_service import translate_text
         for target_lang in ['fr', 'nl', 'en']:
             if target_lang not in translations:
-                for attempt in range(3):
-                    try:
-                        translated = GoogleTranslator(source='auto', target=target_lang).translate(payload.message)
-                        if translated and ("Error 500" in translated or "That's an error" in translated or "Server Error" in translated):
-                            print(f"Translation attempt {attempt+1} for {target_lang} returned Error 500, retrying...")
-                            time.sleep(1)
-                            continue
-                        translations[target_lang] = translated
-                        break
-                    except Exception as retry_err:
-                        print(f"Translation attempt {attempt+1} for {target_lang} failed: {retry_err}")
-                        if attempt < 2:
-                            time.sleep(1)
+                translations[target_lang] = translate_text(payload.message, target_lang)
     except Exception as e:
         print(f"Auto-translation failed: {e}")
         
@@ -3524,7 +3497,10 @@ def get_all_chats(
         ).count()
         
         # get last message text
-        last_msg = db.query(WorkOrderMessage).filter(WorkOrderMessage.work_order_id == wo.id).order_by(WorkOrderMessage.created_at.desc()).first()
+        last_msg = db.query(WorkOrderMessage).filter(
+            WorkOrderMessage.work_order_id == wo.id,
+            WorkOrderMessage.message != '[reaction]'
+        ).order_by(WorkOrderMessage.created_at.desc()).first()
         
         results.append({
             "work_order_id": wo.id,
