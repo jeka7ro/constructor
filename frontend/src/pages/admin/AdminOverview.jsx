@@ -255,6 +255,9 @@ export default function AdminOverview() {
     const [approveQuoteModal, setApproveQuoteModal] = useState(null)
     const [approveQuoteForm, setApproveQuoteForm] = useState({ date: '', time: '', discount: 0 })
     const [approveQuoteLoading, setApproveQuoteLoading] = useState(false)
+    const [planningModal, setPlanningModal] = useState(null)
+    const [planningForm, setPlanningForm] = useState({ date: '', time: '07:00', teamId: '' })
+    const [isSendingPlanning, setIsSendingPlanning] = useState(false)
 
     useEffect(() => {
         if (!clientSearchQuery || clientSearchQuery.length < 2) {
@@ -897,6 +900,61 @@ export default function AdminOverview() {
             showToast(t('common.error', 'Erreur'), t('overview.quote_approve_error', "Impossible d'approuver ce devis."), 'error');
         } finally {
             setApproveQuoteLoading(false);
+        }
+    };
+
+    const handleSendQuoteToPlanning = async (e) => {
+        if (e) e.preventDefault();
+        if (!planningModal || !planningForm.date) {
+            showToast(t('common.error', 'Erreur'), t('overview.select_date', 'Veuillez sélectionner une date !'), 'error');
+            return;
+        }
+        setIsSendingPlanning(true);
+        try {
+            const woId = planningModal.id;
+            const res = await api.put(`/admin/work-orders/${woId}`, {
+                start_date: planningForm.date,
+                start_time: planningForm.time || '07:00',
+                assigned_team_id: planningForm.teamId ? String(planningForm.teamId) : null,
+                status: 'planning'
+            });
+
+            const updatedWo = res.data;
+
+            // Remove from pending quotes
+            setPendingQuotes(prev => prev.filter(q => String(q.id) !== String(woId)));
+
+            // Add or update in allWorkOrders so it immediately appears in calendar
+            setAllWorkOrders(prev => {
+                const exists = prev.some(w => String(w.id) === String(woId));
+                if (exists) {
+                    return prev.map(w => String(w.id) === String(woId) ? (updatedWo || {
+                        ...w,
+                        start_date: planningForm.date,
+                        start_time: planningForm.time || '07:00',
+                        assigned_team_id: planningForm.teamId || null,
+                        status: 'planning'
+                    }) : w);
+                }
+                return [...prev, updatedWo || {
+                    ...planningModal,
+                    start_date: planningForm.date,
+                    start_time: planningForm.time || '07:00',
+                    assigned_team_id: planningForm.teamId || null,
+                    status: 'planning'
+                }];
+            });
+
+            lastMutationTime.current = Date.now();
+            setPlanningModal(null);
+            showToast(t('common.success', 'Succès'), t('overview.quote_sent_to_planning', 'Devis planifié dans le calendrier !'), 'success');
+            fetchWorkOrdersStats();
+            fetchPendingQuotes();
+        } catch (err) {
+            console.error('Error sending quote to planning:', err);
+            showToast(t('common.error', 'Erreur'), t('overview.quote_planning_error', 'Impossible de planifier ce devis.'), 'error');
+        } finally {
+            setIsSendingPlanning(false);
         }
     };
 
@@ -3396,20 +3454,137 @@ export default function AdminOverview() {
                                                 <Copy className="w-4 h-4" />
                                             </button>
                                             <button
-                                                title={t('overview.go_to_order', 'Voir la commande')}
+                                                title={t('overview.send_to_planning', 'Planifier dans le calendrier')}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const todayStr = new Date().toISOString().split('T')[0];
+                                                    const initialDate = row.approximate_date 
+                                                        ? row.approximate_date.split('T')[0] 
+                                                        : (row.start_date ? row.start_date.split('T')[0] : todayStr);
+                                                    setPlanningForm({
+                                                        date: initialDate,
+                                                        time: (row.start_time || '').substring(0, 5) || '07:00',
+                                                        teamId: row.assigned_team_id ? String(row.assigned_team_id) : ''
+                                                    });
+                                                    setPlanningModal(row);
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center border border-emerald-200 bg-emerald-50 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 rounded-full transition-colors"
+                                            >
+                                                <CalendarDays className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                title={t('overview.view_order_details', 'Voir les détails')}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     navigate(`/admin/work-orders/${row.id}`);
                                                 }}
                                                 className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
                                             >
-                                                <CalendarDays className="w-4 h-4" />
+                                                <Eye className="w-4 h-4" />
                                             </button>
                                         </div>
                                     )}
                                 ]}
                             />
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {planningModal && createPortal(
+                <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+                            <div>
+                                <div className="text-[11px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-1.5 mb-0.5">
+                                    <CalendarDays className="w-3.5 h-3.5" />
+                                    {t('overview.send_to_planning', 'Planifier dans le calendrier')}
+                                </div>
+                                <div className="font-bold text-slate-800 dark:text-white text-base truncate max-w-[280px]">
+                                    {planningModal.client_name || planningModal.title}
+                                </div>
+                                {planningModal.site_address && (
+                                    <div className="text-xs text-slate-400 truncate flex items-center gap-1 mt-0.5">
+                                        <MapPin className="w-3 h-3 shrink-0" />
+                                        <span className="truncate">{planningModal.site_address}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <button 
+                                onClick={() => setPlanningModal(null)} 
+                                className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSendQuoteToPlanning} className="p-6 space-y-4">
+                            {planningModal.volumes?.[0]?.quantity ? (
+                                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 rounded-xl flex items-center justify-between text-xs">
+                                    <span className="text-emerald-800 dark:text-emerald-300 font-semibold">{t('quotes.surface_thickness', 'Surface / Épaisseur')}</span>
+                                    <span className="font-bold text-emerald-900 dark:text-emerald-200">
+                                        {planningModal.volumes[0].quantity} m² · {planningModal.volumes[0].thickness || 5} cm
+                                    </span>
+                                </div>
+                            ) : null}
+
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                                    {t('common.date', 'Date')} *
+                                </label>
+                                <input
+                                    type="date"
+                                    required
+                                    value={planningForm.date}
+                                    onChange={e => setPlanningForm(p => ({ ...p, date: e.target.value }))}
+                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                                    {t('dashboard.quick_create.time', 'Heure de début')}
+                                </label>
+                                <input
+                                    type="time"
+                                    value={planningForm.time}
+                                    onChange={e => setPlanningForm(p => ({ ...p, time: e.target.value }))}
+                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                                    {t('dashboard.quick_create.allocated_team', 'Équipe')}
+                                </label>
+                                <select
+                                    value={planningForm.teamId}
+                                    onChange={e => setPlanningForm(p => ({ ...p, teamId: e.target.value }))}
+                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                >
+                                    <option value="">{t('dashboard.quick_create.no_team', '— Non assigné —')}</option>
+                                    {teams.map(t => (
+                                        <option key={t.id} value={String(t.id)}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setPlanningModal(null)}
+                                    className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    {t('common.cancel', 'Annuler')}
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSendingPlanning || !planningForm.date}
+                                    className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 transition-colors shadow-sm"
+                                >
+                                    {isSendingPlanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarDays className="w-4 h-4" />}
+                                    {t('overview.send_to_planning', 'Planifier')}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>,
                 document.body

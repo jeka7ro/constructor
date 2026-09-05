@@ -3047,6 +3047,11 @@
     },
     "overview": {
         "pending_quotes": "Devis en attente",
+        "send_to_planning": "Planifier dans le calendrier",
+        "view_order_details": "Voir les détails du devis",
+        "quote_sent_to_planning": "Devis planifié dans le calendrier !",
+        "quote_planning_error": "Impossible de planifier ce devis.",
+        "select_date": "Veuillez sélectionner une date !",
         "geo_timeout": "Délai dépassé. Vérifiez les paramètres de permission GPS.",
         "geocode_error": "Erreur de géocodage inversé :",
         "location_detect_error": "Erreur lors de la détection de la localisation.",

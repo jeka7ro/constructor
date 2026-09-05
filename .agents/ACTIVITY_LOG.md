@@ -282,3 +282,25 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
      - Prevenite buclele infinite și mesajele de grup în webhook prin filtrarea `@g.us` și `from_me`.
   4. **Backend - Chat exclusiv de pe numărul oficial UltraMsg (`whatsapp_service.py`)**:
      - Eliminat numărul de test Meta (+1 555...) din `send_chat_text_whatsapp` și `send_chat_attachment_whatsapp`. Chat-ul cu clientul se trimite acum strict de pe numărul companiei prin UltraMsg.
+
+### 05 Septembrie 2026 - Trimitere în Planning din Devis en attente & Clarificare Dată Solicitată vs. Dată Definitivă
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat de Utilizator.
+- **Probleme adresate**:
+  1. În ecranul de Planning (`AdminOverview.jsx`), în tabelul din modalul « Devis en attente », la click pe iconița de calendar utilizatorul era redirecționat în pagina de detalii deviz, în loc să se deschidă modalul de atribuire directă în calendar/planning.
+  2. Când un client confirmă/semnează un deviz, data aleasă de client este doar o dată dorită/solicitată, nu o dată definitivă garantată de firmă. Atât pe ecranul clientului, cât și pe email și pe grupul intern de WhatsApp apărea ca o dată confirmată, creând confuzie.
+- **Modificări implementate**:
+  1. **Frontend - Trimitere directă în Planning din « Devis en attente » (`AdminOverview.jsx`, `fr.json`)**:
+     - Conectat butonul cu iconiță de calendar (`CalendarDays`) pentru a deschide direct modalul de planificare (`planningModal`), randat peste tot cu `createPortal(..., document.body)` și `z-[10001]`.
+     - Adăugată iconiță separată `Eye` (« Voir les détails ») pentru navigare în fișa devizului.
+  2. **Frontend - Ecran Confirmare Client (`WorkOrderConfirm.jsx`)**:
+     - Pe bannerul verde de confirmare a fost adăugat mesajul profesionist: *« Merci pour votre confiance ! Votre commande a bien été enregistrée avec votre date souhaitée. Notre équipe de planification prendra contact avec vous dans les plus brefs délais afin de valider ensemble la date définitive d'intervention. »*
+     - La secțiunea de dată, eticheta afișează clar *« Date souhaitée »* însoțită de nota *« En attente de validation par l'équipe Davide Chape »*.
+     - Eliminat butonul roșu prin care clientul își putea confirma singur data în mod unilateral.
+  3. **Backend - Email Confirmare Comandă (`email_service.py`)**:
+     - Adaptate textele în FR, NL și EN pentru a preciza clar că data înregistrată este *« date souhaitée d'intervention »* și că echipa de planificare îl va contacta pentru data definitivă.
+  4. **Backend - Alertă Grup Companie WhatsApp (`whatsapp_service.py`)**:
+     - Mesajul transmis pe grupul intern afișează acum explicit:
+       `📅 *Data solicitată de client:* {date}`
+       `⚠️ *STATUS DATĂ:* Neconfirmată încă! Data este doar o solicitare a clientului.`
+       `👉 *Acțiune:* Davide Chape trebuie să valideze data și să adauge lucrarea în planning.`

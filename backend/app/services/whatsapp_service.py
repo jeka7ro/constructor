@@ -366,7 +366,7 @@ def send_admin_quote_confirmed_whatsapp(
     wa_link = f"https://wa.me/{clean_client_phone}" if clean_client_phone else ""
 
     lines = [
-        f"✅ *Deviz Confirmat de Client!*{quote_str}",
+        f"📝 *Deviz Acceptat de Client!*{quote_str}",
         "",
         f"👤 *Client:* {client_name or 'Client'}",
     ]
@@ -377,7 +377,9 @@ def send_admin_quote_confirmed_whatsapp(
     if site_address:
         lines.append(f"📍 *Adresă șantier:* {site_address}")
     if intervention_date:
-        lines.append(f"📅 *Data dorită:* {intervention_date}")
+        lines.append(f"📅 *Data solicitată de client:* {intervention_date}")
+        lines.append("⚠️ *STATUS DATĂ:* Neconfirmată încă! Data este doar o solicitare a clientului.")
+        lines.append("👉 *Acțiune:* Davide Chape trebuie să valideze data și să adauge lucrarea în planning.")
     
     if wo_id:
         lines.append("")

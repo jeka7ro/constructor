@@ -766,24 +766,57 @@ def send_order_confirmation_email(to_email: str, client_name: str, client_langua
     if client_language == "nl":
         subject = "Orderbevestiging – Davide Chape"
         greeting = f"Beste {client_name}"
-        intro = "Uw bestelling/offerte is succesvol bevestigd."
-        body_main = f"Wij hebben de volgende interventiedatum geregistreerd: <strong>{date_str}</strong>.<br><br>Bedankt voor uw vertrouwen!"
+        intro = "Uw bestelling / offerte is succesvol geregistreerd."
+        if date_str and date_str != "À déterminer":
+            body_main = (
+                f"U heeft als <strong>gewenste uitvoeringsdatum</strong> opgegeven: <strong>{date_str}</strong>.<br><br>"
+                f"ℹ️ <em>Gelieve er rekening mee te houden dat dit een gewenste datum betreft. Ons planningsteam bekijkt uw dossier en neemt spoedig contact met u op om samen de definitieve datum af te stemmen en te bevestigen.</em><br><br>"
+                f"Bedankt voor uw vertrouwen!"
+            )
+        else:
+            body_main = (
+                "Uw bevestiging is goed ontvangen.<br><br>"
+                "Ons planningsteam neemt spoedig contact met u op om een datum voor de werken af te spreken.<br><br>"
+                "Bedankt voor uw vertrouwen!"
+            )
         btn_text = "Mijn offerte bekijken"
         fallback = "Als de knop niet werkt, kopieer en plak deze link:"
-        footer = "Het team van Davide Chape"
+        footer = "Het team van Davide Chape<br>Dit is een automatisch bericht, gelieve niet rechtstreeks te antwoorden."
     elif client_language == "en":
         subject = "Order Confirmation – Davide Chape"
         greeting = f"Dear {client_name}"
-        intro = "Your order/quote has been successfully confirmed."
-        body_main = f"We have registered the following intervention date: <strong>{date_str}</strong>.<br><br>Thank you for your trust!"
+        intro = "Your order / quote has been successfully registered."
+        if date_str and date_str != "À déterminer":
+            body_main = (
+                f"You indicated as <strong>requested intervention date</strong>: <strong>{date_str}</strong>.<br><br>"
+                f"ℹ️ <em>Please note that this is a requested date. Our planning team is currently reviewing your request and will contact you shortly to confirm and validate the final date together.</em><br><br>"
+                f"Thank you for your trust!"
+            )
+        else:
+            body_main = (
+                "Your confirmation has been successfully recorded.<br><br>"
+                "Our planning team will contact you shortly to agree on the intervention date.<br><br>"
+                "Thank you for your trust!"
+            )
         btn_text = "View my quote"
         fallback = "If the button does not work, copy and paste this link:"
-        footer = "The Davide Chape Team"
+        footer = "The Davide Chape Team<br>This is an automated message, please do not reply directly."
     else:
         subject = "Confirmation de commande – Davide Chape"
         greeting = f"Bonjour {client_name}"
-        intro = "Votre commande/devis a bien été confirmée."
-        body_main = f"Nous avons enregistré la date d'intervention suivante : <strong>{date_str}</strong>.<br><br>Merci pour votre confiance !"
+        intro = "Votre commande / devis a bien été enregistré."
+        if date_str and date_str != "À déterminer":
+            body_main = (
+                f"Vous avez indiqué comme <strong>date souhaitée d'intervention</strong> le : <strong>{date_str}</strong>.<br><br>"
+                f"ℹ️ <em>Veuillez noter qu'il s'agit d'une date souhaitée. Notre équipe de planification examine actuellement votre dossier et vous recontactera très rapidement pour convenir et valider ensemble la date définitive des travaux.</em><br><br>"
+                f"Merci pour votre confiance !"
+            )
+        else:
+            body_main = (
+                "Votre confirmation a bien été enregistrée.<br><br>"
+                "Notre équipe de planification vous recontactera très rapidement afin de convenir de la date définitive d'intervention.<br><br>"
+                "Merci pour votre confiance !"
+            )
         btn_text = "Voir mon devis"
         fallback = "Si le bouton ne fonctionne pas, veuillez copier et coller ce lien :"
         footer = "L'équipe Davide Chape<br>Ceci est un message automatique, merci de ne pas y répondre directement."

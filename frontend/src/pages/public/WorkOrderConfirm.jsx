@@ -134,6 +134,9 @@ const LANG_DICT = {
         notes: 'Notes',
         approxDate: 'Date (Approx.)',
         plannedDate: 'Planned Date',
+        proposedDate: 'Requested Date',
+        pendingValidationNotice: 'Pending validation by the Davide Chape planning team',
+        confirmationFollowUpNote: 'Thank you for your trust! Your order has been registered with your requested date. Our planning team will contact you shortly to confirm and validate the final intervention date together.',
         plannedTime: 'Time',
         confirmOrder: 'Order Confirmation',
         confirmDesc: 'Fill in your details, apply your digital signature, and confirm.',
@@ -141,7 +144,7 @@ const LANG_DICT = {
         namePlaceholder: 'Full Name / Company',
         digitalSignature: 'Digital Signature',
         signatureRequired: 'Signature is required',
-        acceptOffer: 'I confirm that I have read the quote and the scheduled date, and I accept this offer.',
+        acceptOffer: 'I confirm that I have read the quote and the requested date, and I accept this offer.',
         termsFinal: 'I have verified the executed work, including the attached photos, and I confirm that the work has been properly completed.',
         orAcceptWithout: 'or accept without signature:',
         terms: 'I have read and agree to all the requirements, terms, conditions, and the scheduled date specified in this work order.',
@@ -192,7 +195,9 @@ const LANG_DICT = {
         notes: 'Remarques',
         approxDate: 'Date (Approximative)',
         plannedDate: 'Date de l\'intervention',
-        proposedDate: 'Date proposée',
+        proposedDate: 'Date souhaitée',
+        pendingValidationNotice: 'En attente de validation par l\'équipe Davide Chape',
+        confirmationFollowUpNote: 'Merci pour votre confiance ! Votre commande a bien été enregistrée avec votre date souhaitée. Notre équipe de planification prendra contact avec vous dans les plus brefs délais afin de valider ensemble la date définitive d\'intervention.',
         plannedTime: 'Heure',
         confirmOrder: 'Confirmation de commande',
         confirmDesc: 'Remplissez vos coordonnées, appliquez votre signature numérique et confirmez.',
@@ -200,7 +205,7 @@ const LANG_DICT = {
         namePlaceholder: 'Nom et prénom / Entreprise',
         digitalSignature: 'Signature numérique',
         signatureRequired: 'La signature est obligatoire',
-        acceptOffer: "Je confirme avoir pris connaissance du devis, de la date d'intervention et j'accepte cette offre.",
+        acceptOffer: "Je confirme avoir pris connaissance du devis, de la date d'intervention souhaitée et j'accepte cette offre.",
         orAcceptWithout: 'ou acceptez sans signature :',
         terms: "J'ai lu et j'accepte toutes les exigences, termes, conditions et la date d'intervention spécifiés dans ce bon de travail.",
         termsFinal: "J'ai vérifié les travaux exécutés, y compris les photos jointes, et je confirme que le travail a été correctement terminé.",
@@ -251,6 +256,9 @@ const LANG_DICT = {
         notes: 'Notizen',
         approxDate: 'Datum (Ungefähr)',
         plannedDate: 'Geplantes Datum',
+        proposedDate: 'Wunschtermin',
+        pendingValidationNotice: 'Vorbehaltlich der Bestätigung durch das Davide Chape Planungsteam',
+        confirmationFollowUpNote: 'Vielen Dank für Ihr Vertrauen! Ihre Bestellung wurde mit Ihrem Wunschtermin erfasst. Unser Planungsteam wird sich in Kürze mit Ihnen in Verbindung setzen, um den endgültigen Termin gemeinsam abzustimmen.',
         plannedTime: 'Zeit',
         confirmOrder: 'Auftragsbestätigung',
         confirmDesc: 'Geben Sie Ihre Daten ein, fügen Sie Ihre digitale Unterschrift hinzu und bestätigen Sie.',
@@ -302,7 +310,9 @@ const LANG_DICT = {
         notes: 'Opmerkingen',
         approxDate: 'Datum (Ongeveer)',
         plannedDate: 'Geplande datum',
-        proposedDate: 'Voorgestelde datum',
+        proposedDate: 'Gewenste datum',
+        pendingValidationNotice: 'In afwachting van bevestiging door het planningsteam van Davide Chape',
+        confirmationFollowUpNote: 'Bedankt voor uw vertrouwen! Uw bestelling is geregistreerd met uw gewenste datum. Ons planningsteam neemt spoedig contact met u op om samen de definitieve datum van de werken af te stemmen en te bevestigen.',
         plannedTime: 'Tijd',
         confirmOrder: 'Orderbevestiging',
         confirmDesc: 'Vul uw gegevens in, plaats uw digitale handtekening en bevestig.',
@@ -310,7 +320,7 @@ const LANG_DICT = {
         namePlaceholder: 'Voor- en achternaam / Bedrijf',
         digitalSignature: 'Digitale handtekening',
         signatureRequired: 'Handtekening is verplicht',
-        acceptOffer: 'Ik bevestig dat ik kennis heb genomen van de offerte en de geplande datum, en ik accepteer dit aanbod.',
+        acceptOffer: 'Ik bevestig dat ik kennis heb genomen van de offerte en de gewenste datum, en ik accepteer dit aanbod.',
         orAcceptWithout: 'of accepteer zonder handtekening:',
         terms: 'Ik heb alle vereisten, voorwaarden en de geplande datum gespecificeerd in deze werkbon gelezen en ga hiermee akkoord.',
         termsFinal: 'Ik heb de uitgevoerde werkzaamheden, inclusief de bijgevoegde foto\'s, gecontroleerd en ik bevestig dat het werk naar behoren is voltooid.',
@@ -356,6 +366,9 @@ const LANG_DICT = {
         volumes: 'Оценочные объемы',
         materials: 'Материалы',
         notes: 'Примечания',
+        proposedDate: 'Желаемая дата',
+        pendingValidationNotice: 'Ожидает подтверждения командой планирования Davide Chape',
+        confirmationFollowUpNote: 'Спасибо за доверие! Ваш заказ зарегистрирован с желаемой датой. Наша команда свяжется с вами в ближайшее время для согласования и утверждения окончательной даты.',
         confirmOrder: 'Подтверждение заказа',
         confirmDesc: 'Заполните свои данные, поставьте цифровую подпись и подтвердите.',
         confirmedByLabel: 'Подтверждено (кем) *',
@@ -993,10 +1006,17 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     <span className="text-sm font-black text-emerald-800">{t.confirmed}</span>
                                 </div>
                                 {order?.confirmed_at && mode === 'quote' && (
-                                    <p className="text-emerald-600 text-[11px] ml-7">
-                                        {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
-                                        {new Date(order.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                    </p>
+                                    <>
+                                        {t.confirmationFollowUpNote && (
+                                            <p className="text-emerald-900 text-xs font-medium ml-7 mt-1.5 mb-2 bg-emerald-100/70 p-2.5 rounded-lg border border-emerald-200/80 leading-relaxed shadow-sm">
+                                                {t.confirmationFollowUpNote}
+                                            </p>
+                                        )}
+                                        <p className="text-emerald-700/90 text-[11px] ml-7">
+                                            {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
+                                            {new Date(order.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                        </p>
+                                    </>
                                 )}
                                 {order?.final_confirmed_at && mode === 'final' && (
                                     <p className="text-emerald-600 text-[11px] ml-7">
@@ -1038,16 +1058,9 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     {order.start_time && ` • ${order.start_time}`}
                                 </p>
                                 {!dateConfirmed && !order.reschedule_requested && (
-                                    <div className="mt-2 ml-7 flex flex-col sm:flex-row gap-2">
-                                        <button
-                                            onClick={handleConfirmDate}
-                                            disabled={confirmingDate}
-                                            className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2"
-                                        >
-                                            {confirmingDate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                                            {confirmingDate ? t.confirmingBtn : t.confirmDateBtn}
-                                        </button>
-                                    </div>
+                                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/80 rounded-lg p-2 ml-7 mt-1.5 font-medium leading-normal">
+                                        ℹ️ {t.pendingValidationNotice}
+                                    </p>
                                 )}
                                 <p className="text-slate-500 text-[11px] ml-7 mt-2 flex items-center gap-1.5 cursor-pointer hover:text-blue-600 transition-colors" onClick={handleOpenChat}>
                                     <MessageSquare className="w-3.5 h-3.5" />
