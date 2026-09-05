@@ -2138,8 +2138,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 {msg.sender === 'client' ? wo?.client_name : (msg.sender === 'admin' ? (wo?.client_language === 'nl' || wo?.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape') : t('admin.system', 'Sistem'))}
                                                             </span>
                                                         </span>
-                                                        <div className="flex items-center gap-1.5 shrink-0">
-                                                            <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                        <div className={`flex items-center gap-1.5 shrink-0 ${isOwn ? 'bg-white/95 dark:bg-white/95 text-slate-700 px-2 py-0.5 rounded-full shadow-xs' : ''}`}>
+                                                            <span className={`text-[10px] ${isOwn ? 'text-slate-600 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
                                                                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                             </span>
                                                             {isOwn && (
@@ -2153,13 +2153,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                         : "Trimis via WhatsApp"
                                                                 }>
                                                                     {(msg.delivery_channel || msg.translations?._delivery_channel) === 'email' ? (
-                                                                        <Mail className="w-3.5 h-3.5 text-blue-200 hover:text-white transition-colors" />
+                                                                        <Mail className="w-3.5 h-3.5 text-amber-600 hover:text-amber-700 transition-colors" />
                                                                     ) : (msg.delivery_status || msg.translations?._delivery_status) === 'read' ? (
-                                                                        <CheckCheck className="w-3.5 h-3.5 text-sky-300 stroke-[2.5]" />
+                                                                        <CheckCheck className="w-3.5 h-3.5 text-sky-600 stroke-[2.5]" />
                                                                     ) : (msg.delivery_status || msg.translations?._delivery_status) === 'delivered' ? (
-                                                                        <CheckCheck className="w-3.5 h-3.5 text-blue-200/80 stroke-[2]" />
+                                                                        <CheckCheck className="w-3.5 h-3.5 text-slate-400 stroke-[2]" />
                                                                     ) : (
-                                                                        <Check className="w-3.5 h-3.5 text-blue-200/80 stroke-[2]" />
+                                                                        <Check className="w-3.5 h-3.5 text-slate-400 stroke-[2]" />
                                                                     )}
                                                                 </span>
                                                             )}
@@ -2245,7 +2245,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         
                                         {/* Render Emojis */}
                                         {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                                            <div className={`absolute -bottom-3 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-full shadow-sm px-1.5 py-0.5 text-xs z-10 border border-slate-100 dark:border-slate-700`}>
+                                            <div className={`absolute -bottom-3 ${isOwn ? 'right-2' : 'left-2'} flex gap-1 bg-white dark:bg-slate-800 rounded-full shadow-sm px-1.5 py-0.5 text-xs z-10 border border-slate-100 dark:border-slate-700`}>
                                                 {Object.entries(msg.reactions).map(([emoji, users]) => (
                                                     <button 
                                                         key={emoji} 
@@ -2276,7 +2276,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     </div>
 
                                     {/* Hover actions */}
-                                    <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isOwn ? 'flex-row-reverse' : ''}`}>
+                                    <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isOwn ? 'flex-row-reverse' : ''} ${msg.reactions && Object.keys(msg.reactions).length > 0 ? 'mt-3.5' : 'mt-0.5'}`}>
                                         <button
                                             onClick={() => setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id)}
                                             className="p-1.5 rounded-full text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700"

@@ -61,9 +61,27 @@ def send_quote_whatsapp(
         logger.warning("Empty or invalid phone number provided for WhatsApp.")
         return False
 
+    # 1. PRIMARY: UltraMsg (instant, no template restrictions or 24h limits)
+    instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
+    api_token = os.getenv("ULTRAMSG_API_TOKEN")
+    if instance_id and api_token:
+        try:
+            success = send_whatsapp_message(formatted_phone, client_name, client_language, signing_url)
+            if success:
+                logger.info(f"Quote WhatsApp successfully sent via UltraMsg to {formatted_phone}")
+                return True
+            else:
+                logger.warning(f"UltraMsg quote send failed for {formatted_phone}, trying Meta fallback...")
+        except Exception as e:
+            logger.error(f"UltraMsg exception for {formatted_phone}: {e}, trying Meta fallback...")
+
+    # 2. FALLBACK: Meta Cloud API
+    access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
+    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1285477127985012")
+
     if not access_token or not phone_number_id:
-        logger.warning("WHATSAPP credentials not set in env. Falling back to UltraMsg if available.")
-        return send_whatsapp_message(formatted_phone, client_name, client_language, signing_url)
+        logger.warning("WHATSAPP credentials not set in env.")
+        return False
 
     # Normalize language for Meta template ('fr', 'nl', 'en')
     lang_clean = (client_language or "fr").lower().split("-")[0].strip()
@@ -169,13 +187,15 @@ def send_quote_whatsapp(
                 return True
             else:
                 logger.error(f"Meta WhatsApp direct document also failed ({doc_res.status_code}): {doc_res.json()}")
-                return False
+                logger.info(f"Falling back to UltraMsg quote for {formatted_phone}...")
+                return send_whatsapp_message(formatted_phone, client_name, client_language, signing_url)
 
         logger.info(f"Meta WhatsApp quote sent successfully to {formatted_phone}: {res_data}")
         return True
     except Exception as e:
         logger.error(f"Failed to send Meta WhatsApp quote to {formatted_phone}: {e}")
-        return False
+        logger.info(f"Falling back to UltraMsg quote for {formatted_phone}...")
+        return send_whatsapp_message(formatted_phone, client_name, client_language, signing_url)
 
 
 def send_whatsapp_message(phone_number: str, client_name: str, client_language: str, signing_url: str):
@@ -198,6 +218,8 @@ def send_whatsapp_message(phone_number: str, client_name: str, client_language: 
         body_text = f"Bună ziua {client_name},\n\nAi solicitat un deviz pe site-ul nostru.\n\nTe rugăm să îl vizualizezi aici: {signing_url}\n\nCu respect,\nEchipa Davide Chape"
     elif client_language == "nl":
         body_text = f"Hallo {client_name},\n\nBedankt voor uw aanvraag op onze website.\n\nU kunt uw offerte hier vinden: {signing_url}\n\nMet vriendelijke groet,\nDavide Chape Team"
+    elif client_language == "en":
+        body_text = f"Hello {client_name},\n\nThank you for requesting a quote on our website.\n\nPlease find your quote here: {signing_url}\n\nBest regards,\nDavide Chape Team"
 
     payload = {
         "token": api_token,
@@ -311,11 +333,9 @@ def send_chat_text_whatsapp(phone_number: str, text: str):
                 logger.info(f"Chat text sent via Meta WhatsApp to {formatted_phone}: {res_data}")
                 return {"success": True, "wamid": wamid}
             else:
-                logger.error(f"Meta WhatsApp chat send error ({res.status_code}): {res_data}")
-                return {"success": False, "wamid": None, "error": res_data.get("error", {}).get("message", "send_failed")}
+                logger.warning(f"Meta WhatsApp chat send error ({res.status_code}): {res_data}. Falling back to UltraMsg...")
         except Exception as e:
-            logger.error(f"Failed to send Meta WhatsApp chat text to {formatted_phone}: {e}")
-            return {"success": False, "wamid": None, "error": str(e)}
+            logger.warning(f"Failed to send Meta WhatsApp chat text to {formatted_phone}: {e}. Falling back to UltraMsg...")
 
     # 2. Fallback to UltraMsg if configured
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")

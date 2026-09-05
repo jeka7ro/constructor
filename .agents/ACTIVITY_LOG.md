@@ -5,9 +5,20 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 
 ---
 
-## 16 August 2026 (Astăzi)
+## 2026-09-05 (Configurare WhatsApp Hibrid: UltraMsg Devis + Meta Chat, Token Permanent și UI Chat)
 **Agent:** Antigravity (AI)
-**Status Aprobare:** Aprobat și solicitat de Utilizator (confirmare prin instrucțiuni succesive și comandă finală de "push").
+**Status Aprobare:** Aprobat explicit de Utilizator.
+
+### Modificări Efectuate:
+1. **Modul Hibrid WhatsApp (`backend/app/services/whatsapp_service.py`):**
+   - **Devize noi (`send_quote_whatsapp`):** Trimiterea de devize se face primar prin **UltraMsg** (fără constrângeri de template Meta sau fereastră de 24h). Dacă UltraMsg eșuează sau nu e configurat, se încearcă fallback pe Meta. S-a adăugat suport pentru mesaje traduse în FR, NL, RO și EN.
+   - **Chat interactiv (`send_chat_text_whatsapp`):** Trimiterea din chat folosește primar **Meta Cloud API** (pentru a asigura bifele native de citire `✓✓`, sincronizarea traducerilor și emoji reactions). În caz de eroare Meta, se face fallback automat pe UltraMsg.
+   - **Token Permanent Meta:** Configurat System User `Adminjk` cu token permanent (fără expirare) pe Railway și local.
+   - **UltraMsg integrat:** Instanța `#190717` autentificată și salvată pe Railway și local.
+2. **UI Chat Admin (`WorkOrderDetail.jsx` & `AdminChats.jsx`):**
+   - **Contrast Oră și Bife:** Adăugată pastilă cu fundal deschis (`bg-white/95 shadow-xs px-2 py-0.5 rounded-full`) sub oră și bife pentru a elimina problema contrastului scăzut pe bula albastră. Bifele de citire sunt acum albastru WhatsApp intens (`text-sky-600`), iar cele de livrare sunt gri WhatsApp.
+   - **Zero Suprapunere:** Separarea barei de acțiuni (ștergere, editare, ascundere, reacție) de pastila cu emoji-uri prin adăugarea automată a spațierii `mt-3.5` când există reacții.
+
 
 ### Modificări Efectuate (Frontend & Backend):
 1. **Previzualizare Documente (PDF & Deviz Dinamic):**
