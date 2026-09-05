@@ -345,10 +345,15 @@ def format_volumes_and_materials(volumes: list) -> list:
             pur_idx += 1
             pur_lbl = f"Izolație PUR {pur_idx}" if has_multiple_pur else "Izolație PUR"
             surf_lines.append(f"• {pur_lbl}: {qty:.0f} m² | Grosime: {thick:.0f} cm")
-            if v.get("pur_aspiration"): pur_options.append("Aspirare")
-            if v.get("pur_niveller"): pur_options.append("Nivelare")
-            if v.get("pur_poncage"): pur_options.append("Șlefuire")
-            if v.get("pur_protection"): pur_options.append("Protecție")
+            pfx = f"{pur_lbl} - " if has_multiple_pur else "Opțiune PUR - "
+            if v.get("pur_aspiration") or v.get("isolation_pur_aspiration"):
+                pur_options.append(f"{pfx}Aspirare suport")
+            if v.get("pur_niveller") or v.get("isolation_pur_niveller"):
+                pur_options.append(f"{pfx}Nivelare laser")
+            if v.get("pur_poncage") or v.get("isolation_pur_poncage"):
+                pur_options.append(f"{pfx}Șlefuire spumă (Ponçage)")
+            if v.get("pur_protection") or v.get("isolation_pur_protection"):
+                pur_options.append(f"{pfx}Protecție peste 1M")
         elif is_eps:
             eps_idx += 1
             eps_lbl = f"Izolație EPS {eps_idx}" if has_multiple_eps else "Izolație EPS"
@@ -399,10 +404,6 @@ def format_volumes_and_materials(volumes: list) -> list:
 
     # Materiale și opțiuni bifate de client în deviz
     mat_lines = []
-    if total_sand_kg > 0:
-        sand_tons = total_sand_kg / 1000.0
-        sand_tons_str = f"{sand_tons:.1f}" if round(sand_tons, 1) == round(sand_tons, 2) else f"{sand_tons:.2f}"
-        mat_lines.append(f"✅ Nisip: {sand_tons_str} tone")
     if has_mesh:
         mat_lines.append(f"✅ Plasă armare (Treillis): Da (~{mesh_m2:.0f} m²)")
     if has_foil:
@@ -414,7 +415,8 @@ def format_volumes_and_materials(volumes: list) -> list:
     if has_floor_heating_add:
         mat_lines.append("✅ Additiv încălzire pardoseală: Da")
     if pur_options:
-        mat_lines.append(f"✅ Opțiuni PUR: {', '.join(pur_options)}")
+        for opt in pur_options:
+            mat_lines.append(f"✅ {opt}: Da")
 
     if mat_lines:
         lines.append("")
@@ -422,6 +424,20 @@ def format_volumes_and_materials(volumes: list) -> list:
         lines.extend(mat_lines)
 
     return lines
+
+
+def format_client_language_with_flag(lang_code: str) -> str:
+    code = str(lang_code or '').lower().split('-')[0].strip()
+    if code in ['nl', 'dutch', 'vlaams']:
+        return "🇳🇱 Olandeză (NL)"
+    elif code in ['en', 'eng', 'english']:
+        return "🇬🇧 Engleză (EN)"
+    elif code in ['de', 'german', 'deutsch']:
+        return "🇩🇪 Germană (DE)"
+    elif code in ['ro', 'romana', 'romanian']:
+        return "🇷🇴 Română (RO)"
+    else:
+        return "🇫🇷 Franceză (FR)"
 
 
 def send_admin_new_quote_whatsapp(
@@ -433,7 +449,8 @@ def send_admin_new_quote_whatsapp(
     site_address: str = None,
     total_amount: str = None,
     distance_km: float = None,
-    volumes: list = None
+    volumes: list = None,
+    client_language: str = None
 ):
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
@@ -458,6 +475,8 @@ def send_admin_new_quote_whatsapp(
         f"👤 *Client:* {client_name or 'Nespecificat'}",
         f"📞 *Telefon:* {client_phone or '-'}",
     ]
+    if client_language:
+        lines.append(f"🌐 *Limbă client:* {format_client_language_with_flag(client_language)}")
     if site_address:
         encoded_addr = urllib.parse.quote_plus(site_address.strip())
         maps_link = f"https://maps.google.com/?q={encoded_addr}"
@@ -512,7 +531,8 @@ def send_admin_quote_confirmed_whatsapp(
     intervention_date: str = None,
     wo_id: int = None,
     distance_km: float = None,
-    volumes: list = None
+    volumes: list = None,
+    client_language: str = None
 ):
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
@@ -540,6 +560,8 @@ def send_admin_quote_confirmed_whatsapp(
         lines.append(f"✍️ *Semnat de:* {confirmed_by_name}")
     if client_phone:
         lines.append(f"📞 *Telefon:* {client_phone}")
+    if client_language:
+        lines.append(f"🌐 *Limbă client:* {format_client_language_with_flag(client_language)}")
     if site_address:
         encoded_addr = urllib.parse.quote_plus(site_address.strip())
         maps_link = f"https://maps.google.com/?q={encoded_addr}"

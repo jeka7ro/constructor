@@ -535,7 +535,8 @@ def confirm_work_order(
                 intervention_date=date_str,
                 wo_id=wo.id,
                 distance_km=dist_km,
-                volumes=list(wo.volumes) if getattr(wo, 'volumes', None) else []
+                volumes=list(wo.volumes) if getattr(wo, 'volumes', None) else [],
+                client_language=client_lang
             )
     except Exception as e:
         print(f"Failed to schedule admin quote confirmation WhatsApp alert: {e}")

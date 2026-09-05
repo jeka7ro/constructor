@@ -497,6 +497,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     except (ValueError, TypeError):
         saved_total_ttc = f"{est_val} €" if est_val else None
     org_id = wo.organization_id
+    saved_client_language = getattr(wo, 'client_language', None) or resolved_lang
 
     # Notificari pentru Admin
     def send_alerts_to_admins():
@@ -513,7 +514,8 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
                     site_address=saved_site_address,
                     total_amount=saved_total_ttc,
                     distance_km=saved_distance_km,
-                    volumes=saved_volumes
+                    volumes=saved_volumes,
+                    client_language=saved_client_language
                 )
             except Exception as e:
                 print(f"Failed to send admin group WhatsApp alert: {e}")
@@ -541,7 +543,8 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
                                 site_address=saved_site_address,
                                 total_amount=saved_total_ttc,
                                 distance_km=saved_distance_km,
-                                volumes=saved_volumes
+                                volumes=saved_volumes,
+                                client_language=saved_client_language
                             )
                         except Exception as e:
                             print(f"Failed to send admin phone whatsapp alert: {e}")

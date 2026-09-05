@@ -5,6 +5,20 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 
 ---
 
+## 2026-09-05 (WhatsApp Alert: Limbă cu Steag, Eliminare Dublare Nisip & Bifă Verde Individuală PUR)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("ok push").
+
+### Modificări Efectuate:
+1. **Backend (`whatsapp_service.py`):**
+   - **Adăugare limbă cu steag**: Adăugată funcția `format_client_language_with_flag` care afișează steagul și denumirea limbii alese de client (`🌐 *Limbă client:* 🇬🇧 Engleză (EN)`, `🇳🇱 Olandeză (NL)`, `🇫🇷 Franceză (FR)`, etc.) atât la primirea devizului nou, cât și la confirmarea comenzii.
+   - **Eliminat dublarea necesarului de nisip**: Nisipul este afișat o singură dată clar în secțiunea `📐 Suprafețe & Grosime` (`🏖️ *Necesar Nisip:* X tone`), eliminând rândul duplicat din `📋 Materiale & Opțiuni bifate`.
+   - **Bifă verde individuală pentru opțiunile PUR**: Fiecare opțiune PUR bifată de client (Aspirare suport, Nivelare laser, Șlefuire spumă / Ponçage, Protecție peste 1M) este afișată pe propriul ei rând separat cu `✅` (`✅ Opțiune PUR - Aspirare suport: Da`, etc.).
+2. **Backend (`devis_online.py` & `public_work_orders.py`):**
+   - Transmis `client_language` către funcțiile de notificare WhatsApp admin (`send_admin_new_quote_whatsapp` și `send_admin_quote_confirmed_whatsapp`).
+
+---
+
 ## 2026-09-05 (Fix Persistență Limbă Deviz: Primul Mail vs Al Doilea Mail de Confirmare & Numerotare Suprafețe Multiple)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Aprobat explicit de Utilizator ("ok. push").
