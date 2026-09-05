@@ -344,7 +344,8 @@ def format_volumes_and_materials(volumes: list) -> list:
         if is_pur:
             pur_idx += 1
             pur_lbl = f"Izolație PUR {pur_idx}" if has_multiple_pur else "Izolație PUR"
-            surf_lines.append(f"• {pur_lbl}: {qty:.0f} m² | Grosime: {thick:.0f} cm")
+            thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
+            surf_lines.append(f"• {pur_lbl}: {qty:.0f} m² | Grosime: {thick_str} cm")
             pfx = f"{pur_lbl} - " if has_multiple_pur else "Opțiune PUR - "
             if v.get("pur_aspiration") or v.get("isolation_pur_aspiration"):
                 pur_options.append(f"{pfx}Aspirare suport")
@@ -357,11 +358,8 @@ def format_volumes_and_materials(volumes: list) -> list:
         elif is_eps:
             eps_idx += 1
             eps_lbl = f"Izolație EPS {eps_idx}" if has_multiple_eps else "Izolație EPS"
-            try:
-                vol_m3 = float(v.get("volume_m3") or (qty * thick / 100 if thick else qty))
-            except (ValueError, TypeError):
-                vol_m3 = 0.0
-            surf_lines.append(f"• {eps_lbl}: {vol_m3:.1f} m³ ({qty:.0f} m² la {thick:.0f} cm)")
+            thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
+            surf_lines.append(f"• {eps_lbl}: {qty:.0f} m² | Grosime: {thick_str} cm")
         else:
             chape_idx += 1
             clean_label = label
@@ -440,6 +438,89 @@ def format_client_language_with_flag(lang_code: str) -> str:
         return "🇫🇷 Franceză (FR)"
 
 
+def get_jobs_on_date(target_date_str: str, org_id: str = None):
+    """
+    Returns (count, client_names_list) of scheduled work orders on a specific date.
+    """
+    if not target_date_str:
+        return None
+    try:
+        from app.database import SessionLocal
+        from app.models import WorkOrder
+        from datetime import datetime, timedelta
+        
+        clean_d = str(target_date_str).split("T")[0].strip()
+        if "-" in clean_d:
+            d = datetime.strptime(clean_d, "%Y-%m-%d").date()
+        elif "/" in clean_d:
+            parts = clean_d.split("/")
+            if len(parts[0]) == 4:
+                d = datetime.strptime(clean_d, "%Y/%m/%d").date()
+            else:
+                d = datetime.strptime(clean_d, "%d/%m/%Y").date()
+        else:
+            return None
+
+        with SessionLocal() as db:
+            q = db.query(WorkOrder).filter(
+                WorkOrder.start_date.isnot(None),
+                WorkOrder.status != 'cancelled'
+            )
+            if org_id:
+                q = q.filter(WorkOrder.organization_id == org_id)
+            wos = q.all()
+            
+            client_names = []
+            count = 0
+            for wo in wos:
+                dur = max(1, getattr(wo, 'duration_days', 1) or 1)
+                wo_end = wo.start_date + timedelta(days=dur)
+                if wo.start_date <= d < wo_end:
+                    count += 1
+                    raw_name = (wo.client_name or (wo.client.name if getattr(wo, 'client', None) else '') or wo.title or '').strip()
+                    clean_name = ' '.join(raw_name.split())
+                    if clean_name:
+                        client_names.append(clean_name)
+                    else:
+                        client_names.append("Client")
+            return count, client_names
+    except Exception as e:
+        logger.error(f"Error checking jobs on date {target_date_str}: {e}")
+        return None
+
+
+def format_jobs_availability_str(target_date_str: str, org_id: str = None) -> str:
+    """
+    Returns formatted string with availability status and client names in parentheses, e.g.:
+    - ' (✅ Liber - 0 lucrări)'
+    - ' (⚠️ Ocupat - 1 lucrare: Elena Cazmal)'
+    - ' (⚠️ Ocupat - 2 lucrări: Elena Cazmal, Mihalache Construct)'
+    """
+    jobs_info = get_jobs_on_date(target_date_str, org_id)
+    if jobs_info is None:
+        return ""
+    count, client_names = jobs_info
+    if count == 0:
+        return " (✅ Liber - 0 lucrări)"
+    
+    unique_clients = []
+    for c in client_names:
+        if c and c not in unique_clients:
+            unique_clients.append(c)
+            
+    if count == 1:
+        c_str = f": {unique_clients[0]}" if unique_clients else ""
+        return f" (⚠️ Ocupat - 1 lucrare{c_str})"
+    else:
+        if len(unique_clients) > 3:
+            c_str = ": " + ", ".join(unique_clients[:3]) + f" + încă {len(unique_clients) - 3}"
+        elif unique_clients:
+            c_str = ": " + ", ".join(unique_clients)
+        else:
+            c_str = ""
+        return f" (⚠️ Ocupat - {count} lucrări{c_str})"
+
+
 def send_admin_new_quote_whatsapp(
     target_id: str,
     client_name: str,
@@ -450,7 +531,9 @@ def send_admin_new_quote_whatsapp(
     total_amount: str = None,
     distance_km: float = None,
     volumes: list = None,
-    client_language: str = None
+    client_language: str = None,
+    approximate_date: str = None,
+    org_id: str = None
 ):
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
@@ -488,6 +571,23 @@ def send_admin_new_quote_whatsapp(
                 d_val = str(distance_km)
             lines.append(f"🚗 *Distanță de la bază:* {d_val} km")
         lines.append(f"🗺️ *Deschide în Google Maps:*\n{maps_link}")
+    
+    if approximate_date:
+        try:
+            if "-" in str(approximate_date) and len(str(approximate_date).split("-")) == 3:
+                parts = str(approximate_date).split("-")
+                day = parts[2].split("T")[0].strip()
+                formatted_date = f"{day}/{parts[1]}/{parts[0]}"
+            else:
+                formatted_date = str(approximate_date)
+        except Exception:
+            formatted_date = str(approximate_date)
+            
+        avail_str = format_jobs_availability_str(approximate_date, org_id)
+        lines.append(f"📅 *Data solicitată de client:* {formatted_date}{avail_str}")
+    else:
+        lines.append("📅 *Data solicitată de client:* Nespecificată")
+
     if total_amount:
         lines.append(f"💰 *Total:* {total_amount}")
 
@@ -532,7 +632,8 @@ def send_admin_quote_confirmed_whatsapp(
     wo_id: int = None,
     distance_km: float = None,
     volumes: list = None,
-    client_language: str = None
+    client_language: str = None,
+    org_id: str = None
 ):
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
@@ -574,7 +675,8 @@ def send_admin_quote_confirmed_whatsapp(
             lines.append(f"🚗 *Distanță de la bază:* {d_val} km")
         lines.append(f"🗺️ *Deschide în Google Maps:*\n{maps_link}")
     if intervention_date:
-        lines.append(f"📅 *Data solicitată de client:* {intervention_date}")
+        avail_str = format_jobs_availability_str(intervention_date, org_id)
+        lines.append(f"📅 *Data solicitată de client:* {intervention_date}{avail_str}")
         lines.append("⚠️ *STATUS DATĂ:* Neconfirmată încă! Data este doar o solicitare a clientului.")
         lines.append("👉 *Acțiune:* Davide Chape trebuie să valideze data și să adauge lucrarea în planning.")
 

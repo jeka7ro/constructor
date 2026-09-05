@@ -414,3 +414,26 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
   4. **Frontend & Backend - Vizualizare Deviz & Generare PDF (`pricingEngine.js`, `DevisView.jsx`, `pdf_generator.py`)**:
      - În `buildQuoteItems` (`pricingEngine.js`), fiecare suprafață primește descrierea aferentă numărului său de ordine (`Chape 1 - Base`, `Chape 2 - Base`, `Isolation PUR 1`, `Isolation PUR 2`).
      - În `DevisView.jsx` și `pdf_generator.py`, descrierile sunt traduse și numerotate conform limbii documentului (ex: `Pose de chape 1 6 cm`, `Dekvloer leggen 1 6 cm`, `Chape 1 6 cm`, `Isolation PUR 1 8 cm`).
+
+### 05 Septembrie 2026 - Formatare Uniformă Alerte WhatsApp & Afișare Dată Solicitată Lucrare
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: În curs de aprobare / gata de push la confirmarea utilizatorului.
+- **Probleme adresate**:
+  1. În alertele de deviz nou (Deviz Nou Primit!) pe WhatsApp nu apărea deloc data dorită/solicitată pe care clientul a selectat-o în formularul Devis Online (wo.approximate_date).
+  2. EPS afișa volumul în loc de suprafață pe primul plan (3.5 m³ (70 m² la 5 cm)), creând impresia că suprafața este de 3.5 mp. Utilizatorul a cerut eliminarea completă a volumului.
+  3. În alertele de deviz acceptat și în emailul de confirmare a comenzii, dacă start_date nu era setată încă în planning, data cădea pe None sau À déterminer, ignorând data solicitată de client (approximate_date).
+- **Modificări implementate**:
+  1. **Backend (whatsapp_service.py)**:
+     - În send_admin_new_quote_whatsapp: adăugat parametrul approximate_date și afișat în mesaj: 📅 *Data solicitată de client:* DD/MM/YYYY (sau Nespecificată dacă pasul a fost sărit).
+     - În format_volumes_and_materials: eliminat complet volumul (m³) pentru EPS. Acum se afișează uniform: • Izolație EPS: {qty} m² | Grosime: {thick} cm.
+  2. **Backend (devis_online.py)**:
+     - Extras saved_approximate_date din comandă/payload și transmis către ambele notificări WhatsApp de admin (pe grup și individual).
+  3. **Backend (public_work_orders.py)**:
+     - Adăugat fallback pe wo.approximate_date pentru date_str atât în emailul de confirmare trimis clientului, cât și în alerta WhatsApp transmisă către grupul de admini.
+  4. **Verificare Automată Disponibilitate Planning în Notificare WhatsApp**:
+     - Creat funcția get_jobs_count_on_date(target_date, org_id) în whatsapp_service.py.
+     - În ambele alerte de WhatsApp (Deviz Nou și Deviz Acceptat), lângă data solicitată se afișează automat dacă ziua este liberă sau ocupată și câte lucrări sunt deja planificate în paranteze:
+       * Dacă sunt 0 lucrări: 📅 *Data solicitată de client:* 26/09/2026 (✅ Liber - 0 lucrări)
+       * Dacă este 1 lucrare: 📅 *Data solicitată de client:* 26/09/2026 (⚠️ Ocupat - 1 lucrare)
+       * Dacă sunt mai multe: 📅 *Data solicitată de client:* 26/09/2026 (⚠️ Ocupat - X lucrări)
+     - Afișare clienți existenți în paranteze: dacă în acea zi există deja lucrări, se afișează numele clienților separați prin virgulă (ex: (⚠️ Ocupat - 1 lucrare: Demoulin Laurent) sau (⚠️ Ocupat - 2 lucrări: Client A, Client B)).

@@ -487,7 +487,19 @@ def confirm_work_order(
             client_lang = getattr(wo, 'client_language', None) or (wo.client.preferred_language if wo.client else None) or 'fr'
             client_lang = str(client_lang).lower().strip()
             signing_url = f"{frontend_url}/confirm/{wo.token}?lang={client_lang}"
-            date_str = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
+            date_str = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else None
+            if not date_str and getattr(wo, 'approximate_date', None):
+                try:
+                    parts = str(wo.approximate_date).split("-")
+                    if len(parts) == 3:
+                        day = parts[2].split("T")[0].strip()
+                        date_str = f"{day}/{parts[1]}/{parts[0]}"
+                    else:
+                        date_str = str(wo.approximate_date)
+                except Exception:
+                    date_str = str(wo.approximate_date)
+            if not date_str:
+                date_str = "À déterminer"
             if wo.start_time:
                 date_str += f" ({wo.start_time})"
             
@@ -512,6 +524,16 @@ def confirm_work_order(
             from app.services.whatsapp_service import send_admin_quote_confirmed_whatsapp
             site_addr = getattr(wo, 'site_address', '') or ''
             date_str = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else None
+            if not date_str and getattr(wo, 'approximate_date', None):
+                try:
+                    parts = str(wo.approximate_date).split("-")
+                    if len(parts) == 3:
+                        day = parts[2].split("T")[0].strip()
+                        date_str = f"{day}/{parts[1]}/{parts[0]}"
+                    else:
+                        date_str = str(wo.approximate_date)
+                except Exception:
+                    date_str = str(wo.approximate_date)
             
             # Extract distance strictly from devis / work order
             dist_km = None
@@ -536,7 +558,8 @@ def confirm_work_order(
                 wo_id=wo.id,
                 distance_km=dist_km,
                 volumes=list(wo.volumes) if getattr(wo, 'volumes', None) else [],
-                client_language=client_lang
+                client_language=client_lang,
+                org_id=wo.organization_id
             )
     except Exception as e:
         print(f"Failed to schedule admin quote confirmation WhatsApp alert: {e}")
