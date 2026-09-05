@@ -184,6 +184,7 @@ function App() {
                             link.rel = 'icon';
                             document.head.appendChild(link);
                         }
+                        link.type = iconUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
                         link.href = iconUrl;
                         
                         // Update apple-touch-icon for iOS/Chrome shortcuts

@@ -631,6 +631,7 @@ async def upload_logo(file: UploadFile = File(...), current_admin: Admin = Depen
     return {"logo_url": logo_url, "message": "Logo încărcat cu succes"}
 
 @app.get("/api/public/tenant-config")
+@app.get("/public/tenant-config")
 async def public_tenant_config(slug: str):
     """Fetch basic tenant info for public open graph injection"""
     from fastapi import HTTPException
@@ -643,9 +644,14 @@ async def public_tenant_config(slug: str):
         if not tenant:
             raise HTTPException(status_code=404, detail="Not Found")
         return {
+            "id": tenant.id,
             "name": tenant.name,
+            "slug": tenant.slug,
             "favicon_url": tenant.favicon_url,
-            "logo_url": tenant.logo_url
+            "logo_url": tenant.logo_url,
+            "primary_color": tenant.primary_color,
+            "secondary_color": tenant.secondary_color,
+            "default_language": tenant.default_language
         }
     finally:
         db.close()
@@ -685,7 +691,7 @@ if frontend_dist.exists():
         if index_path.exists():
             try:
                 host = request.headers.get("x-forwarded-host", request.headers.get("host", ""))
-                subdomain = host.split(".")[0]
+                subdomain = host.split(".")[0].lower()
                 if ":" in subdomain:
                     subdomain = subdomain.split(":")[0]
                 
@@ -697,21 +703,34 @@ if frontend_dist.exists():
                     html_content = f.read()
                     
                 if tenant:
-                    # Replace title dynamically
-                    if tenant.name:
-                        html_content = re.sub(r'<title>.*?</title>', f'<title>{tenant.name}</title>', html_content)
-                        html_content = re.sub(r'<meta property="og:title" content=".*?" />', f'<meta property="og:title" content="{tenant.name}" />', html_content)
+                    t_name = tenant.name or "Davide Chape"
+                    if tenant.slug == "davidechape":
+                        t_desc = "Chape fluide, chape traditionnelle & isolation en Belgique"
+                    else:
+                        t_desc = f"Portail & Gestion en ligne - {t_name}"
+
+                    # Replace title and OpenGraph title dynamically
+                    html_content = re.sub(r'<title>.*?</title>', f'<title>{t_name}</title>', html_content)
+                    html_content = re.sub(r'<meta property="og:title" content=".*?"\s*/?>', f'<meta property="og:title" content="{t_name}" />', html_content)
                     
-                    # Replace favicon dynamically
+                    # Replace descriptions dynamically
+                    html_content = re.sub(r'<meta name="description" content=".*?"\s*/?>', f'<meta name="description" content="{t_desc}" />', html_content)
+                    html_content = re.sub(r'<meta property="og:description" content=".*?"\s*/?>', f'<meta property="og:description" content="{t_desc}" />', html_content)
+                    
+                    # Replace favicon & og:image dynamically
                     icon_url = tenant.favicon_url or tenant.logo_url
+                    if not icon_url and tenant.slug == "davidechape":
+                        icon_url = f"https://{host}/davide_logo.png"
+                        
                     if icon_url:
                         if not icon_url.startswith('http'):
-                            app_url = os.getenv("APP_URL", f"http://{host}")
-                            icon_url = f"{app_url}{icon_url}"
+                            app_url = os.getenv("APP_URL", f"https://{host}")
+                            icon_url = f"{app_url.rstrip('/')}/{icon_url.lstrip('/')}"
                         
-                        html_content = re.sub(r'<link rel="icon" type="image/svg\+xml" href=".*?" />', f'<link rel="icon" href="{icon_url}" />', html_content)
-                        html_content = re.sub(r'<link rel="apple-touch-icon" href=".*?" />', f'<link rel="apple-touch-icon" href="{icon_url}" />', html_content)
-                        html_content = re.sub(r'<meta property="og:image" content=".*?" />', f'<meta property="og:image" content="{icon_url}" />', html_content)
+                        mime_type = "image/svg+xml" if icon_url.endswith(".svg") else "image/png"
+                        html_content = re.sub(r'<link rel="icon"[^>]*>', f'<link rel="icon" type="{mime_type}" href="{icon_url}" />', html_content)
+                        html_content = re.sub(r'<link rel="apple-touch-icon"[^>]*>', f'<link rel="apple-touch-icon" href="{icon_url}" />', html_content)
+                        html_content = re.sub(r'<meta property="og:image" content=".*?"\s*/?>', f'<meta property="og:image" content="{icon_url}" />', html_content)
                         
                 return HTMLResponse(content=html_content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
             except Exception as e:

@@ -5,6 +5,29 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 
 ---
 
+## 2026-09-05 (Personalizare Multi-Tenant: Titlu, OpenGraph & Favicon Oficial din SuperAdmin)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("ok.push").
+
+### Modificări Efectuate:
+1. **Frontend (`frontend/index.html`):**
+   - Eliminat complet brandingul vechi ("Smart Timesheet", "Smart Timesheet App").
+   - Setat favicon-ul implicit, apple-touch-icon și `og:image` pe favicon-ul oficial PNG al companiei Davide Chape configurat în SuperAdmin (`https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/logos/2ae150ba-bac0-47ad-803e-7ff0a9c69dd1.png`).
+   - Actualizat titlul la "Davide Chape" și descrierea la "Chape fluide, chape traditionnelle & isolation en Belgique".
+
+2. **Netlify Edge Function (`frontend/netlify/edge-functions/og-injector.js`):**
+   - Corectat apelul API către `/api/public/tenant-config?slug=${subdomain}` (cu fallback pe `/public/tenant-config`), rezolvând eroarea de 404 care bloca injectarea datelor.
+   - Implementat suport complet pentru injectarea dinamică a titlului, descrierii, `<link rel="icon">`, `<link rel="apple-touch-icon">` și `og:image` pentru toți tenanții în funcție de subdomeniu (`davidechape`, `qpack`, `trade-invest` etc.).
+
+3. **Backend (`backend/main.py`):**
+   - Expus atât `/api/public/tenant-config`, cât și `/public/tenant-config` pentru interoperabilitate sigură.
+   - Actualizat `spa_fallback` pentru a injecta dinamic datele și favicon-ul cu MIME type corespunzător (`image/png` sau `image/svg+xml`).
+
+4. **React App (`frontend/src/App.jsx`):**
+   - Asigurat update dinamic al atributului `link.type` pentru a preveni respingerea favicon-ului PNG de către browsere când înlocuiesc SVG-ul.
+
+---
+
 ## 2026-09-05 (Configurare WhatsApp Hibrid: UltraMsg Devis + Meta Chat, Token Permanent și UI Chat)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Aprobat explicit de Utilizator.
