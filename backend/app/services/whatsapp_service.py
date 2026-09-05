@@ -288,6 +288,7 @@ def format_volumes_and_materials(volumes: list) -> list:
     surf_lines = []
     
     total_chape_m2 = 0.0
+    total_sand_kg = 0.0
     
     has_foil = False
     has_mesh = False
@@ -299,7 +300,7 @@ def format_volumes_and_materials(volumes: list) -> list:
     
     pur_options = []
 
-    # Count how many chape volumes exist
+    # Count how many volumes exist per category
     chape_vols = [
         v for v in volumes if isinstance(v, dict) and 
         "pur" not in str(v.get("label", "")).lower() and "pur" not in str(v.get("type", "")).lower() and
@@ -307,7 +308,21 @@ def format_volumes_and_materials(volumes: list) -> list:
     ]
     has_multiple_chape = len(chape_vols) > 1
 
+    pur_vols = [
+        v for v in volumes if isinstance(v, dict) and 
+        ("pur" in str(v.get("label", "")).lower() or "pur" in str(v.get("type", "")).lower())
+    ]
+    has_multiple_pur = len(pur_vols) > 1
+
+    eps_vols = [
+        v for v in volumes if isinstance(v, dict) and 
+        ("eps" in str(v.get("label", "")).lower() or "eps" in str(v.get("type", "")).lower())
+    ]
+    has_multiple_eps = len(eps_vols) > 1
+
     chape_idx = 0
+    pur_idx = 0
+    eps_idx = 0
     for v in volumes:
         if not isinstance(v, dict):
             continue
@@ -327,29 +342,35 @@ def format_volumes_and_materials(volumes: list) -> list:
         is_eps = "eps" in label.lower() or "eps" in str(v.get("type", "")).lower()
         
         if is_pur:
-            surf_lines.append(f"• Izolație PUR: {qty:.0f} m² | Grosime: {thick:.0f} cm")
+            pur_idx += 1
+            pur_lbl = f"Izolație PUR {pur_idx}" if has_multiple_pur else "Izolație PUR"
+            surf_lines.append(f"• {pur_lbl}: {qty:.0f} m² | Grosime: {thick:.0f} cm")
             if v.get("pur_aspiration"): pur_options.append("Aspirare")
             if v.get("pur_niveller"): pur_options.append("Nivelare")
             if v.get("pur_poncage"): pur_options.append("Șlefuire")
             if v.get("pur_protection"): pur_options.append("Protecție")
         elif is_eps:
+            eps_idx += 1
+            eps_lbl = f"Izolație EPS {eps_idx}" if has_multiple_eps else "Izolație EPS"
             try:
                 vol_m3 = float(v.get("volume_m3") or (qty * thick / 100 if thick else qty))
             except (ValueError, TypeError):
                 vol_m3 = 0.0
-            surf_lines.append(f"• Izolație EPS: {vol_m3:.1f} m³ ({qty:.0f} m² la {thick:.0f} cm)")
+            surf_lines.append(f"• {eps_lbl}: {vol_m3:.1f} m³ ({qty:.0f} m² la {thick:.0f} cm)")
         else:
             chape_idx += 1
             clean_label = label
             if label.isdigit():
-                clean_label = f"Suprafață {label}"
-            elif not label or label.lower() in ["chape", "șapă", "sapa"]:
+                clean_label = f"Șapă {label}" if has_multiple_chape else "Șapă"
+            elif not label or label.lower() in ["chape", "șapă", "sapa"] or label.lower().startswith("chape ") or label.lower().startswith("șapă ") or label.lower().startswith("sapa "):
                 clean_label = f"Șapă {chape_idx}" if has_multiple_chape else "Șapă"
             
             thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
             surf_lines.append(f"• {clean_label}: {qty:.0f} {unit} | Grosime: {thick_str} cm")
             
             total_chape_m2 += qty
+            if qty > 0 and thick > 0:
+                total_sand_kg += (qty * thick * 16)
             
             if v.get("has_foil"):
                 has_foil = True
@@ -371,21 +392,29 @@ def format_volumes_and_materials(volumes: list) -> list:
     lines.extend(surf_lines)
     if has_multiple_chape and total_chape_m2 > 0:
         lines.append(f"➡️ *Total suprafață șapă:* {total_chape_m2:.0f} m²")
+    if total_sand_kg > 0:
+        sand_tons = total_sand_kg / 1000.0
+        sand_tons_str = f"{sand_tons:.1f}" if round(sand_tons, 1) == round(sand_tons, 2) else f"{sand_tons:.2f}"
+        lines.append(f"🏖️ *Necesar Nisip:* {sand_tons_str} tone")
 
     # Materiale și opțiuni bifate de client în deviz
     mat_lines = []
+    if total_sand_kg > 0:
+        sand_tons = total_sand_kg / 1000.0
+        sand_tons_str = f"{sand_tons:.1f}" if round(sand_tons, 1) == round(sand_tons, 2) else f"{sand_tons:.2f}"
+        mat_lines.append(f"✅ Nisip: {sand_tons_str} tone")
     if has_mesh:
-        mat_lines.append(f"• Plasă armare (Treillis): Da (~{mesh_m2:.0f} m²)")
+        mat_lines.append(f"✅ Plasă armare (Treillis): Da (~{mesh_m2:.0f} m²)")
     if has_foil:
-        mat_lines.append(f"• Folie PE (Film): Da (~{foil_m2:.0f} m²)")
+        mat_lines.append(f"✅ Folie PE (Film): Da (~{foil_m2:.0f} m²)")
     if has_fiber:
-        mat_lines.append("• Fibră / Duramint: Da")
+        mat_lines.append("✅ Fibră / Duramint: Da")
     if has_sound_insulation:
-        mat_lines.append("• Izolație acustică: Da")
+        mat_lines.append("✅ Izolație acustică: Da")
     if has_floor_heating_add:
-        mat_lines.append("• Additiv încălzire pardoseală: Da")
+        mat_lines.append("✅ Additiv încălzire pardoseală: Da")
     if pur_options:
-        mat_lines.append(f"• Opțiuni PUR: {', '.join(pur_options)}")
+        mat_lines.append(f"✅ Opțiuni PUR: {', '.join(pur_options)}")
 
     if mat_lines:
         lines.append("")

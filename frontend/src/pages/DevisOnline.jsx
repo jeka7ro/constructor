@@ -188,7 +188,33 @@ export default function DevisOnline() {
         try {
             const domain = window.location.hostname;
             const urlSource = new URLSearchParams(window.location.search).get('source');
-            const submitData = { ...formData, domain, is_iframe: isIframe, source: urlSource };
+            const chosenLang = i18n.language || formData.client_language || 'fr';
+            const labeledSurfaces = (formData.surfaces || []).map((s, idx) => ({
+                ...s,
+                label: formData.surfaces.length > 1 ? `Chape ${idx + 1}` : 'Chape'
+            }));
+            const labeledIsolations = (formData.isolations || []).map((iso, idx) => {
+                const sameType = (formData.isolations || []).filter(i => i.type === iso.type);
+                let lbl = iso.type === 'pur' ? 'Isolation PUR' : (iso.type === 'eps' ? 'Isolation EPS' : 'Isolation');
+                if (sameType.length > 1) {
+                    const typeIdx = (formData.isolations || []).filter((i, iIdx) => i.type === iso.type && iIdx <= idx).length;
+                    lbl = `${lbl} ${typeIdx}`;
+                } else if (formData.isolations.length > 1) {
+                    lbl = `${lbl} ${idx + 1}`;
+                }
+                return { ...iso, label: lbl };
+            });
+            const submitData = { 
+                ...formData, 
+                surfaces: labeledSurfaces,
+                isolations: labeledIsolations,
+                client_language: chosenLang,
+                language: chosenLang,
+                lang: chosenLang,
+                domain, 
+                is_iframe: isIframe, 
+                source: urlSource 
+            };
             // Remove fields not expected by backend
             delete submitData.b_name;
             // Clean up isolation data: convert empty strings to null for float fields
@@ -214,17 +240,17 @@ export default function DevisOnline() {
                 }
                 // Webhook n8n — fires AFTER backend so we have the token & signing_url
                 try {
-                    const signingUrl = `https://${domain}/public/proforma/${res.data.token}`;
+                    const signingUrl = `https://${domain}/public/proforma/${res.data.token}?lang=${chosenLang}`;
                     await axios.post('https://n8n-uk6n.onrender.com/webhook/davide-chape-form', {
                         first_name: formData.client_first_name,
                         last_name: formData.client_last_name,
                         email: formData.client_email,
                         phone: formData.client_phone,
-                        client_language: formData.client_language || 'fr',
+                        client_language: chosenLang,
                         company_name: formData.client_company_name,
                         client_type: formData.client_type,
-                        surfaces: formData.surfaces.map((s, idx) => ({ ...s, label: `${idx + 1}` })),
-                        isolations: formData.isolations,
+                        surfaces: labeledSurfaces,
+                        isolations: labeledIsolations,
                         // Legacy compatibility
                         surface: formData.surface || (formData.surfaces?.[0]?.surface),
                         thickness: formData.thickness || (formData.surfaces?.[0]?.thickness),
@@ -253,12 +279,12 @@ export default function DevisOnline() {
                     });
                 } catch (webhookErr) { console.error('Webhook n8n failed:', webhookErr); }
                 if (isIframe) {
-                    const lang = formData.client_language || 'fr';
+                    const lang = chosenLang;
                     if (lang === 'nl') window.top.location.href = 'https://davide-chape.webflow.io/nl/confirmation-contact';
                     else if (lang === 'en') window.top.location.href = 'https://davide-chape.webflow.io/en/confirmation-contact';
                     else window.top.location.href = 'https://davide-chape.webflow.io/confirmation-contact';
                 } else {
-                    navigate(`/public/proforma/${res.data.token}`);
+                    navigate(`/public/proforma/${res.data.token}?lang=${chosenLang}`);
                 }
             }
         } catch (err) {
@@ -531,6 +557,13 @@ export default function DevisOnline() {
                                 <div className="space-y-4">
                                     {(formData.surfaces || []).map((s, index) => (
                                         <div key={s.id || index} className="p-3 border border-slate-200 rounded-xl bg-slate-50/50">
+                                            {formData.surfaces.length > 1 && (
+                                                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-200/60">
+                                                    <span className="text-[11px] font-extrabold uppercase tracking-wide text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-md">
+                                                        {t('calculator.chape_n', 'Chape {{n}}', { n: index + 1 })}
+                                                    </span>
+                                                </div>
+                                            )}
                                             <div className="flex items-end gap-3">
                                                 <div className="flex-1">
                                                     <label className={`block text-[10px] font-bold mb-1 uppercase tracking-wider ${errorField === `surface_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
@@ -684,6 +717,13 @@ export default function DevisOnline() {
                                     <div className="space-y-4 flex-1 flex flex-col">
                                         {(formData.isolations || []).map((iso, index) => (
                                             <div key={iso.id || index} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-4 relative">
+                                                {formData.isolations.length > 1 && (
+                                                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60 pr-10">
+                                                        <span className="text-[11px] font-extrabold uppercase tracking-wide text-blue-900 bg-blue-100/90 px-2 py-0.5 rounded-md">
+                                                            {t('calculator.isolation_n', 'Isolation {{n}}', { n: index + 1 })}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 <button type="button" onClick={() => {
                                                     const newIsolations = formData.isolations.filter((_, i) => i !== index);
                                                     if (newIsolations.length === 0) {

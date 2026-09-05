@@ -194,9 +194,13 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
     
     # 1. Use multiple surfaces if provided
     if payload.surfaces and len(payload.surfaces) > 0:
+        has_multiple_chape = len(payload.surfaces) > 1
         for idx, surf in enumerate(payload.surfaces):
+            label = surf.label
+            if not label or label in ["1", "2", "3", "4", "5", "Chape", "Șapă", "sapa"] or label.lower().startswith("chape") or label.lower().startswith("șapă") or label.lower().startswith("sapa"):
+                label = f"Chape {idx + 1}" if has_multiple_chape else "Chape"
             volumes.append({
-                "label": surf.label if surf.label else str(idx + 1),
+                "label": label,
                 "quantity": surf.surface,
                 "unit": "m²",
                 "thickness": surf.thickness,
@@ -207,7 +211,7 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
     else:
         # Fallback to single surface
         volumes.append({
-            "label": "1",
+            "label": "Chape",
             "quantity": payload.surface,
             "unit": "m²",
             "thickness": payload.thickness,
@@ -218,13 +222,21 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
     
     # 2. Use multiple isolations if provided
     if payload.isolations and len(payload.isolations) > 0:
-        for iso in payload.isolations:
+        pur_count = sum(1 for i in payload.isolations if i.type == "pur")
+        eps_count = sum(1 for i in payload.isolations if i.type == "eps")
+        total_iso = len(payload.isolations)
+        
+        pur_idx = 0
+        eps_idx = 0
+        for idx, iso in enumerate(payload.isolations):
             iso_vol = {
                 "quantity": iso.surface,
                 "thickness": iso.thickness or 3,
             }
             if iso.type == "pur":
-                iso_vol["label"] = iso.label if (iso.label and iso.label != "Isolation") else "Isolation PUR"
+                pur_idx += 1
+                lbl = f"Isolation PUR {pur_idx}" if pur_count > 1 else ("Isolation PUR 1" if total_iso > 1 else "Isolation PUR")
+                iso_vol["label"] = lbl
                 iso_vol["unit"] = "m²"
                 # Options are now inside IsolationItem
                 iso_vol["pur_aspiration"] = iso.isolation_pur_aspiration
@@ -232,9 +244,15 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
                 iso_vol["pur_poncage"] = iso.isolation_pur_poncage
                 iso_vol["pur_protection"] = iso.isolation_pur_protection
             elif iso.type == "eps":
-                iso_vol["label"] = iso.label if (iso.label and iso.label != "Isolation") else "Isolation EPS"
+                eps_idx += 1
+                lbl = f"Isolation EPS {eps_idx}" if eps_count > 1 else ("Isolation EPS 1" if total_iso > 1 else "Isolation EPS")
+                iso_vol["label"] = lbl
                 iso_vol["unit"] = "m³"
                 iso_vol["volume_m3"] = round(iso.surface * (iso.thickness or 1) / 100, 2)
+            else:
+                lbl = f"Isolation {idx + 1}" if total_iso > 1 else "Isolation"
+                iso_vol["label"] = lbl
+                iso_vol["unit"] = "m²"
             volumes.append(iso_vol)
     elif payload.needs_isolation and payload.isolation_type and payload.isolation_surface:
         # Fallback to single isolation
@@ -289,6 +307,12 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     else:
         client_name = f"{payload.client_first_name or ''} {payload.client_last_name or ''}".strip()
         
+    # Resolve requested language early
+    raw_lang = payload.client_language or payload.language or payload.lang or "fr"
+    resolved_lang = str(raw_lang).lower().split('-')[0].strip()
+    if resolved_lang not in ["fr", "nl", "en"]:
+        resolved_lang = "fr"
+
     client = None
     if client_name:
         client = db.query(Client).filter(
@@ -305,7 +329,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
             client_type=payload.client_type,
             cui=payload.client_company_vat if payload.client_type == "juridica" else None,
             address=payload.client_address,
-            preferred_language=payload.client_language
+            preferred_language=resolved_lang
         )
         db.add(client)
         db.flush()
@@ -317,8 +341,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
             client.email = payload.client_email
         if payload.client_phone:
             client.phone = payload.client_phone
-        if payload.client_language:
-            client.preferred_language = payload.client_language
+        client.preferred_language = resolved_lang
         if payload.client_type == "juridica" and payload.client_company_vat:
             client.cui = payload.client_company_vat
         if payload.client_address:
@@ -399,6 +422,11 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         "eps_volume_thresholds": getattr(pricing, 'eps_volume_thresholds', []) if pricing else [],
     }
 
+    # Resolve requested language
+    resolved_lang = payload.client_language or payload.language or payload.lang or (client.preferred_language if client else None) or "fr"
+    if resolved_lang not in ["fr", "nl", "en"]:
+        resolved_lang = "fr"
+
     # 4. Create WorkOrder
     wo = WorkOrder(
         organization_id=org.id,
@@ -413,7 +441,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         client_name=client.name,
         client_email=client.email,
         client_phone=client.phone,
-        client_language=payload.client_language,
+        client_language=resolved_lang,
         volumes=_build_volumes(payload),
         estimated_price=str(estimated_price) if estimated_price > 0 else None,
         prices=prices_dict,
@@ -435,7 +463,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     db.commit()
     db.refresh(wo)
     
-    proforma_url = f"https://davidechape.pontaj.app/confirm/{wo.token}"
+    proforma_url = f"https://davidechape.pontaj.app/confirm/{wo.token}?lang={resolved_lang}"
 
     from app.services.email_service import send_quote_email, send_admin_new_quote_alert
     from app.services.whatsapp_service import send_quote_whatsapp, send_admin_new_quote_whatsapp

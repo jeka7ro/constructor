@@ -82,16 +82,32 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
     // ── Iterez volumes[] ──
     const volumes = wo.volumes || [];
     let totalChapeSurface = 0;
+    let chapeCount = 0;
+    let purCount = 0;
+    let epsCount = 0;
     
-    // Prima trecere: calculez suprafața totală de chape (pentru threshold-uri)
+    // Prima trecere: calculez suprafața totală de chape (pentru threshold-uri) și număr tipurile
     volumes.forEach(vol => {
         const label = (vol.label || '');
-        if (/chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label)) {
+        const labelNorm = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const isPUR = /isolation\s*pur/i.test(labelNorm);
+        const isEPS = /isolation\s*eps/i.test(labelNorm);
+        const isChape = /chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label) || (!isPUR && !isEPS && label);
+        if (isChape) {
             totalChapeSurface += parseFloat(vol.quantity || 0);
+            chapeCount++;
+        } else if (isPUR) {
+            purCount++;
+        } else if (isEPS) {
+            epsCount++;
         }
     });
     
     // A doua trecere: construiesc items
+    let chapeIdx = 0;
+    let purIdx = 0;
+    let epsIdx = 0;
+
     volumes.forEach((vol, idx) => {
         const label = vol.label || '';
         const labelNorm = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -100,34 +116,80 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
         
         if (surface <= 0) return;
         
-        const isChape = /chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label);
         const isPUR = /isolation\s*pur/i.test(labelNorm);
         const isEPS = /isolation\s*eps/i.test(labelNorm);
+        const isChape = /chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label) || (!isPUR && !isEPS && label);
         
         if (isChape) {
+            chapeIdx++;
+            const chapeLabel = chapeCount > 1 ? `Chape ${chapeIdx}` : `Chape`;
             // ── CHAPE ──
             const effectiveBaseRate = totalChapeSurface > baseLargeThreshold ? baseLargeRate : baseRate;
             const effectiveExtraRate = totalChapeSurface > extraLargeThreshold ? extraLargeRate : extraRate;
             const effectiveFiberRate = totalChapeSurface > fiberLargeThreshold ? fiberLargeRate : fiberRate;
             const extraThick = Math.max(0, thickness - standardThickness);
             
-            items.push({ id: `chape_base_${idx}`, type: 'chape', desc: `Chape - Base`, qty: surface, unit: 'm\u00b2', price: effectiveBaseRate });
+            items.push({ 
+                id: `chape_base_${idx}`, 
+                type: 'chape', 
+                desc: `${chapeLabel} - Base`, 
+                qty: surface, 
+                unit: 'm²', 
+                price: effectiveBaseRate,
+                thickness: thickness,
+                chapeIndex: chapeIdx,
+                isMultipleChape: chapeCount > 1
+            });
             
             if (extraThick > 0) {
-                items.push({ id: `chape_extra_${idx}`, type: 'chape', desc: `Chape - Épaisseur Extra (${extraThick} cm)`, qty: surface, unit: 'm\u00b2', price: extraThick * effectiveExtraRate });
+                items.push({ 
+                    id: `chape_extra_${idx}`, 
+                    type: 'chape', 
+                    desc: `${chapeLabel} - Épaisseur Extra (${extraThick} cm)`, 
+                    qty: surface, 
+                    unit: 'm²', 
+                    price: extraThick * effectiveExtraRate,
+                    chapeIndex: chapeIdx,
+                    isMultipleChape: chapeCount > 1
+                });
             }
             if (vol.has_foil) {
-                items.push({ id: `chape_foil_${idx}`, type: 'chape', desc: `Feuille de plastique (Visqueen)`, qty: surface, unit: 'm\u00b2', price: foilRate });
+                items.push({ 
+                    id: `chape_foil_${idx}`, 
+                    type: 'chape', 
+                    desc: chapeCount > 1 ? `Feuille de plastique (${chapeLabel})` : `Feuille de plastique (Visqueen)`, 
+                    qty: surface, 
+                    unit: 'm²', 
+                    price: foilRate,
+                    chapeIndex: chapeIdx
+                });
             }
             if (vol.has_mesh) {
-                items.push({ id: `chape_mesh_${idx}`, type: 'chape', desc: `Armature (Paillasse)`, qty: surface, unit: 'm\u00b2', price: meshRate });
+                items.push({ 
+                    id: `chape_mesh_${idx}`, 
+                    type: 'chape', 
+                    desc: chapeCount > 1 ? `Armature (Paillasse - ${chapeLabel})` : `Armature (Paillasse)`, 
+                    qty: surface, 
+                    unit: 'm²', 
+                    price: meshRate,
+                    chapeIndex: chapeIdx
+                });
             }
             if (vol.has_fiber || vol.has_duramint) {
-                items.push({ id: `chape_fiber_${idx}`, type: 'chape', desc: `Fibre / Duramint`, qty: surface, unit: 'm\u00b2', price: effectiveFiberRate });
+                items.push({ 
+                    id: `chape_fiber_${idx}`, 
+                    type: 'chape', 
+                    desc: chapeCount > 1 ? `Fibre / Duramint (${chapeLabel})` : `Fibre / Duramint`, 
+                    qty: surface, 
+                    unit: 'm²', 
+                    price: effectiveFiberRate,
+                    chapeIndex: chapeIdx
+                });
             }
             
         } else if (isPUR) {
-            // ── ISOLATION PUR ──
+            purIdx++;
+            const purLabel = purCount > 1 ? `Isolation PUR ${purIdx}` : `Isolation PUR`;
             let purBase = getVal(ps, 'pur_base_price_3cm', 13.95);
             if (thickness > 3 && thickness <= 10) {
                 purBase += (thickness - 3) * getVal(ps, 'pur_step_price_up_to_10cm', 1.65);
@@ -140,15 +202,25 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
             }
             purBase = Math.max(0, purBase);
             
-            items.push({ id: `pur_base_${idx}`, type: 'pur', desc: `Isolation PUR (${thickness} cm)`, qty: surface, unit: 'm\u00b2', price: purBase });
+            items.push({ 
+                id: `pur_base_${idx}`, 
+                type: 'pur', 
+                desc: `${purLabel} (${thickness} cm)`, 
+                qty: surface, 
+                unit: 'm²', 
+                price: purBase,
+                purIndex: purIdx,
+                isMultiplePur: purCount > 1
+            });
             
-            if (vol.pur_aspiration) items.push({ id: `pur_aspiration_${idx}`, type: 'pur', desc: `Aspiration`, qty: surface, unit: 'm\u00b2', price: getVal(ps, 'pur_opt_aspiration', 2.00) });
-            if (vol.pur_niveller) items.push({ id: `pur_niveller_${idx}`, type: 'pur', desc: `Nivellement au laser`, qty: surface, unit: 'm\u00b2', price: getVal(ps, 'pur_opt_niveller', 4.25) });
-            if (vol.pur_poncage) items.push({ id: `pur_poncage_${idx}`, type: 'pur', desc: `Pon\u00e7age de la mousse`, qty: surface, unit: 'm\u00b2', price: getVal(ps, 'pur_opt_poncage', 1.50) });
-            if (vol.pur_protection) items.push({ id: `pur_protection_${idx}`, type: 'pur', desc: `Protection au-dessus 1M`, qty: surface, unit: 'm\u00b2', price: getVal(ps, 'pur_opt_protection', 1.50) });
+            if (vol.pur_aspiration) items.push({ id: `pur_aspiration_${idx}`, type: 'pur', desc: purCount > 1 ? `Aspiration (${purLabel})` : `Aspiration`, qty: surface, unit: 'm²', price: getVal(ps, 'pur_opt_aspiration', 2.00) });
+            if (vol.pur_niveller) items.push({ id: `pur_niveller_${idx}`, type: 'pur', desc: purCount > 1 ? `Nivellement au laser (${purLabel})` : `Nivellement au laser`, qty: surface, unit: 'm²', price: getVal(ps, 'pur_opt_niveller', 4.25) });
+            if (vol.pur_poncage) items.push({ id: `pur_poncage_${idx}`, type: 'pur', desc: purCount > 1 ? `Pon\u00e7age de la mousse (${purLabel})` : `Pon\u00e7age de la mousse`, qty: surface, unit: 'm²', price: getVal(ps, 'pur_opt_poncage', 1.50) });
+            if (vol.pur_protection) items.push({ id: `pur_protection_${idx}`, type: 'pur', desc: purCount > 1 ? `Protection au-dessus 1M (${purLabel})` : `Protection au-dessus 1M`, qty: surface, unit: 'm²', price: getVal(ps, 'pur_opt_protection', 1.50) });
             
         } else if (isEPS) {
-            // ── ISOLATION EPS ──
+            epsIdx++;
+            const epsLabel = epsCount > 1 ? `Isolation EPS ${epsIdx}` : `Isolation EPS`;
             const epsVol = parseFloat(vol.volume_m3 || (surface * (thickness || 1) / 100));
             let epsPrice = 0;
             
@@ -183,12 +255,12 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
             // Allow custom surface multiplier
             if (woP.custom_eps_price_per_m2 !== undefined && woP.custom_eps_price_per_m2 !== null && woP.custom_eps_price_per_m2 !== '' && !isNaN(woP.custom_eps_price_per_m2)) {
                 epsPrice = surface * parseFloat(woP.custom_eps_price_per_m2);
-                items.push({ id: `eps_${idx}`, type: 'eps', desc: `Isolation EPS (${parseFloat(vol.thickness || 1)} cm)`, qty: surface, unit: 'm\u00b2', price: parseFloat(woP.custom_eps_price_per_m2) });
+                items.push({ id: `eps_${idx}`, type: 'eps', desc: `${epsLabel} (${parseFloat(vol.thickness || 1)} cm)`, qty: surface, unit: 'm²', price: parseFloat(woP.custom_eps_price_per_m2), epsIndex: epsIdx, isMultipleEps: epsCount > 1 });
             } else if (ps.custom_eps_price_per_m2 !== undefined && ps.custom_eps_price_per_m2 !== null && ps.custom_eps_price_per_m2 !== '' && !isNaN(ps.custom_eps_price_per_m2) && (woP.custom_eps_price_per_m2 === undefined || woP.custom_eps_price_per_m2 === null)) {
                 epsPrice = surface * parseFloat(ps.custom_eps_price_per_m2);
-                items.push({ id: `eps_${idx}`, type: 'eps', desc: `Isolation EPS (${parseFloat(vol.thickness || 1)} cm)`, qty: surface, unit: 'm\u00b2', price: parseFloat(ps.custom_eps_price_per_m2) });
+                items.push({ id: `eps_${idx}`, type: 'eps', desc: `${epsLabel} (${parseFloat(vol.thickness || 1)} cm)`, qty: surface, unit: 'm²', price: parseFloat(ps.custom_eps_price_per_m2), epsIndex: epsIdx, isMultipleEps: epsCount > 1 });
             } else {
-                items.push({ id: `eps_${idx}`, type: 'eps', desc: `Isolation EPS (${surface} m\u00b2, ${parseFloat(vol.thickness || 1)} cm)`, qty: 1, unit: 'forfait', price: epsPrice });
+                items.push({ id: `eps_${idx}`, type: 'eps', desc: `${epsLabel} (${surface} m², ${parseFloat(vol.thickness || 1)} cm)`, qty: 1, unit: 'forfait', price: epsPrice, epsIndex: epsIdx, isMultipleEps: epsCount > 1 });
             }
         } else {
             items.push({ id: `vol_${idx}`, type: 'other', desc: label || `Volume ${idx + 1}`, qty: surface, unit: 'm\u00b2', price: 0 });

@@ -5,6 +5,32 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 
 ---
 
+## 2026-09-05 (Fix Persistență Limbă Deviz: Primul Mail vs Al Doilea Mail de Confirmare & Numerotare Suprafețe Multiple)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("ok. push").
+
+### Cauza Problemei (Al Doilea Mail în Franceză):
+1. Pe ruta `GET /public/work-orders/{token}`, backend-ul executa mutație directă în DB (`wo.client_language = lang.lower(); db.commit()`). Când clientul deschidea link-ul fără `?lang=` sau din preview, frontend-ul inițializa `lang` cu `'fr'` și trimitea `?lang=fr`, ceea ce suprascria limba salvată în baza de date cu `'fr'`.
+2. La confirmarea comenzii (`POST /public/work-orders/{token}/confirm`), payload-ul nu includea limba selectată de client (`client_language`), iar backend-ul trimitea al doilea e-mail cu limba coruptă (`'fr'`).
+
+### Modificări Efectuate:
+1. **Backend (`public_work_orders.py`):**
+   - Eliminat complet `db.commit()` și suprascrierea distructivă pe request-urile GET.
+   - Adăugat câmpul `client_language` în `ConfirmPayload`.
+   - La confirmare, backend-ul reține și actualizează limba confirmată de client (`chosen_lang` -> `wo.client_language`).
+   - În `send_order_confirmation_email`, se trimite e-mailul în limba garantată a comenzii/clientului (`client_lang`), generând și link-ul cu `?lang={client_lang}`.
+   - Returnat obiectul cu `workOrderData` la rădăcină pentru acces direct la toate proprietățile.
+2. **Backend (`devis_online.py`):**
+   - Rezolvat `resolved_lang` chiar la început și salvat pe `client.preferred_language` și `wo.client_language`.
+3. **Frontend (`WorkOrderConfirm.jsx`):**
+   - Eliminat trimiterea implicită a parametrului `?lang=fr` pe GET atunci când `urlLang` nu este specificat.
+   - Detectat corect `client_language` din comanda primită și sincronizat `lang` în starea React.
+   - Trimis `client_language: lang` la confirmarea comenzii (`handleConfirm` și `handleConfirmDate`).
+4. **Numerotare Suprafețe și Izolații Multiple (Sesiunea Curentă):**
+   - S-a asigurat că `Șapă 1`, `Șapă 2`, `Izolație PUR 1`, `Izolație PUR 2` etc. sunt numerotate uniform în WhatsApp alert, PDF generator, devis online și pricing engine.
+
+---
+
 ## 2026-09-05 (Personalizare Multi-Tenant: Titlu, OpenGraph & Favicon Oficial din SuperAdmin)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Aprobat explicit de Utilizator ("ok.push").
@@ -330,3 +356,47 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
   5. **Frontend (`WorkOrderConfirm.jsx`)**:
      - Eliminat `hidden sm:flex` din header: selectorul de limbi este acum vizibil direct și pe mobil.
      - Header sticky cu butoane clare cu steaguri pentru FR, NL, EN.
+
+### 05 Septembrie 2026 - Fix Transmitere & Sincronizare Limbă (Devis Online -> Devis Confirm / PDF)
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: În curs de aprobare / gata de push.
+- **Probleme adresate**:
+  1. Când clientul alegea Olandeza (NL) sau Engleza (EN) în `/devisonline`, pagina de devis (`/public/proforma/:token`) se deschidea automat în Franceză (FR).
+  2. Cauza 1: Endpoint-ul `_public_serialize` din backend omitea câmpul `client_language` din JSON, astfel că frontend-ul primea `data.client_language = undefined`.
+  3. Cauza 2: `WorkOrderConfirm.jsx` nu sincroniza starea `lang` cu limba salvată a comenzii dacă URL-ul nu avea parametru `?lang=`.
+  4. Cauza 3: `navigate()` din `DevisOnline.jsx` redirecționa la `/public/proforma/:token` fără să adauge parametrul `?lang=${chosenLang}`.
+  5. Cauza 4: `submit_calculator` din `devis_online.py` genera `proforma_url` fără parametrul de limbă.
+- **Modificări implementate**:
+  1. **Backend (`public_work_orders.py`)**: Adăugat `client_language` în răspunsul serializat al comenzii (`_public_serialize`).
+  2. **Backend (`devis_online.py`)**: Sincronizat `client_language` din payload sau din profilul clientului și adăugat `?lang={resolved_lang}` la `proforma_url`.
+  3. **Frontend (`DevisOnline.jsx`)**: Asigurat că `chosenLang` (din `i18n.language` sau `formData`) este trimis către backend, către webhook-ul n8n și către `navigate('/public/proforma/:token?lang=' + chosenLang)`.
+  4. **Frontend (`WorkOrderConfirm.jsx`)**: La încărcarea comenzii, dacă URL-ul nu conține un override manual de limbă, `lang` se sincronizează automat cu `data.client_language`.
+  5. **Backend (`whatsapp_service.py`)**: Adăugat calculul automat și afișarea necesarului de nisip în tone (`🏖️ *Necesar Nisip:* {sand_tons} tone`) bazat pe formula oficială a firmei (`Suprafață × Grosime × 16 / 1000`), afișat atât la `Suprafețe & Grosime` cât și la `Materiale & Opțiuni bifate`.
+### 05 Septembrie 2026 - Numerotare Secvențială Suprafețe Multiple (Șapă 1, Șapă 2 & Izolație 1, Izolație 2)
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: În curs de aprobare / gata de push.
+- **Probleme adresate**:
+  1. Când clientul adăuga 2 sau mai multe suprafețe de șapă sau de izolație, în notificare și în deviz acestea nu erau diferențiate clar cu numere de ordine (ex. *Șapă 1*, *Șapă 2*, *Izolație PUR 1*, *Izolație PUR 2*).
+  2. În formularul de deviz online (`DevisOnline.jsx`), dacă se adăugau mai multe suprafețe, nu exista un indicator vizual/badge care să arate clientului care este suprafața 1 și care este suprafața 2.
+  3. În alerte și în devizul tipărit/PDF, liniile de deviz trebuiau să reflecte fidel numerotarea fiecărei suprafețe în limba corespunzătoare (FR, NL, EN, RO).
+- **Modificări implementate**:
+  1. **Frontend - Formular Devis Online (`DevisOnline.jsx`)**:
+     - Adăugate badge-uri vizuale distincte deasupra fiecărei suprafețe când există mai mult de una: `Chape 1`, `Chape 2`, etc. și `Isolation 1`, `Isolation 2`, etc.
+     - Înainte de trimitere, câmpul `label` este generat automat ca `Chape 1`, `Chape 2` (sau simplu `Chape` dacă e doar o singură suprafață) și `Isolation PUR 1`, `Isolation PUR 2` (sau `Isolation PUR` dacă e una singură).
+     - Trimise suprafețele etichetate atât către backend-ul aplicației cât și către webhook-ul n8n.
+  2. **Backend - Generare Volume (`devis_online.py` & `pricing_engine.py`)**:
+     - Funcția `_build_volumes` atribuie secvențial etichete numerotate (`Chape 1`, `Chape 2`, etc. și `Isolation PUR 1`, `Isolation PUR 2`, etc.) atunci când există multiple suprafețe pe aceeași categorie.
+     - `calculate_quote_price` din backend folosește aceleași etichete numerotate pentru defalcarea liniilor de cost.
+  3. **Backend - Notificări WhatsApp Admin (`whatsapp_service.py`)**:
+     - `format_volumes_and_materials` numără volumele din fiecare categorie (`chape_vols`, `pur_vols`, `eps_vols`).
+     - Dacă există multiple suprafețe, afișează automat:
+       `• Șapă 1: 90 m² | Grosime: 6 cm`
+       `• Șapă 2: 45 m² | Grosime: 8 cm`
+       `• Izolație PUR 1: 70 m² | Grosime: 5 cm`
+       `• Izolație PUR 2: 35 m² | Grosime: 8 cm`
+     - Dacă există o singură suprafață, afișează curat, fără număr:
+       `• Șapă: 100 m² | Grosime: 6 cm`
+       `• Izolație PUR: 80 m² | Grosime: 7 cm`
+  4. **Frontend & Backend - Vizualizare Deviz & Generare PDF (`pricingEngine.js`, `DevisView.jsx`, `pdf_generator.py`)**:
+     - În `buildQuoteItems` (`pricingEngine.js`), fiecare suprafață primește descrierea aferentă numărului său de ordine (`Chape 1 - Base`, `Chape 2 - Base`, `Isolation PUR 1`, `Isolation PUR 2`).
+     - În `DevisView.jsx` și `pdf_generator.py`, descrierile sunt traduse și numerotate conform limbii documentului (ex: `Pose de chape 1 6 cm`, `Dekvloer leggen 1 6 cm`, `Chape 1 6 cm`, `Isolation PUR 1 8 cm`).

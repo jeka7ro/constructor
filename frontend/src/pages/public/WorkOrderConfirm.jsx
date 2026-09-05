@@ -623,8 +623,10 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     useEffect(() => {
         const load = async () => {
             try {
-                const res = await api.get(`/public/work-orders/${token}?lang=${lang}`)
-                const data = res.data
+                const fetchUrl = urlLang ? `/public/work-orders/${token}?lang=${urlLang}` : `/public/work-orders/${token}`
+                const res = await api.get(fetchUrl)
+                const rawData = res.data
+                const data = rawData.workOrderData ? { ...rawData.workOrderData, ...rawData } : rawData
                 if (data.status === 'cancelled') {
                     setError(t.orderCancelled)
                     setLoading(false)
@@ -632,6 +634,12 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 }
                 setOrder(data)
                 if (data.client_name) setConfirmedByName(data.client_name)
+                
+                // If user didn't explicitly override language via URL, adopt the quote's saved language
+                const resolvedClientLang = data.client_language || data.workOrderData?.client_language
+                if (!urlLang && resolvedClientLang && ['fr', 'nl', 'en', 'de', 'ro'].includes(resolvedClientLang)) {
+                    setLang(resolvedClientLang);
+                }
                 
                 const isFinal = data.status === 'completed' || data.final_confirmed_at;
                 setMode(isFinal ? 'final' : 'quote');
@@ -683,8 +691,9 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         lastUpdatedRef.current = order.updated_at || order.created_at
         const interval = setInterval(async () => {
             try {
-                const res = await api.get(`/public/work-orders/${token}?lang=${lang}`)
-                const newData = res.data
+                const res = await api.get(`/public/work-orders/${token}`)
+                const rawData = res.data
+                const newData = rawData.workOrderData ? { ...rawData.workOrderData, ...rawData } : rawData
                 if (newData.status === 'cancelled') {
                     setError(t.orderCancelled)
                     setOrder(null)
@@ -783,7 +792,8 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             const res = await api.post(`/public/work-orders/${token}/confirm`, {
                 confirmed_by_name: confirmedByName,
                 client_signature: signature || 'accepted_without_signature',
-                mode: mode
+                mode: mode,
+                client_language: lang
             })
             setOrder(res.data)
             setConfirmed(true)
@@ -798,7 +808,8 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         setConfirmingDate(true)
         try {
             const res = await api.post(`/public/work-orders/${token}/confirm`, {
-                mode: 'date'
+                mode: 'date',
+                client_language: lang
             })
             setOrder(res.data)
             setDateConfirmed(true)

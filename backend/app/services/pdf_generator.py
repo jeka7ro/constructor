@@ -79,31 +79,51 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
     
     if not items:
         volumes = work_order.volumes or []
+        chape_vols = [v for v in volumes if isinstance(v, dict) and ('chape' in str(v.get('label', '')).lower() or 'sapa' in str(v.get('label', '')).lower() or 'apă' in str(v.get('label', '')).lower() or str(v.get('label', '')).isdigit())]
+        has_mult_chape = len(chape_vols) > 1
+        
+        pur_vols = [v for v in volumes if isinstance(v, dict) and 'isolation' in str(v.get('label', '')).lower() and 'pur' in str(v.get('label', '')).lower()]
+        has_mult_pur = len(pur_vols) > 1
+        
+        eps_vols = [v for v in volumes if isinstance(v, dict) and 'isolation' in str(v.get('label', '')).lower() and 'eps' in str(v.get('label', '')).lower()]
+        has_mult_eps = len(eps_vols) > 1
+
+        c_idx = 0
+        p_idx = 0
+        e_idx = 0
+
         for vol in volumes:
             surface = float(vol.get('quantity', 0) or 0)
             thick = float(vol.get('thickness', 0) or 0)
             lbl = str(vol.get('label', '')).lower()
             
             if surface > 0:
-                if 'chape' in lbl or 'sapa' in lbl or 'apă' in lbl:
+                if 'chape' in lbl or 'sapa' in lbl or 'apă' in lbl or lbl.isdigit():
+                    c_idx += 1
                     std_thick = float(prices.get('standard_thickness', 5))
                     extra_thick = max(0, thick - std_thick)
                     
-                    items.append({"desc": f"{_t['chape_pose']} {min(thick, std_thick)} cm", "qty": surface, "price": float(prices.get('base', 12.5))})
+                    chape_num_suffix = f" {c_idx}" if has_mult_chape else ""
+                    items.append({"desc": f"{_t['chape_pose']}{chape_num_suffix} {min(thick, std_thick)} cm", "qty": surface, "price": float(prices.get('base', 12.5))})
                     if extra_thick > 0:
                         # Match computeChapeTotal: use extra_large when surface > extra_threshold
                         extra_rate = float(prices.get('extra', prices.get('extra_thickness_price_per_cm', 1.25)))
                         if prices.get('extra_large') is not None and prices.get('extra_threshold') is not None:
                             extra_rate = float(prices['extra_large']) if surface > float(prices['extra_threshold']) else float(prices.get('extra', 1.25))
-                        items.append({"desc": f"{_t['extra_thick']} ({extra_thick} cm)", "qty": surface, "price": extra_thick * extra_rate})
+                        items.append({"desc": f"{_t['extra_thick']}{chape_num_suffix} ({extra_thick} cm)", "qty": surface, "price": extra_thick * extra_rate})
                     if vol.get('has_foil'):
-                        items.append({"desc": _t['foil'], "qty": surface, "price": float(prices.get('foil', 1.2))})
+                        foil_desc = f"{_t['foil']} (Chape {c_idx})" if has_mult_chape else _t['foil']
+                        items.append({"desc": foil_desc, "qty": surface, "price": float(prices.get('foil', 1.2))})
                     if vol.get('has_mesh'):
-                        items.append({"desc": _t['mesh'], "qty": surface, "price": float(prices.get('mesh', 2.5))})
+                        mesh_desc = f"{_t['mesh']} (Chape {c_idx})" if has_mult_chape else _t['mesh']
+                        items.append({"desc": mesh_desc, "qty": surface, "price": float(prices.get('mesh', 2.5))})
                     if vol.get('has_fiber') or vol.get('has_duramint'):
-                        items.append({"desc": _t['fiber'], "qty": surface, "price": float(prices.get('fiber', 2.5 if surface <= 200 else 2.0))})
+                        fiber_desc = f"{_t['fiber']} (Chape {c_idx})" if has_mult_chape else _t['fiber']
+                        items.append({"desc": fiber_desc, "qty": surface, "price": float(prices.get('fiber', 2.5 if surface <= 200 else 2.0))})
                         
                 elif 'isolation' in lbl and 'pur' in lbl:
+                    p_idx += 1
+                    pur_num_suffix = f" {p_idx}" if has_mult_pur else ""
                     pur_thick = thick or 3
                     pur_base = float(prices.get('pur_base_price_3cm', 13.95))
                     if 3 < pur_thick <= 10:
@@ -117,15 +137,15 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
                         pur_base += math.floor((surface - 100) / 100) * float(prices.get('pur_surface_discount_step', -0.50))
                     pur_base = max(0, pur_base)
                     
-                    items.append({"desc": f"Isolation PUR {pur_thick} cm", "qty": surface, "price": pur_base})
+                    items.append({"desc": f"Isolation PUR{pur_num_suffix} {pur_thick} cm", "qty": surface, "price": pur_base})
                     if vol.get('pur_aspiration'):
-                        items.append({"desc": "Aspiration", "qty": surface, "price": float(prices.get('pur_opt_aspiration', 2.00))})
+                        items.append({"desc": f"Aspiration{pur_num_suffix}", "qty": surface, "price": float(prices.get('pur_opt_aspiration', 2.00))})
                     if vol.get('pur_niveller'):
-                        items.append({"desc": "Nivellement", "qty": surface, "price": float(prices.get('pur_opt_niveller', 4.25))})
+                        items.append({"desc": f"Nivellement{pur_num_suffix}", "qty": surface, "price": float(prices.get('pur_opt_niveller', 4.25))})
                     if vol.get('pur_poncage'):
-                        items.append({"desc": "Ponçage", "qty": surface, "price": float(prices.get('pur_opt_poncage', 1.50))})
+                        items.append({"desc": f"Ponçage{pur_num_suffix}", "qty": surface, "price": float(prices.get('pur_opt_poncage', 1.50))})
                     if vol.get('pur_protection'):
-                        items.append({"desc": "Protection", "qty": surface, "price": float(prices.get('pur_opt_protection', 1.50))})
+                        items.append({"desc": f"Protection{pur_num_suffix}", "qty": surface, "price": float(prices.get('pur_opt_protection', 1.50))})
                         
                     pur_discount_pct = float(prices.get('pur_discount_pct', 0))
                     if pur_discount_pct > 0:
@@ -135,9 +155,11 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
                         if vol.get('pur_poncage'): total_pur += float(prices.get('pur_opt_poncage', 1.50)) * surface
                         if vol.get('pur_protection'): total_pur += float(prices.get('pur_opt_protection', 1.50)) * surface
                         
-                        items.append({"desc": f"Remise PUR ({pur_discount_pct}%)", "qty": 1, "price": -(total_pur * pur_discount_pct / 100)})
+                        items.append({"desc": f"Remise PUR{pur_num_suffix} ({pur_discount_pct}%)", "qty": 1, "price": -(total_pur * pur_discount_pct / 100)})
                         
                 elif 'isolation' in lbl and 'eps' in lbl:
+                    e_idx += 1
+                    eps_num_suffix = f" {e_idx}" if has_mult_eps else ""
                     eps_vol = float(vol.get('volume_m3') or (surface * thick / 100))
                     eps_price = 0
                     if prices.get('custom_eps_price_flat') not in (None, ""):

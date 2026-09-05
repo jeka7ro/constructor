@@ -169,6 +169,7 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "client_reg_com": wo.client.reg_com if wo.client else None,
         "client_address": wo.client.address if wo.client else None,
         "client_type": wo.client.client_type if wo.client else "fizica",
+        "client_language": (wo.client_language if wo.client_language and wo.client_language != "fr" else None) or (wo.client.preferred_language if wo.client else None) or wo.client_language or "fr",
         "work_type": wo.work_type,
         "requirements": wo.requirements or [],
         # Hide any material or volume containing 'nisip'/'sand'/'zand' for the public client quote
@@ -222,10 +223,6 @@ def get_public_work_order(token: str, lang: Optional[str] = None, db: Session = 
     if not wo or wo.status == 'deleted':
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită sau link-ul este invalid.")
         
-    if lang and lang.lower() in ['fr', 'en', 'nl', 'ro', 'de']:
-        if not wo.client_language or wo.client_language.lower() != lang.lower():
-            wo.client_language = lang.lower()
-            db.commit()
     # Permitem vizualizarea și pentru draft (Deviz)
     
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
@@ -334,11 +331,11 @@ def get_public_proforma(token: str, db: Session = Depends(get_db)):
             "eps_discount_pct": getattr(pricing_setting, 'eps_discount_pct', 0)
         }
 
-    return {
-        "workOrderData": _public_serialize(wo, org),
-        "config": getattr(wo, 'proforma_data', None),
-        "pricingSettings": ps_dict
-    }
+    serialized = _public_serialize(wo, org)
+    serialized["workOrderData"] = dict(serialized)
+    serialized["config"] = getattr(wo, 'proforma_data', None)
+    serialized["pricingSettings"] = ps_dict
+    return serialized
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -374,6 +371,7 @@ class ConfirmPayload(BaseModel):
     confirmed_by_name: Optional[str] = None
     client_signature: Optional[str] = None   # Base64 PNG din canvas
     mode: Optional[str] = 'quote'            # 'quote', 'final', sau 'date'
+    client_language: Optional[str] = None
 
 class ReschedulePayload(BaseModel):
     requested_date: Optional[str] = None
@@ -469,6 +467,14 @@ def confirm_work_order(
             if payload.client_signature:
                 wo.client_signature = payload.client_signature
 
+    # Retain or update client language explicitly
+    chosen_lang = (payload.client_language or '').lower().strip()
+    if chosen_lang in ['fr', 'nl', 'en', 'de', 'ro']:
+        wo.client_language = chosen_lang
+    elif not getattr(wo, 'client_language', None) or wo.client_language == 'fr':
+        if wo.client and getattr(wo.client, 'preferred_language', None):
+            wo.client_language = wo.client.preferred_language
+
     db.commit()
     db.refresh(wo)
 
@@ -478,8 +484,9 @@ def confirm_work_order(
             import os
             from app.services.email_service import send_order_confirmation_email
             frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
-            client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
-            signing_url = f"{frontend_url}/public/proforma/{wo.token}?lang={client_lang}"
+            client_lang = getattr(wo, 'client_language', None) or (wo.client.preferred_language if wo.client else None) or 'fr'
+            client_lang = str(client_lang).lower().strip()
+            signing_url = f"{frontend_url}/confirm/{wo.token}?lang={client_lang}"
             date_str = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
             if wo.start_time:
                 date_str += f" ({wo.start_time})"
@@ -488,7 +495,7 @@ def confirm_work_order(
                 send_order_confirmation_email,
                 to_email=wo.client_email,
                 client_name=wo.client_name or "Client",
-                client_language=getattr(wo, 'client_language', 'fr'),
+                client_language=client_lang,
                 signing_url=signing_url,
                 date_str=date_str,
                 org_id=wo.organization_id,

@@ -180,29 +180,49 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         items = nonDiscountItems.map(item => {
             let desc = item.desc;
             if (desc) {
-                desc = desc.replace(/Chape - Baz[aăâ]/gi, T.chapeBase ? T.chapeBase(5).replace(/\s*\d+\s*cm/, '') : 'Pose de chape');
-                const extraMatch = desc.match(/Grosime Extra\s*\((\d+)\s*cm\)/i);
-                if (extraMatch) desc = T.chapeExtra(extraMatch[1]);
-                if (/Feuille de plastique/i.test(desc)) desc = T.foil;
-                if (/Armature/i.test(desc)) desc = T.mesh;
-                if (/Fibre \+ Duramint/i.test(desc)) desc = T.fiber;
-                const purMatch = desc.match(/Isolation PUR\s*\((\d+)\s*cm\)/i);
-                if (purMatch) desc = T.purBase(purMatch[1]);
-                if (/^Aspiration$/i.test(desc)) desc = T.aspiration;
-                if (/Nivellement/i.test(desc)) desc = T.nivellement;
-                if (/Pon[cç]age/i.test(desc)) desc = T.poncage;
-                if (/Protection/i.test(desc)) desc = T.protection;
-                const epsMatch = desc.match(/Isolation EPS\s*\(([^)]+)\)/i);
-                if (epsMatch) desc = T.epsBase(epsMatch[1]);
-                if (/^Transport/i.test(desc)) desc = 'Transport / Déplacement';
-                if (/^Forfait$/i.test(desc)) desc = T.forfait || 'Forfait';
-                if (/Ajustement/i.test(desc)) desc = 'Forfait minimum chantier';
+                const isChapeBase = item.type === 'chape' && /Base/i.test(desc);
+                const isChapeExtra = item.type === 'chape' && /Épaisseur Extra|Grosime Extra/i.test(desc);
                 
-                // Adăugăm grosimea la Chape base
-                const chapeSurf = (wo.volumes || []).find(v => /chape|[sșş]ap/i.test(v.label || ''));
-                if (/Pose de chape|Dekvloer|^Chape\b/i.test(desc) && chapeSurf) {
-                    const thick = parseFloat(chapeSurf.thickness || 5);
-                    desc = T.chapeBase(thick);
+                if (isChapeBase) {
+                    const thick = parseFloat(item.thickness || 5);
+                    const chapeNumStr = item.isMultipleChape ? ` ${item.chapeIndex}` : '';
+                    if (lang === 'nl') desc = `Dekvloer leggen${chapeNumStr} ${thick} cm`;
+                    else if (lang === 'en') desc = `Chape${chapeNumStr} ${thick} cm`;
+                    else desc = `Pose de chape${chapeNumStr} ${thick} cm`;
+                } else if (isChapeExtra) {
+                    const extraMatch = desc.match(/\((\d+(?:\.\d+)?)\s*cm\)/i);
+                    const cm = extraMatch ? extraMatch[1] : '';
+                    const chapeNumStr = item.isMultipleChape ? ` (Chape ${item.chapeIndex})` : '';
+                    if (lang === 'nl') desc = `Extra dikte${chapeNumStr} (${cm} cm)`;
+                    else if (lang === 'en') desc = `Additional thickness${chapeNumStr} (${cm} cm)`;
+                    else desc = `Épaisseur supplémentaire${chapeNumStr} (${cm} cm)`;
+                } else {
+                    if (/Feuille de plastique/i.test(desc)) desc = T.foil;
+                    if (/Armature/i.test(desc)) desc = T.mesh;
+                    if (/Fibre \+ Duramint/i.test(desc)) desc = T.fiber;
+                    const purMatch = desc.match(/Isolation PUR(?:\s+(\d+))?\s*\((\d+(?:\.\d+)?)\s*cm\)/i);
+                    if (purMatch) {
+                        const pNum = purMatch[1] ? ` ${purMatch[1]}` : '';
+                        const pThick = purMatch[2];
+                        if (lang === 'nl') desc = `PUR Isolatie${pNum} ${pThick} cm`;
+                        else if (lang === 'en') desc = `PUR Insulation${pNum} ${pThick} cm`;
+                        else desc = `Isolation PUR${pNum} ${pThick} cm`;
+                    }
+                    if (/^Aspiration/i.test(desc)) desc = T.aspiration;
+                    if (/^Nivellement/i.test(desc)) desc = T.nivellement;
+                    if (/^Pon[cç]age/i.test(desc)) desc = T.poncage;
+                    if (/^Protection/i.test(desc)) desc = T.protection;
+                    const epsMatch = desc.match(/Isolation EPS(?:\s+(\d+))?\s*\(([^)]+)\)/i);
+                    if (epsMatch) {
+                        const eNum = epsMatch[1] ? ` ${epsMatch[1]}` : '';
+                        const eText = epsMatch[2];
+                        if (lang === 'nl') desc = `EPS Isolatie${eNum} (${eText})`;
+                        else if (lang === 'en') desc = `EPS Insulation${eNum} (${eText})`;
+                        else desc = `Isolation EPS${eNum} (${eText})`;
+                    }
+                    if (/^Transport/i.test(desc)) desc = 'Transport / Déplacement';
+                    if (/^Forfait$/i.test(desc)) desc = T.forfait || 'Forfait';
+                    if (/Ajustement/i.test(desc)) desc = 'Forfait minimum chantier';
                 }
             }
             return { ...item, desc };
