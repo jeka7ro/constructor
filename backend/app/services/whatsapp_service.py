@@ -2,6 +2,7 @@ import os
 import httpx
 import logging
 import re
+import urllib.parse
 
 logger = logging.getLogger(__name__)
 
@@ -278,6 +279,122 @@ def send_planning_update_whatsapp(phone_number: str, client_name: str, client_la
         return False
 
 
+def format_volumes_and_materials(volumes: list) -> list:
+    """Formats surfaces, thicknesses, and client-selected materials/options from volumes array."""
+    if not volumes or not isinstance(volumes, list):
+        return []
+
+    lines = []
+    surf_lines = []
+    
+    total_chape_m2 = 0.0
+    
+    has_foil = False
+    has_mesh = False
+    has_fiber = False
+    has_sound_insulation = False
+    has_floor_heating_add = False
+    foil_m2 = 0.0
+    mesh_m2 = 0.0
+    
+    pur_options = []
+
+    # Count how many chape volumes exist
+    chape_vols = [
+        v for v in volumes if isinstance(v, dict) and 
+        "pur" not in str(v.get("label", "")).lower() and "pur" not in str(v.get("type", "")).lower() and
+        "eps" not in str(v.get("label", "")).lower() and "eps" not in str(v.get("type", "")).lower()
+    ]
+    has_multiple_chape = len(chape_vols) > 1
+
+    chape_idx = 0
+    for v in volumes:
+        if not isinstance(v, dict):
+            continue
+            
+        label = str(v.get("label") or "").strip()
+        try:
+            qty = float(v.get("quantity") or 0)
+        except (ValueError, TypeError):
+            qty = 0.0
+        try:
+            thick = float(v.get("thickness") or 0)
+        except (ValueError, TypeError):
+            thick = 0.0
+        unit = str(v.get("unit") or "m²").strip()
+        
+        is_pur = "pur" in label.lower() or "pur" in str(v.get("type", "")).lower()
+        is_eps = "eps" in label.lower() or "eps" in str(v.get("type", "")).lower()
+        
+        if is_pur:
+            surf_lines.append(f"• Izolație PUR: {qty:.0f} m² | Grosime: {thick:.0f} cm")
+            if v.get("pur_aspiration"): pur_options.append("Aspirare")
+            if v.get("pur_niveller"): pur_options.append("Nivelare")
+            if v.get("pur_poncage"): pur_options.append("Șlefuire")
+            if v.get("pur_protection"): pur_options.append("Protecție")
+        elif is_eps:
+            try:
+                vol_m3 = float(v.get("volume_m3") or (qty * thick / 100 if thick else qty))
+            except (ValueError, TypeError):
+                vol_m3 = 0.0
+            surf_lines.append(f"• Izolație EPS: {vol_m3:.1f} m³ ({qty:.0f} m² la {thick:.0f} cm)")
+        else:
+            chape_idx += 1
+            clean_label = label
+            if label.isdigit():
+                clean_label = f"Suprafață {label}"
+            elif not label or label.lower() in ["chape", "șapă", "sapa"]:
+                clean_label = f"Șapă {chape_idx}" if has_multiple_chape else "Șapă"
+            
+            thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
+            surf_lines.append(f"• {clean_label}: {qty:.0f} {unit} | Grosime: {thick_str} cm")
+            
+            total_chape_m2 += qty
+            
+            if v.get("has_foil"):
+                has_foil = True
+                foil_m2 += qty
+            if v.get("has_mesh"):
+                has_mesh = True
+                mesh_m2 += qty
+            if v.get("has_duramint") or v.get("has_fiber"):
+                has_fiber = True
+            if v.get("has_sound_insulation"):
+                has_sound_insulation = True
+            if v.get("has_floor_heating_add"):
+                has_floor_heating_add = True
+
+    if not surf_lines:
+        return []
+
+    lines.append("📐 *Suprafețe & Grosime:*")
+    lines.extend(surf_lines)
+    if has_multiple_chape and total_chape_m2 > 0:
+        lines.append(f"➡️ *Total suprafață șapă:* {total_chape_m2:.0f} m²")
+
+    # Materiale și opțiuni bifate de client în deviz
+    mat_lines = []
+    if has_mesh:
+        mat_lines.append(f"• Plasă armare (Treillis): Da (~{mesh_m2:.0f} m²)")
+    if has_foil:
+        mat_lines.append(f"• Folie PE (Film): Da (~{foil_m2:.0f} m²)")
+    if has_fiber:
+        mat_lines.append("• Fibră / Duramint: Da")
+    if has_sound_insulation:
+        mat_lines.append("• Izolație acustică: Da")
+    if has_floor_heating_add:
+        mat_lines.append("• Additiv încălzire pardoseală: Da")
+    if pur_options:
+        mat_lines.append(f"• Opțiuni PUR: {', '.join(pur_options)}")
+
+    if mat_lines:
+        lines.append("")
+        lines.append("📋 *Materiale & Opțiuni bifate:*")
+        lines.extend(mat_lines)
+
+    return lines
+
+
 def send_admin_new_quote_whatsapp(
     target_id: str,
     client_name: str,
@@ -285,7 +402,9 @@ def send_admin_new_quote_whatsapp(
     proforma_url: str,
     quote_number: str = None,
     site_address: str = None,
-    total_amount: str = None
+    total_amount: str = None,
+    distance_km: float = None,
+    volumes: list = None
 ):
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
@@ -311,9 +430,25 @@ def send_admin_new_quote_whatsapp(
         f"📞 *Telefon:* {client_phone or '-'}",
     ]
     if site_address:
+        encoded_addr = urllib.parse.quote_plus(site_address.strip())
+        maps_link = f"https://maps.google.com/?q={encoded_addr}"
         lines.append(f"📍 *Adresă șantier:* {site_address}")
+        if distance_km:
+            try:
+                d_val = f"{float(distance_km):.1f}"
+            except Exception:
+                d_val = str(distance_km)
+            lines.append(f"🚗 *Distanță de la bază:* {d_val} km")
+        lines.append(f"🗺️ *Deschide în Google Maps:*\n{maps_link}")
     if total_amount:
         lines.append(f"💰 *Total:* {total_amount}")
+
+    if volumes:
+        mat_block = format_volumes_and_materials(volumes)
+        if mat_block:
+            lines.append("")
+            lines.extend(mat_block)
+
     lines.append("")
     lines.append(f"🔗 *Vizualizează devizul:*\n{proforma_url}")
     if wa_link:
@@ -346,7 +481,9 @@ def send_admin_quote_confirmed_whatsapp(
     confirmed_by_name: str = None,
     site_address: str = None,
     intervention_date: str = None,
-    wo_id: int = None
+    wo_id: int = None,
+    distance_km: float = None,
+    volumes: list = None
 ):
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
@@ -375,11 +512,26 @@ def send_admin_quote_confirmed_whatsapp(
     if client_phone:
         lines.append(f"📞 *Telefon:* {client_phone}")
     if site_address:
+        encoded_addr = urllib.parse.quote_plus(site_address.strip())
+        maps_link = f"https://maps.google.com/?q={encoded_addr}"
         lines.append(f"📍 *Adresă șantier:* {site_address}")
+        if distance_km:
+            try:
+                d_val = f"{float(distance_km):.1f}"
+            except Exception:
+                d_val = str(distance_km)
+            lines.append(f"🚗 *Distanță de la bază:* {d_val} km")
+        lines.append(f"🗺️ *Deschide în Google Maps:*\n{maps_link}")
     if intervention_date:
         lines.append(f"📅 *Data solicitată de client:* {intervention_date}")
         lines.append("⚠️ *STATUS DATĂ:* Neconfirmată încă! Data este doar o solicitare a clientului.")
         lines.append("👉 *Acțiune:* Davide Chape trebuie să valideze data și să adauge lucrarea în planning.")
+
+    if volumes:
+        mat_block = format_volumes_and_materials(volumes)
+        if mat_block:
+            lines.append("")
+            lines.extend(mat_block)
     
     if wo_id:
         lines.append("")

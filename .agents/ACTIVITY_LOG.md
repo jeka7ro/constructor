@@ -304,3 +304,10 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
        `📅 *Data solicitată de client:* {date}`
        `⚠️ *STATUS DATĂ:* Neconfirmată încă! Data este doar o solicitare a clientului.`
        `👉 *Acțiune:* Davide Chape trebuie să valideze data și să adauge lucrarea în planning.`
+     - Adăugat link direct către Google Maps sub adresa șantierului în ambele alerte (deviz nou & deviz confirmat):
+       `🗺️ *Deschide în Google Maps:* https://maps.google.com/?q={address}`
+       permițând deschiderea instantanee a navigației la o simplă atingere din WhatsApp pe orice telefon sau PC.
+     - Adăugată distanța de la bază (`🚗 *Distanță de la bază:* {distance_km} km`) calculată automat față de baza logistică a companiei, afișată direct sub adresa șantierului în alertele WhatsApp de grup.
+      - Adăugat bloc detaliat cu **Suprafețe & Grosime** și **Materiale & Opțiuni bifate de client** în ambele alerte de WhatsApp (deviz nou & deviz acceptat):
+         - `📐 *Suprafețe & Grosime:*` (șapă m² și grosime cm per suprafață, izolații PUR/EPS cu m² și m³).
+         - `📋 *Materiale & Opțiuni bifate:*` (strict ce a bifat clientul în deviz: plasă armare cu m², folie PE cu m², fibră / duramint, opțiuni PUR/EPS).

@@ -409,6 +409,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         work_type=payload.work_type,
         approximate_date=payload.approximate_date,
         site_address=payload.site_address,
+        distance_km=round(distance_km, 1) if distance_km > 0 else None,
         client_id=client.id,
         client_name=client.name,
         client_email=client.email,
@@ -457,6 +458,8 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     saved_client_phone = client.phone
     saved_quote_number = wo.quote_number
     saved_site_address = getattr(wo, 'site_address', None) or getattr(payload, 'site_address', '') or ''
+    saved_distance_km = round(distance_km, 1) if distance_km > 0 else None
+    saved_volumes = list(wo.volumes) if getattr(wo, 'volumes', None) else []
     est_val = getattr(wo, 'estimated_price', None)
     try:
         saved_total_ttc = f"{float(est_val):.2f} €" if est_val else None
@@ -477,7 +480,9 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
                     proforma_url=proforma_url,
                     quote_number=saved_quote_number,
                     site_address=saved_site_address,
-                    total_amount=saved_total_ttc
+                    total_amount=saved_total_ttc,
+                    distance_km=saved_distance_km,
+                    volumes=saved_volumes
                 )
             except Exception as e:
                 print(f"Failed to send admin group WhatsApp alert: {e}")
@@ -496,7 +501,17 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
                             print(f"Failed to send admin email alert: {e}")
                     if admin.phone:
                         try:
-                            send_admin_new_quote_whatsapp(admin.phone, saved_client_name, saved_client_phone, proforma_url, quote_number=saved_quote_number)
+                            send_admin_new_quote_whatsapp(
+                                admin.phone, 
+                                saved_client_name, 
+                                saved_client_phone, 
+                                proforma_url, 
+                                quote_number=saved_quote_number,
+                                site_address=saved_site_address,
+                                total_amount=saved_total_ttc,
+                                distance_km=saved_distance_km,
+                                volumes=saved_volumes
+                            )
                         except Exception as e:
                             print(f"Failed to send admin phone whatsapp alert: {e}")
         except Exception as e:
