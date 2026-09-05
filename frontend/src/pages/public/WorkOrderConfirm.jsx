@@ -920,28 +920,28 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
             {/* Header branded */}
-            <div className="w-full py-5 px-6 border-b border-slate-200 bg-white shadow-sm">
-                <div className="max-w-2xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+            <div className="sticky top-0 z-30 w-full py-3 px-4 sm:py-4 sm:px-6 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-sm">
+                <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
                         {order?.org_logo ? (
-                            <img src={order.org_logo} alt={order.org_name} className="h-10 object-contain" />
+                            <img src={order.org_logo} alt={order.org_name} className="h-8 sm:h-10 object-contain" />
                         ) : (
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md"
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white font-black text-sm sm:text-lg shadow-md"
                                 style={{ backgroundColor: primaryColor }}>
                                 {order?.org_name?.charAt(0) || 'C'}
                             </div>
                         )}
                         <div>
-                            <p className="font-black text-slate-900 text-lg">{order?.org_name}</p>
-                            <p className="text-xs text-slate-500 font-medium">{t.workOrder}</p>
+                            <p className="font-black text-slate-900 text-sm sm:text-lg leading-tight">{order?.org_name}</p>
+                            <p className="text-[10px] sm:text-xs text-slate-500 font-medium">{t.workOrder}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4">
                         {/* Language Selector */}
-                        <div className="hidden sm:flex gap-1 bg-slate-100 p-1 rounded-lg">
+                        <div className="flex gap-0.5 sm:gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-200/80">
                             {[
                                 { code: 'fr', label: 'FR' },
-                                { code: 'nl', label: 'NL (Vlaams)' },
+                                { code: 'nl', label: 'NL' },
                                 { code: 'en', label: 'EN' }
                             ].map(l => (
                                 <button
@@ -950,10 +950,11 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                         setLang(l.code);
                                         setSearchParams({ lang: l.code }, { replace: true });
                                     }}
-                                    className={`px-3 py-1.5 rounded-md text-[11px] font-black transition-colors flex items-center gap-1.5 ${lang === l.code ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-[11px] font-black transition-colors flex items-center gap-1 ${lang === l.code ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
-                                    <img src={`https://flagcdn.com/w20/${l.code === 'en' ? 'gb' : l.code}.png`} alt={l.label} className="w-4 h-[11px] object-cover rounded-sm opacity-80" />
-                                    {l.label}
+                                    <img src={`https://flagcdn.com/w20/${l.code === 'en' ? 'gb' : l.code}.png`} alt={l.label} className="w-3.5 h-[10px] sm:w-4 sm:h-[11px] object-cover rounded-sm opacity-80" />
+                                    <span>{l.label}</span>
+                                    {l.code === 'nl' && <span className="hidden md:inline font-normal text-slate-400">(Vlaams)</span>}
                                 </button>
                             ))}
                         </div>

@@ -311,3 +311,22 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
       - Adăugat bloc detaliat cu **Suprafețe & Grosime** și **Materiale & Opțiuni bifate de client** în ambele alerte de WhatsApp (deviz nou & deviz acceptat):
          - `📐 *Suprafețe & Grosime:*` (șapă m² și grosime cm per suprafață, izolații PUR/EPS cu m² și m³).
          - `📋 *Materiale & Opțiuni bifate:*` (strict ce a bifat clientul în deviz: plasă armare cu m², folie PE cu m², fibră / duramint, opțiuni PUR/EPS).
+
+### 05 Septembrie 2026 - Fix Stabilizare Devis Online & Vizibilitate Selector Limbi pe Mobil
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: În curs de aprobare / gata de push.
+- **Probleme adresate**:
+  1. La trimiterea formularului din `/devisonline` (Pasul 5), backend-ul arunca `TypeError: 'distance_km' is an invalid keyword argument for WorkOrder`.
+  2. La confirmarea devizului, se încerca scrierea lui `wo.distance_km` direct pe model.
+  3. În `frontend/src/i18n/en.json`, mesajul generic de eroare era rămas hardcodat în franceză.
+  4. Pe telefoane mobile, selectorul de limbi (FR/NL/EN) din antet nu era vizibil fără scroll sus sau era chiar ascuns complet (`hidden sm:flex` pe ecranul de confirmare).
+- **Modificări implementate**:
+  1. **Backend (`devis_online.py`)**: Eliminat parametrul invalid `distance_km` din `WorkOrder(...)`. Distanța se citește direct din deviz (`prices['distance_km']`).
+  2. **Backend (`public_work_orders.py`)**: Eliminată atribuirea invalidă `wo.distance_km`; distanța se ia direct din devizul salvat.
+  3. **Frontend (`en.json`)**: Tradus `"errors.generic"` în engleză (`"An error occurred. Please try again."`).
+  4. **Frontend (`DevisOnline.jsx`)**:
+     - Header-ul a fost transformat în `sticky top-0 z-40` pentru a rămâne mereu ancorat și vizibil la partea de sus a ecranului pe mobil la orice pas.
+     - Logo-ul și selectorul de limbi (cu iconiță Globe, steaguri și butoane tactile FR / NL / EN) sunt afișate compact pe un singur rând, imediat vizibile fără niciun scroll.
+  5. **Frontend (`WorkOrderConfirm.jsx`)**:
+     - Eliminat `hidden sm:flex` din header: selectorul de limbi este acum vizibil direct și pe mobil.
+     - Header sticky cu butoane clare cu steaguri pentru FR, NL, EN.

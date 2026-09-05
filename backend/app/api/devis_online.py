@@ -409,7 +409,6 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         work_type=payload.work_type,
         approximate_date=payload.approximate_date,
         site_address=payload.site_address,
-        distance_km=round(distance_km, 1) if distance_km > 0 else None,
         client_id=client.id,
         client_name=client.name,
         client_email=client.email,
@@ -458,7 +457,11 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     saved_client_phone = client.phone
     saved_quote_number = wo.quote_number
     saved_site_address = getattr(wo, 'site_address', None) or getattr(payload, 'site_address', '') or ''
-    saved_distance_km = round(distance_km, 1) if distance_km > 0 else None
+    raw_dist = prices_dict.get('distance_km') if isinstance(prices_dict, dict) else None
+    try:
+        saved_distance_km = round(float(raw_dist), 1) if raw_dist and float(raw_dist) > 0 else None
+    except (ValueError, TypeError):
+        saved_distance_km = None
     saved_volumes = list(wo.volumes) if getattr(wo, 'volumes', None) else []
     est_val = getattr(wo, 'estimated_price', None)
     try:

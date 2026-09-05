@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, User, Loader2, CheckCircle2, HardHat, FileText, ChevronRight, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search, Camera, Trash2, Sun, Thermometer, Wind, Paintbrush, Shield, Ruler } from 'lucide-react';
+import { Building2, User, Loader2, CheckCircle2, HardHat, FileText, ChevronRight, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search, Camera, Trash2, Sun, Thermometer, Wind, Paintbrush, Shield, Ruler, Globe } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AddressAutocomplete from '../components/AddressAutocomplete';
@@ -418,18 +418,19 @@ export default function DevisOnline() {
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
             {/* ── HEADER ── */}
             {!isIframe && (
-                <header className="p-3 sm:p-5 z-10 flex flex-col sm:flex-row justify-between items-center max-w-5xl w-full mx-auto bg-white/90 backdrop-blur-md rounded-b-2xl shadow-sm border-b border-slate-100 gap-3 sm:gap-0">
-                    <img
-                        src="https://cdn.prod.website-files.com/67efee5e09c6da428d8d176a/67f784844af92f795caaeedb_Davide%20Chape%20-Logo.svg"
-                        alt="Davide Chape" className="h-7 sm:h-8"
-                    />
-                    <div className="flex items-center gap-3 sm:gap-5">
-                        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg shadow-inner">
+                <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm py-2.5 px-3 sm:py-3 sm:px-6">
+                    <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+                        <img
+                            src="https://cdn.prod.website-files.com/67efee5e09c6da428d8d176a/67f784844af92f795caaeedb_Davide%20Chape%20-Logo.svg"
+                            alt="Davide Chape" className="h-6 sm:h-8 object-contain"
+                        />
+                        <div className="flex items-center gap-1 sm:gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200/60 shadow-inner">
+                            <Globe className="w-3.5 h-3.5 text-slate-500 ml-1 hidden xs:block" />
                             {['fr', 'nl', 'en'].map(lang => (
                                 <button key={lang} onClick={() => handleLanguageChange(lang)}
-                                    className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded transition-all ${i18n.language === lang ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:bg-slate-200'}`}>
-                                    <img src={`https://flagcdn.com/w20/${lang === 'en' ? 'gb' : lang}.png`} alt={lang} className="w-[18px] h-[13px] object-cover shadow-sm rounded-sm" />
-                                    {lang.toUpperCase()}
+                                    className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-black rounded-lg transition-all ${i18n.language === lang ? 'bg-white shadow-sm text-slate-900 border border-slate-200/80' : 'text-slate-500 hover:text-slate-800'}`}>
+                                    <img src={`https://flagcdn.com/w20/${lang === 'en' ? 'gb' : lang}.png`} alt={lang} className="w-4 h-[11px] sm:w-[18px] sm:h-[13px] object-cover shadow-sm rounded-sm" />
+                                    <span>{lang.toUpperCase()}</span>
                                 </button>
                             ))}
                         </div>

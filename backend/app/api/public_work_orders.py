@@ -506,30 +506,16 @@ def confirm_work_order(
             site_addr = getattr(wo, 'site_address', '') or ''
             date_str = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else None
             
-            # Extract or calculate distance from base
-            dist_km = getattr(wo, 'distance_km', None)
+            # Extract distance strictly from devis / work order
+            dist_km = None
+            if getattr(wo, 'prices', None) and isinstance(wo.prices, dict):
+                dist_km = wo.prices.get('distance_km')
             if not dist_km and getattr(wo, 'route_distance_km', None):
                 dist_km = wo.route_distance_km
-            if not dist_km and getattr(wo, 'prices', None) and isinstance(wo.prices, dict):
-                dist_km = wo.prices.get('distance_km')
-            if not dist_km and site_addr:
-                try:
-                    from app.models import LogisticBase
-                    from app.api.devis_online import get_driving_distance_km
-                    bases = db.query(LogisticBase).filter(LogisticBase.organization_id == wo.organization_id).all()
-                    if bases:
-                        min_d = 999999.0
-                        for b in bases:
-                            if b.address:
-                                d = get_driving_distance_km(b.address, site_addr)
-                                if 0 < d < min_d:
-                                    min_d = d
-                        if min_d < 999999.0:
-                            dist_km = round(min_d, 1)
-                            wo.distance_km = dist_km
-                            db.commit()
-                except Exception as dist_err:
-                    print(f"Error calculating base distance for WO {wo.id}: {dist_err}")
+            try:
+                dist_km = round(float(dist_km), 1) if dist_km and float(dist_km) > 0 else None
+            except (ValueError, TypeError):
+                dist_km = None
 
             background_tasks.add_task(
                 send_admin_quote_confirmed_whatsapp,

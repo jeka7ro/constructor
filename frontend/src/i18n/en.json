@@ -1226,7 +1226,7 @@
         "thickness_min": "The minimum thickness is 5 cm.",
         "surface_required": "The surface is required.",
         "address_required": "The site address is required.",
-        "generic": "Une erreur est survenue. Veuillez réessayer."
+        "generic": "An error occurred. Please try again."
     },
     "admin": {
         "logout": "Log Out",
