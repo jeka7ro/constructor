@@ -62,57 +62,7 @@ export default function DevisOnline() {
     const [error, setError] = useState('');
     const [errorField, setErrorField] = useState('');
 
-    const isCalculatorRoute = location.pathname.includes('/calculator');
-    const isIframe = isCalculatorRoute || window !== window.top || new URLSearchParams(window.location.search).get('iframe') === 'true';
 
-    useEffect(() => {
-        if (isIframe) {
-            const link = document.createElement('link');
-            link.href = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap';
-            link.rel = 'stylesheet';
-            document.head.appendChild(link);
-            const style = document.createElement('style');
-            style.innerHTML = `
-                /* ── Layout ── */
-                body, html, #root { background: transparent !important; margin: 0 !important; padding: 0 !important; }
-                .min-h-screen { background: transparent !important; min-height: auto !important; }
-                header, nav { display: none !important; }
-                main { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
-
-                /* ── Typography ── */
-                * { font-family: 'Space Grotesk', sans-serif !important; }
-                body, p, span, label, input, select, textarea, div { font-weight: 400 !important; color: #202020 !important; }
-                h1, h2, h3, h4, h5, h6, .font-bold, .font-semibold { font-weight: 700 !important; color: #202020 !important; }
-
-                /* ── Primary color: all yellow variants → #F7CA31 ── */
-                .bg-yellow-400, .bg-yellow-500, .bg-yellow-600,
-                .bg-blue-600, .bg-blue-700, .bg-slate-800, .bg-slate-900 {
-                    background-color: #F7CA31 !important;
-                    color: #202020 !important;
-                }
-                .hover\\:bg-yellow-400:hover, .hover\\:bg-yellow-500:hover, .hover\\:bg-yellow-600:hover,
-                .hover\\:bg-blue-700:hover, .hover\\:bg-slate-700:hover, .hover\\:bg-slate-800:hover {
-                    background-color: #e0b82a !important;
-                    color: #202020 !important;
-                }
-                .text-yellow-400, .text-yellow-500, .text-yellow-600,
-                .text-blue-600, .text-blue-700 { color: #F7CA31 !important; }
-                .border-yellow-400, .border-yellow-500, .border-blue-600 { border-color: #F7CA31 !important; }
-
-                /* ── Buttons & Inputs ── */
-                button { border-radius: 6px !important; }
-                input, select, textarea { border-radius: 6px !important; }
-
-                /* ── White backgrounds stay white ── */
-                .bg-white { background-color: #FFFFFF !important; }
-            `;
-            document.head.appendChild(style);
-            return () => {
-                document.head.removeChild(link);
-                document.head.removeChild(style);
-            };
-        }
-    }, [isIframe]);
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -443,26 +393,24 @@ export default function DevisOnline() {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
             {/* ── HEADER ── */}
-            {!isIframe && (
-                <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm py-2.5 px-3 sm:py-3 sm:px-6">
-                    <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
-                        <img
-                            src="https://cdn.prod.website-files.com/67efee5e09c6da428d8d176a/67f784844af92f795caaeedb_Davide%20Chape%20-Logo.svg"
-                            alt="Davide Chape" className="h-6 sm:h-8 object-contain"
-                        />
-                        <div className="flex items-center gap-1 sm:gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200/60 shadow-inner">
-                            <Globe className="w-3.5 h-3.5 text-slate-500 ml-1 hidden xs:block" />
-                            {['fr', 'nl', 'en'].map(lang => (
-                                <button key={lang} onClick={() => handleLanguageChange(lang)}
-                                    className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-black rounded-lg transition-all ${i18n.language === lang ? 'bg-white shadow-sm text-slate-900 border border-slate-200/80' : 'text-slate-500 hover:text-slate-800'}`}>
-                                    <img src={`https://flagcdn.com/w20/${lang === 'en' ? 'gb' : lang}.png`} alt={lang} className="w-4 h-[11px] sm:w-[18px] sm:h-[13px] object-cover shadow-sm rounded-sm" />
-                                    <span>{lang.toUpperCase()}</span>
-                                </button>
-                            ))}
-                        </div>
+            <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm py-2.5 px-3 sm:py-3 sm:px-6">
+                <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+                    <img
+                        src="https://cdn.prod.website-files.com/67efee5e09c6da428d8d176a/67f784844af92f795caaeedb_Davide%20Chape%20-Logo.svg"
+                        alt="Davide Chape" className="h-6 sm:h-8 object-contain"
+                    />
+                    <div className="flex items-center gap-1 sm:gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200/60 shadow-inner">
+                        <Globe className="w-3.5 h-3.5 text-slate-500 ml-1 hidden xs:block" />
+                        {['fr', 'nl', 'en'].map(lang => (
+                            <button key={lang} onClick={() => handleLanguageChange(lang)}
+                                className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-black rounded-lg transition-all ${i18n.language === lang ? 'bg-white shadow-sm text-slate-900 border border-slate-200/80' : 'text-slate-500 hover:text-slate-800'}`}>
+                                <img src={`https://flagcdn.com/w20/${lang === 'en' ? 'gb' : lang}.png`} alt={lang} className="w-4 h-[11px] sm:w-[18px] sm:h-[13px] object-cover shadow-sm rounded-sm" />
+                                <span>{lang.toUpperCase()}</span>
+                            </button>
+                        ))}
                     </div>
-                </header>
-            )}
+                </div>
+            </header>
 
             <main className="flex-1 w-full max-w-xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-center mt-6">
 

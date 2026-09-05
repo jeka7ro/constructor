@@ -52,8 +52,7 @@ export default function PublicCalculator() {
     const [error, setError] = useState('');
     const [errorField, setErrorField] = useState('');
 
-    const isCalculatorRoute = location.pathname.includes('/calculator');
-    const isIframe = isCalculatorRoute || window !== window.top || new URLSearchParams(window.location.search).get('iframe') === 'true';
+    const isIframe = window !== window.top || new URLSearchParams(window.location.search).get('iframe') === 'true';
 
     useEffect(() => {
         if (isIframe) {

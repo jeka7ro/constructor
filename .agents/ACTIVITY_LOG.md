@@ -437,3 +437,12 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
        * Dacă este 1 lucrare: 📅 *Data solicitată de client:* 26/09/2026 (⚠️ Ocupat - 1 lucrare)
        * Dacă sunt mai multe: 📅 *Data solicitată de client:* 26/09/2026 (⚠️ Ocupat - X lucrări)
      - Afișare clienți existenți în paranteze: dacă în acea zi există deja lucrări, se afișează numele clienților separați prin virgulă (ex: (⚠️ Ocupat - 1 lucrare: Demoulin Laurent) sau (⚠️ Ocupat - 2 lucrări: Client A, Client B)).
+
+### 05 Septembrie 2026 - Vizibilitate Permanentă Header / Antet (Logo & Limbi) pe Mobil
+- **Agent**: Antigravity (AI)
+- **Status Aprobare**: Aprobat de utilizator ("rezolva baoidebilue").
+- **Problema**: Pe dispozitive mobile (iOS Safari), la deschiderea Devis Online, antetul paginii („capul” cu logo-ul Davide Chape și selectorul de limbi FR / NL / EN) nu apărea deloc, formularul începând direct de la indicatorul de pași (Détails, Adresse...). Cauza tehnică: în `DevisOnline.jsx` era copiată logica `isIframe` care injecta `header, nav { display: none !important; }` și ascundea condiționat header-ul.
+- **Modificări**:
+  1. În `DevisOnline.jsx`: eliminat complet blocul `isIframe` și injecția de stiluri; `<header>`-ul este acum permanent și necondiționat vizibil în capul paginii.
+  2. În `PublicCalculator.jsx`: corectată logica `isIframe` pentru a ascunde header-ul exclusiv atunci când rulează într-adevăr într-un iframe extern sau cu parametrul `?iframe=true`, nu și la accesarea directă din browser.
+  3. Rulat `npm run build` în `frontend` (compilare cu succes, fără erori).
