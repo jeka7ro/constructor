@@ -497,6 +497,28 @@ def confirm_work_order(
         except Exception as e:
             print(f"Eroare scheduling order confirmation email: {e}")
 
+    # Send instant confirmation alert to company WhatsApp group (Davide Chape APP)
+    try:
+        import os
+        admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
+        if admin_group_id:
+            from app.services.whatsapp_service import send_admin_quote_confirmed_whatsapp
+            site_addr = getattr(wo, 'site_address', '') or ''
+            date_str = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else None
+            background_tasks.add_task(
+                send_admin_quote_confirmed_whatsapp,
+                target_id=admin_group_id,
+                client_name=wo.client_name or "Client",
+                client_phone=wo.client_phone or "",
+                quote_number=wo.quote_number or f"DEV-{wo.id}",
+                confirmed_by_name=wo.confirmed_by_name or wo.client_name,
+                site_address=site_addr,
+                intervention_date=date_str,
+                wo_id=wo.id
+            )
+    except Exception as e:
+        print(f"Failed to schedule admin quote confirmation WhatsApp alert: {e}")
+
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
     return _public_serialize(wo, org)
 

@@ -8,7 +8,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check, CheckCheck, ShieldCheck, Plus
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check, CheckCheck, ShieldCheck, Plus, Loader2
 } from 'lucide-react'
 import PdfThumbnail from '../../components/PdfThumbnail'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
@@ -275,6 +275,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [activeDocTab, setActiveDocTab] = useState('devis')
     const [pdfScrollActive, setPdfScrollActive] = useState(false)
     const [docDrawerState, setDocDrawerState] = useState(null)
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
     const [syncingPrices, setSyncingPrices] = useState(false)
     const [auditModalOpen, setAuditModalOpen] = useState(false)
     const [showSyncConfirm, setShowSyncConfirm] = useState(false)
@@ -417,6 +418,48 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             showToast(err.response?.data?.detail || t('work_order_detail.invoicing.error_save_invoice_number', "Erreur lors de l'enregistrement du numéro de facture."), 'error')
         } finally {
             setSavingInvoiceStatus(false)
+        }
+    }
+
+    const handleDownloadPdf = async (iframeId = 'devis-pdf-iframe') => {
+        setIsDownloadingPdf(true);
+        try {
+            const iframe = document.getElementById(iframeId);
+            if (!iframe || !iframe.contentWindow) {
+                window.open(activeDocTab === 'facture' ? `/proforma/${wo?.id || id}?type=invoice` : `/admin/quotes/${wo?.id || id}/pdf`, '_blank');
+                return;
+            }
+
+            const iframeDoc = iframe.contentWindow.document;
+            const printElement = iframeDoc.getElementById('devis-print-sheet') 
+                || iframeDoc.getElementById('proforma-print-sheet') 
+                || iframeDoc.querySelector('.max-w-\\[860px\\]') 
+                || iframeDoc.querySelector('.max-w-\\[800px\\]') 
+                || iframeDoc.querySelector('.bg-white.rounded-2xl')
+                || iframeDoc.body;
+
+            showToast(t('work_order_detail.invoicing.generating_pdf', 'Téléchargement du PDF en cours...'), 'info');
+
+            const html2pdfModule = (await import('html2pdf.js')).default;
+            const docNum = activeDocTab === 'facture' ? (wo.invoice_number || 'facture') : (wo.quote_number || 'devis');
+            const cleanClient = (wo.client_name || wo.client?.name || 'client').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const filename = `${docNum}_${cleanClient}.pdf`;
+
+            const opt = {
+                margin:       [4, 4, 4, 4],
+                filename:     filename,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            await html2pdfModule().set(opt).from(printElement).save();
+            showToast(t('work_order_detail.invoicing.download_success', 'PDF téléchargé avec succès !'), 'success');
+        } catch (err) {
+            console.error('Error downloading PDF directly:', err);
+            showToast(t('work_order_detail.invoicing.download_error', 'Erreur lors du téléchargement du PDF.'), 'error');
+        } finally {
+            setIsDownloadingPdf(false);
         }
     }
 
@@ -2881,7 +2924,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         style={activeDocTab === 'devis' ? { backgroundColor: `#2563EB20`, color: '#2563EB', borderColor: `#2563EB40` } : {}}
                                         className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors ${activeDocTab === 'devis' ? 'shadow-sm ring-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                                     >
-                                        DEVIS
+                                        DEVIS {wo.quote_number ? `· ${wo.quote_number}` : ''}
                                     </button>
                                     {wo.is_invoiced && (
                                         <button
@@ -2889,12 +2932,23 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             style={activeDocTab === 'facture' ? { backgroundColor: `#2563EB20`, color: '#2563EB', borderColor: `#2563EB40` } : {}}
                                             className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors ${activeDocTab === 'facture' ? 'shadow-sm ring-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                                         >
-                                            FACTURE
+                                            FACTURE {wo.invoice_number ? `· ${wo.invoice_number}` : ''}
                                         </button>
                                     )}
                                 </div>
                             {/* Badge FACTURAT / NEFACTURAT */}
                             
+                            {/* Buton Télécharger PDF (Descărcare directă fișier) */}
+                            <button
+                                onClick={() => handleDownloadPdf('devis-pdf-iframe')}
+                                disabled={isDownloadingPdf}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full text-[10px] sm:text-xs uppercase tracking-wider shadow-sm transition-colors shrink-0 disabled:opacity-50"
+                                title={t('work_order_detail.invoicing.download_pdf_title', 'Télécharger le fichier PDF')}
+                            >
+                                {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                {t('work_order_detail.invoicing.download_pdf', 'Télécharger PDF')}
+                            </button>
+
                             {/* Buton Previzualizare Email */}
                             <button
                                 onClick={async () => {
@@ -2909,7 +2963,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full text-[10px] sm:text-xs uppercase tracking-wider shadow-sm transition-colors shrink-0"
                             >
                                 <Mail className="w-3.5 h-3.5" />
-                                {t('work_order_detail.btn_preview_email', 'Trimite Email')}
+                                {t('work_order_detail.btn_preview_email', 'Envoyer par email')}
                             </button>
 
                             <div className="ml-auto">
@@ -2963,6 +3017,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 </button>
                                 
                                 <iframe
+                                    id="devis-pdf-iframe"
                                     src={activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice&_t=${wo.updated_at || Date.now()}#bottom` : `${window.location.origin}/admin/quotes/${wo.id}/pdf?_t=${wo.updated_at || Date.now()}#bottom`}
                                     className="w-full h-full border-none"
                                     title={activeDocTab === 'facture' ? 'Facture PDF' : 'Devis PDF'}
@@ -4133,13 +4188,21 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         </div>
 
                         <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => handleDownloadPdf('drawer-pdf-iframe')}
+                                disabled={isDownloadingPdf}
+                                className="px-5 py-2.5 rounded-full font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2 text-sm disabled:opacity-50"
+                            >
+                                {isDownloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                {t('work_order_detail.invoicing.download_pdf', 'Télécharger PDF')}
+                            </button>
                             {!wo?.is_invoiced && (
                                 <button
                                     onClick={() => {
                                         setDocDrawerState(null);
                                         handleToggleInvoiced(true);
                                     }}
-                                    className="px-6 py-2.5 rounded-full font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all flex items-center gap-2"
+                                    className="px-6 py-2.5 rounded-full font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2"
                                 >
                                     <CheckCircle2 className="w-5 h-5" />
                                     {t('work_order_detail.invoicing.issue_invoice', 'Émettre la Facture')}
@@ -4156,6 +4219,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     <div className="flex-1 overflow-hidden p-6 relative flex justify-center items-center bg-slate-50 dark:bg-slate-900/50">
                         <div className="w-full h-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden ring-1 ring-slate-200/50">
                             <iframe 
+                                id="drawer-pdf-iframe"
                                 src={docDrawerState.url} 
                                 className="w-full h-full border-none"
                                 title={docDrawerState.type === 'facture' ? 'Facture PDF' : 'Devis PDF'}

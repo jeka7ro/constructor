@@ -253,7 +253,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 </div>
             )}
             <div className={`print:p-0 max-w-[860px] mx-auto ${token ? 'p-0' : 'p-4 sm:p-6'}`}>
-                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden print:shadow-none print:border-none print:rounded-none">
+                <div id="devis-print-sheet" className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden print:shadow-none print:border-none print:rounded-none">
                     <div className="px-5 pt-6 pb-6 sm:px-10 sm:pt-10 print:px-8 print:pt-8">
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                             <div>

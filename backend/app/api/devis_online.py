@@ -452,23 +452,62 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     if client.email or client.phone:
         background_tasks.add_task(generate_and_send_pdf)
 
+    # Pre-extract values for notifications to avoid any ORM detachment in background tasks
+    saved_client_name = client.name
+    saved_client_phone = client.phone
+    saved_quote_number = wo.quote_number
+    saved_site_address = getattr(wo, 'site_address', None) or getattr(payload, 'site_address', '') or ''
+    est_val = getattr(wo, 'estimated_price', None)
+    try:
+        saved_total_ttc = f"{float(est_val):.2f} €" if est_val else None
+    except (ValueError, TypeError):
+        saved_total_ttc = f"{est_val} €" if est_val else None
+    org_id = wo.organization_id
+
     # Notificari pentru Admin
     def send_alerts_to_admins():
-        from app.models import Admin
-        admins = db.query(Admin).filter(Admin.organization_id == wo.organization_id, Admin.receive_quote_alerts == True).all()
-        
+        # 1. Send instant notification to company WhatsApp group (Davide Chape APP) FIRST
+        admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
+        if admin_group_id:
+            try:
+                send_admin_new_quote_whatsapp(
+                    target_id=admin_group_id,
+                    client_name=saved_client_name,
+                    client_phone=saved_client_phone,
+                    proforma_url=proforma_url,
+                    quote_number=saved_quote_number,
+                    site_address=saved_site_address,
+                    total_amount=saved_total_ttc
+                )
+            except Exception as e:
+                print(f"Failed to send admin group WhatsApp alert: {e}")
+
+        # 2. Individual admin notifications
+        try:
+            from app.models import Admin
+            from app.database import SessionLocal
+            with SessionLocal() as bg_db:
+                admins = bg_db.query(Admin).filter(Admin.organization_id == org_id, Admin.receive_quote_alerts == True).all()
+                for admin in admins:
+                    if admin.email and admin.email != "info@davidechape.be":
+                        try:
+                            send_admin_new_quote_alert(admin.email, saved_client_name, saved_client_phone, proforma_url)
+                        except Exception as e:
+                            print(f"Failed to send admin email alert: {e}")
+                    if admin.phone:
+                        try:
+                            send_admin_new_quote_whatsapp(admin.phone, saved_client_name, saved_client_phone, proforma_url, quote_number=saved_quote_number)
+                        except Exception as e:
+                            print(f"Failed to send admin phone whatsapp alert: {e}")
+        except Exception as e:
+            print(f"Failed querying admins for notifications: {e}")
+
         # Trimite mereu la info@davidechape.be ca email de baza/secundar
         try:
-            send_admin_new_quote_alert("info@davidechape.be", client.name, client.phone, proforma_url)
+            send_admin_new_quote_alert("info@davidechape.be", saved_client_name, saved_client_phone, proforma_url)
         except Exception as e:
             print(f"Failed to send alert to info@davidechape.be: {e}")
 
-        for admin in admins:
-            if admin.email and admin.email != "info@davidechape.be":
-                send_admin_new_quote_alert(admin.email, client.name, client.phone, proforma_url)
-            if admin.phone:
-                send_admin_new_quote_whatsapp(admin.phone, client.name, client.phone, proforma_url)
-                
     background_tasks.add_task(send_alerts_to_admins)
 
 

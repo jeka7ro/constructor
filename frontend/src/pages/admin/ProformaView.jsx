@@ -230,7 +230,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
     return (
         <div className="w-full min-h-full font-sans bg-slate-50 print:bg-white p-4 md:p-8">
 
-            <div className="max-w-[800px] mx-auto bg-white p-8 md:p-12 shadow-sm rounded-xl border border-slate-200 print:shadow-none print:border-none print:p-0">
+            <div id="proforma-print-sheet" className="max-w-[800px] mx-auto bg-white p-8 md:p-12 shadow-sm rounded-xl border border-slate-200 print:shadow-none print:border-none print:p-0">
                 {/* Header Top: Logo and Invoice Title */}
                 <div className="flex justify-between items-center bg-slate-50/70 border border-slate-100 rounded-2xl px-6 py-4 mb-6 print:bg-transparent print:border-none print:p-0">
                     <div>

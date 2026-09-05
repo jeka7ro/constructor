@@ -140,6 +140,22 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     db.commit()
                     logger.info(f"WhatsApp message from {sender} attached to WorkOrder {recent_wo.id}")
 
+                    # Forward to admin WhatsApp group
+                    try:
+                        admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
+                        if admin_group_id:
+                            from app.services.whatsapp_service import send_admin_client_message_whatsapp
+                            send_admin_client_message_whatsapp(
+                                target_id=admin_group_id,
+                                client_name=recent_wo.client_name or "Client",
+                                client_phone=recent_wo.client_phone or sender,
+                                message_text=body if body else "Mesaj primit via WhatsApp",
+                                quote_number=recent_wo.quote_number or f"DEV-{recent_wo.id}",
+                                wo_id=recent_wo.id
+                            )
+                    except Exception as e:
+                        logger.error(f"Failed to forward Meta client message to WhatsApp admin group: {e}")
+
     return {"status": "success"}
 
 @router.post("/ultramsg")
@@ -162,11 +178,16 @@ async def ultramsg_webhook(request: Request, db: Session = Depends(get_db)):
 
     data = payload.get("data", {})
     sender = data.get("from", "")
+    
+    # Ignore group messages (@g.us) or messages sent by the bot itself to prevent loops
+    if "@g.us" in str(sender) or data.get("from_me") is True or data.get("fromMe") is True:
+        return {"status": "ignored", "message": "Group or self message ignored"}
+
     message_type = data.get("type", "chat")
     body = data.get("body", "")
     media_url = data.get("media", "")
 
-    # Extract clean phone number (remove @c.us or @g.us)
+    # Extract clean phone number (remove @c.us)
     phone_match = re.search(r'^(\d+)', sender)
     if not phone_match:
         return {"status": "error", "message": "Invalid sender format"}
@@ -219,4 +240,21 @@ async def ultramsg_webhook(request: Request, db: Session = Depends(get_db)):
     db.commit()
     
     logger.info(f"WhatsApp message from {clean_phone} attached to WorkOrder {recent_wo.id}")
+
+    # Forward notification to company WhatsApp group (Davide Chape APP)
+    try:
+        admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
+        if admin_group_id:
+            from app.services.whatsapp_service import send_admin_client_message_whatsapp
+            send_admin_client_message_whatsapp(
+                target_id=admin_group_id,
+                client_name=recent_wo.client_name or "Client",
+                client_phone=recent_wo.client_phone or clean_phone,
+                message_text=body if body else "Atașament primit via WhatsApp",
+                quote_number=recent_wo.quote_number or f"DEV-{recent_wo.id}",
+                wo_id=recent_wo.id
+            )
+    except Exception as e:
+        logger.error(f"Failed to forward UltraMsg client message to WhatsApp admin group: {e}")
+
     return {"status": "success"}
