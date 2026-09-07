@@ -3,6 +3,25 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-09-07 (Rezolvare Linkuri WhatsApp Publice Fără Admin: Link Curat /confirm/{token}?lang={lang} & Redirecționare de Siguranță)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("ds de acord").
+
+### Context & Diagnostic:
+- În notificările trimise pe WhatsApp către grupul de admin la confirmarea devizului sau la un mesaj nou primit de la client, linkul generat era de forma `https://davidechape.pontaj.app/work-orders/{wo_id}`.
+- La deschiderea acestui link, utilizatorul primea eroarea `404 - Lien introuvable ou expiré` deoarece în aplicația React ruta de admin este `/admin/work-orders/:id`, iar ruta publică a devizului este `/confirm/:token?lang={lang}`.
+- Utilizatorul a cerut expres ca linkurile publice să nu conțină niciun fel de `/admin`.
+
+### Modificări Efectuate:
+1. **Generare Link Public Curat în WhatsApp (`whatsapp_service.py`):**
+   - În funcțiile `send_admin_quote_confirmed_whatsapp` și `send_admin_client_message_whatsapp`, linkul este generat folosind token-ul public al devizului și limba clientului: `https://davidechape.pontaj.app/confirm/{token}?lang={lang}`.
+   - Textul a fost actualizat la `🔗 *Deschide devizul:*`.
+   - Niciun link public din notificări nu mai include `/admin` sau rute interne.
+2. **Transmitere `token` și `client_language` din Apeluri (`public_work_orders.py`, `webhooks.py`):**
+   - Atât la confirmarea devizului, cât și la mesajele trimise de clienți (din formularul web public sau prin webhook Meta/UltraMsg), se transmit `token=wo.token` și `client_language`.
+3. **Redirecționare Inteligentă de Siguranță în Frontend (`App.jsx`):**
+   - În `SmartRedirect`, s-a adăugat o regulă de auto-corecție pentru `/work-orders/:id`: dacă utilizatorul este admin logat, este redirecționat automat către `/admin/work-orders/:id`; dacă este vizitator public, este redirecționat către `/confirm/:id`, prevenind afișarea ecranului 404 pentru orice linkuri trimise anterior în istoricul de mesaje.
+
 ---
 
 ## 2026-09-07 (Notificare WhatsApp la Mesaje Web Client & Rezolvare Robustă Telefon Client)

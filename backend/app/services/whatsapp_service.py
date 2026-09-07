@@ -717,7 +717,8 @@ def send_admin_quote_confirmed_whatsapp(
     distance_km: float = None,
     volumes: list = None,
     client_language: str = None,
-    org_id: str = None
+    org_id: str = None,
+    token: str = None
 ):
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
@@ -774,9 +775,12 @@ def send_admin_quote_confirmed_whatsapp(
             lines.append("")
             lines.extend(mat_block)
     
-    if wo_id:
+    confirm_key = token or wo_id
+    if confirm_key:
+        clean_lang = client_language if client_language in ['fr', 'nl', 'en', 'ro'] else 'fr'
+        confirm_url = f"https://davidechape.pontaj.app/confirm/{confirm_key}?lang={clean_lang}"
         lines.append("")
-        lines.append(f"🔗 *Deschide în aplicație:*\nhttps://davidechape.pontaj.app/work-orders/{wo_id}")
+        lines.append(f"🔗 *Deschide devizul:*\n{confirm_url}")
     
     if wa_link:
         lines.append("")
@@ -806,7 +810,9 @@ def send_admin_client_message_whatsapp(
     client_phone: str,
     message_text: str,
     quote_number: str = None,
-    wo_id: int = None
+    wo_id: int = None,
+    token: str = None,
+    client_language: str = None
 ):
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
@@ -833,8 +839,11 @@ def send_admin_client_message_whatsapp(
     ]
     if wa_link:
         lines.append(f"👉 *Răspunde-i direct pe WhatsApp:*\n{wa_link}")
-    if wo_id:
-        lines.append(f"🔗 *Vezi fișa lucrării:*\nhttps://davidechape.pontaj.app/work-orders/{wo_id}")
+    confirm_key = token or wo_id
+    if confirm_key:
+        clean_lang = client_language if client_language in ['fr', 'nl', 'en', 'ro'] else 'fr'
+        confirm_url = f"https://davidechape.pontaj.app/confirm/{confirm_key}?lang={clean_lang}"
+        lines.append(f"🔗 *Deschide devizul:*\n{confirm_url}")
 
     body_text = "\n".join(lines)
 

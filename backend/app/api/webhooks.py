@@ -151,7 +151,9 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                                 client_phone=recent_wo.client_phone or sender,
                                 message_text=body if body else "Mesaj primit via WhatsApp",
                                 quote_number=recent_wo.quote_number or f"DEV-{recent_wo.id}",
-                                wo_id=recent_wo.id
+                                wo_id=recent_wo.id,
+                                token=getattr(recent_wo, 'token', None),
+                                client_language=getattr(recent_wo, 'client_language', None) or 'fr'
                             )
                     except Exception as e:
                         logger.error(f"Failed to forward Meta client message to WhatsApp admin group: {e}")
@@ -252,7 +254,9 @@ async def ultramsg_webhook(request: Request, db: Session = Depends(get_db)):
                 client_phone=recent_wo.client_phone or clean_phone,
                 message_text=body if body else "Atașament primit via WhatsApp",
                 quote_number=recent_wo.quote_number or f"DEV-{recent_wo.id}",
-                wo_id=recent_wo.id
+                wo_id=recent_wo.id,
+                token=getattr(recent_wo, 'token', None),
+                client_language=getattr(recent_wo, 'client_language', None) or 'fr'
             )
     except Exception as e:
         logger.error(f"Failed to forward UltraMsg client message to WhatsApp admin group: {e}")

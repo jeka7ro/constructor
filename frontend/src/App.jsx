@@ -487,6 +487,16 @@ function SmartRedirect() {
     }
 
 
+    // Auto-correct /work-orders/:id if someone clicks an old notification link
+    if (location.startsWith('/work-orders/')) {
+        const qs = window.location.search || '';
+        const idOrToken = location.replace('/work-orders/', '');
+        if (admin) {
+            return <Navigate to={`/admin/work-orders/${idOrToken}${qs}`} replace />
+        }
+        return <Navigate to={`/confirm/${idOrToken}${qs}`} replace />
+    }
+
     // Auto-correct the wrong link I provided to Jordi
     if (location.startsWith('/public/calculator')) {
         const qs = window.location.search || '';

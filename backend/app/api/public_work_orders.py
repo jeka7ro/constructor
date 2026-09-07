@@ -562,7 +562,8 @@ def confirm_work_order(
                 distance_km=dist_km,
                 volumes=list(wo.volumes) if getattr(wo, 'volumes', None) else [],
                 client_language=client_lang,
-                org_id=wo.organization_id
+                org_id=wo.organization_id,
+                token=wo.token
             )
     except Exception as e:
         print(f"Failed to schedule admin quote confirmation WhatsApp alert: {e}")
@@ -741,13 +742,16 @@ def post_public_work_order_message(
         if admin_group_id:
             from app.services.whatsapp_service import send_admin_client_message_whatsapp
             client_phone = getattr(wo, 'client_phone', None) or (wo.client.phone if getattr(wo, 'client', None) else "")
+            client_lang = getattr(wo, 'client_language', None) or 'fr'
             send_admin_client_message_whatsapp(
                 target_id=admin_group_id,
                 client_name=wo.client_name or (wo.client.name if getattr(wo, 'client', None) else "Client"),
                 client_phone=client_phone,
                 message_text=payload.message,
                 quote_number=getattr(wo, 'quote_number', None) or f"DEV-{wo.id[:4]}",
-                wo_id=wo.id
+                wo_id=wo.id,
+                token=wo.token,
+                client_language=client_lang
             )
     except Exception as e:
         logger.error(f"Failed to forward web client message to WhatsApp admin group: {e}")
