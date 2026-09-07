@@ -5,6 +5,24 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 
 ---
 
+## 2026-09-07 (Notificare WhatsApp la Mesaje Web Client & Rezolvare Robustă Telefon Client)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("ok").
+
+### Context & Problemă:
+- Când un client trimitea un mesaj din pagina publică de deviz (`POST /public/work-orders/{token}/messages`), mesajul se salva în DB cu `sender: "client"`, dar nu trimitea nicio notificare către admin pe WhatsApp.
+- În plus, când adminul trimitea mesaje din panou, codul căuta telefonul clientului doar pe comanda curentă (`wo.client_phone`), ignorând `wo.client.phone` dacă pe comandă câmpul era gol.
+
+### Modificări Efectuate:
+1. **Notificare WhatsApp pentru Mesaje Web de la Client (`public_work_orders.py`):**
+   - Conectat `send_admin_client_message_whatsapp` la primirea unui mesaj public pe endpoint-ul `/public/work-orders/{token}/messages`.
+   - Când un client trimite un mesaj din interfața web, acesta este redirecționat instant în grupul oficial WhatsApp de administratori cu numele, devizul, mesajul, buton direct de răspuns pe WhatsApp și link către comanda din aplicație.
+2. **Rezolvare Dinamică Telefon & Email Client (`admin_work_orders.py`):**
+   - Înlocuit citirea rigidă `getattr(wo, 'client_phone', None)` cu rezolvare dinamică cu fallback: `wo.client_phone or (wo.client.phone if getattr(wo, 'client', None) else None)` fără a forța sau hardcoda niciun prefix.
+   - Aplicat același fallback robust pentru emailul clientului la trimiterea notificărilor de chat.
+
+---
+
 ## 2026-09-07 (Corectare Culoare Tenant & Stil Deviz: Anteturi Chape/Isolation și Caseta TOTAL Negre cu Text Galben Logo Davide Chape, Eliminare Mențiuni HTVA/TVAC)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Aprobat explicit de Utilizator ("ok. hai sa facem push!!!!!!").

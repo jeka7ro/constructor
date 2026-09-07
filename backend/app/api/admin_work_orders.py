@@ -2994,7 +2994,7 @@ def get_work_order_messages(
             "attachments": m.attachments or [],
             "is_hidden": m.is_hidden,
             "is_read_by_admin": m.is_read_by_admin,
-            "delivery_channel": (m.translations or {}).get("_delivery_channel", "whatsapp" if (m.translations or {}).get("_wamid") else ("email" if m.sender == "admin" and not getattr(wo, 'client_phone', None) else ("whatsapp" if m.sender == "admin" else None))),
+            "delivery_channel": (m.translations or {}).get("_delivery_channel", "whatsapp" if (m.translations or {}).get("_wamid") else ("email" if m.sender == "admin" and not (getattr(wo, 'client_phone', None) or (wo.client.phone if getattr(wo, 'client', None) else None)) else ("whatsapp" if m.sender == "admin" else None))),
             "delivery_status": (m.translations or {}).get("_delivery_status", "read" if m.sender != "admin" else "sent"),
             "wamid": (m.translations or {}).get("_wamid")
         } for m in messages if m.message != '[reaction]'
@@ -3108,7 +3108,7 @@ def post_work_order_message(
     delivery_channel = "chat"
     delivery_status = "sent"
 
-    client_phone = getattr(wo, 'client_phone', None)
+    client_phone = getattr(wo, 'client_phone', None) or (wo.client.phone if getattr(wo, 'client', None) else None)
     if client_phone:
         try:
             from app.services.whatsapp_service import send_chat_text_whatsapp, send_chat_attachment_whatsapp
@@ -3156,7 +3156,8 @@ def post_work_order_message(
     if not whatsapp_sent:
         delivery_channel = "email"
         delivery_status = "email_sent"
-        if wo.client_email:
+        client_email = getattr(wo, 'client_email', None) or (wo.client.email if getattr(wo, 'client', None) else None)
+        if client_email:
             try:
                 from app.services.email_service import send_chat_notification_email
                 import os
@@ -3165,14 +3166,14 @@ def post_work_order_message(
                 chat_url = f"{frontend_url}/public/proforma/{wo.token}?lang={client_lang}"
                 
                 send_chat_notification_email(
-                    to_email=wo.client_email,
-                    client_name=getattr(wo, 'client_name', 'Client') or 'Client',
+                    to_email=client_email,
+                    client_name=getattr(wo, 'client_name', 'Client') or (wo.client.name if getattr(wo, 'client', None) else 'Client'),
                     client_language=client_lang,
                     chat_url=chat_url,
                     org_id=wo.organization_id,
                     wo_id=wo.id
                 )
-                logger.info(f"Fallback email successfully sent to {wo.client_email}")
+                logger.info(f"Fallback email successfully sent to {client_email}")
             except Exception as e:
                 logger.error(f"Failed to send fallback chat email: {e}")
 

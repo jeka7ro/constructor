@@ -17,6 +17,9 @@ from app.models import WorkOrder, Organization, User, WorkOrderPhoto, TeamMember
 from app.storage import get_file_url, upload_file, get_content_type
 from app.api.auth import get_current_user
 import requests as _req
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -732,6 +735,23 @@ def post_public_work_order_message(
     db.commit()
     db.refresh(msg)
     
+    # Forward notification to company WhatsApp group (Davide Chape APP)
+    try:
+        admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
+        if admin_group_id:
+            from app.services.whatsapp_service import send_admin_client_message_whatsapp
+            client_phone = getattr(wo, 'client_phone', None) or (wo.client.phone if getattr(wo, 'client', None) else "")
+            send_admin_client_message_whatsapp(
+                target_id=admin_group_id,
+                client_name=wo.client_name or (wo.client.name if getattr(wo, 'client', None) else "Client"),
+                client_phone=client_phone,
+                message_text=payload.message,
+                quote_number=getattr(wo, 'quote_number', None) or f"DEV-{wo.id[:4]}",
+                wo_id=wo.id
+            )
+    except Exception as e:
+        logger.error(f"Failed to forward web client message to WhatsApp admin group: {e}")
+
     return {
         "id": msg.id,
         "sender": msg.sender,
