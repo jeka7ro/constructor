@@ -338,7 +338,7 @@ def format_volumes_and_materials(volumes: list) -> list:
 
     # --- CATEGORY 1: ȘAPĂ ---
     if chape_vols:
-        chape_lines = ["🧱 *ȘAPĂ:*"]
+        chape_lines = ["🏠 *ȘAPĂ:*"]
         total_chape_m2 = 0.0
         foil_m2 = 0.0
         mesh_m2 = 0.0
@@ -406,33 +406,33 @@ def format_volumes_and_materials(volumes: list) -> list:
 
     # --- CATEGORY 2: IZOLAȚIE ---
     if iso_vols:
-        iso_lines = ["🛡️ *IZOLAȚIE:*"]
+        iso_lines = ["☀️ *IZOLAȚIE:*"]
         total_iso_m2 = 0.0
-        pur_idx = 0
-        eps_idx = 0
-        pur_options = []
 
-        for idx, v in enumerate(iso_vols):
-            label = str(v.get("label") or "").strip()
-            try:
-                qty = float(v.get("quantity") or 0)
-            except (ValueError, TypeError):
-                qty = 0.0
-            try:
-                thick = float(v.get("thickness") or 0)
-            except (ValueError, TypeError):
-                thick = 0.0
-            unit = str(v.get("unit") or "m²").strip()
+        other_iso_vols = [v for v in iso_vols if v not in pur_vols and v not in eps_vols]
 
-            thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
-            is_pur = "pur" in label.lower() or "pur" in str(v.get("type", "")).lower()
-            is_eps = "eps" in label.lower() or "eps" in str(v.get("type", "")).lower()
+        # 1. PUR Section
+        if pur_vols:
+            pur_options = []
+            iso_lines.append("🟡 *Izolație PUR (Spumă):*")
+            total_pur_m2 = 0.0
+            for idx, v in enumerate(pur_vols):
+                try:
+                    qty = float(v.get("quantity") or 0)
+                except (ValueError, TypeError):
+                    qty = 0.0
+                try:
+                    thick = float(v.get("thickness") or 0)
+                except (ValueError, TypeError):
+                    thick = 0.0
+                unit = str(v.get("unit") or "m²").strip()
+                thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
+                pur_lbl = f"Strat PUR {idx + 1}" if has_multiple_pur else "Suprafață"
+                iso_lines.append(f"• {pur_lbl}: {qty:.0f} {unit} x {thick_str} cm")
+                total_pur_m2 += qty
+                total_iso_m2 += qty
 
-            if is_pur:
-                pur_idx += 1
-                pur_lbl = f"Izolație PUR {pur_idx}" if has_multiple_pur else "Izolație PUR"
-                iso_lines.append(f"• {pur_lbl}: {qty:.0f} m² x {thick_str} cm")
-                pfx = f"{pur_lbl} - " if has_multiple_pur else ""
+                pfx = f"PUR {idx + 1} - " if has_multiple_pur else ""
                 if v.get("pur_aspiration") or v.get("isolation_pur_aspiration"):
                     pur_options.append(f"{pfx}Aspirare suport")
                 if v.get("pur_niveller") or v.get("isolation_pur_niveller"):
@@ -441,23 +441,57 @@ def format_volumes_and_materials(volumes: list) -> list:
                     pur_options.append(f"{pfx}Șlefuire spumă (Ponçage)")
                 if v.get("pur_protection") or v.get("isolation_pur_protection"):
                     pur_options.append(f"{pfx}Protecție peste 1M")
-            elif is_eps:
-                eps_idx += 1
-                eps_lbl = f"Izolație EPS {eps_idx}" if has_multiple_eps else "Izolație EPS"
-                iso_lines.append(f"• {eps_lbl}: {qty:.0f} m² x {thick_str} cm")
-            else:
-                iso_lbl = f"Izolație {idx + 1}" if has_multiple_iso else "Izolație"
-                iso_lines.append(f"• {iso_lbl}: {qty:.0f} {unit} x {thick_str} cm")
 
-            total_iso_m2 += qty
+            if has_multiple_pur and total_pur_m2 > 0:
+                iso_lines.append(f"➡️ *Total suprafață PUR:* {total_pur_m2:.0f} m²")
 
-        if has_multiple_iso and total_iso_m2 > 0:
-            iso_lines.append(f"➡️ *Total suprafață izolație:* {total_iso_m2:.0f} m²")
+            if pur_options:
+                iso_lines.append("📋 *Opțiuni PUR bifate:*")
+                for opt in pur_options:
+                    iso_lines.append(f"✅ Opțiune PUR - {opt}: Da" if not opt.startswith("Opțiune PUR") and " - " not in opt else f"✅ {opt}: Da")
 
-        if pur_options:
-            iso_lines.append("📋 *Opțiuni izolație:*")
-            for opt in pur_options:
-                iso_lines.append(f"✅ {opt}: Da")
+        # 2. EPS Section
+        if eps_vols:
+            iso_lines.append("⚪ *Izolație EPS (Plăci):*")
+            total_eps_m2 = 0.0
+            for idx, v in enumerate(eps_vols):
+                try:
+                    qty = float(v.get("quantity") or 0)
+                except (ValueError, TypeError):
+                    qty = 0.0
+                try:
+                    thick = float(v.get("thickness") or 0)
+                except (ValueError, TypeError):
+                    thick = 0.0
+                unit = str(v.get("unit") or "m²").strip()
+                thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
+                eps_lbl = f"Strat EPS {idx + 1}" if has_multiple_eps else "Suprafață"
+                iso_lines.append(f"• {eps_lbl}: {qty:.0f} {unit} x {thick_str} cm")
+                total_eps_m2 += qty
+                total_iso_m2 += qty
+
+            if has_multiple_eps and total_eps_m2 > 0:
+                iso_lines.append(f"➡️ *Total suprafață EPS:* {total_eps_m2:.0f} m²")
+
+        # 3. Other generic isolation (if any)
+        if other_iso_vols:
+            for idx, v in enumerate(other_iso_vols):
+                label = str(v.get("label") or "Izolație").strip()
+                try:
+                    qty = float(v.get("quantity") or 0)
+                except (ValueError, TypeError):
+                    qty = 0.0
+                try:
+                    thick = float(v.get("thickness") or 0)
+                except (ValueError, TypeError):
+                    thick = 0.0
+                unit = str(v.get("unit") or "m²").strip()
+                thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
+                iso_lines.append(f"• {label}: {qty:.0f} {unit} x {thick_str} cm")
+                total_iso_m2 += qty
+
+        if (len(pur_vols) + len(eps_vols) + len(other_iso_vols)) > 1 and total_iso_m2 > 0 and (pur_vols and eps_vols):
+            iso_lines.append(f"➡️ *Total cumulat izolație:* {total_iso_m2:.0f} m²")
 
         blocks.append(iso_lines)
 

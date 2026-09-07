@@ -29,6 +29,11 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 5. **Iconițe Galbene în Cercuri Negre (Client, Telefon, Adresă, Email) în Antet (`DevisView.jsx`):**
    - Iconițele Lucide (`User`, `Phone`, `MapPin`, `Mail`) sunt stilizate ca ecusoane rotunde negre (`w-5 h-5 rounded-full bg-slate-900`), cu iconița în galbenul logo-ului (`#F7CA31`) centrată în interior.
    - Ambele carduri (`CLIENT` și `CHANTIER / ADRESSE`) au acum câte două rânduri complet simetrice, cu ecuson și text, oferind un design unitar și premium cu anteturile negre și caseta TOTAL.
+6. **Actualizare Iconițe Alerte WhatsApp (`whatsapp_service.py`):**
+   - Înlocuit `🧱` cu `🏠` pentru `🏠 *ȘAPĂ:*`.
+   - Înlocuit `🛡️` cu `☀️` pentru `☀️ *IZOLAȚIE:*`.
+7. **Separare PUR de EPS în Alerte WhatsApp (`whatsapp_service.py`):**
+   - În cadrul secțiunii `☀️ *IZOLAȚIE:*`, volumele și opțiunile sunt grupate dedicat pe sub-blocuri: `🟡 *Izolație PUR (Spumă):*` (cu suprafețe și lista de opțiuni bifate) și `⚪ *Izolație EPS (Plăci):*`. Dacă ambele sunt prezente, se afișează și `➡️ *Total cumulat izolație:* X m²`.
 
 ---
 
