@@ -2177,8 +2177,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                     </span>
                                                                 )
                                                             ) : null}
-                                                            <span className="truncate max-w-[150px] md:max-w-[200px]">
-                                                                {msg.sender === 'client' ? wo?.client_name : (msg.sender === 'admin' ? (wo?.client_language === 'nl' || wo?.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape') : t('admin.system', 'Sistem'))}
+                                                            <span className="truncate max-w-[220px] md:max-w-[320px] font-semibold">
+                                                                {msg.sender === 'client' ? wo?.client_name : (msg.sender === 'admin' ? (msg.sender_name || (wo?.client_language === 'nl' || wo?.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape')) : t('admin.system', 'Sistem'))}
                                                             </span>
                                                         </span>
                                                         <div className={`flex items-center gap-1.5 shrink-0 ${isOwn ? 'bg-white/95 dark:bg-white/95 text-slate-700 px-2 py-0.5 rounded-full shadow-xs' : ''}`}>

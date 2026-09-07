@@ -597,8 +597,8 @@ export default function AdminChats() {
                                                                             </span>
                                                                         )
                                                                     ) : null}
-                                                                    <span className="truncate max-w-[150px] md:max-w-[200px]">
-                                                                        {msg.sender === 'client' ? activeWo.client_name : (msg.sender === 'admin' ? (activeWo.client_language === 'nl' || activeWo.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape') : t('admin.system', 'Sistem'))}
+                                                                    <span className="truncate max-w-[220px] md:max-w-[320px] font-semibold">
+                                                                        {msg.sender === 'client' ? activeWo.client_name : (msg.sender === 'admin' ? (msg.sender_name || (activeWo.client_language === 'nl' || activeWo.client_language === 'en' ? 'Team Davide Chape' : 'Equipe Davide Chape')) : t('admin.system', 'Sistem'))}
                                                                     </span>
                                                                 </span>
                                                                 <div className={`flex items-center gap-1.5 shrink-0 ${isOwn ? 'bg-white/95 dark:bg-white/95 text-slate-700 px-2 py-0.5 rounded-full shadow-xs' : ''}`}>

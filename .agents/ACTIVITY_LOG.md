@@ -3,6 +3,24 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-09-07 (Afișare Nume Complet Admin la Trimitere Mesaje Chat Client)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("ok. dar vreau numele complet. nu doar initiale").
+
+### Context & Diagnostic:
+- În panoul de administrare (`AdminChats.jsx` și `WorkOrderDetail.jsx`), când un administrator trimitea un mesaj unui client, mesajul apărea aliniat în dreapta, însă deasupra lui era afișat generic textul `"Equipe Davide Chape"` (sau `"Team Davide Chape"`), fără a se ști cine anume din echipă a trimis acel mesaj.
+- În backend (`admin_work_orders.py`), la crearea mesajului (`post_work_order_message`), câmpul `sender_name` nu era populat cu datele adminului curent (`current_admin.full_name`).
+
+### Modificări Efectuate:
+1. **Salvare și Returnare Nume Complet Admin (`admin_work_orders.py`):**
+   - În `post_work_order_message`, se salvează acum automat `sender_name = current_admin.full_name or "Admin"`.
+   - În răspunsurile API (`post_work_order_message`, `put_work_order_message`, `toggle_work_order_message_visibility`), se returnează câmpul `sender_name`.
+2. **Afișare Nume Complet în UI Admin (`AdminChats.jsx`, `WorkOrderDetail.jsx`):**
+   - Deasupra fiecărui mesaj trimis de un administrator, se afișează numele complet al adminului (`msg.sender_name`, ex: **Eugeniu Cazmal**), alături de pictograma firmei.
+   - Dacă pentru mesajele vechi nu există un `sender_name` salvat, rămâne fallback-ul elegant `Equipe Davide Chape`.
+
+---
+
 ## 2026-09-07 (Rezolvare Linkuri WhatsApp Publice Fără Admin: Link Curat /confirm/{token}?lang={lang} & Redirecționare de Siguranță)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Aprobat explicit de Utilizator ("ds de acord").

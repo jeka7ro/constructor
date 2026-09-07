@@ -3185,6 +3185,7 @@ def post_work_order_message(
     msg = WorkOrderMessage(
         work_order_id=wo.id,
         sender="admin",
+        sender_name=current_admin.full_name or "Admin",
         message=payload.message,
         is_read_by_admin=True,
         translations=translations,
@@ -3197,6 +3198,7 @@ def post_work_order_message(
     return {
         "id": msg.id,
         "sender": msg.sender,
+        "sender_name": msg.sender_name,
         "message": msg.message,
         "created_at": msg.created_at.isoformat() + "Z",
         "translations": msg.translations,
@@ -3309,6 +3311,7 @@ def put_work_order_message(
     return {
         "id": msg.id,
         "sender": msg.sender,
+        "sender_name": getattr(msg, 'sender_name', None),
         "message": msg.message,
         "created_at": msg.created_at.isoformat() + "Z",
         "translations": msg.translations,
@@ -3339,8 +3342,12 @@ def toggle_work_order_message_visibility(
     return {
         "id": msg.id,
         "sender": msg.sender,
+        "sender_name": getattr(msg, 'sender_name', None),
         "message": msg.message,
         "created_at": msg.created_at.isoformat() + "Z",
+        "translations": msg.translations,
+        "reactions": msg.reactions,
+        "attachments": msg.attachments,
         "is_hidden": msg.is_hidden
     }
 
