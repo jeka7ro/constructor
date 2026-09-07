@@ -5,6 +5,58 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
 
 ---
 
+## 2026-09-07 (Corectare Culoare Tenant & Stil Deviz: Anteturi Chape/Isolation și Caseta TOTAL Negre cu Text Galben Logo Davide Chape, Eliminare Mențiuni HTVA/TVAC)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("ok. hai sa facem push!!!!!!").
+
+### Context & Diagnostic:
+- Pe `localhost:5678`, neexistând subdomeniu, `tenantStore.js` returna `null` dacă nu exista un slug salvat în browser.
+- Din această cauză, `tenant` nu se încărca la accesarea link-ului de deviz pe localhost, iar `DevisView.jsx` cădea pe un fallback vechi de culoare `#059669` (verde de smarald) și nu afișa logo-ul SVG Davide Chape. Setările din baza de date au rămas 100% intacte.
+
+### Modificări Efectuate:
+1. **Configurare Tenant pe Localhost (`tenantStore.js`):**
+   - Setat ca fallback-ul pe `localhost` și adrese IP să fie `'davidechape'` în loc de `null`. Astfel, la orice accesare locală se încarcă garantat profilul complet al tenantului (logo SVG Davide Chape, favicon și culoarea oficială `#0a9ccd`).
+2. **Anteturi Negre cu Text Galben Logo Davide Chape pe `CHAPE`, `ISOLATION` și caseta `TOTAL` (`DevisView.jsx`, `ProformaView.jsx`, `pdf_generator.py`):**
+   - Fundalul anteturilor `CHAPE` și `ISOLATION` a fost setat pe negru (`bg-slate-900` / `#0f172a`).
+   - Textul anteturilor este colorat în galbenul de aur exact din logo-ul oficial Davide Chape (`#F7CA31`).
+   - Caseta de `TOTAL` de la final este de asemenea stilizată cu fundal negru (`bg-slate-900` / `#0f172a`) și text galben (`#F7CA31`), realizând o temă vizuală uniformă și elegantă în armonie cu brandul Davide Chape.
+3. **Eliminare mențiuni `(HTVA)` și `(TVAC)` (`DevisView.jsx`, `ProformaView.jsx`, `WorkOrderDetail.jsx`):**
+   - Eliminat `(HTVA)` din `Total Net (HTVA)` -> acum este simplu și curat: `Total Net`.
+   - Eliminat `(TVAC)` din `{T.totalLabel} (TVAC)` -> acum este simplu: `TOTAL`.
+4. **Curățare Căsuță Șantier & Mutare Email (`DevisView.jsx`):**
+   - Eliminat rândul cu suprafața și grosimea primului volum (`Surface: X m² · Ép.: Y cm`) din căsuța `CHANTIER / ADRESSE`, datele fiind specificate complet și detaliat în tabelul de mai jos.
+   - Mutat adresa de email a clientului (`wo.client_email`) în căsuța `CHANTIER / ADRESSE` sub adresa șantierului, lăsând căsuța `CLIENT` curată cu Numele și Telefonul, ambele carduri devenind perfect simetrice.
+5. **Iconițe Galbene în Cercuri Negre (Client, Telefon, Adresă, Email) în Antet (`DevisView.jsx`):**
+   - Iconițele Lucide (`User`, `Phone`, `MapPin`, `Mail`) sunt stilizate ca ecusoane rotunde negre (`w-5 h-5 rounded-full bg-slate-900`), cu iconița în galbenul logo-ului (`#F7CA31`) centrată în interior.
+   - Ambele carduri (`CLIENT` și `CHANTIER / ADRESSE`) au acum câte două rânduri complet simetrice, cu ecuson și text, oferind un design unitar și premium cu anteturile negre și caseta TOTAL.
+
+---
+
+## 2026-09-07 (Reorganizare Deviz PDF & Alertă WhatsApp: Separare Șapă & Izolație pe Categorii + Forfait sub Fibră)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("ok. hai sa facem push!!!!!!").
+
+### Modificări Efectuate:
+1. **Deviz PDF & Vizualizare Client (`DevisView.jsx`, `ProformaView.jsx`, `pricingEngine.js`, `priceCalculator.js`, `pdf_generator.py`):**
+   - **Poziționare Forfait imediat sub Fibră / Duramint:** În `pricingEngine.js` și `priceCalculator.js`, taxa de suprafață mică (`Forfait`) este inserată direct în lista de itemi pentru Șapă (`chapeItems`), imediat după `Fibre / Duramint`, înainte de izolație. Astfel clientul înțelege clar că acest forfait este asociat lucrărilor de șapă.
+   - **Separare Șapă și Izolație în tabel (categorii & subtotaluri):**
+     - Dacă lucrarea conține și șapă și izolație (sau mai multe straturi de șapă/izolație), tabelul generează anteturi de categorie (`CHAPE`, `ISOLATION`) și rânduri de subtotal dedicat (`Sous-total Chape : X.XX €`, `Sous-total Isolation : Y.XX €`).
+     - Subtotalul de șapă include și `Forfait` atunci când acesta se aplică.
+     - Elementele de tip `isHeader` și `isSubtotal` sunt excluse din calculele matematice directe (`net`, `discounts`, TVA) pentru a garanta că totalul general rămâne 100% exact.
+   - **Caseta de total de jos a rămas unificată (standard):** Conform cerinței exprese a utilizatorului (*"la totul nu trrbeui separate din in lucae"*), caseta finală de la baza devizului nu se împarte pe categorii; ea conține în continuare totalul unificat al proiectului (`Total Net (HTVA)`, `TVA`, `TOTAL (TVAC)`).
+   - **Majusculă la `Forfait`:** Corectată traducerea din `forfait` (minusculă) în `Forfait` (majusculă) în dicționarul de limbi `DEVIS_LANG`.
+   - **Sincronizare PDF Generator Backend (`pdf_generator.py`):** Adăugat suport pentru randarea rândurilor `isHeader` și `isSubtotal` în tabelele PDF și inserarea automată a Forfait-ului în secțiunea de șapă dacă itemii sunt generați direct din volume.
+   - **Sincronizare Calcul Cost (`WorkOrderDetail.jsx`):** Secțiunea "Calcul Cost" (Estimare Automată) din pagina de administrare afișează de asemenea anteturile și subtotalurile pe categorii, respectând Regula 3 de Unificare UI vs PDF.
+
+2. **Backend (`whatsapp_service.py`):**
+   - **Nisip sub preț:** Adăugată funcția `calculate_sand_requirement(volumes)` și afișat `🏖️ *Necesar Nisip:* X tone` imediat sub `💰 *Total:*` în `send_admin_new_quote_whatsapp` și `send_admin_quote_confirmed_whatsapp`.
+   - **Separare pe categorii (Șapă vs Izolație):** În `format_volumes_and_materials(volumes)`, suprafețele, grosimile și materialele sunt grupate în două blocuri distincte:
+     - `🧱 *ȘAPĂ:*`: listează fiecare strat de șapă cu formatul `• Șapă 1: {qty} m² x {thick} cm`, totalul de suprafață (`➡️ *Total suprafață șapă:* X m²` dacă sunt mai multe), urmat de materialele specifice (`📋 *Materiale șapă:*`, plasă, folie, fibră etc.).
+     - `🛡️ *IZOLAȚIE:*`: listează fiecare strat de izolație cu formatul `• Izolație PUR 1: {qty} m² x {thick} cm`, totalul de suprafață (`➡️ *Total suprafață izolație:* X m²` dacă sunt mai multe), urmat de opțiunile specifice (`📋 *Opțiuni izolație:*`, aspirare suport, nivelare laser etc.).
+   - Dacă o lucrare conține doar șapă, blocul de izolație nu apare deloc. Dacă o lucrare conține doar izolație, blocul de șapă și necesarul de nisip nu apar.
+
+---
+
 ## 2026-09-05 (WhatsApp Alert: Limbă cu Steag, Eliminare Dublare Nisip & Bifă Verde Individuală PUR)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Aprobat explicit de Utilizator ("ok push").

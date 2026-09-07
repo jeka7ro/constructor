@@ -2696,6 +2696,21 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 )}
                                 <div className="p-4 space-y-2 text-sm">
                                     {quote.items.map((item, idx) => {
+                                        if (item.isHeader) {
+                                            return (
+                                                <div key={idx} className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1 border-b border-slate-200 dark:border-slate-700 pb-1">
+                                                    {item.headerLabel}
+                                                </div>
+                                            );
+                                        }
+                                        if (item.isSubtotal) {
+                                            return (
+                                                <div key={idx} className="flex justify-between font-bold text-slate-800 dark:text-slate-200 py-1.5 px-2 bg-slate-100 dark:bg-slate-800/60 rounded-lg text-xs uppercase tracking-wider my-1">
+                                                    <span>{item.subtotalLabel}</span>
+                                                    <span className="tabular-nums font-black">{item.subtotalAmount.toFixed(2)}&nbsp;EUR</span>
+                                                </div>
+                                            );
+                                        }
                                         const isDiscount = item.type === 'discount';
                                         const isTransport = item.type === 'transport';
                                         const isMinAdj = item.id.startsWith('min_invoice_adj') || item.id === 'pur_min_adj';
@@ -2721,7 +2736,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {/* TVA Auto-calculated */}
                                     <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
-                                            <span>{t('work_order_detail.invoicing.net_htva', 'Total Net (HTVA)')}</span>
+                                            <span>{t('work_order_detail.invoicing.net_htva', 'Total Net')}</span>
                                             <span className="tabular-nums">{autoNet.toFixed(2)}&nbsp;EUR</span>
                                         </div>
                                         
@@ -2880,7 +2895,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {/* TVA Real-calculated */}
                                     <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
-                                            <span>{t('work_order_detail.invoicing.net_htva', 'Total Net (HTVA)')}</span>
+                                            <span>{t('work_order_detail.invoicing.net_htva', 'Total Net')}</span>
                                             <span className="tabular-nums">{realCalc.net.toFixed(2)}&nbsp;EUR</span>
                                         </div>
                                         

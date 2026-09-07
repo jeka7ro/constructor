@@ -25,9 +25,9 @@ const useTenantStore = create(
                 // Check localStorage fallback (for IP access after navigation)
                 const savedSlug = localStorage.getItem('tenant_slug_override')
 
-                // If it's pure localhost or IP, use saved slug or null
+                // If it's pure localhost or IP, use saved slug or fallback to 'davidechape'
                 if (hostname === 'localhost' || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
-                    return savedSlug || null
+                    return savedSlug || 'davidechape'
                 }
                 
                 // Allow *.localhost for testing locally

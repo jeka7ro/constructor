@@ -50,7 +50,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
                 'desc': 'Description Services / Matériaux',
                 'qty': 'Quantité',
                 'price': 'Prix Unitaire',
-                'total': 'Total Net (HTVA)',
+                'total': 'Total Net',
                 'subtotal': 'Sous-total',
                 'base': 'Base de calcul',
                 'vat': 'TVA',
@@ -137,7 +137,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
 
     // Fiscal logic
     const isBelgium = tenant?.country === 'BE'
-    const primaryColor = tenant?.primary_color || '#2563eb'
+    const primaryColor = tenant?.primary_color || '#0a9ccd'
     
     // Apply config or defaults from DB
     const useVat = pData?.useVat ?? wo?.prices?.useVat ?? true
@@ -192,7 +192,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
     if (pData?.items?.length > 0 && isManualOverride) {
         // Admin a modificat manual / Calcul salvat în DB — respectăm exact ce a pus
         items = pData.items;
-        subtotal = items.reduce((s, i) => s + (i.qty * i.price), 0);
+        subtotal = items.reduce((s, i) => (i.isHeader || i.isSubtotal) ? s : s + (i.qty * i.price), 0);
         discountAmount = pData.discountAmount || 0;
         activeDiscountPct = pData.discountPct || 0;
         vatAmount = subtotal * (vatRate / 100);
@@ -208,6 +208,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
         
         // Traduceri FR pentru PDF
         items = nonDiscountItems.map(item => {
+            if (item.isHeader || item.isSubtotal) return item;
             let desc = item.desc;
             if (desc) {
                 desc = desc.replace(/Chape - Baz[aăâ]/gi, 'Pose de chape');
@@ -294,8 +295,17 @@ export default function ProformaView({ workOrderData = null, config = null, work
                     </div>
                     {items.map((item, idx) => (
                         item.isHeader ? (
-                            <div key={item.id || idx} className="grid grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-5 py-2 bg-slate-200/60 rounded-xl border border-slate-200 items-center break-inside-avoid mt-3 first:mt-0">
-                                <div className="col-span-12 text-slate-700 font-black text-[11px] uppercase tracking-widest">{item.headerLabel}</div>
+                            <div key={item.id || idx} className="grid grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 bg-slate-900 rounded-xl items-center break-inside-avoid mt-4 first:mt-0 shadow-xs">
+                                <div className="col-span-12 font-black text-[12px] uppercase tracking-wider" style={{ color: '#F7CA31' }}>{item.headerLabel}</div>
+                            </div>
+                        ) : item.isSubtotal ? (
+                            <div key={item.id || idx} className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-5 py-2.5 bg-slate-100/80 rounded-xl border border-slate-200/80 items-center break-inside-avoid my-1.5 font-bold">
+                                <div className="col-span-9 sm:col-span-10 text-right pr-2 text-slate-600 text-xs sm:text-sm font-semibold uppercase tracking-wider">
+                                    {item.subtotalLabel} :
+                                </div>
+                                <div className="col-span-3 sm:col-span-2 text-right text-slate-900 text-xs sm:text-sm font-black whitespace-nowrap">
+                                    {Number(item.subtotalAmount || 0).toFixed(2)} EUR
+                                </div>
                             </div>
                         ) : (
                         <div key={item.id || idx} className="grid grid-cols-12 gap-4 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid mt-1">
@@ -362,7 +372,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
                                 )}
                             </>
                         )}
-                        <div className="flex justify-between py-3 px-4 rounded-xl mt-2 font-black text-white text-base" style={{ backgroundColor: primaryColor }}>
+                        <div className="flex justify-between py-3 px-4 rounded-xl mt-2 font-black text-base bg-slate-900" style={{ color: '#F7CA31' }}>
                             <span>{tL('total_label', 'Total :')}</span>
                             <span>{totalAmount.toFixed(2)} EUR</span>
                         </div>

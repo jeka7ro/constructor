@@ -279,55 +279,18 @@ def send_planning_update_whatsapp(phone_number: str, client_name: str, client_la
         return False
 
 
-def format_volumes_and_materials(volumes: list) -> list:
-    """Formats surfaces, thicknesses, and client-selected materials/options from volumes array."""
+def calculate_sand_requirement(volumes: list) -> str:
+    """Calculates sand requirement in tons strictly for chape volumes."""
     if not volumes or not isinstance(volumes, list):
-        return []
-
-    lines = []
-    surf_lines = []
-    
-    total_chape_m2 = 0.0
+        return ""
     total_sand_kg = 0.0
-    
-    has_foil = False
-    has_mesh = False
-    has_fiber = False
-    has_sound_insulation = False
-    has_floor_heating_add = False
-    foil_m2 = 0.0
-    mesh_m2 = 0.0
-    
-    pur_options = []
-
-    # Count how many volumes exist per category
-    chape_vols = [
-        v for v in volumes if isinstance(v, dict) and 
-        "pur" not in str(v.get("label", "")).lower() and "pur" not in str(v.get("type", "")).lower() and
-        "eps" not in str(v.get("label", "")).lower() and "eps" not in str(v.get("type", "")).lower()
-    ]
-    has_multiple_chape = len(chape_vols) > 1
-
-    pur_vols = [
-        v for v in volumes if isinstance(v, dict) and 
-        ("pur" in str(v.get("label", "")).lower() or "pur" in str(v.get("type", "")).lower())
-    ]
-    has_multiple_pur = len(pur_vols) > 1
-
-    eps_vols = [
-        v for v in volumes if isinstance(v, dict) and 
-        ("eps" in str(v.get("label", "")).lower() or "eps" in str(v.get("type", "")).lower())
-    ]
-    has_multiple_eps = len(eps_vols) > 1
-
-    chape_idx = 0
-    pur_idx = 0
-    eps_idx = 0
     for v in volumes:
         if not isinstance(v, dict):
             continue
-            
-        label = str(v.get("label") or "").strip()
+        label = str(v.get("label") or "").strip().lower()
+        v_type = str(v.get("type") or "").strip().lower()
+        if "pur" in label or "pur" in v_type or "eps" in label or "eps" in v_type or "isol" in label or "isol" in v_type:
+            continue
         try:
             qty = float(v.get("quantity") or 0)
         except (ValueError, TypeError):
@@ -336,45 +299,77 @@ def format_volumes_and_materials(volumes: list) -> list:
             thick = float(v.get("thickness") or 0)
         except (ValueError, TypeError):
             thick = 0.0
-        unit = str(v.get("unit") or "m²").strip()
-        
-        is_pur = "pur" in label.lower() or "pur" in str(v.get("type", "")).lower()
-        is_eps = "eps" in label.lower() or "eps" in str(v.get("type", "")).lower()
-        
-        if is_pur:
-            pur_idx += 1
-            pur_lbl = f"Izolație PUR {pur_idx}" if has_multiple_pur else "Izolație PUR"
-            thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
-            surf_lines.append(f"• {pur_lbl}: {qty:.0f} m² | Grosime: {thick_str} cm")
-            pfx = f"{pur_lbl} - " if has_multiple_pur else "Opțiune PUR - "
-            if v.get("pur_aspiration") or v.get("isolation_pur_aspiration"):
-                pur_options.append(f"{pfx}Aspirare suport")
-            if v.get("pur_niveller") or v.get("isolation_pur_niveller"):
-                pur_options.append(f"{pfx}Nivelare laser")
-            if v.get("pur_poncage") or v.get("isolation_pur_poncage"):
-                pur_options.append(f"{pfx}Șlefuire spumă (Ponçage)")
-            if v.get("pur_protection") or v.get("isolation_pur_protection"):
-                pur_options.append(f"{pfx}Protecție peste 1M")
-        elif is_eps:
-            eps_idx += 1
-            eps_lbl = f"Izolație EPS {eps_idx}" if has_multiple_eps else "Izolație EPS"
-            thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
-            surf_lines.append(f"• {eps_lbl}: {qty:.0f} m² | Grosime: {thick_str} cm")
-        else:
-            chape_idx += 1
+        if qty > 0 and thick > 0:
+            total_sand_kg += (qty * thick * 16)
+    if total_sand_kg > 0:
+        sand_tons = total_sand_kg / 1000.0
+        sand_tons_str = f"{sand_tons:.1f}" if round(sand_tons, 1) == round(sand_tons, 2) else f"{sand_tons:.2f}"
+        return sand_tons_str
+    return ""
+
+
+def format_volumes_and_materials(volumes: list) -> list:
+    """Formats surfaces, thicknesses, and client-selected materials/options grouped by category (Șapă, Izolație)."""
+    if not volumes or not isinstance(volumes, list):
+        return []
+
+    chape_vols = [
+        v for v in volumes if isinstance(v, dict) and 
+        "pur" not in str(v.get("label", "")).lower() and "pur" not in str(v.get("type", "")).lower() and
+        "eps" not in str(v.get("label", "")).lower() and "eps" not in str(v.get("type", "")).lower() and
+        "isol" not in str(v.get("label", "")).lower() and "isol" not in str(v.get("type", "")).lower()
+    ]
+    iso_vols = [
+        v for v in volumes if isinstance(v, dict) and (
+            "pur" in str(v.get("label", "")).lower() or "pur" in str(v.get("type", "")).lower() or
+            "eps" in str(v.get("label", "")).lower() or "eps" in str(v.get("type", "")).lower() or
+            "isol" in str(v.get("label", "")).lower() or "isol" in str(v.get("type", "")).lower()
+        )
+    ]
+
+    has_multiple_chape = len(chape_vols) > 1
+    pur_vols = [v for v in iso_vols if "pur" in str(v.get("label", "")).lower() or "pur" in str(v.get("type", "")).lower()]
+    eps_vols = [v for v in iso_vols if "eps" in str(v.get("label", "")).lower() or "eps" in str(v.get("type", "")).lower()]
+    has_multiple_pur = len(pur_vols) > 1
+    has_multiple_eps = len(eps_vols) > 1
+    has_multiple_iso = len(iso_vols) > 1
+
+    blocks = []
+
+    # --- CATEGORY 1: ȘAPĂ ---
+    if chape_vols:
+        chape_lines = ["🧱 *ȘAPĂ:*"]
+        total_chape_m2 = 0.0
+        foil_m2 = 0.0
+        mesh_m2 = 0.0
+        has_foil = False
+        has_mesh = False
+        has_fiber = False
+        has_sound_insulation = False
+        has_floor_heating_add = False
+
+        for idx, v in enumerate(chape_vols):
+            label = str(v.get("label") or "").strip()
+            try:
+                qty = float(v.get("quantity") or 0)
+            except (ValueError, TypeError):
+                qty = 0.0
+            try:
+                thick = float(v.get("thickness") or 0)
+            except (ValueError, TypeError):
+                thick = 0.0
+            unit = str(v.get("unit") or "m²").strip()
+
             clean_label = label
             if label.isdigit():
                 clean_label = f"Șapă {label}" if has_multiple_chape else "Șapă"
             elif not label or label.lower() in ["chape", "șapă", "sapa"] or label.lower().startswith("chape ") or label.lower().startswith("șapă ") or label.lower().startswith("sapa "):
-                clean_label = f"Șapă {chape_idx}" if has_multiple_chape else "Șapă"
-            
+                clean_label = f"Șapă {idx + 1}" if has_multiple_chape else "Șapă"
+
             thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
-            surf_lines.append(f"• {clean_label}: {qty:.0f} {unit} | Grosime: {thick_str} cm")
-            
+            chape_lines.append(f"• {clean_label}: {qty:.0f} {unit} x {thick_str} cm")
             total_chape_m2 += qty
-            if qty > 0 and thick > 0:
-                total_sand_kg += (qty * thick * 16)
-            
+
             if v.get("has_foil"):
                 has_foil = True
                 foil_m2 += qty
@@ -388,40 +383,91 @@ def format_volumes_and_materials(volumes: list) -> list:
             if v.get("has_floor_heating_add"):
                 has_floor_heating_add = True
 
-    if not surf_lines:
-        return []
+        if has_multiple_chape and total_chape_m2 > 0:
+            chape_lines.append(f"➡️ *Total suprafață șapă:* {total_chape_m2:.0f} m²")
 
-    lines.append("📐 *Suprafețe & Grosime:*")
-    lines.extend(surf_lines)
-    if has_multiple_chape and total_chape_m2 > 0:
-        lines.append(f"➡️ *Total suprafață șapă:* {total_chape_m2:.0f} m²")
-    if total_sand_kg > 0:
-        sand_tons = total_sand_kg / 1000.0
-        sand_tons_str = f"{sand_tons:.1f}" if round(sand_tons, 1) == round(sand_tons, 2) else f"{sand_tons:.2f}"
-        lines.append(f"🏖️ *Necesar Nisip:* {sand_tons_str} tone")
+        chape_mat_lines = []
+        if has_mesh:
+            chape_mat_lines.append(f"✅ Plasă armare (Treillis): Da (~{mesh_m2:.0f} m²)")
+        if has_foil:
+            chape_mat_lines.append(f"✅ Folie PE (Film): Da (~{foil_m2:.0f} m²)")
+        if has_fiber:
+            chape_mat_lines.append("✅ Fibră / Duramint: Da")
+        if has_sound_insulation:
+            chape_mat_lines.append("✅ Izolație acustică: Da")
+        if has_floor_heating_add:
+            chape_mat_lines.append("✅ Additiv încălzire pardoseală: Da")
 
-    # Materiale și opțiuni bifate de client în deviz
-    mat_lines = []
-    if has_mesh:
-        mat_lines.append(f"✅ Plasă armare (Treillis): Da (~{mesh_m2:.0f} m²)")
-    if has_foil:
-        mat_lines.append(f"✅ Folie PE (Film): Da (~{foil_m2:.0f} m²)")
-    if has_fiber:
-        mat_lines.append("✅ Fibră / Duramint: Da")
-    if has_sound_insulation:
-        mat_lines.append("✅ Izolație acustică: Da")
-    if has_floor_heating_add:
-        mat_lines.append("✅ Additiv încălzire pardoseală: Da")
-    if pur_options:
-        for opt in pur_options:
-            mat_lines.append(f"✅ {opt}: Da")
+        if chape_mat_lines:
+            chape_lines.append("📋 *Materiale șapă:*")
+            chape_lines.extend(chape_mat_lines)
 
-    if mat_lines:
-        lines.append("")
-        lines.append("📋 *Materiale & Opțiuni bifate:*")
-        lines.extend(mat_lines)
+        blocks.append(chape_lines)
 
-    return lines
+    # --- CATEGORY 2: IZOLAȚIE ---
+    if iso_vols:
+        iso_lines = ["🛡️ *IZOLAȚIE:*"]
+        total_iso_m2 = 0.0
+        pur_idx = 0
+        eps_idx = 0
+        pur_options = []
+
+        for idx, v in enumerate(iso_vols):
+            label = str(v.get("label") or "").strip()
+            try:
+                qty = float(v.get("quantity") or 0)
+            except (ValueError, TypeError):
+                qty = 0.0
+            try:
+                thick = float(v.get("thickness") or 0)
+            except (ValueError, TypeError):
+                thick = 0.0
+            unit = str(v.get("unit") or "m²").strip()
+
+            thick_str = f"{thick:.1f}" if thick % 1 != 0 else f"{thick:.0f}"
+            is_pur = "pur" in label.lower() or "pur" in str(v.get("type", "")).lower()
+            is_eps = "eps" in label.lower() or "eps" in str(v.get("type", "")).lower()
+
+            if is_pur:
+                pur_idx += 1
+                pur_lbl = f"Izolație PUR {pur_idx}" if has_multiple_pur else "Izolație PUR"
+                iso_lines.append(f"• {pur_lbl}: {qty:.0f} m² x {thick_str} cm")
+                pfx = f"{pur_lbl} - " if has_multiple_pur else ""
+                if v.get("pur_aspiration") or v.get("isolation_pur_aspiration"):
+                    pur_options.append(f"{pfx}Aspirare suport")
+                if v.get("pur_niveller") or v.get("isolation_pur_niveller"):
+                    pur_options.append(f"{pfx}Nivelare laser")
+                if v.get("pur_poncage") or v.get("isolation_pur_poncage"):
+                    pur_options.append(f"{pfx}Șlefuire spumă (Ponçage)")
+                if v.get("pur_protection") or v.get("isolation_pur_protection"):
+                    pur_options.append(f"{pfx}Protecție peste 1M")
+            elif is_eps:
+                eps_idx += 1
+                eps_lbl = f"Izolație EPS {eps_idx}" if has_multiple_eps else "Izolație EPS"
+                iso_lines.append(f"• {eps_lbl}: {qty:.0f} m² x {thick_str} cm")
+            else:
+                iso_lbl = f"Izolație {idx + 1}" if has_multiple_iso else "Izolație"
+                iso_lines.append(f"• {iso_lbl}: {qty:.0f} {unit} x {thick_str} cm")
+
+            total_iso_m2 += qty
+
+        if has_multiple_iso and total_iso_m2 > 0:
+            iso_lines.append(f"➡️ *Total suprafață izolație:* {total_iso_m2:.0f} m²")
+
+        if pur_options:
+            iso_lines.append("📋 *Opțiuni izolație:*")
+            for opt in pur_options:
+                iso_lines.append(f"✅ {opt}: Da")
+
+        blocks.append(iso_lines)
+
+    result = []
+    for i, b in enumerate(blocks):
+        if i > 0:
+            result.append("")
+        result.extend(b)
+
+    return result
 
 
 def format_client_language_with_flag(lang_code: str) -> str:
@@ -590,6 +636,10 @@ def send_admin_new_quote_whatsapp(
 
     if total_amount:
         lines.append(f"💰 *Total:* {total_amount}")
+    
+    sand_str = calculate_sand_requirement(volumes)
+    if sand_str:
+        lines.append(f"🏖️ *Necesar Nisip:* {sand_str} tone")
 
     if volumes:
         mat_block = format_volumes_and_materials(volumes)
@@ -679,6 +729,10 @@ def send_admin_quote_confirmed_whatsapp(
         lines.append(f"📅 *Data solicitată de client:* {intervention_date}{avail_str}")
         lines.append("⚠️ *STATUS DATĂ:* Neconfirmată încă! Data este doar o solicitare a clientului.")
         lines.append("👉 *Acțiune:* Davide Chape trebuie să valideze data și să adauge lucrarea în planning.")
+
+    sand_str = calculate_sand_requirement(volumes)
+    if sand_str:
+        lines.append(f"🏖️ *Necesar Nisip:* {sand_str} tone")
 
     if volumes:
         mat_block = format_volumes_and_materials(volumes)

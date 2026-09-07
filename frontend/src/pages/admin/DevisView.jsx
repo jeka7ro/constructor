@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getPrice, buildQuoteItems } from '../../utils/pricingEngine';
-import { Loader2, Printer, ArrowLeft, FileText, Mail } from 'lucide-react'
+import { Loader2, Printer, ArrowLeft, FileText, Mail, Phone, MapPin, User } from 'lucide-react'
 import api from '../../lib/api'
 import { useTenantStore } from '../../store/tenantStore'
 import { useTranslation } from 'react-i18next'
@@ -20,7 +20,11 @@ const DEVIS_LANG = {
         foil: 'Feuille de plastique (Visqueen)',
         mesh: 'Armature (Paillasse)',
         fiber: 'Fibre + Duramint',
-        forfait: 'forfait', travaux: 'Travaux selon devis',
+        forfait: 'Forfait', travaux: 'Travaux selon devis',
+        chapeHeader: 'Chape',
+        isolationHeader: 'Isolation',
+        subtotalChape: 'Sous-total Chape',
+        subtotalIsolation: 'Sous-total Isolation',
         signClient: 'Cachet / Signature',
         purBase: (cm) => `Isolation PUR ${cm} cm`,
         aspiration: 'Aspiration',
@@ -42,7 +46,11 @@ const DEVIS_LANG = {
         foil: 'Plastic sheet (Visqueen)',
         mesh: 'Reinforcement mesh',
         fiber: 'Fibre + Duramint',
-        forfait: 'lump sum', travaux: 'Works per quote',
+        forfait: 'Forfait', travaux: 'Works per quote',
+        chapeHeader: 'Chape / Screed',
+        isolationHeader: 'Insulation',
+        subtotalChape: 'Subtotal Chape',
+        subtotalIsolation: 'Subtotal Insulation',
         signClient: 'Stamp / Signature',
         purBase: (cm) => `PUR Insulation ${cm} cm`,
         aspiration: 'Aspiration',
@@ -64,7 +72,11 @@ const DEVIS_LANG = {
         foil: 'Plastiekfolie (Visqueen)',
         mesh: 'Wapeningsnet',
         fiber: 'Vezel + Duramint',
-        forfait: 'forfait', travaux: 'Werken volgens offerte',
+        forfait: 'Forfait', travaux: 'Werken volgens offerte',
+        chapeHeader: 'Dekvloer (Chape)',
+        isolationHeader: 'Isolatie',
+        subtotalChape: 'Subtotaal Dekvloer',
+        subtotalIsolation: 'Subtotaal Isolatie',
         signClient: 'Stempel / Handtekening',
         purBase: (cm) => `PUR Isolatie ${cm} cm`,
         aspiration: 'Aspiratie',
@@ -166,7 +178,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         items = wo.proforma_data.items;
         discountPct = wo.proforma_data.discountPct || 0;
         discountAmount = wo.proforma_data.discountAmount || 0;
-        netAfterDiscount = items.reduce((s, i) => i.isHeader ? s : s + (i.qty * i.price), 0);
+        netAfterDiscount = items.reduce((s, i) => (i.isHeader || i.isSubtotal) ? s : s + (i.qty * i.price), 0);
         vatRate = wo.proforma_data.vatRate || 0;
         vatAmount = netAfterDiscount * (vatRate / 100);
         totalGross = netAfterDiscount + vatAmount;
@@ -178,6 +190,24 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         
         // Traduceri FR/NL/EN pentru deviz client
         items = nonDiscountItems.map(item => {
+            if (item.isHeader) {
+                let headerLabel = item.headerLabel;
+                if (item.category === 'chape' || /chape/i.test(item.headerLabel)) {
+                    headerLabel = T.chapeHeader || 'Chape';
+                } else if (item.category === 'isolation' || /isolation/i.test(item.headerLabel)) {
+                    headerLabel = T.isolationHeader || 'Isolation';
+                }
+                return { ...item, headerLabel };
+            }
+            if (item.isSubtotal) {
+                let subtotalLabel = item.subtotalLabel;
+                if (item.category === 'chape' || /chape/i.test(item.subtotalLabel)) {
+                    subtotalLabel = T.subtotalChape || 'Sous-total Chape';
+                } else if (item.category === 'isolation' || /isolation/i.test(item.subtotalLabel)) {
+                    subtotalLabel = T.subtotalIsolation || 'Sous-total Isolation';
+                }
+                return { ...item, subtotalLabel };
+            }
             let desc = item.desc;
             if (desc) {
                 const isChapeBase = item.type === 'chape' && /Base/i.test(desc);
@@ -240,7 +270,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
 
     const devisNum = wo.quote_number || 'DEV 0905'
     const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')
-    const primaryColor = tenant?.primary_color || '#059669'
+    const primaryColor = tenant?.primary_color || '#0a9ccd'
 
     return (
         <div className={(embeddedToken || embedded) ? '' : 'min-h-screen bg-slate-100 print:bg-white'}>
@@ -298,25 +328,53 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-6">
                             <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.client}</div>
-                                <div className="font-bold text-slate-800 break-words">
-                                    {wo.client_id ? (
-                                        <a href={`/admin/clients/${wo.client_id}`} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 transition-colors print:text-slate-800 text-inherit">
-                                            {wo.client_name || '—'}
-                                        </a>
-                                    ) : (
-                                        wo.client_name || '—'
-                                    )}
+                                <div className="font-bold text-slate-800 break-words flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
+                                        <User className="w-2.5 h-2.5" style={{ color: '#F7CA31' }} />
+                                    </div>
+                                    <span>
+                                        {wo.client_id ? (
+                                            <a href={`/admin/clients/${wo.client_id}`} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 transition-colors print:text-slate-800 text-inherit">
+                                                {wo.client_name || '—'}
+                                            </a>
+                                        ) : (
+                                            wo.client_name || '—'
+                                        )}
+                                    </span>
                                 </div>
-                                {wo.client_email && <div className="text-xs text-slate-500 mt-1 break-all">{wo.client_email}</div>}
-                                {(wo.client_phone || wo.client?.phone) && <div className="text-xs text-slate-500 mt-1">{wo.client_phone || wo.client?.phone}</div>}
-                                {wo.client?.address && <div className="text-xs text-slate-500 mt-1 break-words">{wo.client.address}</div>}
+                                {(wo.client_phone || wo.client?.phone) && (
+                                    <div className="text-xs text-slate-600 mt-2 flex items-center gap-2">
+                                        <div className="w-5 h-5 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
+                                            <Phone className="w-2.5 h-2.5" style={{ color: '#F7CA31' }} />
+                                        </div>
+                                        <span>{wo.client_phone || wo.client?.phone}</span>
+                                    </div>
+                                )}
+                                {wo.client?.address && (
+                                    <div className="text-xs text-slate-600 mt-1.5 flex items-center gap-2 break-words">
+                                        <div className="w-5 h-5 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
+                                            <MapPin className="w-2.5 h-2.5" style={{ color: '#F7CA31' }} />
+                                        </div>
+                                        <span>{wo.client.address}</span>
+                                    </div>
+                                )}
                                 {wo.client_cui && <div className="text-xs text-slate-400 mt-1">N° TVA: {wo.client_cui}</div>}
                             </div>
                             <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.chantier}</div>
-                                <div className="text-sm text-slate-700">{wo.site_address || '—'}</div>
-                                {wo.volumes?.[0]?.quantity && (
-                                    <div className="text-xs text-slate-500 mt-2">{T.surface}: <strong>{wo.volumes[0].quantity} m²</strong>{wo.volumes[0].thickness && <> · {T.ep}: <strong>{wo.volumes[0].thickness} cm</strong></>}</div>
+                                <div className="text-sm text-slate-700 flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
+                                        <MapPin className="w-2.5 h-2.5" style={{ color: '#F7CA31' }} />
+                                    </div>
+                                    <span>{wo.site_address || '—'}</span>
+                                </div>
+                                {wo.client_email && (
+                                    <div className="text-xs text-slate-600 mt-2 flex items-center gap-2 break-all">
+                                        <div className="w-5 h-5 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
+                                            <Mail className="w-2.5 h-2.5" style={{ color: '#F7CA31' }} />
+                                        </div>
+                                        <span>{wo.client_email}</span>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -332,9 +390,18 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                     <div className="col-span-2 text-right">{T.total}</div>
                                 </div>
                                 {items.map((item, i) => (
-                                    item.isHeader ? (
-                                        <div key={i} className="grid grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-5 py-2 bg-slate-200/60 rounded-xl border border-slate-200 items-center break-inside-avoid mt-3 first:mt-0">
-                                            <div className="col-span-12 text-slate-700 font-black text-[11px] uppercase tracking-widest">{item.headerLabel}</div>
+                                     item.isHeader ? (
+                                         <div key={i} className="grid grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 bg-slate-900 rounded-xl items-center break-inside-avoid mt-4 first:mt-0 shadow-xs">
+                                             <div className="col-span-12 font-black text-[12px] uppercase tracking-wider" style={{ color: '#F7CA31' }}>{item.headerLabel}</div>
+                                         </div>
+                                     ) : item.isSubtotal ? (
+                                        <div key={i} className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-5 py-2.5 bg-slate-100/80 rounded-xl border border-slate-200/80 items-center break-inside-avoid my-1.5 font-bold">
+                                            <div className="col-span-9 sm:col-span-10 text-right pr-2 text-slate-600 text-xs sm:text-sm font-semibold uppercase tracking-wider">
+                                                {item.subtotalLabel} :
+                                            </div>
+                                            <div className="col-span-3 sm:col-span-2 text-right text-slate-900 text-xs sm:text-sm font-black whitespace-nowrap">
+                                                {(item.subtotalAmount || 0).toFixed(2)} €
+                                            </div>
                                         </div>
                                     ) : (
                                     <div key={i} className="grid grid-cols-12 gap-2 sm:gap-4 px-2 sm:px-5 py-3 sm:py-4 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100 items-center break-inside-avoid">
@@ -357,7 +424,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                     </div>
                                 )}
                                 <div className="flex justify-between gap-2 py-1 px-4 text-slate-600 font-bold">
-                                    <span>Total Net (HTVA)</span>
+                                    <span>Total Net</span>
                                     <span className="whitespace-nowrap">{netAfterDiscount.toFixed(2)} €</span>
                                 </div>
                                 {vatRate > 0 ? (
@@ -371,8 +438,8 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                         <span className="whitespace-nowrap">0.00 €</span>
                                     </div>
                                 )}
-                                <div className="flex justify-between gap-2 py-3 px-4 rounded-xl mt-2 font-black text-white text-base" style={{ backgroundColor: primaryColor }}>
-                                    <span>{T.totalLabel} (TVAC)</span>
+                                <div className="flex justify-between gap-2 py-3 px-4 rounded-xl mt-2 font-black text-base bg-slate-900" style={{ color: '#F7CA31' }}>
+                                    <span>{T.totalLabel}</span>
                                     <span className="whitespace-nowrap">{totalGross.toFixed(2)} €</span>
                                 </div>
                             </div>
