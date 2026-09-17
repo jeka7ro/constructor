@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip, X, ChevronLeft, ChevronRight, MessageSquare, Send, Trash2, Smile, Edit2 } from 'lucide-react'
+import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip, X, ChevronLeft, ChevronRight, MessageSquare, Send, Trash2, Smile, Edit2, ShieldAlert, ExternalLink } from 'lucide-react'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
@@ -177,7 +177,8 @@ const LANG_DICT = {
         addDocument: 'Add Documents / Plans / Photos',
         communication: 'COMMUNICATION',
         noMessages: 'No messages yet.',
-        writeMessage: 'Write a message...',
+        writeMessage: 'Write to Davide Chape...',
+        you: 'You (Client)',
     },
     fr: {
         workOrder: 'Bon de travail',
@@ -238,7 +239,8 @@ const LANG_DICT = {
         addDocument: 'Ajouter des Documents / Plans / Photos',
         communication: 'COMMUNICATION',
         noMessages: 'Aucun message pour le moment.',
-        writeMessage: 'Écrivez un message...',
+        writeMessage: 'Écrivez à Davide Chape...',
+        you: 'Vous (Client)',
     },
     de: {
         workOrder: 'Arbeitsauftrag',
@@ -292,7 +294,12 @@ const LANG_DICT = {
         rescheduleSubmit: 'Anfrage senden',
         rescheduleSuccess: 'Anfrage erfolgreich gesendet!',
         reschedulePending: 'Sie haben ein anderes Datum angefragt. Unser Team wird Sie kontaktieren.',
-        contactChatToReschedule: 'Wenn Sie dieses Datum ändern möchten, kontaktieren Sie uns bitte über den Chat.'
+        contactChatToReschedule: 'Wenn Sie dieses Datum ändern möchten, kontaktieren Sie uns bitte über den Chat.',
+        addDocument: 'Dokumente / Pläne / Fotos hinzufügen',
+        communication: 'KOMMUNIKATION',
+        noMessages: 'Noch keine Nachrichten.',
+        writeMessage: 'Schreiben Sie an Davide Chape...',
+        you: 'Sie (Kunde)',
     },
     nl: {
         workOrder: 'Werkbon',
@@ -350,7 +357,8 @@ const LANG_DICT = {
         addDocument: 'Documenten / Plannen / Foto\'s toevoegen',
         communication: 'COMMUNICATIE',
         noMessages: 'Nog geen berichten.',
-        writeMessage: 'Schrijf een bericht...',
+        writeMessage: 'Schrijf naar Davide Chape...',
+        you: 'U (Klant)',
     },
     ru: {
         workOrder: 'Заказ-наряд',
@@ -390,7 +398,12 @@ const LANG_DICT = {
         orderNotFound: 'Заказ не найден',
         errorLoading: 'Не удалось получить доступ к заказу. Проверьте подключение к интернету.',
         errorConfirming: 'Ошибка подтверждения. Попробуйте снова.',
-        orderCancelled: 'Этот заказ был отменен.'
+        orderCancelled: 'Этот заказ был отменен.',
+        addDocument: 'Добавить документы / планы / фото',
+        communication: 'СВЯЗЬ',
+        noMessages: 'Нет сообщений.',
+        writeMessage: 'Напишите Davide Chape...',
+        you: 'Вы (Клиент)',
     }
 }
 
@@ -426,6 +439,17 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const initialLang = (urlLang && ['fr', 'nl', 'en', 'de'].includes(urlLang)) ? urlLang : 'fr'
     const [lang, setLang] = useState(initialLang)
     const t = LANG_DICT[lang] || LANG_DICT['fr']
+
+    const isAdminLoggedIn = (() => {
+        try {
+            const adminStorage = localStorage.getItem('admin-storage')
+            if (adminStorage) {
+                const parsed = JSON.parse(adminStorage)
+                return !!parsed.state?.token
+            }
+        } catch (e) {}
+        return false
+    })()
     
     const MODAL_T = {
         fr: {
@@ -1361,6 +1385,26 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             ))}
                         </div>
                     </div>
+                    {isAdminLoggedIn && (
+                        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-amber-900">
+                            <div className="flex items-center gap-2">
+                                <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                                <span>
+                                    <strong>Mode Administrateur :</strong> Vous visualisez la vue client. Pour répondre officiellement et notifier le client sur WhatsApp, écrivez depuis l'Espace Admin.
+                                </span>
+                            </div>
+                            {order?.id && (
+                                <a 
+                                    href={`/admin/chats?wo_id=${order.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] shadow-sm transition-colors"
+                                >
+                                    Ouvrir Admin Chat <ExternalLink className="w-3 h-3" />
+                                </a>
+                            )}
+                        </div>
+                    )}
                     <div ref={chatContainerRef} className="h-64 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
                         {messages.length === 0 ? (
                             <div className="text-center text-slate-400 py-10 text-sm font-semibold">
@@ -1379,6 +1423,21 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 return (
                                 <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative`}>
                                     <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm relative ${isOwn ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
+                                        {!isOwn && (
+                                            <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-slate-100">
+                                                <span className="inline-flex items-center gap-1.5 text-[11px] font-black tracking-wide text-blue-700 uppercase">
+                                                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                                                    Davide Chape
+                                                </span>
+                                            </div>
+                                        )}
+                                        {isOwn && (
+                                            <div className="flex items-center justify-end gap-1 mb-1">
+                                                <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider">
+                                                    {t.you || 'Vous (Client)'}
+                                                </span>
+                                            </div>
+                                        )}
                                         <p className="text-sm whitespace-pre-wrap">{displayMessage}</p>
                                         
                                         {msg.attachments && msg.attachments.length > 0 && (
@@ -1480,7 +1539,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             value={chatMessage}
                             onChange={e => setChatMessage(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                            placeholder={t.writeMessage || 'Write a message...'}
+                            placeholder={t.writeMessage || 'Écrivez à Davide Chape...'}
                             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         />
                         <button

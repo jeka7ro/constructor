@@ -305,6 +305,26 @@ def update_pricing_settings(
     # EPS
     setting.eps_volume_thresholds = payload.eps_volume_thresholds
     
+    # Validate surface thresholds: min < max and no overlap
+    if payload.surface_thresholds:
+        for t in payload.surface_thresholds:
+            min_s = float(t.min_sqm or 0)
+            max_s = float(t.max_sqm or 0)
+            if min_s < 0 or max_s < 0:
+                raise HTTPException(status_code=400, detail="Les surfaces ne peuvent pas être négatives.")
+            if min_s >= max_s:
+                raise HTTPException(status_code=400, detail=f"Le minimum ({min_s} m²) doit être strictement inférieur au maximum ({max_s} m²).")
+
+        sorted_t = sorted(payload.surface_thresholds, key=lambda x: float(x.min_sqm or 0))
+        for i in range(len(sorted_t) - 1):
+            curr_max = float(sorted_t[i].max_sqm or 0)
+            next_min = float(sorted_t[i+1].min_sqm or 0)
+            if next_min <= curr_max:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Chevauchement détecté entre [{sorted_t[i].min_sqm} - {curr_max} m²] et [{next_min} - {sorted_t[i+1].max_sqm} m²]. Les intervalles ne doivent pas se chevaucher (ex: 0-40, 41-60)."
+                )
+
     thresholds = []
     for t in payload.surface_thresholds:
         thresholds.append({

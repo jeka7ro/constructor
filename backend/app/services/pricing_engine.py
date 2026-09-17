@@ -109,13 +109,26 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
     # 4. Thresholds Cost
     hidden_extra = 0.0
     if total_surface > 0:
-        thresholds = pricing.get('surface_thresholds', [])
-        for thresh in thresholds:
-            min_s = float(thresh.get("min_sqm", 0))
-            max_s = float(thresh.get("max_sqm", 999999))
-            if min_s <= total_surface <= max_s:
-                charge = float(thresh.get("extra_charge", 0))
-                hidden_extra += charge
+        thresholds = pricing.get('surface_thresholds', []) or []
+        if isinstance(thresholds, list) and len(thresholds) > 0:
+            sorted_thresh = sorted(thresholds, key=lambda x: float(x.get("min_sqm", 0) or 0))
+            matched_thresh = None
+            for thresh in sorted_thresh:
+                min_s = float(thresh.get("min_sqm", 0) or 0)
+                max_s = float(thresh.get("max_sqm", 999999) or 999999)
+                if min_s <= total_surface < max_s:
+                    matched_thresh = thresh
+                    break
+            if not matched_thresh:
+                for thresh in sorted_thresh:
+                    min_s = float(thresh.get("min_sqm", 0) or 0)
+                    max_s = float(thresh.get("max_sqm", 999999) or 999999)
+                    if min_s <= total_surface <= max_s:
+                        matched_thresh = thresh
+                        break
+            if matched_thresh:
+                charge = float(matched_thresh.get("extra_charge", 0) or 0)
+                hidden_extra = charge
                 if charge > 0:
                     items.append({'label': f'Taxă suprafață mică ({total_surface} m²)', 'quantity': 1, 'unit': 'buc', 'price': charge, 'total': charge})
 
@@ -222,7 +235,14 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
             if eps_cost > 0:
                 items.append({'label': f'{eps_lbl} ({iso_thick} cm)', 'quantity': iso_surface, 'unit': 'm²', 'price': eps_cost / iso_surface if iso_surface > 0 else 0, 'total': eps_cost})
 
-    pur_cost = max(iso_pur_base, float(pricing.get('pur_minimum_execution_price', 1375.0))) + iso_pur_opt_total if has_pur else 0.0
+    pur_gross_before_min = iso_pur_base + iso_pur_opt_total
+    pur_min_price = float(pricing.get('pur_minimum_execution_price', 1375.0))
+    if has_pur and pur_gross_before_min < pur_min_price:
+        pur_adj = pur_min_price - pur_gross_before_min
+        items.append({'label': 'Ajustement minimum PUR', 'quantity': 1, 'unit': 'forfait', 'price': pur_adj, 'total': pur_adj})
+        pur_cost = pur_min_price
+    else:
+        pur_cost = pur_gross_before_min if has_pur else 0.0
 
     # Apply discounts
     pur_discount_pct = float(pricing.get('pur_discount_pct', 0))

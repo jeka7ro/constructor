@@ -1,22 +1,20 @@
-import requests
+import os
 import time
-from sqlalchemy.orm import Session
+import requests
+from dotenv import load_dotenv
 from app.database import SessionLocal
 from app.models import WorkOrder
 
+load_dotenv()
+API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+
 def geocode_address(address: str):
-    if not address:
-        return None, None
-    import os
-    from dotenv import load_dotenv
-    load_dotenv()
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-    if not api_key:
-        print("GOOGLE_MAPS_API_KEY is missing")
+    if not address or not API_KEY or address.strip().lower() == "test address":
         return None, None
         
     url = "https://maps.googleapis.com/maps/api/geocode/json"
-    params = {"address": address, "key": api_key, "region": "ro"}
+    # Filter with Belgium country component to avoid mislocating Belgian streets
+    params = {"address": address, "key": API_KEY, "components": "country:BE"}
     try:
         resp = requests.get(url, params=params, timeout=5)
         if resp.status_code == 200:
@@ -24,38 +22,59 @@ def geocode_address(address: str):
             if data.get("status") == "OK" and data.get("results"):
                 loc = data["results"][0]["geometry"]["location"]
                 return float(loc['lat']), float(loc['lng'])
+            elif data.get("status") == "ZERO_RESULTS":
+                # Fallback without components filter in case country is not strictly BE
+                fallback_resp = requests.get(url, params={"address": address, "key": API_KEY}, timeout=5)
+                if fallback_resp.status_code == 200:
+                    fb_data = fallback_resp.json()
+                    if fb_data.get("status") == "OK" and fb_data.get("results"):
+                        loc = fb_data["results"][0]["geometry"]["location"]
+                        return float(loc['lat']), float(loc['lng'])
     except Exception as e:
         print(f"Error geocoding {address}: {e}")
     return None, None
 
 def main():
+    if not API_KEY:
+        print("GOOGLE_MAPS_API_KEY is missing from environment!")
+        return
+
     db = SessionLocal()
-    wos = db.query(WorkOrder).filter(WorkOrder.site_latitude == None, WorkOrder.site_address != None).all()
-    print(f"Found {len(wos)} orders without coordinates. Geocoding...")
-    
-    count = 0
-    for wo in wos:
-        # Some addresses have typos like Zuidstraat24. Try to fix common ones
-        addr = wo.site_address
-        if "straat" in addr.lower() and any(c.isdigit() for c in addr):
-            # Just let Nominatim try first
-            pass
-            
-        lat, lon = geocode_address(addr)
-        if not lat and "24" in addr and "Zuidstraat" in addr:
-            lat, lon = geocode_address("Zuidstraat 24, Harelbeke")
-            
-        if lat and lon:
-            wo.site_latitude = lat
-            wo.site_longitude = lon
-            count += 1
-            print(f"Geocoded {wo.id} -> {lat}, {lon}")
-        else:
-            print(f"Failed to geocode: {addr}")
-        time.sleep(1.1)  # Respect Nominatim rate limit
+    try:
+        # Only select real work orders that have a site_address but missing coordinates
+        wos = (
+            db.query(WorkOrder)
+            .filter(
+                WorkOrder.site_latitude == None,
+                WorkOrder.site_address != None,
+                WorkOrder.site_address != "",
+                WorkOrder.site_address != "Test Address"
+            )
+            .all()
+        )
+        print(f"Found {len(wos)} orders to geocode.")
         
-    db.commit()
-    print(f"Successfully geocoded {count} orders.")
+        count = 0
+        for i, wo in enumerate(wos):
+            addr = wo.site_address.strip()
+            lat, lon = geocode_address(addr)
+            if lat and lon:
+                wo.site_latitude = lat
+                wo.site_longitude = lon
+                count += 1
+                print(f"[{i+1}/{len(wos)}] Geocoded order {wo.id} ({wo.start_date}): {addr} -> ({lat}, {lon})")
+            else:
+                print(f"[{i+1}/{len(wos)}] Could not locate: {addr}")
+            time.sleep(0.15)  # 150ms delay to prevent rate issues
+            
+        db.commit()
+        print(f"\nDone! Successfully updated {count} out of {len(wos)} orders in database.")
+    except Exception as ex:
+        db.rollback()
+        print(f"Error during geocoding: {ex}")
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     main()
+

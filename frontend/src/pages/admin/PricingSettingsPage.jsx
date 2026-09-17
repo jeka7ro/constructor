@@ -85,14 +85,48 @@ export default function PricingSettingsPage() {
         }
     }
 
+    const validateSurfaceThresholds = (thresholds) => {
+        if (!thresholds || !Array.isArray(thresholds) || thresholds.length === 0) return null;
+        for (let i = 0; i < thresholds.length; i++) {
+            const minS = parseFloat(thresholds[i].min_sqm);
+            const maxS = parseFloat(thresholds[i].max_sqm);
+            if (isNaN(minS) || isNaN(maxS)) {
+                return t('pricing_settings.threshold_nan_error', 'Veuillez saisir des nombres valides pour tous les seuils de surface.');
+            }
+            if (minS < 0 || maxS < 0) {
+                return t('pricing_settings.threshold_negative_error', 'Les surfaces ne peuvent pas être négatives.');
+            }
+            if (minS >= maxS) {
+                return t('pricing_settings.threshold_order_error', `Le minimum (${minS} m²) doit être strictement inférieur au maximum (${maxS} m²).`);
+            }
+        }
+        const sorted = [...thresholds].sort((a, b) => parseFloat(a.min_sqm) - parseFloat(b.min_sqm));
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const currMax = parseFloat(sorted[i].max_sqm);
+            const nextMin = parseFloat(sorted[i + 1].min_sqm);
+            const nextMax = parseFloat(sorted[i + 1].max_sqm);
+            if (nextMin <= currMax) {
+                return t('pricing_settings.threshold_overlap_error', 
+                    `Chevauchement détecté entre [${sorted[i].min_sqm} - ${currMax} m²] et [${nextMin} - ${nextMax} m²]. Les intervalles ne doivent pas se chevaucher (ex: 0-40, 41-60).`);
+            }
+        }
+        return null;
+    };
+
     const handleSaveGlobal = async () => {
+        const thresholdErr = validateSurfaceThresholds(globalSettings.surface_thresholds);
+        if (thresholdErr) {
+            showToast(thresholdErr, 'error');
+            return;
+        }
         try {
             setSavingGlobal(true)
             await api.put('/admin/pricing-settings', { ...globalSettings, client_id: null })
             showToast(t('common.saved_successfully', 'Paramètres globaux enregistrés avec succès!'), 'success')
         } catch (error) {
             console.error("Failed to save global pricing settings:", error)
-            showToast(t('common.error_saving', "Erreur lors de l'enregistrement"), 'error')
+            const serverMsg = error.response?.data?.detail;
+            showToast(serverMsg || t('common.error_saving', "Erreur lors de l'enregistrement"), 'error')
         } finally {
             setSavingGlobal(false)
         }
@@ -100,6 +134,11 @@ export default function PricingSettingsPage() {
 
     const handleSaveClient = async () => {
         if (!editingClientId || !clientSettings) return
+        const thresholdErr = validateSurfaceThresholds(clientSettings.surface_thresholds);
+        if (thresholdErr) {
+            showToast(thresholdErr, 'error');
+            return;
+        }
         try {
             setSavingClient(true)
             await api.put('/admin/pricing-settings', { ...clientSettings, client_id: editingClientId })
@@ -108,7 +147,8 @@ export default function PricingSettingsPage() {
             loadClientsData() // Refresh list of custom clients
         } catch (error) {
             console.error("Failed to save client pricing settings:", error)
-            showToast(t('common.error_saving', "Erreur lors de l'enregistrement"), 'error')
+            const serverMsg = error.response?.data?.detail;
+            showToast(serverMsg || t('common.error_saving', "Erreur lors de l'enregistrement"), 'error')
         } finally {
             setSavingClient(false)
         }

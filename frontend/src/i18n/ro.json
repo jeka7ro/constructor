@@ -110,7 +110,7 @@
         "allocated_trucks": "Camioane Alocate Bazei",
         "no_teams": "Nu există echipe/camioane.",
         "archived": "Arhivă",
-        "incomplete_coords": "Lipsesc detalii de contact",
+        "incomplete_coords": "Coordonate GPS lipsă",
         "recalculate_tooltip": "Recalculați rutele pentru această zi",
         "recalculate": "Recalculați",
         "error_loading_data": "Nu se pot încărca datele.",

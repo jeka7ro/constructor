@@ -143,6 +143,9 @@ export default function PricingSettingsForm({
                                     </div>
                                 ))}
                             </div>
+                            <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 dark:text-slate-400">
+                                {t('pricing_settings.threshold_rule_hint', 'Les intervalles ne doivent pas se chevaucher (ex: 0 à 40 m², puis 41 à 60 m²). Le minimum doit être strictement supérieur au maximum précédent.')}
+                            </div>
                         </div>
 
                         {isCustomClient && (

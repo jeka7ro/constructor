@@ -3,6 +3,80 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-09-17 (Clarificare Vizuală Chat Public & Detecție Sesiune Administrator)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("ok.").
+
+### Context & Diagnostic:
+- În timpul testării paginii publice de confirmare a devizului (`/confirm/:token` / `WorkOrderConfirm.jsx`), s-a creat confuzie la trimiterea mesajelor de chat:
+  1. Testatorul a scris atât din postura de client, cât și încercând să răspundă ca Davide Chape din aceeași căsuță publică de input, determinând ambele mesaje să apară în bule albastre pe partea dreaptă (deoarece pe pagina publică toate mesajele au `sender: 'client'`).
+  2. Grupul oficial de WhatsApp al echipei a fost notificat că un client a trimis două mesaje, iar pe telefonul clientului nu a sosit nimic deoarece răspunsul nu fusese trimis din panoul de administrare (`/admin/chats` sau `/admin/work-orders/:id`).
+  3. Pe bulele primite de la Davide Chape nu exista un antet explicit cu numele expeditorului.
+
+### Modificări & Îmbunătățiri Efectuate:
+1. **Identificare Explicită Expeditor pe Fiecare Mesaj (`WorkOrderConfirm.jsx`):**
+   - Pentru mesajele trimise de Davide Chape (`!isOwn`): afișat ecuson distinctiv `Davide Chape` cu bulină albastră în partea de sus a bulei albe.
+   - Pentru mesajele trimise de client (`isOwn`): afișat indicator subtil `Vous (Client)` / `You (Client)` / `U (Klant)` etc.
+2. **Personalizare Placeholder Căsuță Text (`WorkOrderConfirm.jsx`):**
+   - Placeholder-ul a fost actualizat din generic în *"Écrivez à Davide Chape..."* (respectiv *"Schrijf naar Davide Chape..."*, *"Write to Davide Chape..."*), clarificând utilizatorului cui i se adresează.
+3. **Banner Inteligent Detecție Administrator (`WorkOrderConfirm.jsx`):**
+   - Dacă în browserul curent există o sesiune activă de administrator (`localStorage.getItem('admin-storage')`), deasupra chat-ului se afișează automat un banner informativ:
+     *"Mode Administrateur : Vous visualisez la vue client. Pour répondre officiellement et notifier le client sur WhatsApp, écrivez depuis l'Espace Admin."*
+   - Bannerul include un buton direct de acces: `Ouvrir Admin Chat →` către `/admin/chats?wo_id={order.id}`.
+
+---
+
+## 2026-09-17 (Eliminare Dublu Forfait Deviz DEV1053 și Blocare Salvare Praguri Suprapuse în Tarife)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("da").
+
+### Context & Problemă:
+- Pe devizul `DEV1053` (suprafață șapă de 41 m²), în cardul *Calcul des Coûts* se calculau două taxe forfetare distincte sub Chape: `Forfait: 600.00 EUR` și `Forfait: 500.00 EUR`, totalizând 1100 € în loc de 500 €.
+- Cauza: În pagina de Tarife, pragurile erau introduse cu aceleași limite de graniță: `0–41` (600 €) și `41–61` (500 €). Atât în `pricingEngine.js`, cât și în `pricing_engine.py`, parcurgerea se făcea cu `forEach` / buclă deschisă și condiție `<=` pe ambele capete (`min_s <= surface <= max_s`). Astfel, la 41 m², ambele intervale erau considerate valide și ambele forfetare erau adăugate.
+- De asemenea, sistemul permitea salvarea în Tarife a intervalelor care se suprapun fără nicio avertizare.
+
+### Modificări & Acțiuni Efectuate:
+1. **Motor Calcul Frontend (`frontend/src/utils/pricingEngine.js` și `priceCalculator.js`):**
+   - Înlocuit `thresholds.forEach` cu `.find()`, sortat crescător după `min_sqm`.
+   - Căutare prioritară pe interval semi-deschis: `totalChapeSurface >= minS && totalChapeSurface < maxS` (cu fallback pe `<= maxS` pentru ultimul palier maxim).
+   - Rezultat: Se garantează aplicarea a **cel mult unui singur forfait** per lucrare.
+2. **Motor Calcul Backend (`backend/app/services/pricing_engine.py`):**
+   - Sortat `surface_thresholds` după `min_sqm`, căutare unică cu `break` pe `min_s <= total_surface < max_s`.
+   - Aliniat calculul pentru `pur_minimum_execution_price` pentru a include opțiunile de PUR (`pur_gross_before_min = iso_pur_base + iso_pur_opt_total`), asigurând 100% paritate matematică cu frontend-ul.
+3. **Validare la Salvare în Tarife (`PricingSettingsPage.jsx`, `PricingSettingsForm.jsx`, `admin_pricing.py`):**
+   - Adăugat `validateSurfaceThresholds` în frontend și verificare în endpoint-ul PUT din backend: se verifică `min < max` și lipsa oricărei suprapuneri (`next_min > curr_max`).
+   - În caz de suprapunere (ex: 0-41 și 41-60), salvarea este oprită și se afișează mesajul clar: *"Les intervalles ne doivent pas se chevaucher (ex: 0-40, 41-60)"*.
+   - Adăugat text explicativ în formularul de Tarife.
+4. **Actualizare Deviz DEV1053:**
+   - Sincronizat devizul în baza de date cu noile praguri globale (`0-40`: 600€, `41-60`: 500€, `61-119`: 300€, `120-100000`: 0€) și recalculat `estimated_price = 2592.5` (Total Brut cu 6% TVA = 2748.05 €).
+
+---
+
+## 2026-09-16 (Deblocare Google Maps, Securizare Cote/Buget & Populare Coordonate GPS Lucrări)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Aprobat explicit de Utilizator ("da. vezi sa nu im fai vreun loop sau bug").
+
+### Context & Problemă:
+- Contul de Google Cloud Billing a fost blocat temporar din cauza unei facturi de 64.30$ cauzată în luna august de apeluri intensive către `Directions API`.
+- Din cauza blocării Google Maps API, lucrările create în perioada 15-16 Septembrie au fost salvate fără coordonate GPS (`site_latitude = None`, `site_longitude = None`).
+- Consecințe pe ecranul de Logistică (`/admin/logistica`):
+  1. Traseele celor 7 echipe nu se desenau, afișând `0 km est.`
+  2. Apărea insigna portocalie tradusă eronat ca `"Lipsesc detalii de contact"` (în franceză: `"Coordonnées manquantes"`).
+  3. Rutele afișau fallback de linie dreaptă ("linie aeriană").
+
+### Modificări & Acțiuni Efectuate:
+1. **Securizare & Plafonare Google Cloud (Prevenire Suprataxare):**
+   - Configurat alertă de buget la 10$ cu notificări prin email la 50%, 90% și 100%.
+   - Plafonat cotele zilnice la `1000 requests/day` pentru `Directions API`, `Geocoding API` și `Distance Matrix API` (acoperite complet de creditul gratuit de 200$/lună oferit de Google).
+2. **Populare Coordonate GPS (`backend/geocode_missing.py`):**
+   - Actualizat scriptul pentru filtrare precisă pe adrese din Belgia (`country:BE`).
+   - Rulat scriptul controlat: au fost geocodate și salvate în DB toate cele 79 de comenzi care aveau coordonate lipsă (inclusiv toate comenzile din 15 și 16 Septembrie).
+   - Verificat starea bazei de date: `Remaining missing coordinates: 0`.
+3. **Corecție Traducere (`frontend/src/i18n/ro.json`):**
+   - Înlocuit traducerea eronată `"incomplete_coords": "Lipsesc detalii de contact"` cu `"Coordonate GPS lipsă"`.
+
+---
+
 ## 2026-09-07 (Afișare Nume Complet Admin la Trimitere Mesaje Chat Client)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Aprobat explicit de Utilizator ("ok. dar vreau numele complet. nu doar initiale").

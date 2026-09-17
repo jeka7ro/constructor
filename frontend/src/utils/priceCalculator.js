@@ -198,10 +198,16 @@ export function buildQuoteItems(wo, pricingSettings, options = {}) {
         const thresholds = (p.surface_thresholds && Array.isArray(p.surface_thresholds))
             ? p.surface_thresholds
             : (pricingSettings?.surface_thresholds && Array.isArray(pricingSettings.surface_thresholds) ? pricingSettings.surface_thresholds : null);
-        if (thresholds) {
-            const match = thresholds.find(t =>
-                surfCheck >= parseFloat(t.min_sqm || 0) && surfCheck <= parseFloat(t.max_sqm || 999999)
+        if (thresholds && thresholds.length > 0) {
+            const sorted = [...thresholds].sort((a, b) => parseFloat(a.min_sqm || 0) - parseFloat(b.min_sqm || 0));
+            let match = sorted.find(t =>
+                surfCheck >= parseFloat(t.min_sqm || 0) && surfCheck < parseFloat(t.max_sqm || 999999)
             );
+            if (!match) {
+                match = sorted.find(t =>
+                    surfCheck >= parseFloat(t.min_sqm || 0) && surfCheck <= parseFloat(t.max_sqm || 999999)
+                );
+            }
             if (match) thresholdCharge = parseFloat(match.extra_charge || 0);
         }
     }

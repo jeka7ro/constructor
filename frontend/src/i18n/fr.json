@@ -2751,7 +2751,12 @@
         "truck_distance_sub": "Si trajet (aller simple) > km",
         "truck_price": "Frais de transport (Fixe)",
         "truck_free_surface": "Gratuit pour grande surface",
-        "truck_free_surface_sub": "Pas de frais si surface >"
+        "truck_free_surface_sub": "Pas de frais si surface >",
+        "threshold_rule_hint": "Les intervalles ne doivent pas se chevaucher (ex: 0 à 40 m², puis 41 à 60 m²). Le minimum doit être strictement supérieur au maximum précédent.",
+        "threshold_overlap_error": "Chevauchement détecté entre les paliers de surface. Les intervalles ne doivent pas se chevaucher (ex: 0-40, 41-60).",
+        "threshold_order_error": "Le minimum doit être strictement inférieur au maximum.",
+        "threshold_nan_error": "Veuillez saisir des nombres valides pour tous les seuils de surface.",
+        "threshold_negative_error": "Les surfaces ne peuvent pas être négatives."
     },
     "datatable": {
         "show": "Afficher",

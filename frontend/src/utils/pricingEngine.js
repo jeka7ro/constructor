@@ -284,15 +284,26 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
             const charge = parseFloat(customThreshold) || 0;
             if (charge > 0) chapeItems.push({ id: 'threshold', type: 'chape', desc: 'Forfait', qty: 1, unit: 'Forfait', price: charge });
         } else {
-            const thresholds = woP.surface_thresholds || ps.surface_thresholds || [];
-            thresholds.forEach(thresh => {
-                const minS = parseFloat(thresh.min_sqm || 0);
-                const maxS = parseFloat(thresh.max_sqm || 999999);
-                if (totalChapeSurface >= minS && totalChapeSurface <= maxS) {
-                    const charge = parseFloat(thresh.extra_charge || 0);
-                    if (charge > 0) chapeItems.push({ id: `threshold_${minS}`, type: 'chape', desc: 'Forfait', qty: 1, unit: 'Forfait', price: charge });
+            const rawThresholds = woP.surface_thresholds || ps.surface_thresholds || [];
+            if (Array.isArray(rawThresholds) && rawThresholds.length > 0) {
+                const sorted = [...rawThresholds].sort((a, b) => parseFloat(a.min_sqm || 0) - parseFloat(b.min_sqm || 0));
+                let match = sorted.find(thresh => {
+                    const minS = parseFloat(thresh.min_sqm || 0);
+                    const maxS = parseFloat(thresh.max_sqm || 999999);
+                    return totalChapeSurface >= minS && totalChapeSurface < maxS;
+                });
+                if (!match) {
+                    match = sorted.find(thresh => {
+                        const minS = parseFloat(thresh.min_sqm || 0);
+                        const maxS = parseFloat(thresh.max_sqm || 999999);
+                        return totalChapeSurface >= minS && totalChapeSurface <= maxS;
+                    });
                 }
-            });
+                if (match) {
+                    const charge = parseFloat(match.extra_charge || 0);
+                    if (charge > 0) chapeItems.push({ id: `threshold_${match.min_sqm || 0}`, type: 'chape', desc: 'Forfait', qty: 1, unit: 'Forfait', price: charge });
+                }
+            }
         }
     }
 
