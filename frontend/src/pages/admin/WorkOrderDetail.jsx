@@ -2108,15 +2108,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             )}
                                         </Section>
                 </div>
-                <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-5 h-full">
 
                     <Section 
-                        className="flex-1 flex flex-col min-h-[500px]" 
+                        className="flex-1 flex flex-col min-h-[500px] h-full" 
                         icon={MessageSquare} 
                         title={t('admin.chat_with_client', 'Chat avec le client')}
-                        contentClassName="!p-0 flex flex-col flex-1 h-[500px] max-h-[70vh] relative"
+                        contentClassName="!p-0 flex flex-col flex-1 h-full min-h-0 relative"
                     >
-                        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/50 pb-20">
+                        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/50 min-h-0">
                             {messages.length === 0 ? (
                                 <div className="h-full flex items-center justify-center text-slate-400 text-sm">
                                     {t('admin.no_messages', 'Aucun message')}
@@ -2371,13 +2371,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             )}
                             <div ref={messagesEndRef} />
                         </div>
-                        <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 shrink-0">
+                        <div className="p-3 md:p-4 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 shrink-0 mt-auto">
                             <form 
                                 onSubmit={e => {
                                     e.preventDefault();
                                     handleSendMessage();
                                 }} 
-                                className="max-w-3xl mx-auto flex flex-col gap-2"
+                                className="w-full flex flex-col gap-2"
                             >
                                 {selectedFiles.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mb-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -2410,7 +2410,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         type="button"
                                         onClick={() => chatFileInputRef.current?.click()}
                                         className="p-2 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
-                                        title="Adaugă atașament"
+                                        title={t('chat.add_attachment', 'Ajouter une pièce jointe')}
                                     >
                                         <Paperclip className="w-5 h-5" />
                                     </button>

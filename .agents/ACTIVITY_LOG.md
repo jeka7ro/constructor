@@ -3,6 +3,23 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-09-20 (Fix Layout Chat: Aliniere la Bază & Eliminare Spațiu Gol)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Solicitat de Utilizator ("muta kodul de text si traducel in josul containerelui d echat .acu acu matarn in aer asa").
+
+### Problemă:
+Bara de introducere text și selecție limbă din chat-ul cu clientul din `WorkOrderDetail.jsx` apărea "în aer", la mijlocul cardului, având un spațiu alb gol uriaș dedesubt (din cauza limitării hardcodate `h-[500px] max-h-[70vh]` pe containerul de conținut în timp ce coloana din stânga întindea secțiunea pe întreaga înălțime a grilei).
+
+### Rezolvare:
+1. `WorkOrderDetail.jsx`:
+   - Eliminat `h-[500px] max-h-[70vh]` de pe `contentClassName` al secțiunii de chat și înlocuit cu `h-full flex-1 min-h-0 relative`, asigurând întinderea pe toată înălțimea cardului.
+   - Setat `h-full` pe coloana părinte și pe `<Section>`.
+   - Setat `flex-1 overflow-y-auto min-h-0` pe zona mesajelor (eliminat `pb-20` artificial).
+   - Adăugat `shrink-0 mt-auto` pe footerul de input pentru fixarea fermă la baza absolută a cardului de chat.
+   - Corectat tooltip-ul butonului de atașament în limba franceză (`t('chat.add_attachment', 'Ajouter une pièce jointe')`).
+
+---
+
 ## 2026-09-20 (Chat: Doar 3 Limbi FR/EN/NL, Eliminare Buton Glob, Auto-Traducere la Trimitere)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Solicitat și aprobat explicit de Utilizator ("aici sunt doar trei imbi fr rn nl. si scoste acel butin de traducere pe glob icinuta. satrdauca utomat can as pe treimiter sapara traducere si sa se si trimia", confirmat "push").
