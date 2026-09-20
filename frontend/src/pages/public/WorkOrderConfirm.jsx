@@ -439,17 +439,6 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const initialLang = (urlLang && ['fr', 'nl', 'en', 'de'].includes(urlLang)) ? urlLang : 'fr'
     const [lang, setLang] = useState(initialLang)
     const t = LANG_DICT[lang] || LANG_DICT['fr']
-
-    const isAdminLoggedIn = (() => {
-        try {
-            const adminStorage = localStorage.getItem('admin-storage')
-            if (adminStorage) {
-                const parsed = JSON.parse(adminStorage)
-                return !!parsed.state?.token
-            }
-        } catch (e) {}
-        return false
-    })()
     
     const MODAL_T = {
         fr: {
@@ -1385,26 +1374,6 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             ))}
                         </div>
                     </div>
-                    {isAdminLoggedIn && (
-                        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-amber-900">
-                            <div className="flex items-center gap-2">
-                                <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-                                <span>
-                                    <strong>Mode Administrateur :</strong> Vous visualisez la vue client. Pour répondre officiellement et notifier le client sur WhatsApp, écrivez depuis l'Espace Admin.
-                                </span>
-                            </div>
-                            {order?.id && (
-                                <a 
-                                    href={`/admin/chats?wo_id=${order.id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] shadow-sm transition-colors"
-                                >
-                                    Ouvrir Admin Chat <ExternalLink className="w-3 h-3" />
-                                </a>
-                            )}
-                        </div>
-                    )}
                     <div ref={chatContainerRef} className="h-64 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
                         {messages.length === 0 ? (
                             <div className="text-center text-slate-400 py-10 text-sm font-semibold">
