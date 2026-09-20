@@ -3102,15 +3102,27 @@ def post_work_order_message(
         
     translations = payload.translations or {}
     
-    # Auto-translate to the 3 public languages
+    # Auto-translate to requested target language, client language, and standard public languages
     try:
         from app.services.translation_service import translate_text
-        for target_lang in ['fr', 'nl', 'en']:
-            if target_lang not in translations:
-                translations[target_lang] = translate_text(payload.message, target_lang)
+        target_l = (getattr(payload, 'target_lang', None) or '').lower().split('-')[0].strip()
+        client_lang = (getattr(wo, 'client_language', 'fr') or 'fr').lower().split('-')[0].strip()
+
+        langs_to_translate = set()
+        if target_l and target_l != 'none':
+            langs_to_translate.add(target_l)
+            translations["_target_lang"] = target_l
+        elif target_l == 'none':
+            translations["_target_lang"] = 'none'
+
+        if target_l != 'none' and client_lang and client_lang != 'none':
+            langs_to_translate.add(client_lang)
+
+        for t_lang in langs_to_translate:
+            if t_lang not in translations:
+                translations[t_lang] = translate_text(payload.message, t_lang)
     except Exception as e:
         print(f"Auto-translation failed: {e}")
-        
 
     # WhatsApp / Email Delivery Channel resolution
     whatsapp_sent = False
@@ -3129,8 +3141,13 @@ def post_work_order_message(
                 target_l = (getattr(payload, 'target_lang', None) or '').lower().split('-')[0].strip()
                 
                 text_to_send = None
-                if target_l in translations and translations[target_l] and str(translations[target_l]).strip():
-                    text_to_send = str(translations[target_l]).strip()
+                if target_l == 'none':
+                    text_to_send = payload.message.strip()
+                elif target_l and target_l != 'none':
+                    if target_l in translations and translations[target_l] and str(translations[target_l]).strip():
+                        text_to_send = str(translations[target_l]).strip()
+                    else:
+                        text_to_send = payload.message.strip()
                 elif client_lang in translations and translations[client_lang] and str(translations[client_lang]).strip():
                     text_to_send = str(translations[client_lang]).strip()
                 elif 'fr' in translations and translations['fr'] and str(translations['fr']).strip():
@@ -3304,7 +3321,15 @@ def put_work_order_message(
     translations = payload.translations or {}
     try:
         from app.services.translation_service import translate_text
-        for target_lang in ['fr', 'nl', 'en']:
+        langs_to_translate = {'fr', 'nl', 'en'}
+        target_l = (getattr(payload, 'target_lang', None) or '').lower().split('-')[0].strip()
+        if target_l and target_l != 'none':
+            langs_to_translate.add(target_l)
+        client_lang = (getattr(wo, 'client_language', 'fr') or 'fr').lower().split('-')[0].strip()
+        if client_lang and client_lang != 'none':
+            langs_to_translate.add(client_lang)
+
+        for target_lang in langs_to_translate:
             if target_lang not in translations:
                 translations[target_lang] = translate_text(payload.message, target_lang)
     except Exception as e:

@@ -128,12 +128,22 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 ).order_by(desc(WorkOrder.created_at)).first()
 
                 if recent_wo:
+                    msg_translations = {"_wamid": msg_id, "_delivery_status": "delivered", "_delivery_channel": "whatsapp"} if msg_id else {}
+                    if body and body.strip():
+                        try:
+                            from app.services.translation_service import translate_text
+                            ro_trans = translate_text(body, 'ro')
+                            if ro_trans:
+                                msg_translations['ro'] = ro_trans
+                        except Exception as e:
+                            logger.warning(f"Webhook message auto-translation failed: {e}")
+
                     new_msg = WorkOrderMessage(
                         work_order_id=recent_wo.id,
                         sender="client",
                         message=body if body else "Mesaj primit via WhatsApp",
                         is_read_by_admin=False,
-                        translations={"_wamid": msg_id, "_delivery_status": "delivered", "_delivery_channel": "whatsapp"} if msg_id else {},
+                        translations=msg_translations,
                         attachments=[]
                     )
                     db.add(new_msg)

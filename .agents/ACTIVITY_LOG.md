@@ -3,6 +3,82 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-09-20 (Chat: Doar 3 Limbi FR/EN/NL, Eliminare Buton Glob, Auto-Traducere la Trimitere)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Solicitat și aprobat explicit de Utilizator ("aici sunt doar trei imbi fr rn nl. si scoste acel butin de traducere pe glob icinuta. satrdauca utomat can as pe treimiter sapara traducere si sa se si trimia", confirmat "push").
+
+### Context & Cerințe:
+1. **Limitare Selector Limbi:** Utilizatorul a cerut ca în selectorul de chat să existe **doar 3 limbi**: `FR (Français)`, `EN (English)`, `NL (Nederlands)` plus `Sans trad. / Fără trad.`. Limbile IT, DE, RO au fost eliminate din dropdown.
+2. **Eliminare Buton Glob / Previzualizare Manuală:** Butonul de previzualizare manuală a traducerii (iconița glob) și căsuța suplimentară de textarea de dedesubt au fost eliminate complet.
+3. **Traducere Automată la Trimitere:** Când utilizatorul tastează mesajul și apasă Trimite (sau Enter), sistemul traduce automat în limba selectată (`FR`, `EN` sau `NL`), salvează limba în mesaj (`_target_lang`), afișează traducerea sub bula de chat și transmite textul tradus pe WhatsApp către client. Dacă se alege „Fără trad.”, se transmite mesajul brut netradus.
+
+### Modificări Efectuate:
+1. **Frontend (`WorkOrderDetail.jsx` & `AdminChats.jsx`):**
+   - Eliminat butonul cu iconiță de glob și caseta de text `previewTranslation`.
+   - Selectorul `<select>` conține exclusiv opțiunile: `none` (Sans trad.), `fr` (FR), `en` (EN), `nl` (NL).
+   - Valoarea implicită sincronizată automat cu limba clientului dacă este una dintre `['fr', 'en', 'nl']`, altfel fallback pe `fr`.
+   - La `handleSendMessage`, se trimite `target_lang` în payload; la primirea răspunsului se curăță câmpurile și se afișează imediat traducerea primită.
+   - Bula de mesaj afișează `🌐 Traduction (LIMBĂ): [text tradus]`, filtrând cheile interne care încep cu `_`.
+2. **Backend (`admin_work_orders.py`, `public_work_orders.py`, `webhooks.py`):
+   - În `post_work_order_message`: auto-traducere în limba țintă specificată; salvare `translations["_target_lang"] = target_l`.
+   - Trimitere pe WhatsApp direct a variantei traduse `translations[target_l]`; dacă `target_l == 'none'`, trimitere directă text brut.
+   - În `public_work_orders.py` și `webhooks.py`: unificat apelul de traducere cu serviciul robust `translate_text`.
+3. **Traduceri i18n (`fr.json`, `ro.json`, `nl.json`, `en.json`):**
+   - Adăugată secțiunea `"chat"` cu toate cheile necesare conform Regulii 6 (fără texte hardcodate).
+
+---
+
+## 2026-09-20 (Rezolvare Traducere Chat & Trimitere Limbă Selectată WhatsApp/Client)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Semnalat de Finu Iulian ("eu trimit textul și aleg limba engleză dar se trimite tot în Română sau italiană").
+
+### Context & Diagnostic:
+1. **Google Translate GTX Blocat cu 429:** Endpoint-ul Google GTX gratuit returna HTTP 429 ("Too Many Requests / automated queries"), iar `GoogleTranslator` din `deep_translator` eșua cu aceeași eroare.
+2. **Fallback pe Textul Original:** În `translation_service.py`, la eșecul Google, se returna textul brut original (`buna ziua, aveti nevoie de informatii?`).
+3. **Trimitere WhatsApp netradus:** Backend-ul lua `translations[target_l]`, care conținea textul netradus în română, și îl expedia direct pe WhatsApp către client.
+4. **Lipsă limbi în selector (IT, DE, RO):** În `WorkOrderDetail.jsx` și `AdminChats.jsx`, meniul de selecție a limbii nu conținea limba italiană (`IT`), deși clientul din imagine (`Davide Carabet`) era italian.
+5. **Afișare dublură tradusă:** Când traducerea era identică cu mesajul trimis, bula de chat afișa redundant `🌐 Traducere: ...`.
+
+### Modificări Efectuate:
+1. **`backend/app/services/translation_service.py`:**
+   - Înlocuit motorul blocat Google GTX cu **MyMemory API**, testat și funcțional la performanțe maxime (`ro->en`, `ro->it`, `ro->fr`, `ro->nl`).
+   - Implementat detector euristic de limbă sursă (`detect_source_lang`) pentru mesaje scurte specifice construcțiilor/chat-ului.
+   - Păstrat cache-ul în-memorie thread-safe pentru a preveni apelurile repetate.
+2. **`backend/app/api/admin_work_orders.py`:**
+   - Bucla de traducere include dinamic `payload.target_lang` și `wo.client_language`.
+   - La expedierea pe WhatsApp, `text_to_send` folosește traducerea limbii selectate (`target_l`).
+3. **`frontend/src/pages/admin/WorkOrderDetail.jsx` & `AdminChats.jsx`:**
+   - Adăugat limbile `IT` (Italiano), `DE` (Deutsch), `RO` (Română) în selectorul de traducere.
+   - Afișat codul limbii în bulă: `🌐 Traducere (EN): ...`.
+   - Ascunsă traducerea dacă textul rezultat este identic cu mesajul original.
+
+---
+
+## 2026-09-20 (Refactorizare QuickAddWizard: i18n Dinamic, Multi-Suprafață Chape/Izolație, Fix Header Portal & Design System)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Solicitat și confirmat explicit de Utilizator ("DA!!!!!!").
+
+### Context & Diagnostic:
+1. **Header Suprapus / Tăiat:** Modalul `QuickAddWizard.jsx` era randat în `<main>`, fiind tăiat de bara albastră de sus (`<header>`) din cauza stacking context-ului (încălcare a Regulii 5).
+2. **Texte Hardcodate & Nerespectare Limbă:** Formularul conținea texte amestecate în română și franceză hardcodate (`< 10 ans (Nou)`, `> 10 ans (Renovare)`, `Caută...`, `Chape (Șapă)`). Utilizatorul a cerut respectarea strictă a limbii active selectate din interfață (RO/FR/NL/EN) fără niciun text hardcodat.
+3. **Limitare la o singură suprafață:** Nu se puteau adăuga mai multe suprafețe pentru șapă sau izolație (spre deosebire de `DevisOnline.jsx`).
+4. **Lipsă Carduri Vizuale:** Lipseau cardurile și iconițele specifice pentru PUR (`Wind`), EPS (`Thermometer`), Chape (`Layers`), Treillis (`Grid3x3`).
+5. **Inconsistență Design & Buton Devis:** Amestec de `rounded-3xl`, `rounded-full`, `rounded-md` și buton salvare verde `bg-emerald-600` disonant cu platforma.
+
+### Modificări Efectuate:
+1. **Frontend (`QuickAddWizard.jsx`):**
+   - Împachetat modalul în `createPortal(..., document.body)` cu `z-[99999]`, eliminând orice suprapunere cu header-ul.
+   - Preluat sistemul din Devis Online: `surfaces: [...]` pentru Chape cu adăugare/ștergere dinamică și opțiuni vizuale (`Film Polyane`, `Treillis`, `Fibres`, `Duramint`).
+   - Preluat sistemul din Devis Online: `items: [...]` pentru Isolation cu carduri interactive PUR (`Wind`) și EPS (`Thermometer`) și opțiuni specifice PUR.
+   - Înlocuit selectorul de TVA cu `Neuf (21%)` / `Rénovation (6%)` (fără referințe la 10 ani).
+   - Uniformizat designul la `rounded-2xl` pentru container, `rounded-xl` pentru inputuri/carduri/butoane și buton salvare albastru `bg-blue-600 hover:bg-blue-700`.
+2. **Frontend (`SearchableSelect.jsx`):**
+   - Eliminat fallback-urile hardcodate în română; adăugat `t('common.search')`, `t('common.select')`, `t('common.no_results')`.
+3. **Traduceri i18n (`ro.json`, `fr.json`, `nl.json`, `en.json`):**
+   - Adăugat chei complete sub `"quotes"` pentru toți pașii, etichetele, opțiunile și butoanele din wizard, permițând comutarea fluidă a limbii.
+
+---
+
 ## 2026-09-20 (Oprire Definitivă Sincronizare Robaws & Blindare Completă Împotriva Suprataxării Google Cloud)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Solicitat explicit de Utilizator ("nu vrea ni ci onfondmrai despre robaws. sopoesttele nu am am neoie de ele" și "vrai s anu mai am bucl e sau eori sau nomli sa nu ma supratxze google cloudu").

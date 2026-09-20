@@ -299,16 +299,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [selectedFiles, setSelectedFiles] = useState([])
     const [isUploadingFiles, setIsUploadingFiles] = useState(false)
     const chatFileInputRef = useRef(null)
-    const [targetLang, setTargetLang] = useState('nl')
+    const [targetLang, setTargetLang] = useState('fr')
     
-    // Sync chat target language with client language when wo loads
+    // Sync chat target language with client language when wo loads (FR, EN, NL)
     useEffect(() => {
         if (wo?.client_language) {
-            setTargetLang(wo.client_language.toLowerCase());
+            const lang = wo.client_language.toLowerCase().split('-')[0].trim();
+            if (['fr', 'en', 'nl'].includes(lang)) {
+                setTargetLang(lang);
+            } else {
+                setTargetLang('fr');
+            }
         }
     }, [wo?.client_language]);
-    const [previewTranslation, setPreviewTranslation] = useState('')
-    const [isTranslating, setIsTranslating] = useState(false)
     const [historyModalOpen, setHistoryModalOpen] = useState(false)
     const [editingMessageId, setEditingMessageId] = useState(null)
     const [editMessageText, setEditMessageText] = useState("")
@@ -685,24 +688,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     }, [id]);
 
 
-    const handleTranslatePreview = async () => {
-        if (!chatMessage.trim() || targetLang === 'none') return;
-        setIsTranslating(true);
-        try {
-            const res = await api.post('/admin/translate', {
-                text: chatMessage,
-                target_lang: (targetLang || 'fr').toLowerCase()
-            });
-            setPreviewTranslation(res.data.translatedText);
-        } catch (e) {
-            console.error("Translation error", e);
-            showToast("Erreur lors de la traduction: " + (e.response?.data?.detail || e.message), "error");
-        } finally {
-            setIsTranslating(false);
-        }
-    }
-
-
     const handleSendMessage = async () => {
         if ((!chatMessage.trim() && selectedFiles.length === 0) || sendingMessage || isUploadingFiles) return;
         setSendingMessage(true);
@@ -718,7 +703,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 uploadedAttachments.push(res.data)
             }
         } catch (err) {
-            showToast("Eroare la încărcarea fișierelor.", "error");
+            showToast(t('common.error_file_upload', "Erreur lors du chargement des fichiers."), "error");
             setIsUploadingFiles(false);
             setSendingMessage(false);
             return;
@@ -727,19 +712,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         try {
             const payload = {
                 message: chatMessage,
-                target_lang: targetLang === 'none' ? null : targetLang,
+                target_lang: targetLang === 'none' ? 'none' : targetLang,
                 attachments: uploadedAttachments
             };
-            if (previewTranslation.trim()) {
-                payload.translations = { [targetLang]: previewTranslation };
-            }
             const res = await api.post(`/admin/work-orders/${id}/messages`, payload);
             setMessages(prev => [...prev, res.data]);
             setChatMessage("");
-            setPreviewTranslation("");
             setSelectedFiles([]);
         } catch (err) {
-            showToast("Eroare la trimiterea mesajului.", "error");
+            showToast(t('chat.error_sending', "Erreur lors de l'envoi du message."), "error");
         } finally {
             setSendingMessage(false);
             setIsUploadingFiles(false);
@@ -2266,12 +2247,17 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     {/* Translation Display */}
                                                     {msg.translations && Object.keys(msg.translations).length > 0 && (
                                                         (() => {
-                                                            const displayLang = targetLang !== 'none' ? targetLang : (wo?.client_language || 'fr').toLowerCase();
-                                                            const transText = msg.translations[displayLang] || msg.translations['fr'] || Object.values(msg.translations)[0] || '';
-                                                            if (transText.includes('Error 500') || transText.includes('Eroare la traducere') || transText.includes("That's an error")) return null;
+                                                            const transEntries = Object.entries(msg.translations).filter(([k]) => !k.startsWith('_'));
+                                                            if (transEntries.length === 0) return null;
+                                                            if (msg.translations._target_lang === 'none') return null;
+
+                                                            const displayLang = msg.translations._target_lang || (targetLang !== 'none' ? targetLang : (wo?.client_language || 'fr').toLowerCase());
+                                                            const transText = msg.translations[displayLang] || msg.translations['fr'] || transEntries[0][1] || '';
+                                                            if (!transText || transText.includes('Error 500') || transText.includes('Eroare la traducere') || transText.includes("That's an error")) return null;
+                                                            if (transText.trim().toLowerCase() === (msg.message || '').trim().toLowerCase()) return null;
                                                             return (
                                                                 <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
-                                                                    <span className="font-semibold block mb-0.5">🌐 Traducere:</span>
+                                                                    <span className="font-semibold block mb-0.5">🌐 {t('chat.translation', 'Traduction')} ({displayLang.toUpperCase()}):</span>
                                                                     {transText}
                                                                 </div>
                                                             );
@@ -2428,29 +2414,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         value={targetLang}
                                         onChange={e => setTargetLang(e.target.value)}
                                         className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none"
-                                        title="Limbă Traducere (la Client)"
+                                        title={t('chat.select_language', 'Langue de traduction')}
                                     >
-                                        <option value="none">Fără trad.</option>
-                                        <option value="nl">NL (Vlaams/Dutch)</option>
-                                        <option value="fr">FR</option>
-                                        <option value="en">EN</option>
+                                        <option value="none">{t('chat.no_translation', 'Sans trad.')}</option>
+                                        <option value="fr">🇫🇷 FR (Français)</option>
+                                        <option value="en">🇬🇧 EN (English)</option>
+                                        <option value="nl">🇧🇪 NL (Nederlands)</option>
                                     </select>
-                                    {targetLang !== 'none' && (
-                                        <button
-                                            type="button"
-                                            disabled={isTranslating || !chatMessage.trim()}
-                                            onClick={handleTranslatePreview}
-                                            className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-50 text-slate-600 dark:text-slate-300 rounded-xl px-3 py-2 flex items-center justify-center transition-colors shadow-sm"
-                                            title="Previzualizare Traducere"
-                                        >
-                                            {isTranslating ? (
-                                                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                            ) : (
-                                                <Globe className="w-4 h-4" />
-                                            )}
-                                        </button>
-                                    )}
-
 
                                     <button
                                         type="submit"
@@ -2464,23 +2434,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         )}
                                     </button>
                                 </div>
-                                {previewTranslation !== '' && targetLang !== 'none' && (
-                                    <div className="flex gap-2 items-start bg-blue-50/50 dark:bg-blue-900/10 p-2 rounded-xl border border-blue-100 dark:border-blue-800/30">
-                                        <div className="text-[10px] text-blue-400 pt-2 flex-shrink-0 font-medium">
-                                            <Globe className="w-3 h-3 inline mr-1" />
-                                            TR:
-                                        </div>
-                                        <textarea 
-                                            value={previewTranslation}
-                                            onChange={e => setPreviewTranslation(e.target.value)}
-                                            className="flex-1 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 dark:text-slate-200 resize-none"
-                                            rows={2}
-                                        />
-                                        <button type="button" onClick={() => setPreviewTranslation('')} className="text-slate-400 hover:text-red-500 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors">
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                )}
                             </form>
                         </div>
                     </Section>

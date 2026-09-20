@@ -2,11 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { Search, ChevronDown, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-export default function SearchableSelect({ value, onChange, options, placeholder = "Selectează...", searchPlaceholder, className = "", buttonClassName = "", menuPosition = "bottom" }) {
+export default function SearchableSelect({ value, onChange, options, placeholder, searchPlaceholder, className = "", buttonClassName = "", menuPosition = "bottom" }) {
     const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState("")
     const wrapperRef = useRef(null)
+
+    const defaultPlaceholder = placeholder || t('common.select', 'Sélectionner...')
+    const defaultSearchPlaceholder = searchPlaceholder || t('common.search', 'Rechercher...')
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -39,7 +42,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
                 className={`w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer flex items-center justify-between min-h-[36px] ${buttonClassName || 'rounded-lg'}`}
             >
                 <span className={`truncate ${!selectedOption ? 'text-slate-400' : ''}`}>
-                    {selectedOption ? selectedOption.label : placeholder}
+                    {selectedOption ? selectedOption.label : defaultPlaceholder}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </div>
@@ -54,7 +57,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
                                 autoFocus={shouldAutoFocus}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder={searchPlaceholder || t('common.search', 'Caută...')}
+                                placeholder={defaultSearchPlaceholder}
                                 className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg text-xs outline-none focus:border-blue-500 dark:text-slate-200"
                             />
                         </div>
@@ -65,11 +68,11 @@ export default function SearchableSelect({ value, onChange, options, placeholder
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange(""); setIsOpen(false); setSearch("") }}
                             className={`w-full text-left px-3 py-2 text-xs cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 ${value === "" ? "font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20" : "text-slate-600 dark:text-slate-300"}`}
                         >
-                            <span className="flex-1">{placeholder}</span>
+                            <span className="flex-1">{defaultPlaceholder}</span>
                             {value === "" && <Check className="w-3.5 h-3.5" />}
                         </button>
                         {filteredOptions.length === 0 ? (
-                            <div className="px-3 py-3 text-xs text-slate-400 text-center">{t('common.no_results', 'Niciun rezultat')}</div>
+                            <div className="px-3 py-3 text-xs text-slate-400 text-center">{t('common.no_results', 'Aucun résultat')}</div>
                         ) : (
                             filteredOptions.map(opt => (
                                 <button
