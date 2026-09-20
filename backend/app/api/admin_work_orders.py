@@ -2992,23 +2992,35 @@ def get_work_order_messages(
             "created_at": wo.updated_at.isoformat() if wo.updated_at else ""
         })
     
-    db_messages = [
-        {
+    db_messages = []
+    for m in messages:
+        if m.message == '[reaction]':
+            continue
+        m_translations = dict(m.translations or {})
+        if m.sender == 'client' and m.message and 'ro' not in m_translations:
+            try:
+                from app.services.translation_service import translate_text
+                ro_text = translate_text(m.message, 'ro')
+                if ro_text and ro_text.strip().lower() != m.message.strip().lower():
+                    m_translations['ro'] = ro_text
+            except Exception:
+                pass
+
+        db_messages.append({
             "id": m.id,
             "sender": m.sender,
             "sender_name": getattr(m, 'sender_name', None),
             "message": m.message,
             "created_at": (m.created_at.isoformat() + "Z") if m.created_at else "",
-            "translations": m.translations,
+            "translations": m_translations,
             "reactions": m.reactions,
             "attachments": m.attachments or [],
             "is_hidden": m.is_hidden,
             "is_read_by_admin": m.is_read_by_admin,
-            "delivery_channel": (m.translations or {}).get("_delivery_channel", "whatsapp" if (m.translations or {}).get("_wamid") else ("email" if m.sender == "admin" and not (getattr(wo, 'client_phone', None) or (wo.client.phone if getattr(wo, 'client', None) else None)) else ("whatsapp" if m.sender == "admin" else None))),
-            "delivery_status": (m.translations or {}).get("_delivery_status", "read" if m.sender != "admin" else "sent"),
-            "wamid": (m.translations or {}).get("_wamid")
-        } for m in messages if m.message != '[reaction]'
-    ]
+            "delivery_channel": m_translations.get("_delivery_channel", "whatsapp" if m_translations.get("_wamid") else ("email" if m.sender == "admin" and not (getattr(wo, 'client_phone', None) or (wo.client.phone if getattr(wo, 'client', None) else None)) else ("whatsapp" if m.sender == "admin" else None))),
+            "delivery_status": m_translations.get("_delivery_status", "read" if m.sender != "admin" else "sent"),
+            "wamid": m_translations.get("_wamid")
+        })
     
     return initial_messages + db_messages
 

@@ -2247,6 +2247,20 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     {/* Translation Display */}
                                                     {msg.translations && Object.keys(msg.translations).length > 0 && (
                                                         (() => {
+                                                            // If message is from client: show translation in Romanian (RO) under the original
+                                                            if (msg.sender === 'client') {
+                                                                const roText = msg.translations.ro;
+                                                                if (!roText || !roText.trim() || roText.includes('Error 500') || roText.includes('Eroare la traducere') || roText.includes("That's an error")) return null;
+                                                                if (roText.trim().toLowerCase() === (msg.message || '').trim().toLowerCase()) return null;
+                                                                return (
+                                                                    <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/50 text-xs italic text-slate-500 dark:text-slate-400">
+                                                                        <span className="font-semibold block mb-0.5">🌐 {t('chat.translation', 'Traducere')} (RO):</span>
+                                                                        {roText}
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            // If message is from admin: show translation in target language (FR, EN, NL)
                                                             const transEntries = Object.entries(msg.translations).filter(([k]) => !k.startsWith('_'));
                                                             if (transEntries.length === 0) return null;
                                                             if (msg.translations._target_lang === 'none') return null;

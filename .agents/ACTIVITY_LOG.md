@@ -27,6 +27,9 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
    - Adăugată secțiunea `"chat"` cu toate cheile necesare conform Regulii 6 (fără texte hardcodate).
 4. **Link Public Client (`WorkOrderConfirm.jsx`):**
    - Eliminat definitiv bannerul galben "Mode Administrateur" (`Ouvrir Admin Chat`) din pagina publică de vizualizare/confirmare a clientului. Pagina este acum 100% curată pentru toată lumea.
+5. **Afișare Traducere în Română pentru Mesajele Clientului:**
+   - Când clientul trimite un mesaj în franceză/olandeză, în panoul de admin (`WorkOrderDetail.jsx` și `AdminChats.jsx`) se afișează textul original al clientului, iar imediat sub el apare traducerea în română: `🌐 Traducere (RO): [mesajul tradus în română]`.
+   - În `admin_work_orders.py`, la citirea mesajelor (`get_work_order_messages`), se completează dinamic `translations['ro']` pentru orice mesaj al clientului care nu avea încă traducere salvată.
 
 ---
 
