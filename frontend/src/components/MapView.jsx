@@ -42,6 +42,10 @@ const getPinSvg = () => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+// Cache-uri globale pe sesiune pentru toate instanțele MapView (evită reapelarea Google API la schimbarea tab-urilor/navigare)
+const _globalMapGeocodeCache = {};
+const _globalMapRouteCache = {};
+
 /**
  * MapView — hartă read-only folosind Google Maps.
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Google Geocoder.
@@ -60,8 +64,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         detailMarker: null,
         directionsRenderer: null,
         sandStationMarkers: [],
-        infoWindow: null,
-        geocodeCache: {}
+        infoWindow: null
     });
 
     const [geocoding, setGeocoding] = useState(false);
@@ -133,9 +136,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             detailMarker: null,
             directionsRenderer: null,
             sandStationMarkers: [],
-            infoWindow: new window.google.maps.InfoWindow(),
-            geocodeCache: elementsRef.current.geocodeCache || {},
-            routeCache: elementsRef.current.routeCache || {}
+            infoWindow: new window.google.maps.InfoWindow()
         };
     };
 
@@ -257,18 +258,19 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 if (startLat && startLng) {
                     return { lat: parseFloat(startLat), lng: parseFloat(startLng) };
                 }
-                if (query.toLowerCase().includes('baza') || query.toLowerCase().includes('base') || query.toLowerCase().includes('h&h')) {
+                const qClean = (query || '').trim().toLowerCase();
+                if (qClean.includes('baza') || qClean.includes('base') || qClean.includes('h&h')) {
                     return { lat: 50.88243, lng: 4.39343 }; // Baza H&H Resources Brussels
                 }
-                if (elementsRef.current.geocodeCache && elementsRef.current.geocodeCache[query]) {
-                    return Promise.resolve(elementsRef.current.geocodeCache[query]);
+                if (_globalMapGeocodeCache[qClean]) {
+                    return Promise.resolve(_globalMapGeocodeCache[qClean]);
                 }
                 return new Promise((resolve) => {
                     const geocoder = new window.google.maps.Geocoder();
                     geocoder.geocode({ address: query }, (results, status) => {
                         if (status === 'OK' && results[0]) {
                             const coords = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
-                            elementsRef.current.geocodeCache[query] = coords;
+                            _globalMapGeocodeCache[qClean] = coords;
                             resolve(coords);
                         } else {
                             resolve(null);
@@ -308,8 +310,8 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
 
                     // Use cache for routes to avoid redundant API calls for the same coordinates
                     const routeKey = `${startCoords.lat},${startCoords.lng}-${center.lat},${center.lng}`;
-                    if (elementsRef.current.routeCache && elementsRef.current.routeCache[routeKey]) {
-                        directionsRenderer.setDirections(elementsRef.current.routeCache[routeKey]);
+                    if (_globalMapRouteCache[routeKey]) {
+                        directionsRenderer.setDirections(_globalMapRouteCache[routeKey]);
                     } else {
                         directionsService.route({
                             origin: startCoords,
@@ -317,8 +319,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                             travelMode: window.google.maps.TravelMode.DRIVING
                         }, (result, status) => {
                             if (status === 'OK') {
-                                if (!elementsRef.current.routeCache) elementsRef.current.routeCache = {};
-                                elementsRef.current.routeCache[routeKey] = result;
+                                _globalMapRouteCache[routeKey] = result;
                                 directionsRenderer.setDirections(result);
                             } else {
                                 // Fallback to straight line if routing fails
@@ -364,9 +365,10 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         if (hasCoords) {
             initMap(parseFloat(latitude), parseFloat(longitude), zoom, label || address);
         } else if (address && address.trim().length > 3) {
-            if (elementsRef.current.geocodeCache && elementsRef.current.geocodeCache[address]) {
-                const cached = elementsRef.current.geocodeCache[address];
-                initMap(cached.lat, cached.lng, 15, label || address);
+            const addrClean = address.trim().toLowerCase();
+            if (_globalMapGeocodeCache[addrClean]) {
+                const cached = _globalMapGeocodeCache[addrClean];
+                initMap(cached.lat, cached.lng ?? cached.lon, 15, label || address);
                 return;
             }
 
@@ -378,7 +380,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 if (status === 'OK' && results[0]) {
                     const lat = results[0].geometry.location.lat();
                     const lon = results[0].geometry.location.lng();
-                    elementsRef.current.geocodeCache[address] = { lat, lon };
+                    _globalMapGeocodeCache[addrClean] = { lat, lng: lon, lon };
                     initMap(lat, lon, 15, label || address);
                 } else {
                     setGeoError(true);

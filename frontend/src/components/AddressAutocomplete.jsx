@@ -6,7 +6,11 @@ import { useUIStore } from '../store/uiStore';
 /**
  * AddressAutocomplete — uses backend proxy to call Google Places API.
  * This bypasses all browser-level API key referrer restrictions.
+ * Includes client-side in-memory caching to minimize proxy & Google API requests.
  */
+const _suggestionsCache = new Map();
+const _placeDetailsCache = new Map();
+
 export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, className }) {
     const { t, i18n } = useTranslation();
     const [query, setQuery] = useState(value || '');
@@ -36,8 +40,18 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     }, []);
 
     const fetchSuggestions = async (searchQuery) => {
-        if (!searchQuery || searchQuery.length < 3) {
+        const cleanQuery = (searchQuery || '').trim().toLowerCase();
+        if (!cleanQuery || cleanQuery.length < 3) {
             setSuggestions([]);
+            setLoading(false);
+            return;
+        }
+
+        const cacheKey = `${cleanQuery}_${i18n.language || 'ro'}`;
+        if (_suggestionsCache.has(cacheKey)) {
+            const cached = _suggestionsCache.get(cacheKey);
+            setSuggestions(cached);
+            setIsOpen(cached.length > 0);
             setLoading(false);
             return;
         }
@@ -54,9 +68,11 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
             );
             const data = await res.json();
             if (data.status === 'OK' && data.predictions?.length > 0) {
+                _suggestionsCache.set(cacheKey, data.predictions);
                 setSuggestions(data.predictions);
                 setIsOpen(true);
             } else {
+                _suggestionsCache.set(cacheKey, []);
                 setSuggestions([]);
                 setIsOpen(false);
             }
@@ -85,10 +101,8 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
         setIsOpen(false);
         setSuggestions([]);
 
-        // Fetch coordinates via backend proxy
-        try {
-            const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(item.place_id)}&lang=${i18n.language || 'ro'}`);
-            const data = await res.json();
+        const detailsKey = `${item.place_id}_${i18n.language || 'ro'}`;
+        const applyDetails = (data) => {
             if (data.status === 'OK' && data.result?.geometry?.location) {
                 const lat = data.result.geometry.location.lat.toFixed(6);
                 const lon = data.result.geometry.location.lng.toFixed(6);
@@ -99,6 +113,21 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
                 if (onChange) onChange(addr, null, null);
                 if (onSelect) onSelect({ address: addr });
             }
+        };
+
+        if (_placeDetailsCache.has(detailsKey)) {
+            applyDetails(_placeDetailsCache.get(detailsKey));
+            return;
+        }
+
+        // Fetch coordinates via backend proxy
+        try {
+            const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(item.place_id)}&lang=${i18n.language || 'ro'}`);
+            const data = await res.json();
+            if (data.status === 'OK') {
+                _placeDetailsCache.set(detailsKey, data);
+            }
+            applyDetails(data);
         } catch (err) {
             console.error('[AddressAutocomplete] place details error:', err);
             if (onChange) onChange(addr, null, null);
@@ -110,7 +139,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
 
     const handleLocateMe = () => {
         if (!navigator.geolocation) {
-            alert(t('quotes.geo_unsupported', 'Geolocația nu este suportată de browser.'));
+            useUIStore.getState().showToast(t('quotes.geo_unsupported', 'Geolocația nu este suportată de browser.'), 'warning');
             return;
         }
         setIsLocating(true);

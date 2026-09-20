@@ -3,6 +3,73 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-09-20 (Oprire Definitivă Sincronizare Robaws & Blindare Completă Împotriva Suprataxării Google Cloud)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Solicitat explicit de Utilizator ("nu vrea ni ci onfondmrai despre robaws. sopoesttele nu am am neoie de ele" și "vrai s anu mai am bucl e sau eori sau nomli sa nu ma supratxze google cloudu").
+
+### Context & Diagnostic:
+1. **Scurgere de apeluri Robaws:** În `main.py` rula un scheduler la fiecare 2 ore (`run_all_scrapers`). Acesta parcurgea comenzile din Robaws și, dacă nu aveau coordonate exacte în payload-ul Robaws, apela Google Geocoding API chiar dacă acele comenzi existau deja în baza de date cu coordonate salvate. Utilizatorul a cerut oprirea completă a oricărei integrări sau sincronizări Robaws.
+2. **Lipsă Caching Google Distance Matrix:** În `admin_work_orders.py`, `devis_online.py` și `public_calculator.py`, funcția `get_driving_distance_km` apela direct Google Distance Matrix API fără memorie cache. La `devis_online`, fiecare deviz calcula distanța față de toate bazele logistice repetat.
+3. **Lipsă Caching Google Place Details:** În `main.py`, endpoint-ul proxy `/api/places/details` (unul dintre cele mai scumpe API-uri Google) nu avea niciun cache, apelând Google la fiecare selecție de adresă din frontend.
+4. **Bug & Resetare Cache Frontend:** În `MapView.jsx`, cache-ul era pierdut la fiecare demontare a componentei (schimbare de tab sau modal), iar la linia 381 se salva `{ lat, lon }`, dar la 368 se citea `cached.lng` (`undefined`), generând coordonate invalide.
+
+### Modificări Efectuate:
+1. **Oprire Definitivă Robaws:**
+   - Dezactivat job-ul `scheduler.add_job(run_all_scrapers, ...)` din `backend/main.py`.
+   - În `backend/app/services/robaws_scraper.py`, funcțiile `run_all_scrapers()`, `run_api_sync_for_team()` și `geocode_address_for_scraper()` au fost oprite definitiv (returnează imediat `None`).
+2. **Blindare Backend Google Cloud (Caching Thread-Safe):**
+   - **`backend/main.py`:**
+     - Adăugat `_place_details_cache` permanent în memorie (un `place_id` returnează mereu aceleași coordonate).
+     - Adăugat `_place_reverse_cache` indexat după coordonate rotunjite.
+     - Extins cache-ul `places_autocomplete` de la 5 minute la 24 de ore.
+   - **`backend/app/api/admin_work_orders.py`:**
+     - Adăugat `_distance_matrix_cache` thread-safe în `get_driving_distance_km`.
+     - Adăugat `_global_geo_cache` la nivel de modul și funcția `_geocode_address_cached` refolosită în `create_work_order`, `update_work_order` și `batch_recalculate_routes`.
+   - **`backend/app/api/devis_online.py` & `public_calculator.py`:**
+     - Adăugat `_devis_online_dist_cache` și `_calc_dist_cache` thread-safe în `get_driving_distance_km`.
+   - **`backend/app/api/admin_sites.py`:**
+     - Adăugat `_sites_geo_cache` thread-safe în `geocode_address`.
+   - **`backend/app/services/translation_service.py`:**
+     - Adăugat `_translation_cache` thread-safe pentru traducerile Google GTX.
+3. **Optimizare & Caching Frontend:**
+   - **`frontend/src/components/MapView.jsx`:**
+     - Promovat `_globalMapGeocodeCache` și `_globalMapRouteCache` la nivel global de sesiune.
+     - Corectat salvarea coordonatelor: `{ lat, lng: lon, lon }` și citirea `cached.lng ?? cached.lon`.
+   - **`frontend/src/components/AddressAutocomplete.jsx`:**
+     - Adăugat `_suggestionsCache` și `_placeDetailsCache` (`Map` client-side) pentru a nu reinteroga serverul la tastare/ștergere/re-selectare.
+     - Înlocuit `alert(...)` nativ cu `showToast(...)` conform Regulii 5.
+   - **`frontend/src/lib/geocode.js`:**
+     - Adăugat cache-uri în-memorie `_frontendReverseGeoCache` și `_frontendGeoCache`.
+
+---
+
+## 2026-09-20 (Rezolvare Eroare "Créer le Devis" din Formularul Rapid QuickAddWizard)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Rezolvare bug critic raportat de utilizator cu captură foto.
+
+### Context & Diagnostic:
+- Utilizatorul (Corina Carabet) a încercat să creeze un deviz din fereastra de adăugare rapidă (`QuickAddWizard.jsx`), dar la apăsarea butonului "Créer le Devis" apărea notificarea de eroare roșie: `"Erreur lors de l'enregistrement"`.
+- Cauze identificate prin analiza fluxului:
+  1. **Tip de date nevalid (Pydantic v2):** `QuickAddWizard.jsx` trimitea `estimated_price: parseFloat(form.estimated_price)` (float), în timp ce schema `WorkOrderCreate` accepta strict `Optional[str]`. Pydantic v2 returna eroare 422: `Input should be a valid string`.
+  2. **Crash UnboundLocalError pe backend:** În `create_work_order`, când `payload.start_date` era None (comun la devize care au `approximate_date`), linia 972 executa `datetime.now()`, dar din cauza unui import intern redundant `from datetime import datetime` aflat pe linia 974 în blocul `try`, Python genera `UnboundLocalError: local variable 'datetime' referenced before assignment` (HTTP 500).
+  3. **Lipsă flag `is_quote: true`:** `QuickAddWizard.jsx` nu transmitea `is_quote: true`, ceea ce ar fi cauzat generarea unui număr de factură (`INV...`) în loc de devis (`DEV...`), încălcând Regula 1 de secvențialitate documente.
+  4. **Payload crearea client nou:** La modul `clientMode === 'new'`, formularul trimitea `first_name`, `last_name`, `company_name`, dar nu trimitea cheia cerută `name`, ducând la eroare 422 pe `POST /admin/clients`.
+
+### Modificări Efectuate:
+1. **Frontend (`QuickAddWizard.jsx`):**
+   - Trimite `is_quote: true`, `title: volumes[0]?.label || 'Devis'`, `status: 'pending'` și `estimated_price: String(...)`.
+   - La `clientMode === 'new'`, transmite explicit `name: newClient.name` și `cui: newClient.cui || null`.
+   - Extrage și afișează mesajul exact de la server în caz de eroare.
+2. **Backend (`admin_work_orders.py`):**
+   - În `WorkOrderCreate`, definit `estimated_price: Optional[Union[str, float, int]] = None` și `status: Optional[str] = None`, convertind automat valorile numerice în șir de caractere în `clean_empty_strings`.
+   - Eliminat importul intern de `datetime` din `create_work_order` și adăugat fallback pe `payload.approximate_date` pentru generarea titlului.
+   - Preluat `initial_status` din payload (sau `'pending'` dacă `is_quote` e True).
+   - Securizat adunarea `truck_cost` la `estimated_price` pentru a nu arunca `TypeError` între `str` și `float`.
+3. **Backend (`admin_clients.py`):**
+   - În `ClientBase.clean_empty_strings`, adăugat fallback automat pentru generarea `name` din `first_name`/`last_name` sau `company_name` dacă `name` nu este furnizat direct.
+
+---
+
 ## 2026-09-17 (Clarificare Vizuală Chat Public & Detecție Sesiune Administrator)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Aprobat explicit de Utilizator ("ok.").

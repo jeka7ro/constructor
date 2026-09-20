@@ -7,7 +7,7 @@ import secrets
 import os
 import uuid
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Body, Query, BackgroundTasks
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, model_validator
@@ -25,7 +25,45 @@ from datetime import date as date_today_import
 from sqlalchemy import func
 from app.services.audit_service import log_audit
 import logging
+import threading
+
 logger = logging.getLogger(__name__)
+
+# Cache global thread-safe pentru geocodare și distanțe
+_distance_matrix_cache = {}
+_distance_matrix_lock = threading.Lock()
+
+_global_geo_cache = {}
+_global_geo_lock = threading.Lock()
+
+def _geocode_address_cached(address: str):
+    if not address or len(address.strip()) < 5:
+        return None
+    key = address.strip().lower()
+    with _global_geo_lock:
+        if key in _global_geo_cache:
+            return _global_geo_cache[key]
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        return None
+    try:
+        import requests
+        res = requests.get(
+            "https://maps.googleapis.com/maps/api/geocode/json",
+            params={"address": address, "key": api_key},
+            timeout=5
+        )
+        data = res.json()
+        if data.get("status") == "OK" and data.get("results"):
+            loc = data["results"][0]["geometry"]["location"]
+            result = (float(loc["lat"]), float(loc["lng"]))
+            with _global_geo_lock:
+                _global_geo_cache[key] = result
+            return result
+    except Exception:
+        pass
+    return None
+
 
 def sync_work_order_reservations(db: Session, org_id: str, old_materials: list, new_materials: list):
     """Calculeaza diferenta de materiale si ajusteaza reserved_quantity in Magazie."""
@@ -121,13 +159,14 @@ class WorkOrderCreate(BaseModel):
     # Note acces — cod intrare, etaj, apartament (vizibil echipei, nu clientului)
     access_notes: Optional[str] = None
     # Preț Estimativ
-    estimated_price: Optional[str] = None
+    estimated_price: Optional[Union[str, float, int]] = None
     is_auto_calculated: Optional[bool] = None
     route_distance_km: Optional[float] = None
     route_segments: Optional[list] = None
     # Devis / Quote
     is_quote: Optional[bool] = False
     approximate_date: Optional[str] = None
+    status: Optional[str] = None
     prices: Optional[dict] = {}
 
     @model_validator(mode='before')
@@ -141,6 +180,8 @@ class WorkOrderCreate(BaseModel):
                         values[k] = None
                     else:
                         values[k] = stripped
+            if isinstance(values.get('estimated_price'), (float, int)):
+                values['estimated_price'] = str(values['estimated_price'])
         return values
 
 class WorkOrderUpdate(WorkOrderCreate):
@@ -969,14 +1010,15 @@ def create_work_order(
     order_title = payload.title
     if not order_title:
         count = db.query(WorkOrder).filter(WorkOrder.organization_id == current_admin.organization_id).count()
-        date_str = payload.start_date or datetime.now().strftime("%Y-%m-%d")
+        date_str = payload.start_date or payload.approximate_date or datetime.now().strftime("%Y-%m-%d")
         try:
-            from datetime import datetime
             date_obj = datetime.strptime(date_str, "%Y-%m-%d")
             date_display = date_obj.strftime("%d.%m.%Y")
         except:
             date_display = date_str
         order_title = f"{count + 1} / {date_display}"
+
+    initial_status = getattr(payload, 'status', None) or ('pending' if getattr(payload, 'is_quote', False) else 'draft')
 
     wo = WorkOrder(
         organization_id=current_admin.organization_id,
@@ -1004,7 +1046,7 @@ def create_work_order(
         min_photos_required=payload.min_photos_required or 2,
         access_notes=payload.access_notes,
         estimated_price=getattr(payload, 'estimated_price', None),
-        status="draft",
+        status=initial_status,
         is_quote=getattr(payload, 'is_quote', False),
         approximate_date=getattr(payload, 'approximate_date', None),
         work_type=getattr(payload, 'work_type', 'new'),
@@ -1059,23 +1101,9 @@ def create_work_order(
 
         # Geocode if coordinates are missing but we have an address
         if (not wo.site_latitude or not wo.site_longitude) and wo.site_address:
-            try:
-                import requests
-                import os
-                api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-                if api_key:
-                    res = requests.get(
-                        "https://maps.googleapis.com/maps/api/geocode/json",
-                        params={"address": wo.site_address, "key": api_key, "region": "ro"},
-                        timeout=3
-                    )
-                    data = res.json()
-                    if data.get("status") == "OK" and data.get("results"):
-                        loc = data["results"][0]["geometry"]["location"]
-                        wo.site_latitude = float(loc['lat'])
-                        wo.site_longitude = float(loc['lng'])
-            except Exception:
-                pass
+            geo = _geocode_address_cached(wo.site_address)
+            if geo:
+                wo.site_latitude, wo.site_longitude = geo
 
         if base_lat and base_lng and not wo.route_segments:
             import math
@@ -1136,9 +1164,14 @@ def create_work_order(
                 wo.prices = prices_json
                 
                 # Add truck_cost to estimated_price if we have one
-                if wo.estimated_price and wo.estimated_price > 0:
-                    wo.estimated_price = float(wo.estimated_price) + truck_cost
-                    print(f"Added truck_cost {truck_cost}€ to estimated_price. New total: {wo.estimated_price}")
+                if wo.estimated_price:
+                    try:
+                        est_float = float(wo.estimated_price)
+                        if est_float > 0:
+                            wo.estimated_price = str(est_float + truck_cost)
+                            print(f"Added truck_cost {truck_cost}€ to estimated_price. New total: {wo.estimated_price}")
+                    except (ValueError, TypeError):
+                        pass
                 else:
                     print(f"Truck cost {truck_cost}€ stored in prices but no estimated_price to add to")
             else:
@@ -1236,32 +1269,8 @@ def batch_recalculate_routes(
         a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon/2)**2
         return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
-    # Cache geocoding per batch
-    geo_cache = {}
     def _geocode(address):
-        if not address or len(address.strip()) < 5:
-            return None
-        key = address.strip().lower()
-        if key in geo_cache:
-            return geo_cache[key]
-        api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-        if not api_key:
-            return None
-        try:
-            res = requests.get(
-                "https://maps.googleapis.com/maps/api/geocode/json",
-                params={"address": address, "key": api_key},
-                timeout=5
-            )
-            data = res.json()
-            if data.get("status") == "OK" and data.get("results"):
-                loc = data["results"][0]["geometry"]["location"]
-                result = (float(loc["lat"]), float(loc["lng"]))
-                geo_cache[key] = result
-                return result
-        except Exception:
-            pass
-        return None
+        return _geocode_address_cached(address)
 
     # Find the organization's base
     base = db.query(LogisticBase).filter(
@@ -1504,23 +1513,9 @@ def update_work_order(
 
         # Geocode if coordinates are missing but we have an address
         if (not wo.site_latitude or not wo.site_longitude) and wo.site_address:
-            try:
-                import requests
-                import os
-                api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-                if api_key:
-                    res = requests.get(
-                        "https://maps.googleapis.com/maps/api/geocode/json",
-                        params={"address": wo.site_address, "key": api_key, "region": "ro"},
-                        timeout=3
-                    )
-                    data = res.json()
-                    if data.get("status") == "OK" and data.get("results"):
-                        loc = data["results"][0]["geometry"]["location"]
-                        wo.site_latitude = float(loc['lat'])
-                        wo.site_longitude = float(loc['lng'])
-            except Exception:
-                pass
+            geo = _geocode_address_cached(wo.site_address)
+            if geo:
+                wo.site_latitude, wo.site_longitude = geo
 
         if base_lat and base_lng and not wo.route_segments:
             import math
@@ -1712,10 +1707,21 @@ async def regenerate_pdf_task(wo_id: str):
 # SYNC PRICES
 # ──────────────────────────────────────────────────────────────────────────────
 def get_driving_distance_km(origin: str, destination: str) -> float:
+    if not origin or not destination:
+        return 0.0
+    orig_clean = origin.strip().lower()
+    dest_clean = destination.strip().lower()
+    if orig_clean == dest_clean:
+        return 0.0
+    cache_key = f"{orig_clean}|{dest_clean}"
+    with _distance_matrix_lock:
+        if cache_key in _distance_matrix_cache:
+            return _distance_matrix_cache[cache_key]
+
     import requests
     import os
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-    if not api_key or not origin or not destination:
+    if not api_key:
         return 0.0
     
     url = "https://maps.googleapis.com/maps/api/distancematrix/json"
@@ -1732,7 +1738,11 @@ def get_driving_distance_km(origin: str, destination: str) -> float:
             if data.get("rows") and data["rows"][0].get("elements"):
                 element = data["rows"][0]["elements"][0]
                 if element.get("status") == "OK":
-                    return element["distance"]["value"] / 1000.0
+                    km = round(element["distance"]["value"] / 1000.0, 2)
+                    with _distance_matrix_lock:
+                        _distance_matrix_cache[cache_key] = km
+                        _distance_matrix_cache[f"{dest_clean}|{orig_clean}"] = km
+                    return km
     except Exception as e:
         print(f"Error calculating distance: {e}")
     return 0.0

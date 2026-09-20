@@ -189,9 +189,11 @@ async def lifespan(app: FastAPI):
     ka.start()
     print("💓 Keep-alive thread started (pings every 14 min)")
 
-    # Start Robaws Scraper Background Scheduler
+    # Background Scheduler
     scheduler = BackgroundScheduler()
-    scheduler.add_job(run_all_scrapers, 'interval', hours=2)
+    # Robaws Scraper Background Scheduler DEZACTIVAT EXPLICIT LA CEREREA UTILIZATORULUI
+    # scheduler.add_job(run_all_scrapers, 'interval', hours=2)
+    print("🤖 Robaws Scraper Scheduler DEZACTIVAT explicit la cererea utilizatorului")
     # Backup automat la fiecare 4 ore (primul rulează după 60 secunde)
     scheduler.add_job(run_backup, 'interval', hours=4, next_run_time=datetime.now() + timedelta(seconds=60))
     
@@ -199,7 +201,6 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(poll_flespi_devices, 'interval', minutes=1, next_run_time=datetime.now() + timedelta(seconds=10))
     
     scheduler.start()
-    print("🤖 Robaws Scraper Scheduler started (runs every 2 hours)")
     print("💾 Backup Scheduler started (runs every 4 hours, first run in 60s)")
     print("📡 Flespi GPS Scheduler started (runs every 1 minute)")
 
@@ -310,18 +311,25 @@ def reverse_geocode(lat: float, lon: float):
         return {"display_name": ""}
 
 # Places Autocomplete proxy (avoids browser API key referrer restrictions)
+# Places Autocomplete proxy (avoids browser API key referrer restrictions)
 _places_cache = {}
 _places_cache_lock = threading.Lock()
 
+_place_details_cache = {}
+_place_details_lock = threading.Lock()
+
+_place_reverse_cache = {}
+_place_reverse_lock = threading.Lock()
+
 @app.get("/api/places/autocomplete")
 def places_autocomplete(input: str, types: str = None, lang: str = "ro"):
-    """Proxy to Google Places Autocomplete API — no browser referrer restrictions"""
+    """Proxy to Google Places Autocomplete API — no browser referrer restrictions with 24h cache"""
     key = f"{input.strip().lower()}_{types}_{lang}"
     now = _time.time()
     with _places_cache_lock:
         if key in _places_cache:
             ts, data = _places_cache[key]
-            if now - ts < 300:  # 5 min cache
+            if now - ts < 86400:  # 24 hour cache
                 return data
     try:
         params = {
@@ -338,15 +346,22 @@ def places_autocomplete(input: str, types: str = None, lang: str = "ro"):
             timeout=5.0
         )
         data = resp.json()
-        with _places_cache_lock:
-            _places_cache[key] = (now, data)
+        if data.get("status") == "OK":
+            with _places_cache_lock:
+                _places_cache[key] = (now, data)
         return data
     except Exception as e:
         return {"status": "ERROR", "predictions": [], "error": str(e)}
 
 @app.get("/api/places/details")
 def place_details(place_id: str, lang: str = "ro"):
-    """Proxy to Google Place Details API — gets lat/lng for a place"""
+    """Proxy to Google Place Details API — gets lat/lng for a place with permanent in-memory cache"""
+    if not place_id:
+        return {"status": "ERROR", "error": "Missing place_id"}
+    key = f"{place_id.strip()}_{lang}"
+    with _place_details_lock:
+        if key in _place_details_cache:
+            return _place_details_cache[key]
     try:
         resp = _requests.get(
             "https://maps.googleapis.com/maps/api/place/details/json",
@@ -358,13 +373,21 @@ def place_details(place_id: str, lang: str = "ro"):
             },
             timeout=5.0
         )
-        return resp.json()
+        data = resp.json()
+        if data.get("status") == "OK":
+            with _place_details_lock:
+                _place_details_cache[key] = data
+        return data
     except Exception as e:
         return {"status": "ERROR", "error": str(e)}
 
 @app.get("/api/places/reverse")
 def place_reverse_geocode(lat: float, lng: float, lang: str = "ro"):
-    """Proxy to Google Geocoding API — gets address from lat/lng"""
+    """Proxy to Google Geocoding API — gets address from lat/lng with in-memory cache"""
+    key = (round(lat, 3), round(lng, 3), lang)
+    with _place_reverse_lock:
+        if key in _place_reverse_cache:
+            return _place_reverse_cache[key]
     try:
         resp = _requests.get(
             "https://maps.googleapis.com/maps/api/geocode/json",
@@ -375,7 +398,11 @@ def place_reverse_geocode(lat: float, lng: float, lang: str = "ro"):
             },
             timeout=5.0
         )
-        return resp.json()
+        data = resp.json()
+        if data.get("status") == "OK":
+            with _place_reverse_lock:
+                _place_reverse_cache[key] = data
+        return data
     except Exception as e:
         return {"status": "ERROR", "error": str(e)}
 

@@ -49,6 +49,16 @@ class ClientBase(BaseModel):
                         values[k] = None
                     else:
                         values[k] = stripped
+            # Fallback if name is missing but first_name/last_name or company_name was passed
+            if not values.get('name'):
+                first = values.get('first_name') or ''
+                last = values.get('last_name') or ''
+                full = f"{first} {last}".strip()
+                company = values.get('company_name') or ''
+                values['name'] = full or company or None
+            # Fallback if cui is missing but company_vat was passed
+            if not values.get('cui') and values.get('company_vat'):
+                values['cui'] = values.get('company_vat')
         return values
 
 class ClientCreate(ClientBase):

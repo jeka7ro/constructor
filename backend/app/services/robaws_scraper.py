@@ -15,49 +15,12 @@ ROBAWS_API_KEY = os.getenv("ROBAWS_API_KEY")
 ROBAWS_API_SECRET = os.getenv("ROBAWS_API_SECRET")
 
 def geocode_address_for_scraper(address: str):
-    if not address or not address.strip(): return None, None
-    query = address
-    if "belgium" not in query.lower() and "belgie" not in query.lower() and "belgique" not in query.lower():
-        query += ", Belgium"
-        
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-    if not api_key:
-        return None, None
-    
-    try:
-        res = requests.get(
-            "https://maps.googleapis.com/maps/api/geocode/json",
-            params={"address": query, "key": api_key},
-            timeout=5
-        )
-        data = res.json()
-        if data.get("status") == "OK" and data.get("results"):
-            loc = data["results"][0]["geometry"]["location"]
-            return float(loc["lat"]), float(loc["lng"])
-    except:
-        pass
-        
-    # Fallback to postal code extraction
-    import re
-    match = re.search(r'\b([1-9][0-9]{3})\b', address)
-    if match:
-        fallback_query = f"{match.group(1)}, Belgium"
-        try:
-            res = requests.get(
-                "https://maps.googleapis.com/maps/api/geocode/json",
-                params={"address": fallback_query, "key": api_key},
-                timeout=5
-            )
-            data = res.json()
-            if data.get("status") == "OK" and data.get("results"):
-                loc = data["results"][0]["geometry"]["location"]
-                return float(loc["lat"]), float(loc["lng"])
-        except:
-            pass
-
+    # Dezactivat complet la cererea utilizatorului — nu se mai consumă Google Geocoding API
     return None, None
 
 def run_api_sync_for_team(team: Team, db: Session):
+    # Sincronizare Robaws oprită complet
+    return
     api_key = team.robaws_email or ROBAWS_API_KEY
     api_secret = team.robaws_password or ROBAWS_API_SECRET
     
@@ -242,16 +205,5 @@ def run_api_sync_for_team(team: Team, db: Session):
         print(f"[Robaws API] Eroare neașteptată pt echipa {team.name}: {e}")
 
 def run_all_scrapers():
-    print(f"[Robaws API] Rulăm planificatorul global de sincronizare la {datetime.now()}")
-    db = SessionLocal()
-    try:
-        # Preluăm toate echipele active
-        teams = db.query(Team).filter(
-            Team.is_active == True
-        ).all()
-
-        for team in teams:
-            run_api_sync_for_team(team, db)
-            
-    finally:
-        db.close()
+    # Dezactivat definitiv la cererea utilizatorului
+    return

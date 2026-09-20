@@ -18,8 +18,23 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/sites", tags=["admin-sites"])
 
 
+import threading
+
+_sites_geo_cache = {}
+_sites_geo_lock = threading.Lock()
+
 def geocode_address(address: str, county: str = None) -> dict:
-    """Geocode an address using Google Maps API"""
+    """Geocode an address using Google Maps API with thread-safe in-memory cache"""
+    if not address or len(address.strip()) < 3:
+        return {}
+    query = address
+    if county:
+        query += f", {county}"
+    key = query.strip().lower()
+    with _sites_geo_lock:
+        if key in _sites_geo_cache:
+            return _sites_geo_cache[key]
+
     import os
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     if not api_key:
@@ -27,23 +42,21 @@ def geocode_address(address: str, county: str = None) -> dict:
         return {}
         
     try:
-        query = address
-        if county:
-            query += f", {county}"
-        query += ", Romania"
-        
         response = requests.get(
             "https://maps.googleapis.com/maps/api/geocode/json",
-            params={"address": query, "key": api_key, "region": "ro"},
+            params={"address": query, "key": api_key},
             timeout=5
         )
         results = response.json()
         if results.get("status") == "OK" and results.get("results"):
             location = results["results"][0]["geometry"]["location"]
-            return {
+            res = {
                 "latitude": float(location["lat"]),
                 "longitude": float(location["lng"])
             }
+            with _sites_geo_lock:
+                _sites_geo_cache[key] = res
+            return res
     except Exception as e:
         logger.warning(f"Geocoding failed for '{address}': {e}")
     return {}

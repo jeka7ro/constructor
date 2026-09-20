@@ -162,11 +162,27 @@ def get_available_dates(domain: Optional[str] = None, slug: Optional[str] = None
         "max_capacity_per_day": 3 
     }
 
+import threading
+
+_devis_online_dist_cache = {}
+_devis_online_dist_lock = threading.Lock()
+
 def get_driving_distance_km(origin: str, destination: str) -> float:
+    if not origin or not destination:
+        return 0.0
+    orig_clean = origin.strip().lower()
+    dest_clean = destination.strip().lower()
+    if orig_clean == dest_clean:
+        return 0.0
+    cache_key = f"{orig_clean}|{dest_clean}"
+    with _devis_online_dist_lock:
+        if cache_key in _devis_online_dist_cache:
+            return _devis_online_dist_cache[cache_key]
+
     import requests
     import os
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-    if not api_key or not origin or not destination:
+    if not api_key:
         return 0.0
     
     url = "https://maps.googleapis.com/maps/api/distancematrix/json"
@@ -183,7 +199,11 @@ def get_driving_distance_km(origin: str, destination: str) -> float:
             if data.get("rows") and data["rows"][0].get("elements"):
                 element = data["rows"][0]["elements"][0]
                 if element.get("status") == "OK":
-                    return element["distance"]["value"] / 1000.0
+                    km = round(element["distance"]["value"] / 1000.0, 2)
+                    with _devis_online_dist_lock:
+                        _devis_online_dist_cache[cache_key] = km
+                        _devis_online_dist_cache[f"{dest_clean}|{orig_clean}"] = km
+                    return km
     except Exception as e:
         print(f"Error calculating distance: {e}")
     return 0.0

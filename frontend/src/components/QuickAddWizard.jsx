@@ -112,13 +112,14 @@ export default function QuickAddWizard({ onClose, onSuccess, clients = [], showT
             // 1. Save new client if needed
             if (clientMode === 'new') {
                 const clientRes = await api.post('/admin/clients', {
+                    name: newClient.name,
                     client_type: newClient.client_type,
                     first_name: newClient.client_type === 'fizica' ? newClient.name.split(' ')[0] : '',
                     last_name: newClient.client_type === 'fizica' ? newClient.name.split(' ').slice(1).join(' ') : '',
                     company_name: newClient.client_type === 'juridica' ? newClient.name : null,
-                    company_vat: newClient.cui,
-                    email: newClient.email,
-                    phone: newClient.phone
+                    cui: newClient.cui || null,
+                    email: newClient.email || null,
+                    phone: newClient.phone || null
                 });
                 finalClientId = clientRes.data.id;
             }
@@ -150,24 +151,29 @@ export default function QuickAddWizard({ onClose, onSuccess, clients = [], showT
                 });
             }
 
-            // 3. Save Quote (WorkOrder with status pending)
+            // 3. Save Quote (WorkOrder with status pending and is_quote=true)
             await api.post('/admin/work-orders', {
+                title: volumes[0]?.label || 'Devis',
                 client_id: finalClientId,
                 approximate_date: form.approximate_date,
                 work_type: form.work_type,
-                estimated_price: form.estimated_price ? parseFloat(form.estimated_price) : null,
+                estimated_price: form.estimated_price ? String(form.estimated_price) : null,
                 notes: form.notes,
                 status: 'pending',
+                is_quote: true,
                 volumes: volumes
             });
 
             onSuccess();
         } catch (err) {
             console.error('Error saving quote:', err);
+            const errMsg = err.response?.data?.detail 
+                ? (typeof err.response.data.detail === 'string' ? err.response.data.detail : JSON.stringify(err.response.data.detail))
+                : "Erreur lors de l'enregistrement";
             if (showToast) {
-                showToast("Erreur lors de l'enregistrement", 'error');
+                showToast(errMsg, 'error');
             } else {
-                alert("Erreur lors de l'enregistrement");
+                alert(errMsg);
             }
         } finally {
             setIsSaving(false);

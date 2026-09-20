@@ -1,19 +1,29 @@
 import logging
 import requests
+import threading
 
 logger = logging.getLogger(__name__)
+
+_translation_cache = {}
+_translation_lock = threading.Lock()
 
 def translate_text(text: str, target_lang: str, source_lang: str = 'auto') -> str:
     """
     Translates text to target_lang using direct Google Translate GTX API with deep_translator fallback.
     Case-insensitive: normalizes target_lang ('FR' -> 'fr', 'NL' -> 'nl').
     Returns the translated string, or the original text if all translation backends fail.
+    Cached in-memory to prevent repeated Google API hits.
     """
     if not text or not text.strip():
         return text
 
     target = target_lang.lower().strip() if target_lang else 'fr'
     source = source_lang.lower().strip() if source_lang else 'auto'
+    cache_key = f"{source}_{target}_{text.strip()}"
+
+    with _translation_lock:
+        if cache_key in _translation_cache:
+            return _translation_cache[cache_key]
 
     # Primary: fast googleapis GTX API
     try:
@@ -35,6 +45,8 @@ def translate_text(text: str, target_lang: str, source_lang: str = 'auto') -> st
                 translated_parts = [part[0] for part in data[0] if part and len(part) > 0 and part[0]]
                 translated = ''.join(translated_parts).strip()
                 if translated and not any(err in translated for err in ["Error 500", "Server Error", "That's an error"]):
+                    with _translation_lock:
+                        _translation_cache[cache_key] = translated
                     return translated
     except Exception as e:
         logger.warning(f"googleapis translate failed for {target}: {e}")
@@ -44,6 +56,8 @@ def translate_text(text: str, target_lang: str, source_lang: str = 'auto') -> st
         from deep_translator import GoogleTranslator
         translated = GoogleTranslator(source=source, target=target).translate(text)
         if translated and not any(err in translated for err in ["Error 500", "Server Error", "That's an error"]):
+            with _translation_lock:
+                _translation_cache[cache_key] = translated
             return translated
     except Exception as e:
         logger.warning(f"deep_translator fallback failed for {target}: {e}")
