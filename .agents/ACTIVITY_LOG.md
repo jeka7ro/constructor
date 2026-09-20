@@ -25,6 +25,8 @@ Scopul este asigurarea trasabilității depline: cine a modificat, când a modif
    - În `public_work_orders.py` și `webhooks.py`: unificat apelul de traducere cu serviciul robust `translate_text`.
 3. **Traduceri i18n (`fr.json`, `ro.json`, `nl.json`, `en.json`):**
    - Adăugată secțiunea `"chat"` cu toate cheile necesare conform Regulii 6 (fără texte hardcodate).
+4. **Link Public Client (`WorkOrderConfirm.jsx`):**
+   - Eliminat definitiv bannerul galben "Mode Administrateur" (`Ouvrir Admin Chat`) din pagina publică de vizualizare/confirmare a clientului. Pagina este acum 100% curată pentru toată lumea.
 
 ---
 
