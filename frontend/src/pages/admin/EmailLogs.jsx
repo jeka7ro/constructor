@@ -96,7 +96,7 @@ const EmailLogs = () => {
             label: t('common.status', 'Statut'),
             sortable: true,
             render: (row) => (
-                row.status === 'sent' ? (
+                (['sent', 'delivered', 'success'].includes(row.status?.toLowerCase())) ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold tracking-wide uppercase">
                         <CheckCircle className="w-3.5 h-3.5" />
                         {t('emails.status_sent', 'Envoyé')}

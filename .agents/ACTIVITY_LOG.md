@@ -3,6 +3,86 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-10-07 (Corecție Crash Hărți Leaflet '_leaflet_pos' & Fallback Logo Header)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Semnalat și aprobat explicit de Utilizator ("ok").
+
+### Problemă:
+1. La navigarea de pe pagina Planificare către alte pagini (ex: `/admin/quotes`), aplicația intra în Crash (ecran alb cu text roșu: `TypeError: Cannot read properties of undefined (reading '_leaflet_pos')`).
+   Cauza: Animația Leaflet de zoom/centrare (`fitBounds`) rula un `setTimeout` asincron care încerca să acceseze `_panes.mapPane` după ce componenta fusese deja demontată din DOM, iar `error-catcher.js` suprascria întreg ecranul.
+2. Logoul organizației din header afișa intermitent o imagine spartă cu textul `Tenant Logo` dacă Supabase Storage trimitea antetul `Content-Disposition: attachment` pe fișierele SVG.
+
+### Rezolvare:
+1. `frontend/src/main.jsx`: S-a aplicat un patch defensiv pe prototipul Leaflet (`L.Map.prototype._onZoomTransitionEnd` și `_getMapPanePos`) pentru a fi 100% null-safe când `_panes` sau `mapPane` nu mai există la momentul finalizării animației.
+2. `frontend/src/components/MiniLiveTrackingMap.jsx`: În `FitBounds`, s-a adăugat `map.stop()` la unmount pentru a opri instant orice animație la părăsirea paginii.
+3. `frontend/public/error-catcher.js`: S-a adăugat filtrare pentru a preveni blocarea ecranului la erori de tranziție/unmount inofensive.
+4. `frontend/src/pages/admin/AdminDashboard.jsx`: S-a adăugat `onError` pe tag-urile `<img>` ale logoului (desktop și mobil) pentru a comuta automat pe `/davide_logo.svg` local și s-a înlocuit textul `alt="Tenant Logo"` cu `alt={tenant?.name || 'Davide Chape'}`.
+5. Nicio modificare nu a fost adusă bazei de date de producție.
+
+---
+
+## 2026-10-07 (Corecție Statut E-mailuri „Confirmation de commande” Afișate Eronat ca Échoué)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Semnalat și aprobat explicit de Utilizator ("da").
+
+### Problemă:
+În pagina de jurnal a e-mailurilor (`/admin/emails` - `EmailLogs.jsx`), e-mailurile de tip „Confirmation de commande” apăreau eronat cu eticheta roșie **ÉCHOUÉ**, deși în realitate fuseseră livrate cu succes prin Brevo fără nicio eroare.
+Cauza: `email_service.py` (`send_order_confirmation_email`) salva statusul ca `"delivered"`, în timp ce tabelul `EmailLogs.jsx` verifica strict `row.status === 'sent'` și trimitea orice alt status pe ramura de eroare.
+
+### Rezolvare:
+1. `frontend/src/pages/admin/EmailLogs.jsx`: S-a extins verificarea de succes să includă atât `'sent'`, cât și `'delivered'` (`['sent', 'delivered', 'success'].includes(row.status?.toLowerCase())`).
+2. `backend/app/services/email_service.py`: S-a aliniat apelul `_log_email` din `send_order_confirmation_email` la `"sent"`, în conformitate cu toate celelalte notificări din sistem.
+3. Nicio modificare nu a fost adusă bazei de date de producție.
+
+---
+
+## 2026-10-06 (Deblocare Semnal GPS Macarale & Optimizare Stocare Flespi)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Solicitat și aprobat explicit de Utilizator ("Opțiunea B (Prin API din backend): ... ok.").
+
+### Problemă:
+Macaralele (Grue - DAF 2-EAZ-821 / Alexei și MAN2 NN / Camion 5) nu mai apăreau pe harta live din Planificare (`/admin/planning`, apăreau doar 4 din 6 vehicule).
+Investigația tehnică în Flespi a demonstrat că ambele dispozitive GPS (Teltonika FMC920) aveau semnal GSM și încercau să se conecteze la fiecare 2 minute, dar Flespi le respingea autentificarea cu eroarea `login failed (close_code=13): device is blocked with code=4`.
+Cauza: Depășirea bufferului maxim de stocare (100 KB) alocat pe contul Flespi, cauzată de parametrul `messages_ttl` setat la 365 de zile cu rotație dezactivată (`messages_rotate: 0`).
+
+### Rezolvare:
+1. S-au curățat mesajele vechi blocate în buffer prin Flespi REST API.
+2. S-a configurat rotația automată a stocării (`messages_rotate: 50000`, adică 50 KB) și `messages_ttl: 1209600` (14 zile) pe ambele macarale și preventiv pe celelalte 4 camioane din flotă.
+3. Ambele macarale au trecut automat în starea `Blocked: 0` (Deblocat).
+4. DAF Grue (Alexei) s-a reconectat instantaneu prin TCP și a început descărcarea datelor GPS stocate în memoria internă (blackbox) către server.
+5. Nicio modificare nu a fost adusă bazei de date de producție.
+
+---
+
+## 2026-10-02 (Corecție Geocodare Noua Zeelandă -> Menen Belgia & Recalculare Rute Echipa Vasea)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Semnalat și aprobat explicit de Utilizator ("DA").
+
+### Problemă:
+Comanda BV ISOFLEX din Pajottegem (`96ca5ab2...`) afișa pe hartă o rută de 23.870 km până în Noua Zeelandă. Cauza a fost prima lucrare a zilei a Echipei Vasea (`eeff0c20...`, `Menen 8930, Vredestraat 11`), care fusese geocodată eronat de Google ca fiind `11 Menen Place, Auckland, Noua Zeelandă` (`lat: -37.014187, lng: 174.915759`).
+
+### Rezolvare:
+1. Corectat comanda din Menen la coordonatele reale din Belgia (`50.796834, 3.126679`, adresa `Vredestraat 11, 8930 Menen, Belgia`).
+2. Recalculat segmentele de traseu și distanța pentru Echipa Vasea pe data de 02.10.2026:
+   - Menen (Oprirea 1): Baza -> Menen (116.29 km).
+   - Pajottegem (Oprirea 2): Menen -> Pajottegem (74.21 km) + Retur Baza (45.17 km) = 119.38 km (față de 23.870 km anterior).
+3. Harta afișează acum ambele puncte localizate corect în Belgia.
+
+---
+
+## 2026-10-02 (Pornire Mediu Local: Backend Port 8001 & Frontend Port 5678)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Solicitat de Utilizator ("PORNESTE LOCAL"), opțiune confirmată explicit de utilizator pentru port 8001 (pentru a nu atinge procesul Axis v1 de pe portul 8000).
+
+### Acțiuni Efectuate:
+1. Identificat conflict pe portul 8000 (ocupat de un proces uvicorn din alt proiect - Axis v1).
+2. La cererea utilizatorului, s-a configurat `frontend/vite.config.js` cu proxy către `http://127.0.0.1:8001`.
+3. Lansat FastAPI Backend pe portul `8001` (cu `.venv` din rădăcina proiectului).
+4. Lansat Frontend Vite pe portul dedicat `5678`.
+5. Verificat conectivitatea și funcționarea endpoint-urilor (`/docs`, proxy `/api/...` -> returnat 200 OK).
+
+---
+
 ## 2026-09-20 (Fix Layout Chat: Aliniere la Bază & Eliminare Spațiu Gol)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Solicitat de Utilizator ("muta kodul de text si traducel in josul containerelui d echat .acu acu matarn in aer asa").

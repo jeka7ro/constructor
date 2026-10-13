@@ -32,17 +32,31 @@ def poll_flespi_devices():
         "Accept": "application/json"
     }
 
+    telemetry_data = {}
     try:
         with httpx.Client(timeout=10.0) as client:
             # Send data as a query string parameter explicitly
             response = client.get(url, params=params, headers=headers)
             response.raise_for_status()
             data = response.json()
+
+            # Also fetch current telemetry for all devices (ensures vehicles flushing buffers or parked remain visible)
+            try:
+                tel_url = "https://flespi.io/gw/devices/all/telemetry/position.latitude,position.longitude,position.speed,timestamp,ident"
+                tel_res = client.get(tel_url, headers=headers)
+                if tel_res.status_code == 200:
+                    for item in tel_res.json().get("result", []):
+                        t_obj = item.get("telemetry", {})
+                        ident_val = str(t_obj.get("ident", {}).get("value", ""))
+                        if ident_val:
+                            telemetry_data[ident_val] = t_obj
+            except Exception as e_tel:
+                logger.warning(f"Failed to fetch telemetry from Flespi: {e_tel}")
     except Exception as e:
         logger.error(f"Failed to fetch Flespi data: {e}")
         return
 
-    if "result" not in data:
+    if "result" not in data and not telemetry_data:
         return
 
     db = SessionLocal()
@@ -62,6 +76,20 @@ def poll_flespi_devices():
             ident = str(msg.get("ident", ""))
             if ident:
                 messages_by_ident[ident].append(msg)
+                
+        # Update vehicles without fresh messages from telemetry
+        for ident, v in vehicle_map.items():
+            if ident not in messages_by_ident and ident in telemetry_data:
+                t_obj = telemetry_data[ident]
+                t_lat = t_obj.get("position.latitude", {}).get("value")
+                t_lon = t_obj.get("position.longitude", {}).get("value")
+                t_speed = t_obj.get("position.speed", {}).get("value", 0.0)
+                last_comm_ts = t_obj.get("ident", {}).get("ts") or t_obj.get("timestamp", {}).get("value")
+                if t_lat is not None and t_lon is not None and last_comm_ts:
+                    v.last_lat = t_lat
+                    v.last_lng = t_lon
+                    v.last_speed = t_speed or 0.0
+                    v.last_seen_at = datetime.fromtimestamp(last_comm_ts, tz=timezone.utc).replace(tzinfo=None)
                 
         added_points = 0
         for ident, messages in messages_by_ident.items():

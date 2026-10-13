@@ -5,6 +5,21 @@ import "mobile-drag-drop/default.css";
 import App from './App'
 import './index.css'
 import './i18n/index.js'
+import L from 'leaflet'
+
+// Patch Leaflet bug #4643: prevent TypeError '_leaflet_pos' when unmounting during zoom/pan animations
+if (typeof window !== 'undefined' && L && L.Map) {
+    const origOnZoomTransitionEnd = L.Map.prototype._onZoomTransitionEnd;
+    L.Map.prototype._onZoomTransitionEnd = function () {
+        if (!this._panes || !this._panes.mapPane) return;
+        return origOnZoomTransitionEnd?.apply(this, arguments);
+    };
+    const origGetMapPanePos = L.Map.prototype._getMapPanePos;
+    L.Map.prototype._getMapPanePos = function () {
+        if (!this._panes || !this._panes.mapPane) return new L.Point(0, 0);
+        return origGetMapPanePos?.apply(this, arguments);
+    };
+}
 
 // Activeaza polyfill pentru Drag & Drop pe ecrane touch (ex: iPad)
 polyfill({

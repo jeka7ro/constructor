@@ -916,7 +916,7 @@ def send_order_confirmation_email(to_email: str, client_name: str, client_langua
         }
         resp = requests.post("https://api.brevo.com/v3/smtp/email", headers=headers, json=data, timeout=10)
         resp.raise_for_status()
-        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "delivered")
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "sent")
         return True
     except Exception as e:
         import logging

@@ -14,6 +14,9 @@ function FitBounds({ vehicles }) {
     if (vehicles.length === 0) return;
     const bounds = L.latLngBounds(vehicles.map(v => [v.lat, v.lng]));
     map.fitBounds(bounds, { padding: [20, 20], maxZoom: 14 });
+    return () => {
+      try { map.stop(); } catch (_) {}
+    };
   }, [vehicles.length]);
   return null;
 }

@@ -457,7 +457,17 @@ export default function AdminDashboard() {
                      <div className="hidden md:flex items-center justify-center mr-2">
                          {tenant ? (
                              tenant.logo_url ? (
-                                 <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="h-10 max-h-12 w-auto object-contain bg-transparent" />
+                                 <img 
+                                     src={getImageUrl(tenant.logo_url)} 
+                                     alt={tenant.name || 'Logo'} 
+                                     className="h-10 max-h-12 w-auto object-contain bg-transparent"
+                                     onError={(e) => {
+                                         if (!e.currentTarget.dataset.failedOnce) {
+                                             e.currentTarget.dataset.failedOnce = 'true';
+                                             e.currentTarget.src = '/davide_logo.svg';
+                                         }
+                                     }}
+                                 />
                              ) : (
                                  <div className="font-extrabold text-xl text-white px-2">{tenant.name || 'Tenant'}</div>
                              )
@@ -470,7 +480,17 @@ export default function AdminDashboard() {
                      <div className="md:hidden flex items-center justify-center mr-2">
                          {tenant ? (
                              tenant.logo_url ? (
-                                 <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="h-8 max-h-10 w-auto object-contain bg-transparent" />
+                                 <img 
+                                     src={getImageUrl(tenant.logo_url)} 
+                                     alt={tenant.name || 'Logo'} 
+                                     className="h-8 max-h-10 w-auto object-contain bg-transparent"
+                                     onError={(e) => {
+                                         if (!e.currentTarget.dataset.failedOnce) {
+                                             e.currentTarget.dataset.failedOnce = 'true';
+                                             e.currentTarget.src = '/davide_logo.svg';
+                                         }
+                                     }}
+                                 />
                              ) : (
                                  <div className="font-extrabold text-[15px] leading-tight tracking-tighter text-white truncate max-w-[150px]">{tenant.name || 'Tenant'}</div>
                              )
