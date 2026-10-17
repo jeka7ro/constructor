@@ -5,6 +5,7 @@ import { Loader2, Printer, ArrowLeft, FileText, Mail, Phone, MapPin, User } from
 import api from '../../lib/api'
 import { useTenantStore } from '../../store/tenantStore'
 import { useTranslation } from 'react-i18next'
+import { useUIStore } from '../../store/uiStore'
 
 const DEVIS_LANG = {
     fr: {
@@ -268,7 +269,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     }
 
 
-    const devisNum = wo.quote_number || 'DEV 0905'
+    const devisNum = wo.quote_number || '—'
     const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')
     const primaryColor = tenant?.primary_color || '#0a9ccd'
 
@@ -287,14 +288,15 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     <button onClick={async () => {
                         try {
                             const res = await api.get(`/admin/work-orders/${id}`);
-                            await api.post(`/admin/work-orders/${id}/send-email`, { proforma_url: `https://davidechape.pontaj.app/public/proforma/${res.data.token}` });
-                            alert('Email trimis cu succes!');
+                            const origin = typeof window !== 'undefined' ? window.location.origin : 'https://davidechape.pontaj.app';
+                            await api.post(`/admin/work-orders/${id}/send-email`, { proforma_url: `${origin}/public/proforma/${res.data.token}` });
+                            useUIStore.getState().showToast(t('common.email_sent', 'Email envoyé avec succès !'), 'success');
                         } catch (err) {
-                            alert('Eroare la trimiterea emailului.');
+                            useUIStore.getState().showToast(t('common.email_error', "Erreur lors de l'envoi de l'email."), 'error');
                         }
                     }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow transition-colors">
                         <Mail className="w-4 h-4" />
-                        Trimite Email
+                        {t('common.send_email', 'Envoyer par e-mail')}
                     </button>
 
                     <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow transition-colors">

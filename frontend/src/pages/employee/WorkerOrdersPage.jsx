@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
 import LanguageSelector from '../../components/LanguageSelector'
@@ -1416,8 +1417,6 @@ function Row({ label, value }) {
     )
 }
 
-import { useNavigate } from 'react-router-dom'
-
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1565,8 +1564,18 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         setDocuments([])
         setActualSurface(order.actual_surface_m2 || '')
         setActualThickness(order.actual_thickness_cm || '')
-        setActualSand(order.actual_sand_quantity || '')
-        setActualSandM3(order.actual_sand_m3 || '')
+        setActualSand(order.actual_sand_quantity ? String(order.actual_sand_quantity) : (order.ai_sand_kg ? String(order.ai_sand_kg) : ''))
+        setActualSandM3(order.actual_sand_m3 ? String(order.actual_sand_m3) : '')
+        setActualCement(order.ai_cement_kg ? String(order.ai_cement_kg) : '')
+        if (order.ai_sand_kg || order.ai_cement_kg) {
+            setOcrData({
+                status: 'success',
+                sand_kg: order.ai_sand_kg,
+                cement_kg: order.ai_cement_kg
+            })
+        } else {
+            setOcrData(null)
+        }
         fetchOrderPhotos(order.id)
         fetchOrderDocuments(order.id)
     }
@@ -1589,6 +1598,13 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         if (!selected) return
         const res = await api.get(`/worker/orders/${selected.id}`)
         setSelected(res.data)
+        if (res.data?.ai_sand_kg || res.data?.ai_cement_kg) {
+            setOcrData(prev => prev || {
+                status: 'success',
+                sand_kg: res.data.ai_sand_kg,
+                cement_kg: res.data.ai_cement_kg
+            })
+        }
         await fetchOrders()
         await fetchOrderPhotos(selected.id)
         await fetchOrderDocuments(selected.id)

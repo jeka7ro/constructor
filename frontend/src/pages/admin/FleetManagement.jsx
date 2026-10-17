@@ -3,8 +3,26 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
+import ConfirmModal from '../../components/ConfirmModal'
 import { Loader2, X, Plus, Edit2, Trash2, Building2, Users, CalendarClock, UploadCloud, FileText, Check as CheckIcon, BarChart2, Download, Paperclip, ExternalLink, Search, Car, Truck } from 'lucide-react'
 import { useTenantStore } from '../../store/tenantStore'
+
+const getSafeDocs = (vehicleOrDocs) => {
+    if (!vehicleOrDocs) return [];
+    const raw = (typeof vehicleOrDocs === 'object' && vehicleOrDocs !== null && 'documents' in vehicleOrDocs)
+        ? vehicleOrDocs.documents
+        : vehicleOrDocs;
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+    return [];
+};
 
 const VEHICLE_TYPES = ['car', 'van', 'truck', 'excavator', 'grader', 'compactor', 'pile_driver', 'concrete_mixer', 'tractor_trailer', 'forklift', 'telehandler', 'cherry_picker', 'crane_truck', 'crane', 'pickup_4x4', 'mobile_workshop', 'generator', 'other']
 const VEHICLE_STATUSES = ['active', 'service', 'inactive']
@@ -25,6 +43,7 @@ export default function FleetManagement() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null })
 
 
     // Modal state
@@ -230,16 +249,22 @@ export default function FleetManagement() {
         }
     }
 
-    const handleDeleteCat = async (id) => {
-        if (!window.confirm(t('fleet.del_cat_confirm', 'Voulez-vous vraiment supprimer cette catégorie ?'))) return;
-        try {
-            await api.delete(`/admin/fleet-categories/${id}`)
-            setSuccess(t('fleet.cat_deleted', 'Catégorie supprimée avec succès!'))
-            setTimeout(() => setSuccess(null), 3000)
-            fetchAll()
-        } catch (e) {
-            setError(e.response?.data?.detail || t('fleet.cat_del_error', 'Erreur lors de la suppression'))
-        }
+    const handleDeleteCat = (id) => {
+        setConfirmModal({
+            isOpen: true,
+            title: t('common.delete_confirm', 'Confirmation de suppression'),
+            message: t('fleet.del_cat_confirm', 'Voulez-vous vraiment supprimer cette catégorie ?'),
+            action: async () => {
+                try {
+                    await api.delete(`/admin/fleet-categories/${id}`)
+                    setSuccess(t('fleet.cat_deleted', 'Catégorie supprimée avec succès!'))
+                    setTimeout(() => setSuccess(null), 3000)
+                    fetchAll()
+                } catch (e) {
+                    setError(e.response?.data?.detail || t('fleet.cat_del_error', 'Erreur lors de la suppression'))
+                }
+            }
+        })
     }
 
     const toggleId = (id, list, setList) => {
@@ -294,7 +319,8 @@ export default function FleetManagement() {
         if (!editingVehicle || !editingDocId) return;
         setUploadingDoc(true);
         try {
-            const updatedDocs = editingVehicle.documents.map(d => {
+            const currentDocs = getSafeDocs(editingVehicle);
+            const updatedDocs = currentDocs.map(d => {
                 if (d.id === editingDocId) {
                     return { ...d, name: docForm.name, expiry_date: docForm.expiry_date || null };
                 }
@@ -315,18 +341,25 @@ export default function FleetManagement() {
         }
     };
 
-    const handleDeleteDoc = async (docId) => {
-        if (!window.confirm(t('fleet.del_doc_confirm', 'Voulez-vous vraiment supprimer ce document ?'))) return;
-        try {
-            const updatedDocs = editingVehicle.documents.filter(d => d.id !== docId);
-            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: updatedDocs });
-            setEditingVehicle(res.data);
-            fetchAll();
-            setSuccess(t('fleet.doc_deleted', 'Document supprimé avec succès!'));
-            setTimeout(() => setSuccess(null), 3000);
-        } catch (e) {
-            setError(t('fleet.doc_del_error', 'Erreur de suppression du document : ') + (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : ''));
-        }
+    const handleDeleteDoc = (docId) => {
+        setConfirmModal({
+            isOpen: true,
+            title: t('common.delete_confirm', 'Confirmation de suppression'),
+            message: t('fleet.del_doc_confirm', 'Voulez-vous vraiment supprimer ce document ?'),
+            action: async () => {
+                try {
+                    const currentDocs = getSafeDocs(editingVehicle);
+                    const updatedDocs = currentDocs.filter(d => d.id !== docId);
+                    const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: updatedDocs });
+                    setEditingVehicle(res.data);
+                    fetchAll();
+                    setSuccess(t('fleet.doc_deleted', 'Document supprimé avec succès!'));
+                    setTimeout(() => setSuccess(null), 3000);
+                } catch (e) {
+                    setError(t('fleet.doc_del_error', 'Erreur de suppression du document : ') + (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : ''));
+                }
+            }
+        });
     };
 
     const columns = [
@@ -420,11 +453,8 @@ export default function FleetManagement() {
         {
             key: 'docs', label: t('common.documents', 'Documents'),
             render: (v) => {
-                let docs = v.documents;
-                if (typeof docs === 'string') {
-                    try { docs = JSON.parse(docs); } catch (e) { docs = []; }
-                }
-                const docsCount = docs?.length || 0;
+                const docs = getSafeDocs(v);
+                const docsCount = docs.length;
                 if (docsCount === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>;
                 
                 let closestDoc = null;
@@ -1061,48 +1091,51 @@ export default function FleetManagement() {
                                             {t('fleet.add_doc', 'Ajouter un document')}
                                         </button>
                                     </div>
-                                    {editingVehicle.documents && editingVehicle.documents.length > 0 ? (
-                                        <div className="space-y-2">
-                                            {(typeof editingVehicle.documents === 'string' ? JSON.parse(editingVehicle.documents) : editingVehicle.documents).map(doc => {
-                                                const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
-                                                const isExpiringSoon = !isExpired && doc.expiry_date && (new Date(doc.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
-                                                return (
-                                                <div key={doc.id} className={`flex justify-between items-center p-3 border rounded-xl hover:bg-slate-50 transition-colors ${
-                                                    isExpired ? 'border-red-300 bg-red-50/50' : isExpiringSoon ? 'border-orange-300 bg-orange-50/50' : 'border-slate-200'
-                                                }`}>
-                                                    <div className="flex items-center gap-3">
-                                                        <FileText className={`w-5 h-5 ${isExpired ? 'text-red-500' : isExpiringSoon ? 'text-orange-500' : 'text-blue-500'}`} />
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <button type="button" onClick={() => setPreviewDoc({url: doc.url, name: doc.name})} className="text-sm font-medium text-slate-800 hover:text-blue-600 hover:underline">
-                                                                    {doc.name}
-                                                                </button>
-                                                                {isExpired && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">{t('fleet.expired', 'Expiré')}</span>}
-                                                                {isExpiringSoon && <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded uppercase">{t('fleet.expiring_soon', 'Expire bientôt')}</span>}
-                                                            </div>
-                                                            <div className="text-xs text-slate-500">
-                                                                {t('fleet.added', 'Ajouté:')} {doc.uploaded_at}
-                                                                {doc.expiry_date && <span className="ml-2 font-medium">| {t('fleet.expires_at', 'Expire le:')} {doc.expiry_date}</span>}
+                                    {(() => {
+                                        const docs = getSafeDocs(editingVehicle);
+                                        return docs.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {docs.map(doc => {
+                                                    const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
+                                                    const isExpiringSoon = !isExpired && doc.expiry_date && (new Date(doc.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+                                                    return (
+                                                    <div key={doc.id || doc.url} className={`flex justify-between items-center p-3 border rounded-xl hover:bg-slate-50 transition-colors ${
+                                                        isExpired ? 'border-red-300 bg-red-50/50' : isExpiringSoon ? 'border-orange-300 bg-orange-50/50' : 'border-slate-200'
+                                                    }`}>
+                                                        <div className="flex items-center gap-3">
+                                                            <FileText className={`w-5 h-5 ${isExpired ? 'text-red-500' : isExpiringSoon ? 'text-orange-500' : 'text-blue-500'}`} />
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button type="button" onClick={() => setPreviewDoc({url: doc.url, name: doc.name})} className="text-sm font-medium text-slate-800 hover:text-blue-600 hover:underline">
+                                                                        {doc.name}
+                                                                    </button>
+                                                                    {isExpired && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">{t('fleet.expired', 'Expiré')}</span>}
+                                                                    {isExpiringSoon && <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded uppercase">{t('fleet.expiring_soon', 'Expire bientôt')}</span>}
+                                                                </div>
+                                                                <div className="text-xs text-slate-500">
+                                                                    {t('fleet.added', 'Ajouté:')} {doc.uploaded_at}
+                                                                    {doc.expiry_date && <span className="ml-2 font-medium">| {t('fleet.expires_at', 'Expire le:')} {doc.expiry_date}</span>}
+                                                                </div>
                                                             </div>
                                                         </div>
+                                                        <div>
+                                                            <button type="button" onClick={() => { setEditingDocId(doc.id); setDocForm({ name: doc.name || '', expiry_date: doc.expiry_date || '' }); setShowDocModal(true); }} className="p-2 hover:bg-blue-100 rounded-full text-slate-400 hover:text-blue-600 transition-colors" title={t('common.edit', 'Éditer')}>
+                                                                <Edit2 className="w-4 h-4" />
+                                                            </button>
+                                                            <button type="button" onClick={() => window.open(doc.url, "_blank")} title={t('common.open_new_tab', 'Ouvrir dans un nouvel onglet')} className="p-2 hover:bg-white rounded-full text-slate-400 hover:text-blue-600 transition-colors">
+                                                                <ExternalLink className="w-4 h-4" />
+                                                            </button>
+                                                            <button type="button" onClick={() => handleDeleteDoc(doc.id)} className="p-2 hover:bg-red-100 rounded-full text-slate-400 hover:text-red-600 transition-colors" title={t('common.delete', 'Supprimer')}>
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <button type="button" onClick={() => { setEditingDocId(doc.id); setDocForm({ name: doc.name || '', expiry_date: doc.expiry_date || '' }); setShowDocModal(true); }} className="p-2 hover:bg-blue-100 rounded-full text-slate-400 hover:text-blue-600 transition-colors" title={t('common.edit', 'Éditer')}>
-                                                            <Edit2 className="w-4 h-4" />
-                                                        </button>
-                                                        <button type="button" onClick={() => window.open(doc.url, "_blank")} title={t('common.open_new_tab', 'Ouvrir dans un nouvel onglet')} className="p-2 hover:bg-white rounded-full text-slate-400 hover:text-blue-600 transition-colors">
-                                                            <ExternalLink className="w-4 h-4" />
-                                                        </button>
-                                                        <button type="button" onClick={() => handleDeleteDoc(doc.id)} className="p-2 hover:bg-red-100 rounded-full text-slate-400 hover:text-red-600 transition-colors" title={t('common.delete', 'Supprimer')}>
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )})}
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-6 text-sm text-slate-400">{t('fleet.no_docs', 'Aucun document chargé.')}</div>
-                                    )}
+                                                )})}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 text-sm text-slate-400">{t('fleet.no_docs', 'Aucun document chargé.')}</div>
+                                        );
+                                    })()}
                                 </div>
                             )}
                         </div>
@@ -1333,6 +1366,17 @@ export default function FleetManagement() {
                     </div>
                 </div>, document.body
             )}
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.action || (() => {})}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={t('common.delete', 'Supprimer')}
+                cancelText={t('common.cancel', 'Annuler')}
+                type="danger"
+            />
         </div>
     )
 }

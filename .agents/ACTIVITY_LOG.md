@@ -3,6 +3,35 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-10-17 (Stabilizare Erori Interfață, Protecție Date False OCR Bremat, Securizare Fleet & Închidere Comenzi)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Semnalat și aprobat explicit de Utilizator ("rtepara , dar te rog vezi sa nu faci mai rua").
+
+### Probleme Identificate & Rezolvate:
+1. **Citirea automată OCR a ecranelor mașinilor de șapă (Bremat):**
+   - În lipsa cheii API sau la eroare, scriptul genera date mock fictive (`19562 kg` nisip) care provocau alerte false de discrepanță >5% pe telefonul muncitorului.
+   - Apelul Google Gemini folosea modelul inexistent `gemini-2.5-flash` (eroare 404).
+   - `parse_float_safe` nu trata corect separatorul de mii în format european cu virgulă (ex: `18,500 kg` era convertit eronat în `18.5`).
+   - Rezolvat: Normalizare imagini JPEG RGB prin PIL (max 1600px); migrare la `gemini-1.5-flash` cu fallback la `gemini-2.0-flash` și `gpt-4o`; regex dedicat pentru separator de mii dot/comma; eliminat mock-ul fals din producție; salvare doar pe `status == 'success'`.
+2. **Persistență date citite de AI pentru muncitori la reîncărcare:**
+   - La redeschiderea comenzii pe mobil, valorile citite de AI (`ai_sand_kg`, `ai_cement_kg`) nu erau returnate de endpoint-urile de listare/detaliu (`_serialize_order`, `_fast_serialize`), pierzând afișajul "Vérifié par IA".
+   - Rezolvat: Adăugat `ai_sand_kg` și `ai_cement_kg` în serializatoarele backend și în `openOrder` / `refreshSelected` pe frontend.
+3. **Numerotare Documente & Reguli Proiect (Regula 1):**
+   - În `ProformaView.jsx`, `DevisView.jsx` și `InvoiceDetails.jsx` existau valori fictive de rezervă (`DEV 0905`, `INV 0840`), iar în `AdminChats.jsx` apăreau `DEV-${UUID}` și `CMD-${UUID}`.
+   - Rezolvat: Înlocuite fallbacks-urile fictive cu `—` și etichete curate i18n (`Devis` / `Commande`).
+4. **Securizare FleetManagement & Eliminare Alerte Native (Regula 5):**
+   - În `FleetManagement.jsx`, documentele vehiculelor puteau fi stocate ca JSON string sau null, generând riscul de crash `editingVehicle.documents.map is not a function`.
+   - Se foloseau `window.confirm` native pentru ștergerea de categorii și documente, încălcând Regula 5.
+   - Rezolvat: Implementat helper defensiv `getSafeDocs`; integrat `ConfirmModal` cu `createPortal` (`z-[9999]`) pentru confirmările de ștergere.
+5. **Înlocuire Alerte Native în DevisView:**
+   - Înlocuit `alert()` cu `useUIStore.getState().showToast(...)` și utilizat `window.location.origin` dinamic pentru link-ul de proformă trimis pe email.
+6. **Compilare & Validare:**
+   - Rulat `npm run build` (succes 100%, 0 erori).
+   - Rulat `python3 -m py_compile` și suite de teste unitare pentru `parse_float_safe` (toate testele trecute cu succes).
+   - Nicio modificare nu a fost adusă bazei de date de producție (Regula 9 respectată cu strictețe).
+
+---
+
 ## 2026-10-17 (Eliminare Crash Debug Trap `error-catcher.js` & Securizare Evenimente onChange)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Semnalat și aprobat explicit de Utilizator ("imdeiat push").

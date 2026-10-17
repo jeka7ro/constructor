@@ -254,7 +254,7 @@ export default function ProformaView({ workOrderData = null, config = null, work
                                 )}
                             </h2>
                             <p className="text-xs font-bold text-slate-400 mt-0.5 uppercase tracking-wider whitespace-nowrap">
-                                N° {isInvoiceView ? (wo.invoice_number || 'INV 0840') : (wo.quote_number || 'DEV 0905')}
+                                N° {isInvoiceView ? (wo.invoice_number || '—') : (wo.quote_number || '—')}
                             </p>
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">

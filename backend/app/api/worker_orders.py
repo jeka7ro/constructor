@@ -95,9 +95,10 @@ def _serialize_order(wo: WorkOrder, user_id: str, db: Session) -> dict:
         "materials_consumed": wo.materials_consumed or [],
         "volumes": wo.volumes or [],
         "actual_surface_m2": wo.actual_surface_m2,
-            "actual_thickness_cm": wo.actual_thickness_cm,
         "actual_thickness_cm": wo.actual_thickness_cm,
         "actual_sand_quantity": wo.actual_sand_quantity,
+        "ai_sand_kg": wo.ai_sand_kg,
+        "ai_cement_kg": wo.ai_cement_kg,
         "status": wo.status,
         "is_quote": wo.is_quote,
         "assigned_team_id": wo.assigned_team_id,
@@ -211,8 +212,9 @@ def get_my_orders(
             "volumes": wo.volumes or [],
             "actual_surface_m2": wo.actual_surface_m2,
             "actual_thickness_cm": wo.actual_thickness_cm,
-        "actual_thickness_cm": wo.actual_thickness_cm,
             "actual_sand_quantity": wo.actual_sand_quantity,
+            "ai_sand_kg": wo.ai_sand_kg,
+            "ai_cement_kg": wo.ai_cement_kg,
             "status": wo.status,
             "assigned_team_id": wo.assigned_team_id,
             "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
@@ -531,7 +533,7 @@ async def upload_photo(
     if photo_type == "machine_computer":
         from app.services.vision_ocr import extract_machine_screen_data
         ocr_data = extract_machine_screen_data(image_bytes=content)
-        if ocr_data and ocr_data.get('status') == 'success' or ocr_data.get('status') == 'mock':
+        if ocr_data and ocr_data.get('status') == 'success':
             if ocr_data.get('sand_kg') is not None:
                 wo.ai_sand_kg = ocr_data['sand_kg']
             if ocr_data.get('cement_kg') is not None:
@@ -586,7 +588,7 @@ def re_ocr_photo(
     from app.services.vision_ocr import extract_machine_screen_data
     ocr_data = extract_machine_screen_data(image_bytes=content)
     
-    if ocr_data and (ocr_data.get('status') == 'success' or ocr_data.get('status') == 'mock'):
+    if ocr_data and ocr_data.get('status') == 'success':
         if ocr_data.get('sand_kg') is not None:
             wo.ai_sand_kg = ocr_data['sand_kg']
         if ocr_data.get('cement_kg') is not None:

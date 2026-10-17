@@ -434,8 +434,8 @@ export default function AdminChats() {
                                                 <h3 className="font-medium text-slate-900 dark:text-white truncate pr-2">
                                                     {chat.client_name ? `${chat.client_name} - ` : ''}
                                                     {chat.is_quote 
-                                                        ? (chat.quote_number || `DEV-${chat.work_order_id.substring(0,4).toUpperCase()}`) 
-                                                        : (chat.invoice_number || `CMD-${chat.work_order_id.substring(0,4).toUpperCase()}`)}
+                                                        ? (chat.quote_number || t('common.quote', 'Devis')) 
+                                                        : (chat.invoice_number || t('common.order', 'Commande'))}
                                                     {chat.title && ` - ${chat.title}`}
                                                 </h3>
                                                 <span className="text-xs text-slate-500 whitespace-nowrap">
@@ -486,8 +486,8 @@ export default function AdminChats() {
                                     <div className="truncate">
                                         <h3 className="font-semibold text-slate-800 dark:text-white truncate">
                                             {activeWo.is_quote 
-                                                ? (activeWo.quote_number || `DEV-${activeWo.id.substring(0,4).toUpperCase()}`)
-                                                : (activeWo.invoice_number || `CMD-${activeWo.id.substring(0,4).toUpperCase()}`)}
+                                                ? (activeWo.quote_number || t('common.quote', 'Devis'))
+                                                : (activeWo.invoice_number || t('common.order', 'Commande'))}
                                             {activeWo.title && ` - ${activeWo.title}`}
                                         </h3>
                                         <p className="text-xs text-slate-500 truncate">
