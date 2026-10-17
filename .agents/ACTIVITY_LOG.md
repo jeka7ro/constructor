@@ -3,6 +3,23 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-10-17 (Eliminare Crash Debug Trap `error-catcher.js` & Securizare Evenimente onChange)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Semnalat și aprobat explicit de Utilizator ("imdeiat push").
+
+### Problemă:
+Pe dispozitive mobile (Safari pe iOS), la introducerea de date sau la declanșarea oricărei erori JS neprinse, ecranul aplicației era complet distrus și înlocuit cu un ecran alb cu text roșu: `Crash` urmat de stiva `onChange@https://davidechape.pontaj.app/... PK@... DK@...`.
+Cauza: În fișierele `index.html` și `frontend/public/error-catcher.js` rămăsese activ un script vechi de depanare care la `window.addEventListener('error')` executa direct `document.body.innerHTML = '<h1>Crash</h1><pre>' + stack + '</pre>'`, ștergând întregul DOM al aplicației.
+
+### Rezolvare:
+1. `frontend/index.html`: S-a eliminat tag-ul `<script src="/error-catcher.js"></script>`.
+2. `frontend/public/error-catcher.js`: S-a neutralizat complet comportamentul distructiv, limitându-se la `console.warn` pentru a proteja dispozitivele cu cache vechi.
+3. `frontend/src/pages/admin/WorkOrders.jsx` & `frontend/src/pages/employee/EmployeeWorkOrdersPanel.jsx`: S-a extras `e.target.value` în variabile locale înainte de setarea asincronă de stare și s-au adăugat verificări opționale defensive (`m?.rows || []`) pentru a preveni aruncarea de erori în handlerele `onChange`.
+4. `npm run build`: S-a compilat și validat cu succes fără erori.
+5. Nicio modificare nu a fost adusă bazei de date de producție.
+
+---
+
 ## 2026-10-07 (Corecție Crash Hărți Leaflet '_leaflet_pos' & Fallback Logo Header)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Semnalat și aprobat explicit de Utilizator ("ok").

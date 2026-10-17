@@ -884,8 +884,11 @@ export default function WorkOrders() {
                                         placeholder={t('work_orders.material_name_placeholder', 'Nom du matériau *')}
                                         value={row.name}
                                         onChange={e => {
-                                            const rows = matModal.rows.map((r, j) => j === i ? { ...r, name: e.target.value } : r)
-                                            setMatModal(m => ({ ...m, rows }))
+                                            const val = e.target.value
+                                            setMatModal(m => ({
+                                                ...m,
+                                                rows: (m?.rows || []).map((r, j) => j === i ? { ...r, name: val } : r)
+                                            }))
                                         }}
                                     />
                                     <input
@@ -893,8 +896,11 @@ export default function WorkOrders() {
                                         placeholder={t('work_orders.quantity_placeholder', 'Qté')}
                                         value={row.quantity}
                                         onChange={e => {
-                                            const rows = matModal.rows.map((r, j) => j === i ? { ...r, quantity: e.target.value } : r)
-                                            setMatModal(m => ({ ...m, rows }))
+                                            const val = e.target.value
+                                            setMatModal(m => ({
+                                                ...m,
+                                                rows: (m?.rows || []).map((r, j) => j === i ? { ...r, quantity: val } : r)
+                                            }))
                                         }}
                                     />
                                     <input
@@ -902,8 +908,11 @@ export default function WorkOrders() {
                                         placeholder={t('work_orders.unit_placeholder', 'Unité')}
                                         value={row.unit}
                                         onChange={e => {
-                                            const rows = matModal.rows.map((r, j) => j === i ? { ...r, unit: e.target.value } : r)
-                                            setMatModal(m => ({ ...m, rows }))
+                                            const val = e.target.value
+                                            setMatModal(m => ({
+                                                ...m,
+                                                rows: (m?.rows || []).map((r, j) => j === i ? { ...r, unit: val } : r)
+                                            }))
                                         }}
                                     />
                                     <input
@@ -911,8 +920,11 @@ export default function WorkOrders() {
                                         placeholder={t('work_orders.note_placeholder', 'Note...')}
                                         value={row.note}
                                         onChange={e => {
-                                            const rows = matModal.rows.map((r, j) => j === i ? { ...r, note: e.target.value } : r)
-                                            setMatModal(m => ({ ...m, rows }))
+                                            const val = e.target.value
+                                            setMatModal(m => ({
+                                                ...m,
+                                                rows: (m?.rows || []).map((r, j) => j === i ? { ...r, note: val } : r)
+                                            }))
                                         }}
                                     />
                                     <button

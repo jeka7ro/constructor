@@ -235,7 +235,10 @@ export default function EmployeeWorkOrdersPanel() {
                                                             className="flex-1 min-w-0 px-2 py-1.5 rounded-md border border-slate-200 text-sm focus:border-emerald-400 outline-none"
                                                             placeholder={t('work_orders.material_name', 'Denumire material *')}
                                                             value={row.name}
-                                                            onChange={e => setMatRows(m => m.map((r, j) => j === i ? { ...r, name: e.target.value } : r))}
+                                                            onChange={e => {
+                                                                const val = e.target.value
+                                                                setMatRows(m => (m || []).map((r, j) => j === i ? { ...r, name: val } : r))
+                                                            }}
                                                         />
                                                         <button
                                                             onClick={() => setMatRows(m => m.filter((_, j) => j !== i))}
@@ -249,20 +252,29 @@ export default function EmployeeWorkOrdersPanel() {
                                                             className="w-1/3 px-2 py-1.5 rounded-md border border-slate-200 text-sm focus:border-emerald-400 outline-none text-center"
                                                             placeholder={t('work_orders.qty', 'Cant')}
                                                             value={row.quantity}
-                                                            onChange={e => setMatRows(m => m.map((r, j) => j === i ? { ...r, quantity: e.target.value } : r))}
+                                                            onChange={e => {
+                                                                const val = e.target.value
+                                                                setMatRows(m => (m || []).map((r, j) => j === i ? { ...r, quantity: val } : r))
+                                                            }}
                                                         />
                                                         <input
                                                             className="w-1/3 px-2 py-1.5 rounded-md border border-slate-200 text-sm focus:border-emerald-400 outline-none text-center"
                                                             placeholder={t('work_orders.unit', 'UM')}
                                                             value={row.unit}
-                                                            onChange={e => setMatRows(m => m.map((r, j) => j === i ? { ...r, unit: e.target.value } : r))}
+                                                            onChange={e => {
+                                                                const val = e.target.value
+                                                                setMatRows(m => (m || []).map((r, j) => j === i ? { ...r, unit: val } : r))
+                                                            }}
                                                         />
                                                     </div>
                                                     <input
                                                         className="w-full px-2 py-1.5 rounded-md border border-slate-200 text-sm focus:border-emerald-400 outline-none"
                                                         placeholder={t('work_orders.notes', 'Notă...')}
                                                         value={row.note}
-                                                        onChange={e => setMatRows(m => m.map((r, j) => j === i ? { ...r, note: e.target.value } : r))}
+                                                        onChange={e => {
+                                                            const val = e.target.value
+                                                            setMatRows(m => (m || []).map((r, j) => j === i ? { ...r, note: val } : r))
+                                                        }}
                                                     />
                                                 </div>
                                             ))}
