@@ -77,8 +77,23 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
     const fiberLargeRate = getVal(ps, 'fiber_price_sqm_large', fiberRate);
     const fiberLargeThreshold = getVal(ps, 'fiber_large_threshold_sqm', 200);
     
+    // ── Determinare date reale / facturare ──
+    const shouldUseInvoiceData = options.useInvoiceData === true || (options.isInvoice === true && (parseFloat(wo.actual_surface_m2 || 0) > 0 || parseFloat(wo.actual_thickness_cm || 0) > 0));
+
     // ── Iterez volumes[] ──
-    const volumes = wo.volumes || [];
+    let rawVolumes = Array.isArray(wo.volumes) && wo.volumes.length > 0 ? wo.volumes : [];
+    if (rawVolumes.length === 0 && (parseFloat(wo.actual_surface_m2 || 0) > 0 || parseFloat(wo.surface_m2 || 0) > 0)) {
+        rawVolumes = [{
+            label: 'Chape',
+            quantity: parseFloat(wo.actual_surface_m2 || wo.surface_m2 || 0),
+            thickness: parseFloat(wo.actual_thickness_cm || wo.thickness_cm || standardThickness),
+            has_foil: wo.has_foil || false,
+            has_mesh: wo.has_mesh || false,
+            has_fiber: wo.has_fiber || false,
+            has_duramint: wo.has_duramint || false
+        }];
+    }
+    const volumes = rawVolumes;
     let totalChapeSurface = 0;
     let chapeCount = 0;
     let purCount = 0;
@@ -92,7 +107,13 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
         const isEPS = /isolation\s*eps/i.test(labelNorm);
         const isChape = /chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label) || (!isPUR && !isEPS && label);
         if (isChape) {
-            totalChapeSurface += parseFloat(vol.quantity || 0);
+            let s = parseFloat(vol.quantity || 0);
+            if (options.surface !== undefined && parseFloat(options.surface) > 0) {
+                s = parseFloat(options.surface);
+            } else if (shouldUseInvoiceData && parseFloat(wo.actual_surface_m2 || 0) > 0) {
+                s = parseFloat(wo.actual_surface_m2);
+            }
+            totalChapeSurface += s;
             chapeCount++;
         } else if (isPUR) {
             purCount++;
@@ -113,14 +134,28 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
     volumes.forEach((vol, idx) => {
         const label = vol.label || '';
         const labelNorm = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const surface = parseFloat(vol.quantity || 0);
-        const thickness = parseFloat(vol.thickness || 0);
-        
-        if (surface <= 0) return;
+        let surface = parseFloat(vol.quantity || 0);
+        let thickness = parseFloat(vol.thickness || 0);
         
         const isPUR = /isolation\s*pur/i.test(labelNorm);
         const isEPS = /isolation\s*eps/i.test(labelNorm);
         const isChape = /chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label) || (!isPUR && !isEPS && label);
+        
+        if (isChape) {
+            if (options.surface !== undefined && parseFloat(options.surface) > 0) {
+                surface = parseFloat(options.surface);
+            } else if (shouldUseInvoiceData && parseFloat(wo.actual_surface_m2 || 0) > 0) {
+                surface = parseFloat(wo.actual_surface_m2);
+            }
+
+            if (options.thickness !== undefined && parseFloat(options.thickness) > 0) {
+                thickness = parseFloat(options.thickness);
+            } else if (shouldUseInvoiceData && parseFloat(wo.actual_thickness_cm || 0) > 0) {
+                thickness = parseFloat(wo.actual_thickness_cm);
+            }
+        }
+
+        if (surface <= 0) return;
         
         if (isChape) {
             chapeIdx++;

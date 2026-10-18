@@ -1185,7 +1185,7 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: POZE
 // ─────────────────────────────────────────────────────────────────────────────
-function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, ocrData, onDeletePhoto, onPhotoClick }) {
+function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, ocrData, onDeletePhoto, onPhotoClick, actualSurface, actualThickness }) {
     const fileRef = useRef(null)
     const machineFileRef = useRef(null)
     const isCompleted = order.status === 'completed'
@@ -1249,8 +1249,17 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
                 )}
                 
                 {ocrData && ocrData.status === 'success' && (
-                    <div className="mb-3 bg-emerald-50 text-emerald-700 p-2 text-xs rounded-xl border border-emerald-200">
-                        ✅ Vérifié par IA: <strong>Sable: {ocrData.sand_kg}kg {ocrData.sand_m3 ? `(${ocrData.sand_m3}m³)` : ''}</strong> | Ciment: {ocrData.cement_kg}kg
+                    <div className="mb-3 bg-emerald-50 text-emerald-700 p-3 text-xs rounded-xl border border-emerald-200 space-y-1.5">
+                        <div className="font-medium">
+                            ✅ Vérifié par IA: <strong>Sable: {ocrData.sand_kg}kg {ocrData.sand_m3 ? `(${ocrData.sand_m3}m³)` : ''}</strong> | Ciment: {ocrData.cement_kg}kg
+                        </div>
+                        {actualThickness && parseFloat(actualThickness) > 0 && (
+                            <div className="flex items-center gap-2 font-bold text-emerald-900 text-xs pt-1 border-t border-emerald-200">
+                                <span>📏 Épaisseur calculée :</span>
+                                <span className="bg-emerald-200/80 px-2 py-0.5 rounded text-emerald-950">{actualThickness} cm</span>
+                                <span className="text-[11px] text-emerald-700 font-normal">({actualSurface} m²)</span>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -1562,8 +1571,10 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         setActiveTab('info') // Always open info tab first
         setPhotos([])
         setDocuments([])
-        setActualSurface(order.actual_surface_m2 || '')
-        setActualThickness(order.actual_thickness_cm || '')
+        // Pre-populare suprafata: foloseste suprafata reala daca exista, altfel suprafata planificata din deviz
+        const plannedSurface = order.actual_surface_m2 || order.surface_m2 || order.volumes?.find(v => parseFloat(v.quantity) > 0)?.quantity || ''
+        setActualSurface(plannedSurface ? String(plannedSurface) : '')
+        setActualThickness(order.actual_thickness_cm ? String(order.actual_thickness_cm) : '')
         setActualSand(order.actual_sand_quantity ? String(order.actual_sand_quantity) : (order.ai_sand_kg ? String(order.ai_sand_kg) : ''))
         setActualSandM3(order.actual_sand_m3 ? String(order.actual_sand_m3) : '')
         setActualCement(order.ai_cement_kg ? String(order.ai_cement_kg) : '')
@@ -1988,6 +1999,8 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         ocrData={ocrData}
                         onDeletePhoto={handleDeletePhoto}
                         onPhotoClick={handleMediaClick}
+                        actualSurface={actualSurface}
+                        actualThickness={actualThickness}
                     />
                 )}
                 {activeTab === 'trimite' && (

@@ -1022,24 +1022,24 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     // ── Funcție unică de calcul (aceeași formulă pentru deviz și factură) ──────
     const computeChapeTotal = (surface, thickness, flags, prices) => {
         if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, extraThick: 0 };
-        const standardThick = getPriceVal(prices?.standard_thickness, 5);
+        const standardThick = getPriceVal(prices?.standard_thickness_cm ?? prices?.standard_thickness, 5);
         const extraThick = Math.max(0, thickness - standardThick);
-        const base  = getPriceVal(prices?.base, 12.5) * surface;
+        const base  = getPriceVal(prices?.base_price_sqm ?? prices?.base, 12.5) * surface;
         
         let extraRate = 0;
         if (prices?.extra_large !== undefined && prices?.extra_threshold !== undefined) {
             extraRate = surface > getPriceVal(prices.extra_threshold, 0) ? getPriceVal(prices.extra_large, 0) : getPriceVal(prices.extra, 0);
         } else {
-            extraRate = getPriceVal(prices?.extra ?? prices?.extra_thickness_price_per_cm, 1.25);
+            extraRate = getPriceVal(prices?.extra_thickness_price_per_cm ?? prices?.extra, 1.25);
         }
         const extra = extraThick * extraRate * surface;
-        const foil  = flags?.has_foil  ? getPriceVal(prices?.foil, 1.2) * surface : 0;
-        const mesh  = flags?.has_mesh  ? getPriceVal(prices?.mesh, 2.5) * surface : 0;
+        const foil  = flags?.has_foil  ? getPriceVal(prices?.plastic_foil_price_sqm ?? prices?.foil, 1.2) * surface : 0;
+        const mesh  = flags?.has_mesh  ? getPriceVal(prices?.metal_mesh_price_sqm ?? prices?.mesh, 2.5) * surface : 0;
         let fiberRate = 0;
         if (prices?.fiber_large !== undefined && prices?.fiber_threshold !== undefined) {
             fiberRate = surface > getPriceVal(prices.fiber_threshold, 0) ? getPriceVal(prices.fiber_large, 0) : getPriceVal(prices.fiber, 0);
         } else {
-            fiberRate = getPriceVal(prices?.fiber, 2.5);
+            fiberRate = getPriceVal(prices?.fiber_price_sqm ?? prices?.fiber, 2.5);
         }
         const fiber = (flags?.has_fiber || flags?.has_duramint) ? fiberRate * surface : 0;
         const discountPct = getPriceVal(prices?.discount_pct, 0);
@@ -1155,7 +1155,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     if (hasRealData) {
         realCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, discountPct: 0, isoPurBase: 0, isoPurOpt: 0, isoEpsBase: 0, isoEpsVol: 0, isoEpsSurface: 0, isoEpsThickness: 0, purDiscount: 0, purDiscountPct: 0, epsDiscount: 0, epsDiscountPct: 0, extraThick: 0 };
         
-        const invoicePrices = { ...(wo.prices || {}), ...(wo.prices?.invoice || {}) };
+        // Sursa Unică de Adevăr: fuziune între tarifele globale/preferențiale și snapshot
+        const invoicePrices = { ...(pricingSettings || {}), ...(wo.prices || {}), ...(wo.prices?.invoice || {}) };
         
         (wo.volumes || []).forEach(vol => {
             const surface = realSurface > 0 ? realSurface : (parseFloat(vol.quantity) || 0);

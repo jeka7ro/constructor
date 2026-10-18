@@ -2867,6 +2867,9 @@ def generate_proforma(
             wo.client_id = payload.get("client_id")
             if payload.get("clientName"):
                 wo.client_name = payload.get("clientName")
+                
+        # Salvează datele proformei (itemi, suprafață, grosime, TVA) în baza de date
+        wo.proforma_data = payload
     db.commit()
     
     return {

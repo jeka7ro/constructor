@@ -3,6 +3,36 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-10-18 (Unificare Calcul Grosimi Facturare, Calcul Automat Grosime din Tonaj Bremat & Suport Clienți Preferențiali)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Semnalat de Finu Iulian și aprobat explicit de Utilizator ("OK HAI SA INCERCAM SINGURA SUSRSA DE CLAUL TREBUEI SA FIE TABELUL DE TARIFE.SI BVEZI CSUNT SI CLIENTI PREFERENTIALI. SANU UITI").
+
+### Probleme Identificate & Rezolvate:
+1. **Problema Grosimilor Incorecte la Facturare (raportată de Finu Iulian):**
+   - Când muncitorii încărcau poza ecranului Bremat cu cantitatea de nisip, grosimea reală nu se calcula sau era ignorată la facturare.
+   - În `InvoicingManagement.jsx`, la deschiderea previzualizării, linia `extractedThickness > 0 ? extractedThickness : actual_thickness_cm` suprascria grosimea reală măsurată/calculată în favoarea celei estimate din deviz.
+   - Calculele de facturare din `InvoicingManagement.jsx` și `InvoiceDetails.jsx` foloseau constante hardcodate (`12.5` bază, `1.25` extra, `- 5` grosime standard, etc.), ignorând pagina de Tarife și stricând prețurile clienților preferențiali (ex: Isoflex cu 0 EUR pe fibră).
+2. **Rezolvare Motor Unic de Calcul (`pricingEngine.js`):**
+   - `buildQuoteItems` a fost extins cu suport complet pentru `{ useInvoiceData: true, isInvoice: true }`.
+   - Când se facturează, dacă există date reale confirmate (`wo.actual_surface_m2`, `wo.actual_thickness_cm`), acestea sunt injectate prioritar în calculul stratului de șapă.
+   - S-a respectat regula valorii 0 EUR pentru clienți preferențiali (unde 0 este preț negociat valid).
+3. **Rezolvare Interfață Muncitori (`WorkerOrdersPage.jsx`):**
+   - În `openOrder`, `actualSurface` este pre-populat automat cu suprafața planificată din deviz (`order.surface_m2` sau primul volum) dacă nu fusese introdusă anterior, astfel încât la citirea tonajului de nisip din poza Bremat, grosimea se calculează instantaneu fără ca muncitorul să găsească căsuța goală.
+   - Muncitorii pot în continuare ajusta manual oricare din câmpuri (suprafață, nisip, grosime).
+   - S-a adăugat indicator vizual în franceză în `TabPhotos` și `TabTrimite`: `📏 Épaisseur calculée : X cm (sur Y m²)`.
+4. **Rezolvare Pagini de Facturare Admin (`InvoicingManagement.jsx`, `InvoiceDetails.jsx`, `ProformaView.jsx`):**
+   - Înlocuite toate calculele matematice hardcodate cu apeluri către `buildQuoteItems(wo, activePricingSettings, { isInvoice: true, useInvoiceData: true })`.
+   - Încărcare dinamică a tarifelor preferențiale pentru client (`/admin/pricing-settings?client_id=${wo.client_id}`).
+   - Prioritizate câmpurile reale `actual_surface_m2` și `actual_thickness_cm` la deschiderea facturii.
+5. **Persistență Backend Proformă (`admin_work_orders.py`):**
+   - În endpoint-ul `generate_proforma`, s-a salvat `wo.proforma_data = payload` pentru a asigura trasabilitatea și persistența datelor salvate în baza de date.
+6. **Compilare & Validare:**
+   - Frontend: `npm run build` compilat cu succes (0 erori).
+   - Backend: `python3 -m py_compile` trecut cu succes fără erori de sintaxă.
+   - Baza de date de producție nu a suferit nicio alterare manuală/script (Regula 9 respectată).
+
+---
+
 ## 2026-10-17 (Stabilizare Erori Interfață, Protecție Date False OCR Bremat, Securizare Fleet & Închidere Comenzi)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Semnalat și aprobat explicit de Utilizator ("rtepara , dar te rog vezi sa nu faci mai rua").

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, FileText, Download, Printer, User, Receipt, MapPin, Loader2, CreditCard, Save, Send, Trash2, Link, Building2, Phone, Mail, CalendarDays, CheckCircle2, Calendar } from 'lucide-react'
 import api from '../../lib/api'
+import { buildQuoteItems } from '../../utils/pricingEngine'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
@@ -11,6 +12,7 @@ export default function InvoiceDetails() {
     const navigate = useNavigate()
     const { t } = useTranslation()
     const [wo, setWo] = useState(null)
+    const [pricingSettings, setPricingSettings] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('proforma')
     const [toastMessage, setToastMessage] = useState(null)
@@ -26,6 +28,11 @@ export default function InvoiceDetails() {
             try {
                 const res = await api.get(`/admin/work-orders/${id}`)
                 setWo(res.data)
+                
+                // Sursa Unică de Adevăr: preluare tarife client (inclusiv clienți preferențiali precum Isoflex)
+                const psRes = await api.get(`/admin/pricing-settings${res.data?.client_id ? `?client_id=${res.data.client_id}` : ''}`).catch(() => ({ data: null }))
+                if (psRes.data) setPricingSettings(psRes.data)
+
                 // Citeste ?tab= din URL daca exista (de la WorkOrderDetail navigate)
                 const urlTab = new URLSearchParams(window.location.search).get('tab')
                 if (urlTab === 'invoice' || urlTab === 'proforma') {
@@ -142,29 +149,23 @@ export default function InvoiceDetails() {
     const vatRate = clientData.useVat !== false ? parseFloat(clientData.vatRate ?? wo.prices?.vat_rate ?? defaultVatRate) : 0;
     const devisTotalWithVat = netTotal * (1 + vatRate / 100)
 
-    // Total FACTURA (real — pe baza suprafetelor reale introduse de sef echipa)
+    // Total FACTURA (real — pe baza suprafețelor și grosimilor reale din lucrare, conform Tarifelor)
     const realSurf  = parseFloat(wo.actual_surface_m2 || 0)
     const realThick = parseFloat(wo.actual_thickness_cm || 0)
     let invoiceTotal = 0
-    let hasRealData = false
-    if (realSurf > 0 && wo.volumes?.length > 0) {
-        hasRealData = true
-        const stdThick = parseFloat(wo.prices?.standard_thickness || 5)
-        const extraThick = Math.max(0, realThick - stdThick)
-        invoiceTotal += realSurf * parseFloat(wo.prices?.base || 12.5)
-        invoiceTotal += extraThick * realSurf * parseFloat(wo.prices?.extra_thickness_price_per_cm || wo.prices?.extra || 1.25)
-        const vol = wo.volumes[0]
-        if (vol?.has_foil) invoiceTotal += realSurf * parseFloat(wo.prices?.foil || 1.2)
-        if (vol?.has_mesh) invoiceTotal += realSurf * parseFloat(wo.prices?.mesh || 2.5)
-        if (vol?.has_fiber) invoiceTotal += realSurf * parseFloat(wo.prices?.fiber || (realSurf <= 200 ? 2.5 : 2.0))
-        if (wo.prices?.surface_thresholds) {
-            wo.prices.surface_thresholds.forEach(t => {
-                if (realSurf >= parseFloat(t.min_sqm || 0) && realSurf < parseFloat(t.max_sqm || 999999))
-                    invoiceTotal += parseFloat(t.extra_charge || 0)
-            })
-        }
+    let invoiceTotalWithVat = 0
+    const hasRealData = realSurf > 0 || realThick > 0
+    
+    if (hasRealData) {
+        const realCalc = buildQuoteItems(wo, pricingSettings, {
+            isInvoice: true,
+            useInvoiceData: true,
+            surface: realSurf > 0 ? realSurf : undefined,
+            thickness: realThick > 0 ? realThick : undefined
+        });
+        invoiceTotal = realCalc.net;
+        invoiceTotalWithVat = realCalc.totalGross;
     }
-    const invoiceTotalWithVat = invoiceTotal * (1 + vatRate / 100)
     const clientDisplayName = clientData.clientName || wo.client_name || wo.client?.company_name || (wo.client?.first_name ? `${wo.client.first_name} ${wo.client.last_name || ''}`.trim() : null)
 
     const getIframeSrc = () => {

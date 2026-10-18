@@ -10,6 +10,7 @@ import DataTable from '../../components/DataTable'
 import ProformaView from './ProformaView'
 import SearchableSelect from '../../components/SearchableSelect'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
+import { buildQuoteItems } from '../../utils/pricingEngine'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
@@ -171,64 +172,52 @@ export default function InvoicingManagement() {
         client_address: ''
     })
 
-    const calculateItems = (wo, config) => {
-        // get a fixed translation function for the desired language
+    const [pricingSettings, setPricingSettings] = useState(null)
+
+    const calculateItems = (wo, config, pSettings) => {
+        const ps = pSettings || pricingSettings;
         const tFunc = i18n.getFixedT(config.lang);
         
-        let items = [];
-        const surfaceForAuto = parseFloat(config.surface || 0);
-        const extraThickForAuto = Math.max(0, parseFloat(config.thickness || 5) - 5);
-        
         if (config.useAutoCalc) {
-            items.push({ id: Date.now().toString() + '-base', desc: tFunc('proforma.items.base', 'Chape de base (≤5cm)'), qty: surfaceForAuto, price: parseFloat(wo.prices?.base || 12.5) });
-            
-            if (extraThickForAuto > 0) {
-                const unitPriceExtra = parseFloat(wo.prices?.extra || 1.25);
-                items.push({ 
-                    id: Date.now().toString() + '-extra', 
-                    desc: `${tFunc('proforma.items.extra', 'Épaisseur extra (>5cm)')} (${extraThickForAuto} cm)`, 
-                    qty: surfaceForAuto, 
-                    price: extraThickForAuto * unitPriceExtra 
-                });
-            }
-            if (wo.has_foil || wo.actual_has_foil || config.hasFoilFromVol) {
-                items.push({ id: Date.now().toString() + '-foil', desc: tFunc('proforma.items.foil', 'Film plastique'), qty: surfaceForAuto, price: parseFloat(wo.prices?.foil || 1.2) });
-            }
-            if (wo.has_mesh || wo.actual_has_mesh || config.hasMeshFromVol) {
-                items.push({ id: Date.now().toString() + '-mesh', desc: tFunc('proforma.items.mesh', 'Treillis métallique'), qty: surfaceForAuto, price: parseFloat(wo.prices?.mesh || 2.5) });
-            }
-            if (wo.has_fiber || wo.actual_has_fiber || config.hasSapaFromVol) { // Include fiber for sapa, matching WorkOrderDetail
-                items.push({ id: Date.now().toString() + '-fiber', desc: tFunc('proforma.items.fiber', 'Fibres'), qty: surfaceForAuto, price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)) });
-            }
-        } else {
-            let totalSum = surfaceForAuto * parseFloat(wo.prices?.base || 12.5);
-            if (extraThickForAuto > 0) {
-                totalSum += extraThickForAuto * parseFloat(wo.prices?.extra || 1.25) * surfaceForAuto;
-            }
-            if (wo.has_foil || wo.actual_has_foil || config.hasFoilFromVol) {
-                totalSum += surfaceForAuto * parseFloat(wo.prices?.foil || 1.2);
-            }
-            if (wo.has_mesh || wo.actual_has_mesh || config.hasMeshFromVol) {
-                totalSum += surfaceForAuto * parseFloat(wo.prices?.mesh || 2.5);
-            }
-            if (wo.has_fiber || wo.actual_has_fiber || config.hasSapaFromVol) {
-                totalSum += surfaceForAuto * parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0));
-            }
-
-            const priceRaw = parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0');
-            const finalPrice = priceRaw > 0 ? priceRaw : totalSum;
-
-            items.push({
-                id: Date.now().toString(),
-                desc: `${tFunc('proforma.items.custom_work', 'Travaux selon devis')} (${wo.title || tFunc('proforma.items.labor_materials', 'Main-d\'œuvre et matériaux')})`,
-                qty: 1,
-                price: finalPrice
+            const calcRes = buildQuoteItems(wo, ps, {
+                isInvoice: true,
+                useInvoiceData: true,
+                surface: config.surface,
+                thickness: config.thickness
             });
+            const validItems = (calcRes.items || []).filter(i => i.type !== 'discount' && !i.isHeader && !i.isSubtotal).map((it, idx) => ({
+                id: it.id || `${Date.now()}-${idx}`,
+                desc: it.desc,
+                qty: it.qty,
+                price: it.price
+            }));
+            if (validItems.length > 0) return validItems;
         }
-        return items;
+
+        // Mode forfetar / Fallback
+        const priceRaw = parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0');
+        return [{
+            id: Date.now().toString(),
+            desc: `${tFunc('proforma.items.custom_work', 'Travaux selon devis')} (${wo.title || tFunc('proforma.items.labor_materials', 'Main-d\'œuvre et matériaux')})`,
+            qty: 1,
+            price: priceRaw > 0 ? priceRaw : 0
+        }];
     };
 
-    const handleOpenPreview = (wo) => {
+    const handleOpenPreview = async (wo) => {
+        let activePs = pricingSettings;
+        if (wo.client_id) {
+            try {
+                const psRes = await api.get(`/admin/pricing-settings?client_id=${wo.client_id}`);
+                if (psRes.data) {
+                    activePs = psRes.data;
+                    setPricingSettings(activePs);
+                }
+            } catch (e) {
+                console.error("Error fetching client pricing settings:", e);
+            }
+        }
+
         if (wo.proforma_data) {
             let data = { ...wo.proforma_data };
             let shouldUseFallback = !data.items || data.items.length === 0;
@@ -236,7 +225,7 @@ export default function InvoicingManagement() {
                 shouldUseFallback = true;
             }
             if (shouldUseFallback) {
-                data.items = calculateItems(wo, data);
+                data.items = calculateItems(wo, data, activePs);
             }
             setProformaConfig(data);
             setPreviewWo(wo);
@@ -267,8 +256,12 @@ export default function InvoicingManagement() {
             });
         }
 
-        const surfaceForAuto = extractedSurface > 0 ? extractedSurface : parseFloat(wo.actual_surface_m2 || wo.surface_m2 || 0);
-        const thicknessForAuto = extractedThickness > 0 ? extractedThickness : parseFloat(wo.actual_thickness_cm || wo.thickness_cm || 5);
+        // Prioritate absolută datelor reale confirmate de băieți / șeful de șantier din teren
+        const realSurface = parseFloat(wo.actual_surface_m2) || 0;
+        const realThickness = parseFloat(wo.actual_thickness_cm) || 0;
+
+        const surfaceForAuto = realSurface > 0 ? realSurface : (extractedSurface > 0 ? extractedSurface : parseFloat(wo.surface_m2 || 0));
+        const thicknessForAuto = realThickness > 0 ? realThickness : (extractedThickness > 0 ? extractedThickness : parseFloat(wo.thickness_cm || 5));
 
         const cDetailsParts = [];
         if (wo.client_email) cDetailsParts.push(wo.client_email);
@@ -282,7 +275,7 @@ export default function InvoicingManagement() {
             clientDetails: cDetailsParts.join('\n'),
             useVat: wo.client_type === 'fizica',
             discountPct: 0,
-            lang: localStorage.getItem('proformaLang') || wo.client_language || localStorage.getItem('i18nextLng') || 'ro',
+            lang: localStorage.getItem('proformaLang') || wo.client_language || localStorage.getItem('i18nextLng') || 'fr',
             useAutoCalc: isAuto,
             surface: surfaceForAuto,
             thickness: thicknessForAuto,
@@ -300,8 +293,8 @@ export default function InvoicingManagement() {
             client_address: wo.client_address || ''
         };
         
-        // Ensure initial items use correct lang
-        config.items = calculateItems(wo, config);
+        // Ensure initial items use correct lang and pricing
+        config.items = calculateItems(wo, config, activePs);
         
         setProformaConfig(config);
         setPreviewWo(wo);
@@ -310,13 +303,15 @@ export default function InvoicingManagement() {
     const fetchOrdersAndClients = async () => {
         setLoading(true)
         try {
-            const [woRes, clRes] = await Promise.all([
+            const [woRes, clRes, psRes] = await Promise.all([
                 api.get('/admin/work-orders?limit=200&invoice_mode=true'),
-                api.get('/admin/clients')
+                api.get('/admin/clients'),
+                api.get('/admin/pricing-settings').catch(() => ({ data: null }))
             ])
             // Backend returns is_quote=False orders + is_quote=True with status=planning
             setWorkOrders(Array.isArray(woRes.data) ? woRes.data : (woRes.data?.items || woRes.data || []))
             setClients(Array.isArray(clRes.data) ? clRes.data : (clRes.data?.items || []))
+            if (psRes.data) setPricingSettings(psRes.data)
         } catch (error) {
             console.error('Error fetching data for invoicing:', error)
         } finally {

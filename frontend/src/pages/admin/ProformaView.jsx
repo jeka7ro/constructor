@@ -198,8 +198,8 @@ export default function ProformaView({ workOrderData = null, config = null, work
         vatAmount = subtotal * (vatRate / 100);
         totalAmount = subtotal + vatAmount;
     } else {
-        // Calcul automat din Tarife
-        const calcResult = buildQuoteItems(wo, pricingSettings);
+        // Calcul automat din Tarife (inclusiv date reale daca e vizualizare factura)
+        const calcResult = buildQuoteItems(wo, pricingSettings, { isInvoice: isInvoiceView, useInvoiceData: isInvoiceView });
         
         // Filtrăm discount-urile din items (le afișăm separat în footer)
         const allItems = calcResult.items;
