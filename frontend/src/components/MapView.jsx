@@ -29,9 +29,9 @@ const getPrevSvg = () => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
 </svg>
 `)}`;
 
-const getSandStationSvg = (letter) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+const getSandStationSvg = (letter, bgColor = '#64748b') => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
-    <circle cx="13" cy="13" r="12" fill="#ef4444" stroke="white" stroke-width="2"/>
+    <circle cx="13" cy="13" r="12" fill="${bgColor}" stroke="white" stroke-width="2"/>
     <text x="13" y="17.5" font-family="Arial,sans-serif" font-size="12" font-weight="900" fill="white" text-anchor="middle">${letter}</text>
 </svg>
 `)}`;
@@ -432,15 +432,35 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         elementsRef.current.sandStationMarkers = [];
 
         if (showSandStations && sandStations && sandStations.length > 0) {
+            const validPrices = sandStations
+                .map(s => parseFloat(s.price_per_ton))
+                .filter(p => !isNaN(p))
+                .sort((a, b) => a - b);
+
+            const getPriceColor = (priceStr) => {
+                if (priceStr == null || priceStr === '') return '#64748b'; // slate-500 (gri - fără preț)
+                const price = parseFloat(priceStr);
+                if (isNaN(price) || validPrices.length === 0) return '#64748b';
+                if (validPrices[0] === validPrices[validPrices.length - 1]) return '#10b981';
+                const lessCount = validPrices.filter(p => p < price).length;
+                const ratio = lessCount / Math.max(1, validPrices.length - 1);
+                if (ratio < 0.34) return '#10b981'; // emerald-500 (verde)
+                if (ratio < 0.67) return '#f59e0b'; // amber-500 (portocaliu)
+                return '#ef4444'; // red-500 (roșu)
+            };
+
             const newMarkers = [];
             sandStations.forEach((s) => {
                 if (s.latitude && s.longitude) {
-                    const _letter = s.type === 'theirs' ? 'I' : 'D';
+                    const _letter = 'S';
+                    const bgColor = getPriceColor(s.price_per_ton);
+                    const hasPrice = s.price_per_ton != null && s.price_per_ton !== '';
                     const marker = new window.google.maps.Marker({
                         position: { lat: s.latitude, lng: s.longitude },
                         map: mapInstance.current,
+                        zIndex: hasPrice ? 500 : 100,
                         icon: {
-                            url: getSandStationSvg(_letter),
+                            url: getSandStationSvg(_letter, bgColor),
                             scaledSize: new window.google.maps.Size(26, 26),
                             anchor: new window.google.maps.Point(13, 13)
                         },
@@ -450,8 +470,9 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     marker.addListener('click', () => {
                         elementsRef.current.infoWindow.setContent(`
                             <div style="text-align:center; padding: 4px;">
-                                <strong style="font-size:13px; color:#ef4444">${s.name}</strong>
+                                <strong style="font-size:13px; color:${bgColor}">${s.name}</strong>
                                 ${s.address ? `<br/><span style="font-size:11px; color:#64748b">${s.address}</span>` : ''}
+                                ${hasPrice ? `<div style="margin-top:4px;"><span style="background:${bgColor};color:white;font-size:11px;font-weight:bold;padding:2px 8px;border-radius:999px;">${s.price_per_ton} € / t</span></div>` : ''}
                             </div>
                         `);
                         elementsRef.current.infoWindow.open(mapInstance.current, marker);

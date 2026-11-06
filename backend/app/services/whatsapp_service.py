@@ -39,6 +39,26 @@ def normalize_phone_number(phone_number: str) -> str:
     return digits
 
 
+def is_ultramsg_connected() -> bool:
+    """Checks if UltraMsg instance is currently authenticated and connected."""
+    instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
+    api_token = os.getenv("ULTRAMSG_API_TOKEN")
+    if not instance_id or not api_token:
+        return False
+    try:
+        r = httpx.get(
+            f"https://api.ultramsg.com/{instance_id}/instance/status",
+            params={"token": api_token},
+            timeout=5.0
+        )
+        if r.status_code == 200:
+            status_val = r.json().get("status", {}).get("accountStatus", {}).get("status")
+            return status_val == "authenticated"
+    except Exception as e:
+        logger.warning(f"Failed checking UltraMsg status: {e}")
+    return False
+
+
 def send_quote_whatsapp(
     phone_number: str,
     client_name: str,
@@ -65,7 +85,7 @@ def send_quote_whatsapp(
     # 1. PRIMARY: UltraMsg (instant, no template restrictions or 24h limits)
     instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
     api_token = os.getenv("ULTRAMSG_API_TOKEN")
-    if instance_id and api_token:
+    if instance_id and api_token and is_ultramsg_connected():
         try:
             success = send_whatsapp_message(formatted_phone, client_name, client_language, signing_url, quote_number)
             if success:
@@ -75,6 +95,8 @@ def send_quote_whatsapp(
                 logger.warning(f"UltraMsg quote send failed for {formatted_phone}, trying Meta fallback...")
         except Exception as e:
             logger.error(f"UltraMsg exception for {formatted_phone}: {e}, trying Meta fallback...")
+    elif instance_id and api_token:
+        logger.warning(f"UltraMsg instance {instance_id} is not authenticated (standby/qr). Using Meta Cloud API fallback for {formatted_phone}.")
 
     # 2. FALLBACK: Meta Cloud API
     access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")

@@ -14,6 +14,7 @@ router = APIRouter(prefix="/api/public", tags=["public"])
 class TenantConfigResponse(BaseModel):
     id: str
     name: str
+    slug: Optional[str] = None
     logo_url: Optional[str] = None
     favicon_url: Optional[str] = None
     primary_color: Optional[str] = None
@@ -50,6 +51,7 @@ def get_tenant_config(domain: Optional[str] = None, slug: Optional[str] = None, 
     return {
         "id": org.id,
         "name": org.name,
+        "slug": org.slug,
         "logo_url": org.logo_url,
         "favicon_url": org.favicon_url,
         "primary_color": org.primary_color,

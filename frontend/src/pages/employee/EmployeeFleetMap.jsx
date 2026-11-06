@@ -407,19 +407,21 @@ export default function EmployeeFleetMap() {
 
             {/* Sand Stations Markers */}
             {isDavideChape && showSandStations && (() => {
-                const validPrices = sandStations.map(s => parseFloat(s.price_per_ton)).filter(p => !isNaN(p));
-                const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
-                const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : 0;
+                const validPrices = sandStations
+                    .map(s => parseFloat(s.price_per_ton))
+                    .filter(p => !isNaN(p))
+                    .sort((a, b) => a - b);
 
                 const getPriceColor = (priceStr) => {
                     if (priceStr == null || priceStr === '') return '#64748b'; // slate-500
                     const price = parseFloat(priceStr);
-                    if (isNaN(price)) return '#64748b';
-                    if (minPrice === maxPrice) return '#10b981'; // green if they are all the same
+                    if (isNaN(price) || validPrices.length === 0) return '#64748b';
+                    if (validPrices[0] === validPrices[validPrices.length - 1]) return '#10b981'; // green if they are all the same
                     
-                    const ratio = (price - minPrice) / (maxPrice - minPrice);
-                    if (ratio < 0.33) return '#10b981'; // emerald-500 (cheap)
-                    if (ratio < 0.66) return '#f59e0b'; // amber-500 (medium)
+                    const lessCount = validPrices.filter(p => p < price).length;
+                    const ratio = lessCount / Math.max(1, validPrices.length - 1);
+                    if (ratio < 0.34) return '#10b981'; // emerald-500 (cheap)
+                    if (ratio < 0.67) return '#f59e0b'; // amber-500 (medium)
                     return '#ef4444'; // red-500 (expensive)
                 };
 

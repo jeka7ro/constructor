@@ -133,7 +133,9 @@ def get_current_admin(request: Request, token: str = Depends(oauth2_scheme), db:
                     subdomain = subdomain.split(":")[0]
                 
         # Avoid looking up master domain or local if they don't map to a tenant
-        if subdomain and subdomain not in ["localhost", "127", "pontaj"]:
+        if not subdomain or subdomain in ["localhost", "127", "pontaj"]:
+            subdomain = "davidechape"
+        if subdomain:
             tenant = db.query(Organization).filter(Organization.slug == subdomain).first()
             if tenant:
                 admin.organization_id = tenant.id

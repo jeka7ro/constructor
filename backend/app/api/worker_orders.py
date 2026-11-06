@@ -249,9 +249,20 @@ def get_worker_sand_stations(
     from app.models import LogisticSandStation
     stations = db.query(LogisticSandStation).filter(
         LogisticSandStation.organization_id == current_user.organization_id
+    ).order_by(
+        LogisticSandStation.price_per_ton.is_(None),
+        LogisticSandStation.price_per_ton.asc(),
+        LogisticSandStation.name.asc()
     ).all()
     return [
-        {"id": s.id, "name": s.name, "latitude": s.latitude, "longitude": s.longitude, "address": s.address} 
+        {
+            "id": s.id,
+            "name": s.name,
+            "latitude": s.latitude,
+            "longitude": s.longitude,
+            "address": s.address,
+            "price_per_ton": s.price_per_ton
+        }
         for s in stations
     ]
 

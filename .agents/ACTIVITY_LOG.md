@@ -3,6 +3,30 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-11-06 (Actualizare Grilă Prețuri Stații de Nisip și Afișare pe Culori în Logistică & Hărți Șoferi)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Prezentat tabelul complet de stații/prețuri și aprobat explicit de Utilizator ("da hai laocl sa vad eu ce modifici").
+
+### Probleme Identificate & Rezolvate:
+1. **Baza de Date (`LogisticSandStation`):**
+   - S-au eliminat prețurile vechi puse de test (`17.3 € – 21.9 €`) de pe cele 21 de stații fără tarif confirmat, setându-le la `NULL` (fără preț -> afișate cu ⚫ Gri `#64748b`).
+   - S-au actualizat/adăugat cele 7 stații cu prețurile reale din link-urile Google Maps furnizate de utilizator:
+     - `VJ RECYCLING (Ittre)` (`Rue des Rabots 51, 1460 Ittre`): **24.5 €** (🟢 Verde)
+     - `Dour Materiaux` (`Rue Aimeries 95, 7370 Dour`): **25 €** (🟢 Verde)
+     - `Matériaux Bienfait` (`Rue du Colroy 4, 7050 Jurbise`): **25 €** (🟢 Verde)
+     - `MATEGRO SA (Herstal)` (`Rue du Rivage 35, 4040 Herstal`): **26 €** (🟠 Portocaliu)
+     - `MATEGRO SA (Visé)` (`Rampe du Pont, 4601 Visé`): **26 €** (🟠 Portocaliu)
+     - `MATEGRO SA (Seraing)` (`Rue du Barrage, 4100 Seraing`): **26 €** (🟠 Portocaliu)
+     - `GNB Béton (Arlon)` (`Rte de Bouillon 222, 6700 Arlon`): **37 €** (🔴 Roșu)
+2. **Pagina Logistică (`LogisticsDashboard.jsx`) & Stații Nisip (`SandStationsPage.jsx`):**
+   - `LogisticsDashboard.jsx` încarcă acum dinamic stațiile din `/api/admin/logistics/sand-stations` și le colorează după grila de prețuri (🟢 `#10b981` preț mic, 🟠 `#f59e0b` preț mediu, 🔴 `#ef4444` preț mare, ⚫ `#64748b` fără preț), cu legendă dedicată.
+   - `SandStationsPage.jsx` afișează bulinele și etichetele de preț în culorile grilei atât în tabel, cât și în lista laterală și pe hartă.
+3. **Aplicația Șoferilor & Hărți (`worker_orders.py`, `MapView.jsx`, `MiniLiveTrackingMap.jsx`, `LiveTracking.jsx`, `EmployeeFleetMap.jsx`):**
+   - Endpoint-ul `/api/worker/orders/sand-stations` returnează acum și `price_per_ton`, ordonând prioritar stațiile cu preț configurat.
+   - `MapView.jsx` colorează markerele stațiilor de nisip conform grilei de prețuri (verde / portocaliu / roșu / gri).
+
+---
+
 ## 2026-10-18 (Unificare Calcul Grosimi Facturare, Calcul Automat Grosime din Tonaj Bremat & Suport Clienți Preferențiali)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Semnalat de Finu Iulian și aprobat explicit de Utilizator ("OK HAI SA INCERCAM SINGURA SUSRSA DE CLAUL TREBUEI SA FIE TABELUL DE TARIFE.SI BVEZI CSUNT SI CLIENTI PREFERENTIALI. SANU UITI").

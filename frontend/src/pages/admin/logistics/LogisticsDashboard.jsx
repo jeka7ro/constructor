@@ -334,8 +334,18 @@ export default function LogisticsDashboard() {
         const saved = localStorage.getItem('nisip_toggle')
         return saved ? JSON.parse(saved) : true
     })
+    const [dbSandStations, setDbSandStations] = useState([])
     const [focusedTeamId, setFocusedTeamId] = useState(null)
     const navigate = useNavigate()
+
+    useEffect(() => {
+        if (!isDavideChape) return
+        api.get('/admin/logistics/sand-stations')
+            .then(res => {
+                if (Array.isArray(res.data)) setDbSandStations(res.data)
+            })
+            .catch(err => console.error('Failed to fetch sand stations:', err))
+    }, [isDavideChape])
 
     const [gpsVerificationData, setGpsVerificationData] = useState(null)
     useEffect(() => {
@@ -644,36 +654,57 @@ export default function LogisticsDashboard() {
 
 
                             {/* Sand Stations Rendering */}
-                            {isDavideChape && showSandStations && SAND_STATIONS.map((station, idx) => {
-                                const _letter = 'S'
-                                const _bg = '#ef4444'
-                                const bgColor = '#ef4444'
-                                const borderColor = '#dc2626'
-                                return (
-                                    <Marker
-                                        key={`sand-${idx}`}
-                                        position={[station.lat, station.lng]}
-                                        icon={L.divIcon({
-                                            className: '',
-                                            html: `<div style="width:26px;height:26px;border-radius:50%;background:${_bg};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;font-weight:900;font-size:12px;font-family:Arial,sans-serif;line-height:1;">${_letter}</span></div>`,
-                                            iconSize: [26, 26],
-                                            iconAnchor: [13, 13]
-                                        })}
-                                    >
-                                        <Popup>
-                                            <strong className="text-sm">{station.name}</strong><br/>
-                                            <span className="text-xs text-slate-500">{station.address}</span>
-                                            {station.phone && <><br/><span className="text-xs font-semibold">{station.phone}</span></>}
-                                            <br/>
-                                            <div className="mt-1">
-                                                <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{background: bgColor, border: `2px solid ${borderColor}`, color:'white'}}>
-                                                    ● Station de Sable
-                                                </span>
-                                            </div>
-                                        </Popup>
-                                    </Marker>
-                                )
-                            })}
+                            {isDavideChape && showSandStations && (() => {
+                                const stationsList = dbSandStations.length > 0
+                                    ? dbSandStations.map(s => ({ ...s, lat: s.latitude, lng: s.longitude }))
+                                    : SAND_STATIONS;
+                                const validPrices = stationsList
+                                    .map(s => parseFloat(s.price_per_ton))
+                                    .filter(p => !isNaN(p))
+                                    .sort((a, b) => a - b);
+
+                                const getPriceColor = (priceStr) => {
+                                    if (priceStr == null || priceStr === '') return '#64748b'; // slate-500 (gri - fără preț)
+                                    const price = parseFloat(priceStr);
+                                    if (isNaN(price) || validPrices.length === 0) return '#64748b';
+                                    if (validPrices[0] === validPrices[validPrices.length - 1]) return '#10b981';
+                                    const lessCount = validPrices.filter(p => p < price).length;
+                                    const ratio = lessCount / Math.max(1, validPrices.length - 1);
+                                    if (ratio < 0.34) return '#10b981'; // emerald-500 (verde - ieftin)
+                                    if (ratio < 0.67) return '#f59e0b'; // amber-500 (portocaliu - mediu)
+                                    return '#ef4444'; // red-500 (roșu - scump)
+                                };
+
+                                return stationsList.filter(s => s.lat && s.lng).map((station, idx) => {
+                                    const _letter = 'S'
+                                    const hasPrice = station.price_per_ton != null && station.price_per_ton !== ''
+                                    const bgColor = getPriceColor(station.price_per_ton)
+                                    return (
+                                        <Marker
+                                            key={station.id || `sand-${idx}`}
+                                            position={[station.lat, station.lng]}
+                                            zIndexOffset={hasPrice ? 500 : 100}
+                                            icon={L.divIcon({
+                                                className: '',
+                                                html: `<div style="width:26px;height:26px;border-radius:50%;background:${bgColor};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;font-weight:900;font-size:12px;font-family:Arial,sans-serif;line-height:1;">${_letter}</span></div>`,
+                                                iconSize: [26, 26],
+                                                iconAnchor: [13, 13]
+                                            })}
+                                        >
+                                            <Popup>
+                                                <strong className="text-sm">{station.name}</strong><br/>
+                                                <span className="text-xs text-slate-500">{station.address}</span>
+                                                {station.phone && <><br/><span className="text-xs font-semibold">{station.phone}</span></>}
+                                                <div className="mt-2 flex items-center justify-between gap-2">
+                                                    <span className="text-xs px-2 py-0.5 rounded-full font-bold text-white" style={{ background: bgColor }}>
+                                                        ● {hasPrice ? `${station.price_per_ton} € / t` : 'Sans prix'}
+                                                    </span>
+                                                </div>
+                                            </Popup>
+                                        </Marker>
+                                    )
+                                })
+                            })()}
                             {/* Sand Stations + Fullscreen — top controls row */}
                             <div className="absolute top-4 left-14 z-[1000] flex items-center gap-2 pointer-events-auto">
                                 {/* Fullscreen button */}
@@ -766,9 +797,17 @@ export default function LogisticsDashboard() {
                                         <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.site_job', 'Chantier / Travail')}
                                     </li>
                                     {isDavideChape && showSandStations && (
-                                        <li className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-red-500 flex items-center justify-center"><span className="text-[8px] text-white font-bold">S</span></div>
-                                            <span>Stations de Sable</span>
+                                        <li className="flex flex-col gap-1 pt-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-emerald-500 flex items-center justify-center"><span className="text-[8px] text-white font-bold">S</span></div>
+                                                <span>Stations de Sable</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 pl-5 text-[10px] font-semibold text-slate-600 dark:text-slate-300 flex-wrap">
+                                                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#10b981]"></span>24-25€</span>
+                                                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#f59e0b]"></span>26€</span>
+                                                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#ef4444]"></span>36-38€</span>
+                                                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#64748b]"></span>Sans prix</span>
+                                            </div>
                                         </li>
                                     )}
                                     <li className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-700 mt-2">

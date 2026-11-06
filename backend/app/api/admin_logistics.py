@@ -217,7 +217,13 @@ def delete_base(base_id: str, db: Session = Depends(get_db), admin=Depends(get_c
 # ── SAND STATIONS ENDPOINTS ─────────────────────────────────────────────────
 @router.get("/sand-stations", response_model=List[LogisticSandStationResponse])
 def get_sand_stations(db: Session = Depends(get_db), admin=Depends(get_current_admin)):
-    return db.query(LogisticSandStation).filter(LogisticSandStation.organization_id == admin.organization_id).all()
+    return db.query(LogisticSandStation).filter(
+        LogisticSandStation.organization_id == admin.organization_id
+    ).order_by(
+        LogisticSandStation.price_per_ton.is_(None),
+        LogisticSandStation.price_per_ton.asc(),
+        LogisticSandStation.name.asc()
+    ).all()
 
 @router.post("/sand-stations", response_model=LogisticSandStationResponse)
 def create_sand_station(data: LogisticSandStationSchema, db: Session = Depends(get_db), admin=Depends(get_current_admin)):

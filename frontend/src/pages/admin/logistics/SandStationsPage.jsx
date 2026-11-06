@@ -173,175 +173,212 @@ export default function SandStationsPage() {
             </div>
 
             {/* DataTable Definition */}
-            {viewMode === 'table' ? (() => {
-                const columns = [
-                    {
-                        key: 'name',
-                        label: 'Nume Stație',
-                        sortable: true,
-                        render: (row) => <span className="font-bold text-slate-900 dark:text-white">{row.name}</span>
-                    },
-                    {
-                        key: 'address',
-                        label: 'Adresă',
-                        sortable: true,
-                        render: (row) => <span className="text-slate-600 dark:text-slate-400 text-sm">{row.address || '-'}</span>
-                    },
-                    {
-                        key: 'coords',
-                        label: 'Coordonate',
-                        render: (row) => <span className="text-slate-500 dark:text-slate-500 text-xs font-mono">{row.latitude}, {row.longitude}</span>
-                    },
-                    {
-                        key: 'price',
-                        label: 'Preț per Tonă',
-                        sortable: true,
-                        render: (row) => (
-                            row.price_per_ton !== null && row.price_per_ton !== undefined
-                                ? <span className="font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{row.price_per_ton} €</span>
-                                : <span className="text-slate-400 text-sm italic">-</span>
-                        )
-                    },
-                    {
-                        key: 'actions',
-                        label: 'Acțiuni',
-                        render: (row) => (
-                            <div className="flex items-center justify-end gap-2">
-                                <button onClick={(e) => { e.stopPropagation(); openModal(row); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg">
-                                    <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )
-                    }
-                ]
-                
-                return (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
-                            <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
-                                <Beaker className="w-4 h-4 text-white" /> Tabel Stații Nisip
-                            </h2>
-                        </div>
-                        <DataTable
-                            columns={columns}
-                            data={stations}
-                            loading={loading}
-                            emptyText="Nu există stații configurate."
-                            searchable
-                            searchPlaceholder="Rechercher une station..."
-                            defaultPageSize={25}
-                        />
-                    </div>
-                )
-            })() : (
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[700px]">
-                    <div className="col-span-1 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-full overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3">
-                            <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2"><MapPin className="w-4 h-4 text-red-500" /> Legendă Stații</h3>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Caută stație..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
-                                />
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                            {stations.filter(s => {
-                                if (!searchQuery) return true;
-                                const q = searchQuery.toLowerCase();
-                                return (s.name || '').toLowerCase().includes(q) || (s.address || '').toLowerCase().includes(q);
-                            }).map((s) => {
-                                const letter = s.type === 'theirs' ? 'I' : 'D'
-                                const isSelected = selectedStationId === s.id;
-                                return (
-                                <div 
-                                    key={s.id} 
-                                    onClick={() => {
-                                        if (isSelected) {
-                                            setSelectedStationId(null);
-                                            setSelectedCoords(null);
-                                        } else {
-                                            setSelectedStationId(s.id);
-                                            if (s.latitude && s.longitude) {
-                                                setSelectedCoords([s.latitude, s.longitude]);
-                                            }
-                                        }
-                                    }}
-                                    className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all active:scale-[0.98] border-2 ${isSelected ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/20 dark:border-blue-500' : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
-                                >
-                                    <div className="w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm border-2 border-white dark:border-slate-900 mt-0.5">
-                                        {letter}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-bold text-slate-800 dark:text-slate-200 text-sm leading-tight truncate">{s.name}</div>
-                                        {s.address && <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">{s.address}</div>}
-                                    </div>
-                                    {s.price_per_ton != null && s.price_per_ton !== '' && (
-                                        <div className="shrink-0 flex flex-col items-end">
-                                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800/50 whitespace-nowrap">
-                                                {s.price_per_ton} €
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                                )
-                            })}
-                        </div>
-                    </div>
-                    <div className="col-span-1 lg:col-span-3 bg-slate-100 dark:bg-slate-800 rounded-2xl shadow-inner border border-slate-200 dark:border-slate-700 overflow-hidden relative z-0 h-full">
-                        <MapContainer 
-                            center={[50.8503, 4.3517]} 
-                            zoom={8} 
-                            scrollWheelZoom={false}
-                            style={{ width: '100%', height: '100%' }}
-                        >
-                            <TileLayer url="https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
-                            {selectedCoords && <FlyToStation coords={selectedCoords} />}
-                            {(() => {
-                                const validPrices = stations.map(s => parseFloat(s.price_per_ton)).filter(p => !isNaN(p));
-                                const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
-                                const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : 0;
-                
-                                const getPriceColor = (priceStr) => {
-                                    if (priceStr == null || priceStr === '') return '#64748b'; // slate-500
-                                    const price = parseFloat(priceStr);
-                                    if (isNaN(price)) return '#64748b';
-                                    if (minPrice === maxPrice) return '#10b981'; // green
-                                    
-                                    const ratio = (price - minPrice) / (maxPrice - minPrice);
-                                    if (ratio < 0.33) return '#10b981'; // emerald-500
-                                    if (ratio < 0.66) return '#f59e0b'; // amber-500
-                                    return '#ef4444'; // red-500
-                                };
+            {(() => {
+                const validPrices = stations
+                    .map(s => parseFloat(s.price_per_ton))
+                    .filter(p => !isNaN(p))
+                    .sort((a, b) => a - b);
 
-                                return stations.filter(s => s.latitude && s.longitude).map((s) => (
-                                    <Marker key={s.id} position={[s.latitude, s.longitude]} icon={getSandStationIcon(s.type === 'theirs' ? 'I' : 'D', getPriceColor(s.price_per_ton))}>
+                const getPriceColor = (priceStr) => {
+                    if (priceStr == null || priceStr === '') return '#64748b'; // slate-500 (gri - fără preț)
+                    const price = parseFloat(priceStr);
+                    if (isNaN(price) || validPrices.length === 0) return '#64748b';
+                    if (validPrices[0] === validPrices[validPrices.length - 1]) return '#10b981';
+                    const lessCount = validPrices.filter(p => p < price).length;
+                    const ratio = lessCount / Math.max(1, validPrices.length - 1);
+                    if (ratio < 0.34) return '#10b981'; // emerald-500 (verde)
+                    if (ratio < 0.67) return '#f59e0b'; // amber-500 (portocaliu)
+                    return '#ef4444'; // red-500 (roșu)
+                };
+
+                if (viewMode === 'table') {
+                    const columns = [
+                        {
+                            key: 'name',
+                            label: 'Nume Stație',
+                            sortable: true,
+                            render: (row) => (
+                                <div className="flex items-center gap-2.5">
+                                    <span
+                                        className="w-3 h-3 rounded-full shrink-0 border border-white shadow-sm"
+                                        style={{ backgroundColor: getPriceColor(row.price_per_ton) }}
+                                    />
+                                    <span className="font-bold text-slate-900 dark:text-white">{row.name}</span>
+                                </div>
+                            )
+                        },
+                        {
+                            key: 'address',
+                            label: 'Adresă',
+                            sortable: true,
+                            render: (row) => <span className="text-slate-600 dark:text-slate-400 text-sm">{row.address || '-'}</span>
+                        },
+                        {
+                            key: 'coords',
+                            label: 'Coordonate',
+                            render: (row) => <span className="text-slate-500 dark:text-slate-500 text-xs font-mono">{row.latitude}, {row.longitude}</span>
+                        },
+                        {
+                            key: 'price',
+                            label: 'Preț per Tonă',
+                            sortable: true,
+                            render: (row) => {
+                                if (row.price_per_ton !== null && row.price_per_ton !== undefined && row.price_per_ton !== '') {
+                                    const color = getPriceColor(row.price_per_ton);
+                                    return (
+                                        <span
+                                            className="inline-flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-lg text-xs text-white whitespace-nowrap shadow-sm"
+                                            style={{ backgroundColor: color }}
+                                        >
+                                            {row.price_per_ton} €
+                                        </span>
+                                    );
+                                }
+                                return <span className="text-slate-400 text-xs font-medium italic whitespace-nowrap">Fără preț</span>;
+                            }
+                        },
+                        {
+                            key: 'actions',
+                            label: 'Acțiuni',
+                            render: (row) => (
+                                <div className="flex items-center justify-end gap-2">
+                                    <button onClick={(e) => { e.stopPropagation(); openModal(row); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg">
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )
+                        }
+                    ]
+                    
+                    return (
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
+                                <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
+                                    <Beaker className="w-4 h-4 text-white" /> Tabel Stații Nisip
+                                </h2>
+                            </div>
+                            <DataTable
+                                columns={columns}
+                                data={stations}
+                                loading={loading}
+                                emptyText="Nu există stații configurate."
+                                searchable
+                                searchPlaceholder="Rechercher une station..."
+                                defaultPageSize={50}
+                            />
+                        </div>
+                    )
+                }
+
+                return (
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[700px]">
+                        <div className="col-span-1 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-full overflow-hidden">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3">
+                                <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2"><MapPin className="w-4 h-4 text-red-500" /> Legendă Stații</h3>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Caută stație..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
+                                    />
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                                {stations.filter(s => {
+                                    if (!searchQuery) return true;
+                                    const q = searchQuery.toLowerCase();
+                                    return (s.name || '').toLowerCase().includes(q) || (s.address || '').toLowerCase().includes(q);
+                                }).map((s) => {
+                                    const letter = 'S'
+                                    const isSelected = selectedStationId === s.id;
+                                    const stationColor = getPriceColor(s.price_per_ton);
+                                    return (
+                                    <div 
+                                        key={s.id} 
+                                        onClick={() => {
+                                            if (isSelected) {
+                                                setSelectedStationId(null);
+                                                setSelectedCoords(null);
+                                            } else {
+                                                setSelectedStationId(s.id);
+                                                if (s.latitude && s.longitude) {
+                                                    setSelectedCoords([s.latitude, s.longitude]);
+                                                }
+                                            }
+                                        }}
+                                        className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all active:scale-[0.98] border-2 ${isSelected ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/20 dark:border-blue-500' : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                                    >
+                                        <div
+                                            className="w-6 h-6 rounded-full text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm border-2 border-white dark:border-slate-900 mt-0.5"
+                                            style={{ backgroundColor: stationColor }}
+                                        >
+                                            {letter}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-slate-800 dark:text-slate-200 text-sm leading-tight truncate">{s.name}</div>
+                                            {s.address && <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">{s.address}</div>}
+                                        </div>
+                                        {s.price_per_ton != null && s.price_per_ton !== '' ? (
+                                            <div className="shrink-0 flex flex-col items-end">
+                                                <span
+                                                    className="text-xs font-bold text-white px-2 py-1 rounded-lg whitespace-nowrap shadow-sm"
+                                                    style={{ backgroundColor: stationColor }}
+                                                >
+                                                    {s.price_per_ton} €
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="shrink-0 flex flex-col items-end">
+                                                <span className="text-[11px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg whitespace-nowrap">
+                                                    —
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                        <div className="col-span-1 lg:col-span-3 bg-slate-100 dark:bg-slate-800 rounded-2xl shadow-inner border border-slate-200 dark:border-slate-700 overflow-hidden relative z-0 h-full">
+                            <MapContainer 
+                                center={[50.8503, 4.3517]} 
+                                zoom={8} 
+                                scrollWheelZoom={false}
+                                style={{ width: '100%', height: '100%' }}
+                            >
+                                <TileLayer url="https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
+                                {selectedCoords && <FlyToStation coords={selectedCoords} />}
+                                {stations.filter(s => s.latitude && s.longitude).map((s) => (
+                                    <Marker key={s.id} position={[s.latitude, s.longitude]} icon={getSandStationIcon('S', getPriceColor(s.price_per_ton))}>
                                         <Popup>
                                             <div className="font-bold text-sm text-slate-900">{s.name}</div>
                                             <div className="text-xs text-slate-500 mt-1">{s.address}</div>
-                                            {s.price_per_ton != null && s.price_per_ton !== '' && (
-                                                <div className="text-xs font-bold text-slate-700 mt-2 bg-slate-50 p-2 border border-slate-100 rounded-lg flex items-center justify-between">
+                                            {s.price_per_ton != null && s.price_per_ton !== '' ? (
+                                                <div className="text-xs font-bold text-slate-700 mt-2 bg-slate-50 p-2 border border-slate-100 rounded-lg flex items-center justify-between gap-3">
                                                     <span>Preț:</span>
-                                                    <span className="text-emerald-600 text-sm">{s.price_per_ton} € / tonă</span>
+                                                    <span className="text-white px-2 py-0.5 rounded font-bold text-xs whitespace-nowrap" style={{ backgroundColor: getPriceColor(s.price_per_ton) }}>
+                                                        {s.price_per_ton} € / tonă
+                                                    </span>
                                                 </div>
+                                            ) : (
+                                                <div className="text-xs font-medium text-slate-400 mt-2 italic">Fără preț configurat</div>
                                             )}
                                         </Popup>
                                     </Marker>
-                                ))
-                            })()}
-                        </MapContainer>
+                                ))}
+                            </MapContainer>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            })()}
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

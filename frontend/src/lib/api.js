@@ -62,14 +62,22 @@ api.interceptors.request.use(
             let subdomain = hostname ? hostname.split('.')[0] : null;
             if (!subdomain || ['localhost', '127', 'pontaj'].includes(subdomain)) {
                 try {
-                    const tenantStorage = localStorage.getItem('tenant-storage');
-                    if (tenantStorage) {
-                        const parsed = JSON.parse(tenantStorage);
-                        if (parsed.state?.tenant?.slug) {
-                            subdomain = parsed.state.tenant.slug;
+                    const savedSlug = localStorage.getItem('tenant_slug_override');
+                    if (savedSlug) {
+                        subdomain = savedSlug;
+                    } else {
+                        const tenantStorage = localStorage.getItem('tenant-storage');
+                        if (tenantStorage) {
+                            const parsed = JSON.parse(tenantStorage);
+                            if (parsed.state?.tenant?.slug) {
+                                subdomain = parsed.state.tenant.slug;
+                            }
                         }
                     }
                 } catch (err) {}
+                if (!subdomain || ['localhost', '127', 'pontaj'].includes(subdomain)) {
+                    subdomain = 'davidechape';
+                }
             }
             if (subdomain && !['localhost', '127', 'pontaj'].includes(subdomain)) {
                 config.headers['X-Tenant-Subdomain'] = subdomain;
