@@ -186,10 +186,15 @@ export default function ProformaView({ workOrderData = null, config = null, work
     // Dacă devizul are manual_override, folosim itemii salvați direct
     // Altfel recalculăm din Tarife (pricingSettings) prin buildQuoteItems()
     const isManualOverride = pData?.manual_override === true;
+    const hasRealInvoiceData = isInvoiceView && (
+        parseFloat(wo?.actual_surface_m2 || 0) > 0 ||
+        parseFloat(wo?.actual_thickness_cm || 0) > 0 ||
+        Object.keys(wo?.prices?.invoice || {}).length > 0
+    );
     
     let items, subtotal, discountAmount, activeDiscountPct, vatAmount, totalAmount;
     
-    if (pData?.items?.length > 0 && isManualOverride) {
+    if (pData?.items?.length > 0 && isManualOverride && !hasRealInvoiceData) {
         // Admin a modificat manual / Calcul salvat în DB — respectăm exact ce a pus
         items = pData.items;
         subtotal = items.reduce((s, i) => (i.isHeader || i.isSubtotal) ? s : s + (i.qty * i.price), 0);

@@ -1,6 +1,6 @@
 import uuid
-from typing import Optional, List
-from pydantic import BaseModel
+from typing import Optional, List, Any
+from pydantic import BaseModel, model_validator
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -10,27 +10,49 @@ from app.services.audit_service import log_audit
 
 router = APIRouter()
 
+def _to_float_or_default(val: Any, default: Optional[float]) -> Optional[float]:
+    if val is None or (isinstance(val, str) and val.strip() == ""):
+        return default
+    if isinstance(val, str):
+        val = val.replace(",", ".").strip()
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
 class SurfaceThreshold(BaseModel):
     id: str
-    min_sqm: float
-    max_sqm: float
-    extra_charge: float
+    min_sqm: float = 0.0
+    max_sqm: float = 0.0
+    extra_charge: float = 0.0
+
+    @model_validator(mode="before")
+    @classmethod
+    def sanitize_threshold_numbers(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        out = dict(data)
+        out["id"] = str(out.get("id") or uuid.uuid4())
+        out["min_sqm"] = _to_float_or_default(out.get("min_sqm"), 0.0)
+        out["max_sqm"] = _to_float_or_default(out.get("max_sqm"), 0.0)
+        out["extra_charge"] = _to_float_or_default(out.get("extra_charge"), 0.0)
+        return out
 
 class PricingSettingSchema(BaseModel):
     client_id: Optional[str] = None
-    base_price_sqm: float
-    base_price_sqm_large: float
-    base_large_threshold_sqm: float
-    extra_thickness_price_per_cm: float
-    extra_thickness_price_per_cm_large: float
-    extra_thickness_large_threshold_sqm: float
-    standard_thickness_cm: float
-    plastic_foil_price_sqm: float
-    metal_mesh_price_sqm: float
-    fiber_price_sqm: float
-    fiber_price_sqm_large: float
-    fiber_large_threshold_sqm: float
-    surface_thresholds: List[SurfaceThreshold]
+    base_price_sqm: float = 0.0
+    base_price_sqm_large: float = 0.0
+    base_large_threshold_sqm: float = 250.0
+    extra_thickness_price_per_cm: float = 0.0
+    extra_thickness_price_per_cm_large: float = 0.0
+    extra_thickness_large_threshold_sqm: float = 250.0
+    standard_thickness_cm: float = 5.0
+    plastic_foil_price_sqm: float = 0.0
+    metal_mesh_price_sqm: float = 0.0
+    fiber_price_sqm: float = 0.0
+    fiber_price_sqm_large: float = 0.0
+    fiber_large_threshold_sqm: float = 250.0
+    surface_thresholds: List[SurfaceThreshold] = []
     
     # Prețuri minime (Facturare)
     min_invoice_threshold_sqm: Optional[float] = 40.0
@@ -80,6 +102,73 @@ class PricingSettingSchema(BaseModel):
         {"max_m3": 40.0, "price_flat": None, "price_per_m3": 155.0},
         {"max_m3": 99999.0, "price_flat": None, "price_per_m3": 150.0}
     ]
+
+    @model_validator(mode="before")
+    @classmethod
+    def sanitize_numeric_inputs(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        out = dict(data)
+
+        base_price = _to_float_or_default(out.get("base_price_sqm"), 0.0)
+        extra_thick_price = _to_float_or_default(out.get("extra_thickness_price_per_cm"), 0.0)
+        fiber_price = _to_float_or_default(out.get("fiber_price_sqm"), 0.0)
+
+        out["base_price_sqm"] = base_price
+        # If large surface rate is left blank, automatically use the small surface rate
+        out["base_price_sqm_large"] = _to_float_or_default(out.get("base_price_sqm_large"), base_price)
+        out["base_large_threshold_sqm"] = _to_float_or_default(out.get("base_large_threshold_sqm"), 250.0)
+
+        out["extra_thickness_price_per_cm"] = extra_thick_price
+        out["extra_thickness_price_per_cm_large"] = _to_float_or_default(
+            out.get("extra_thickness_price_per_cm_large"), extra_thick_price
+        )
+        out["extra_thickness_large_threshold_sqm"] = _to_float_or_default(
+            out.get("extra_thickness_large_threshold_sqm"), 250.0
+        )
+
+        out["standard_thickness_cm"] = _to_float_or_default(out.get("standard_thickness_cm"), 5.0)
+        out["plastic_foil_price_sqm"] = _to_float_or_default(out.get("plastic_foil_price_sqm"), 0.0)
+        out["metal_mesh_price_sqm"] = _to_float_or_default(out.get("metal_mesh_price_sqm"), 0.0)
+
+        out["fiber_price_sqm"] = fiber_price
+        out["fiber_price_sqm_large"] = _to_float_or_default(out.get("fiber_price_sqm_large"), fiber_price)
+        out["fiber_large_threshold_sqm"] = _to_float_or_default(out.get("fiber_large_threshold_sqm"), 250.0)
+
+        # Nullable minimum invoice fields
+        out["min_invoice_threshold_sqm"] = _to_float_or_default(out.get("min_invoice_threshold_sqm"), 40.0)
+        out["min_invoice_fixed_price_under"] = _to_float_or_default(out.get("min_invoice_fixed_price_under"), None)
+        out["min_invoice_min_price_over"] = _to_float_or_default(out.get("min_invoice_min_price_over"), None)
+
+        # VAT & Logistics
+        out["vat_legal_entity"] = _to_float_or_default(out.get("vat_legal_entity"), 0.0)
+        out["vat_physical_new"] = _to_float_or_default(out.get("vat_physical_new"), 21.0)
+        out["vat_physical_repair"] = _to_float_or_default(out.get("vat_physical_repair"), 6.0)
+
+        out["truck_distance_threshold_km"] = _to_float_or_default(out.get("truck_distance_threshold_km"), 50.0)
+        out["truck_extra_price_flat"] = _to_float_or_default(out.get("truck_extra_price_flat"), 0.0)
+        out["truck_surface_threshold_free_sqm"] = _to_float_or_default(out.get("truck_surface_threshold_free_sqm"), 500.0)
+
+        out["pur_truck_distance_threshold_km"] = _to_float_or_default(out.get("pur_truck_distance_threshold_km"), 50.0)
+        out["pur_truck_extra_price_flat"] = _to_float_or_default(out.get("pur_truck_extra_price_flat"), 0.0)
+        out["pur_truck_surface_threshold_free_sqm"] = _to_float_or_default(out.get("pur_truck_surface_threshold_free_sqm"), 500.0)
+
+        out["eps_truck_distance_threshold_km"] = _to_float_or_default(out.get("eps_truck_distance_threshold_km"), 50.0)
+        out["eps_truck_extra_price_flat"] = _to_float_or_default(out.get("eps_truck_extra_price_flat"), 0.0)
+        out["eps_truck_volume_threshold_free_m3"] = _to_float_or_default(out.get("eps_truck_volume_threshold_free_m3"), 40.0)
+
+        # PUR
+        out["pur_base_price_3cm"] = _to_float_or_default(out.get("pur_base_price_3cm"), 13.95)
+        out["pur_step_price_up_to_10cm"] = _to_float_or_default(out.get("pur_step_price_up_to_10cm"), 1.65)
+        out["pur_extra_price_above_10cm"] = _to_float_or_default(out.get("pur_extra_price_above_10cm"), 2.10)
+        out["pur_minimum_execution_price"] = _to_float_or_default(out.get("pur_minimum_execution_price"), 1375.00)
+        out["pur_surface_discount_step"] = _to_float_or_default(out.get("pur_surface_discount_step"), -0.50)
+        out["pur_opt_aspiration"] = _to_float_or_default(out.get("pur_opt_aspiration"), 2.00)
+        out["pur_opt_niveller"] = _to_float_or_default(out.get("pur_opt_niveller"), 4.25)
+        out["pur_opt_poncage"] = _to_float_or_default(out.get("pur_opt_poncage"), 1.50)
+        out["pur_opt_protection"] = _to_float_or_default(out.get("pur_opt_protection"), 1.50)
+
+        return out
 
 @router.get("/pricing-settings")
 def get_pricing_settings(
@@ -134,16 +223,16 @@ def get_pricing_settings(
         "is_custom": is_custom,
         "base_price_sqm": setting.base_price_sqm,
         "base_price_sqm_large": setting.base_price_sqm_large if setting.base_price_sqm_large is not None else setting.base_price_sqm,
-        "base_large_threshold_sqm": setting.base_large_threshold_sqm if setting.base_large_threshold_sqm is not None else 200.0,
+        "base_large_threshold_sqm": setting.base_large_threshold_sqm if setting.base_large_threshold_sqm is not None else 250.0,
         "extra_thickness_price_per_cm": setting.extra_thickness_price_per_cm,
         "extra_thickness_price_per_cm_large": setting.extra_thickness_price_per_cm_large if setting.extra_thickness_price_per_cm_large is not None else setting.extra_thickness_price_per_cm,
-        "extra_thickness_large_threshold_sqm": setting.extra_thickness_large_threshold_sqm if setting.extra_thickness_large_threshold_sqm is not None else 200.0,
+        "extra_thickness_large_threshold_sqm": setting.extra_thickness_large_threshold_sqm if setting.extra_thickness_large_threshold_sqm is not None else 250.0,
         "standard_thickness_cm": setting.standard_thickness_cm,
         "plastic_foil_price_sqm": setting.plastic_foil_price_sqm,
         "metal_mesh_price_sqm": setting.metal_mesh_price_sqm,
         "fiber_price_sqm": setting.fiber_price_sqm,
-        "fiber_price_sqm_large": setting.fiber_price_sqm_large,
-        "fiber_large_threshold_sqm": setting.fiber_large_threshold_sqm,
+        "fiber_price_sqm_large": setting.fiber_price_sqm_large if setting.fiber_price_sqm_large is not None else setting.fiber_price_sqm,
+        "fiber_large_threshold_sqm": setting.fiber_large_threshold_sqm if setting.fiber_large_threshold_sqm is not None else 250.0,
         "surface_thresholds": setting.surface_thresholds or [],
         
         "min_invoice_threshold_sqm": getattr(setting, "min_invoice_threshold_sqm", 40.0),

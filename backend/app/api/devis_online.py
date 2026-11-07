@@ -370,12 +370,28 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         db.flush()
         
     # 3. Calculate estimated price
-    pricing = db.query(PricingSetting).filter(PricingSetting.organization_id == org.id, PricingSetting.client_id == None).first()
+    pricing = None
+    if client and client.id:
+        pricing = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == org.id,
+            PricingSetting.client_id == client.id
+        ).first()
+    if not pricing:
+        pricing = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == org.id,
+            PricingSetting.client_id == None
+        ).first()
+
+    total_chape_surface = sum(float(s.surface or 0) for s in (payload.surfaces or []))
+    if total_chape_surface <= 0 and payload.surface:
+        total_chape_surface = float(payload.surface or 0)
+    has_any_isolation = bool(payload.isolations) or bool(payload.needs_isolation and payload.isolation_surface)
+
     estimated_price = 0
-    if pricing and payload.surface > 0:
+    distance_km = 0.0
+    truck_cost = 0.0
+    if pricing and (total_chape_surface > 0 or has_any_isolation):
         # Truck transportation distance cost
-        distance_km = 0.0
-        
         if payload.site_address:
             from app.models import LogisticBase
             bases = db.query(LogisticBase).filter(LogisticBase.organization_id == org.id).all()
@@ -413,21 +429,37 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         else:
             vat_rate = pricing.vat_physical_repair if payload.work_type == "repair" else pricing.vat_physical_new
             
+    base_thresh = getattr(pricing, 'base_large_threshold_sqm', 200) if pricing else 200
+    extra_thresh = getattr(pricing, 'extra_thickness_large_threshold_sqm', 200) if pricing else 200
+    fiber_thresh = getattr(pricing, 'fiber_large_threshold_sqm', 200) if pricing else 200
+
     prices_dict = {
-        "base": getattr(pricing, 'base_price_sqm_large', 12.5) if pricing and payload.surface > getattr(pricing, 'base_large_threshold_sqm', 200) else (pricing.base_price_sqm if pricing else 12.5),
+        "base": getattr(pricing, 'base_price_sqm_large', 12.0) if (pricing and total_chape_surface > base_thresh) else (pricing.base_price_sqm if pricing else 12.5),
+        "base_price_sqm": pricing.base_price_sqm if pricing else 12.5,
+        "base_large": getattr(pricing, 'base_price_sqm_large', 12.0) if pricing else 12.0,
+        "base_threshold": base_thresh,
+        "extra": getattr(pricing, 'extra_thickness_price_per_cm_large', 1.2) if (pricing and total_chape_surface > extra_thresh) else (pricing.extra_thickness_price_per_cm if pricing else 1.25),
         "extra_thickness_price_per_cm": pricing.extra_thickness_price_per_cm if pricing else 1.25,
+        "extra_large": getattr(pricing, 'extra_thickness_price_per_cm_large', 1.2) if pricing else 1.2,
+        "extra_threshold": extra_thresh,
         "standard_thickness": pricing.standard_thickness_cm if pricing else 5.0,
         "foil": pricing.plastic_foil_price_sqm if pricing else 1.2,
         "mesh": pricing.metal_mesh_price_sqm if pricing else 2.5,
-        "fiber": (pricing.fiber_price_sqm if pricing else 2.5) if payload.surface <= (pricing.fiber_large_threshold_sqm if pricing else 200) else (pricing.fiber_price_sqm_large if pricing else 2.0),
-        "truck_cost": truck_cost if 'truck_cost' in locals() else 0,
-        "distance_km": distance_km if 'distance_km' in locals() else 0,
+        "fiber": (pricing.fiber_price_sqm if pricing else 2.5) if total_chape_surface <= fiber_thresh else (pricing.fiber_price_sqm_large if pricing else 2.0),
+        "fiber_price_sqm": pricing.fiber_price_sqm if pricing else 2.5,
+        "fiber_large": pricing.fiber_price_sqm_large if pricing else 2.0,
+        "fiber_threshold": fiber_thresh,
+        "truck_cost": truck_cost,
+        "distance_km": distance_km,
         "useVat": use_vat,
         "vat_type": vat_rate,
         "vat_legal_entity": pricing.vat_legal_entity if pricing else 0,
         "vat_physical_new": pricing.vat_physical_new if pricing else 21,
         "vat_physical_repair": pricing.vat_physical_repair if pricing else 6,
         "surface_thresholds": pricing.surface_thresholds if pricing else [],
+        "min_invoice_threshold_sqm": getattr(pricing, 'min_invoice_threshold_sqm', 0) if pricing else 0,
+        "min_invoice_fixed_price_under": getattr(pricing, 'min_invoice_fixed_price_under', 0) if pricing else 0,
+        "min_invoice_min_price_over": getattr(pricing, 'min_invoice_min_price_over', 0) if pricing else 0,
         # PUR prices
         "pur_base_price_3cm": getattr(pricing, 'pur_base_price_3cm', 13.95),
         "pur_step_price_up_to_10cm": getattr(pricing, 'pur_step_price_up_to_10cm', 1.65),

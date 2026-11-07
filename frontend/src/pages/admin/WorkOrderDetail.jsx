@@ -1024,7 +1024,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, extraThick: 0 };
         const standardThick = getPriceVal(prices?.standard_thickness_cm ?? prices?.standard_thickness, 5);
         const extraThick = Math.max(0, thickness - standardThick);
-        const base  = getPriceVal(prices?.base_price_sqm ?? prices?.base, 12.5) * surface;
+        const baseThresh = getPriceVal(prices?.base_large_threshold_sqm ?? prices?.base_threshold, 200);
+        const baseSmall = getPriceVal(prices?.base_price_sqm ?? prices?.base, 12.5);
+        const baseLarge = getPriceVal(prices?.base_price_sqm_large ?? prices?.base_large, baseSmall);
+        const baseRate = surface > baseThresh ? baseLarge : baseSmall;
+        const base = baseRate * surface;
         
         let extraRate = 0;
         if (prices?.extra_large !== undefined && prices?.extra_threshold !== undefined) {
@@ -1075,7 +1079,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     };
 
     // Calculation Logic for Sapa — Estimatif (din volumes[])
-    const hasRealData = Object.keys(wo.prices?.invoice || {}).length > 0 || (wo.actual_surface_m2 && wo.actual_surface_m2 > 0);
+    const hasPerChapeReal = Array.isArray(wo.volumes) && wo.volumes.some(v => parseFloat(v?.actual_quantity || 0) > 0);
+    const hasRealData = Object.keys(wo.prices?.invoice || {}).length > 0 || (wo.actual_surface_m2 && wo.actual_surface_m2 > 0) || hasPerChapeReal;
     
     // Izolatii
     const getIsolationData = () => {
@@ -1153,77 +1158,122 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     let realCalc = null;
     let realPurOpts = { aspiration: 0, niveller: 0, poncage: 0, protection: 0 };
     if (hasRealData) {
-        realCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, discountPct: 0, isoPurBase: 0, isoPurOpt: 0, isoEpsBase: 0, isoEpsVol: 0, isoEpsSurface: 0, isoEpsThickness: 0, purDiscount: 0, purDiscountPct: 0, epsDiscount: 0, epsDiscountPct: 0, extraThick: 0 };
+        realCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, discountPct: 0, isoPurBase: 0, isoPurOpt: 0, isoEpsBase: 0, isoEpsVol: 0, isoEpsSurface: 0, isoEpsThickness: 0, purDiscount: 0, purDiscountPct: 0, epsDiscount: 0, epsDiscountPct: 0, extraThick: 0, purMinAdj: 0, minInvoiceAdj: 0 };
         
         // Sursa Unică de Adevăr: fuziune între tarifele globale/preferențiale și snapshot
         const invoicePrices = { ...(pricingSettings || {}), ...(wo.prices || {}), ...(wo.prices?.invoice || {}) };
         
+        // 1. Calcul Chape reală (o singură dată pe suprafața reală totală, fără a dubla pe fiecare cameră)
+        const chapeVolsInWo = (wo.volumes || []).filter(vol => {
+            const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const isPUR = /isolation\s*pur/i.test(labelSafe);
+            const isEPS = /isolation\s*eps/i.test(labelSafe);
+            return /chape|[sșş]ap[aăâ]/i.test(labelSafe) || (!isPUR && !isEPS && vol.label);
+        });
+        const fallbackChapeSurface = chapeVolsInWo.reduce((s, v) => s + (parseFloat(v.quantity) || 0), 0);
+        const fallbackChapeThick = chapeVolsInWo.length > 0 ? (parseFloat(chapeVolsInWo[0].thickness) || 5) : 5;
+        const effectiveRealChapeSurface = realSurface > 0 ? realSurface : fallbackChapeSurface;
+        const effectiveRealChapeThick = realThickness > 0 ? realThickness : fallbackChapeThick;
+
+        if (hasPerChapeReal && chapeVolsInWo.length > 1) {
+            const totalPerChapeSurf = chapeVolsInWo.reduce((s, v) => s + (parseFloat(v.actual_quantity ?? v.quantity) || 0), 0);
+            chapeVolsInWo.forEach(v => {
+                const vSurf = parseFloat(v.actual_quantity ?? v.quantity) || 0;
+                const vThick = parseFloat(v.actual_thickness ?? v.thickness) || 5;
+                if (vSurf <= 0) return;
+                const vFlags = wo.prices?.invoice ? realChapeFlags : {
+                    has_foil: !!v.has_foil,
+                    has_mesh: !!v.has_mesh,
+                    has_fiber: !!v.has_fiber,
+                    has_duramint: !!v.has_duramint
+                };
+                // Pentru tarifele de suprafață mare (> prag), folosim suprafața totală pe șantier
+                const fullEval = computeChapeTotal(totalPerChapeSurf, vThick, vFlags, invoicePrices);
+                const ratio = totalPerChapeSurf > 0 ? (vSurf / totalPerChapeSurf) : 0;
+                realCalc.base  += fullEval.base * ratio;
+                realCalc.extra += fullEval.extra * ratio;
+                realCalc.foil  += fullEval.foil * ratio;
+                realCalc.mesh  += fullEval.mesh * ratio;
+                realCalc.fiber += fullEval.fiber * ratio;
+                realCalc.extraThick = Math.max(realCalc.extraThick, fullEval.extraThick);
+            });
+            const siteEval = computeChapeTotal(totalPerChapeSurf, 5, {}, invoicePrices);
+            realCalc.threshold = siteEval.threshold;
+            realCalc.truck_cost = siteEval.truck_cost;
+            realCalc.discountPct = siteEval.discountPct;
+            const grossChape = realCalc.base + realCalc.extra + realCalc.foil + realCalc.mesh + realCalc.fiber + realCalc.threshold + realCalc.truck_cost;
+            realCalc.discount = (grossChape * realCalc.discountPct) / 100;
+            realCalc.net += grossChape - realCalc.discount;
+        } else if ((chapeVolsInWo.length > 0 || (wo.volumes || []).length === 0) && effectiveRealChapeSurface > 0) {
+            const c = computeChapeTotal(effectiveRealChapeSurface, effectiveRealChapeThick, realChapeFlags, invoicePrices);
+            realCalc.extraThick = c.extraThick;
+            realCalc.base  = c.base;
+            realCalc.extra = c.extra;
+            realCalc.foil  = c.foil;
+            realCalc.mesh  = c.mesh;
+            realCalc.fiber = c.fiber;
+            realCalc.threshold = c.threshold;
+            realCalc.truck_cost = c.truck_cost;
+            realCalc.discount = c.discount;
+            realCalc.discountPct = c.discountPct;
+            realCalc.net += c.net;
+        }
+
+        // 2. Calcul Izolații PUR / EPS (păstrează suprafața și grosimea proprie a izolației!)
         (wo.volumes || []).forEach(vol => {
-            const surface = realSurface > 0 ? realSurface : (parseFloat(vol.quantity) || 0);
-            const thickness = realThickness > 0 ? realThickness : (parseFloat(vol.thickness) || 0);
+            const isoSurface = parseFloat(vol.quantity) || 0;
+            const isoThickness = parseFloat(vol.thickness) || 0;
             const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             
-            if (/chape|[sșş]ap[aăâ]/i.test(labelSafe) && surface > 0) {
-                const c = computeChapeTotal(surface, thickness, realChapeFlags, invoicePrices);
-                realCalc.extraThick = c.extraThick;
-                realCalc.base  += c.base;
-                realCalc.extra += c.extra;
-                realCalc.foil  += c.foil;
-                realCalc.mesh  += c.mesh;
-                realCalc.fiber += c.fiber;
-                realCalc.threshold += c.threshold;
-                realCalc.truck_cost += c.truck_cost;
-                realCalc.discount += c.discount;
-                realCalc.discountPct = c.discountPct;
-                realCalc.net   += c.net;
-            } else if (/isolation\s*pur/i.test(labelSafe) && surface > 0) {
+            if (/isolation\s*pur/i.test(labelSafe) && isoSurface > 0) {
+                const purThick = isoThickness || isoPurThick || 3;
                 let purBase = parseFloat(invoicePrices.pur_base_price_3cm || 13.95);
-                if (isoPurThick > 3 && isoPurThick <= 10) {
-                    purBase += (isoPurThick - 3) * parseFloat(invoicePrices.pur_step_price_up_to_10cm || 1.65);
-                } else if (isoPurThick > 10) {
+                if (purThick > 3 && purThick <= 10) {
+                    purBase += (purThick - 3) * parseFloat(invoicePrices.pur_step_price_up_to_10cm || 1.65);
+                } else if (purThick > 10) {
                     purBase += 7 * parseFloat(invoicePrices.pur_step_price_up_to_10cm || 1.65);
-                    purBase += (isoPurThick - 10) * parseFloat(invoicePrices.pur_extra_price_above_10cm || 2.10);
+                    purBase += (purThick - 10) * parseFloat(invoicePrices.pur_extra_price_above_10cm || 2.10);
                 }
-                if (surface > 100) {
-                    purBase += Math.floor((surface - 100) / 100) * parseFloat(invoicePrices.pur_surface_discount_step || -0.50);
+                if (isoSurface > 100) {
+                    purBase += Math.floor((isoSurface - 100) / 100) * parseFloat(invoicePrices.pur_surface_discount_step || -0.50);
                 }
                 purBase = Math.max(0, purBase);
-                const isoPurBaseCost = purBase * surface;
+                const isoPurBaseCost = purBase * isoSurface;
                 realCalc.isoPurBase += isoPurBaseCost;
                 
                 let thisPurTotal = isoPurBaseCost;
                 
                 if (vol.pur_aspiration) {
-                    let cost = parseFloat(invoicePrices.pur_opt_aspiration || 2.00) * surface;
+                    let cost = parseFloat(invoicePrices.pur_opt_aspiration || 2.00) * isoSurface;
                     realCalc.isoPurOpt += cost;
                     realPurOpts.aspiration += cost;
                     thisPurTotal += cost;
                 }
                 if (vol.pur_niveller) {
-                    let cost = parseFloat(invoicePrices.pur_opt_niveller || 4.25) * surface;
+                    let cost = parseFloat(invoicePrices.pur_opt_niveller || 4.25) * isoSurface;
                     realCalc.isoPurOpt += cost;
                     realPurOpts.niveller += cost;
                     thisPurTotal += cost;
                 }
                 if (vol.pur_poncage) {
-                    let cost = parseFloat(invoicePrices.pur_opt_poncage || 1.50) * surface;
+                    let cost = parseFloat(invoicePrices.pur_opt_poncage || 1.50) * isoSurface;
                     realCalc.isoPurOpt += cost;
                     realPurOpts.poncage += cost;
                     thisPurTotal += cost;
                 }
                 if (vol.pur_protection) {
-                    let cost = parseFloat(invoicePrices.pur_opt_protection || 1.50) * surface;
+                    let cost = parseFloat(invoicePrices.pur_opt_protection || 1.50) * isoSurface;
                     realCalc.isoPurOpt += cost;
                     realPurOpts.protection += cost;
                     thisPurTotal += cost;
                 }
                 let purDiscountPct = parseFloat(invoicePrices.pur_discount_pct || 0);
                 let netPur = thisPurTotal * (1 - purDiscountPct / 100);
-                realCalc.purDiscount = thisPurTotal * (purDiscountPct / 100);
+                realCalc.purDiscount += thisPurTotal * (purDiscountPct / 100);
                 realCalc.purDiscountPct = purDiscountPct;
                 realCalc.net += netPur;
-            } else if (/isolation\s*eps/i.test(labelSafe) && surface > 0) {
-                let epsVol = (surface * (thickness || 1)) / 100;
+            } else if (/isolation\s*eps/i.test(labelSafe) && isoSurface > 0) {
+                let epsVol = parseFloat(vol.volume_m3 || ((isoSurface * (isoThickness || 1)) / 100));
                 const epsTiers = invoicePrices.eps_volume_thresholds || [
                     { max_m3: 10, price_flat: 1495 },
                     { max_m3: 20, price_per_m3: 160 },
@@ -1241,38 +1291,34 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 if (invoicePrices.custom_eps_price_flat !== undefined && invoicePrices.custom_eps_price_flat !== null && invoicePrices.custom_eps_price_flat !== '') {
                     epsPrice = parseFloat(invoicePrices.custom_eps_price_flat);
                 } else if (invoicePrices.custom_eps_price_per_m2 !== undefined && invoicePrices.custom_eps_price_per_m2 !== null && invoicePrices.custom_eps_price_per_m2 !== '') {
-                    epsPrice = surface * parseFloat(invoicePrices.custom_eps_price_per_m2);
+                    epsPrice = isoSurface * parseFloat(invoicePrices.custom_eps_price_per_m2);
                 } else if (invoicePrices.custom_eps_price_per_m3 !== undefined && invoicePrices.custom_eps_price_per_m3 !== null && invoicePrices.custom_eps_price_per_m3 !== '') {
                     epsPrice = epsVol * parseFloat(invoicePrices.custom_eps_price_per_m3);
                 }
 
                 realCalc.isoEpsBase += epsPrice;
                 realCalc.isoEpsVol += epsVol;
-                realCalc.isoEpsSurface += surface;
-                realCalc.isoEpsThickness = parseFloat(vol.thickness || 1);
+                realCalc.isoEpsSurface += isoSurface;
+                realCalc.isoEpsThickness = isoThickness || 1;
                 let epsDiscountPct = parseFloat(invoicePrices.eps_discount_pct || 0);
                 let netEps = epsPrice * (1 - epsDiscountPct / 100);
-                realCalc.epsDiscount = epsPrice * (epsDiscountPct / 100);
+                realCalc.epsDiscount += epsPrice * (epsDiscountPct / 100);
                 realCalc.epsDiscountPct = epsDiscountPct;
                 realCalc.net += netEps;
             }
         });
-        
-        // If there are no volumes at all, fallback to a general calculation
-        if ((wo.volumes || []).length === 0 && realSurface > 0) {
-            const c = computeChapeTotal(realSurface, realThickness, realChapeFlags, invoicePrices);
-            realCalc.extraThick = c.extraThick;
-            realCalc.base  += c.base;
-            realCalc.extra += c.extra;
-            realCalc.foil  += c.foil;
-            realCalc.mesh  += c.mesh;
-            realCalc.fiber += c.fiber;
-            realCalc.threshold += c.threshold;
-            realCalc.truck_cost += c.truck_cost;
-            realCalc.discount += c.discount;
-            realCalc.discountPct = c.discountPct;
-            realCalc.net   += c.net;
+
+        // 3. Sincronizare cu buildQuoteItems (plafon minim PUR 1375€ + facturare minimă Isoflex 850€/1050€)
+        const realQuoteUnified = buildQuoteItems(wo, pricingSettings, { isInvoice: true, useInvoiceData: true });
+        const purMinItem = (realQuoteUnified.items || []).find(i => i.id === 'pur_min_adj');
+        if (purMinItem) {
+            realCalc.purMinAdj = parseFloat(purMinItem.price || 0);
         }
+        const minInvItem = (realQuoteUnified.items || []).find(i => i.id === 'min_invoice_adj');
+        if (minInvItem) {
+            realCalc.minInvoiceAdj = parseFloat(minInvItem.price || 0);
+        }
+        realCalc.net = realQuoteUnified.net;
     }
 
     const vatRate = vatEnabled ? (parseFloat(vatType) / 100) : 0;
@@ -1387,7 +1433,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 newPrices.custom_eps_price_per_m3 = null;
             }
             
-            // Stergem logica cu threshold daca pretul fiber a fost editat custom
+            // Stergem logica cu threshold daca preturile au fost editate custom
+            delete newPrices.base_price_sqm;
+            delete newPrices.base_price_sqm_large;
+            delete newPrices.base_large;
+            delete newPrices.base_threshold;
+            delete newPrices.extra_large;
+            delete newPrices.extra_threshold;
+            delete newPrices.fiber_price_sqm;
+            delete newPrices.fiber_price_sqm_large;
             delete newPrices.fiber_large;
             delete newPrices.fiber_threshold;
             // Calcul nou estimat
@@ -1462,7 +1516,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 client_type: calcEditForm.client_type,
                 work_type: calcEditForm.work_type,
                 volumes: newVolumes, 
-                estimated_price: String(newCalc.net), 
+                estimated_price: String(newQuote.net || newCalc.net), 
                 prices: newPrices,
                 proforma_data: newProformaData
             });
@@ -2762,10 +2816,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     </button>
                                 </div>
                                 <div className="p-4 space-y-2 text-sm">
-                                    <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                        <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
-                                        <span className="text-right tabular-nums">{realSurface} m² × {getPrice(wo.prices?.base, realSurface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)}&nbsp;EUR</b></span>
-                                    </div>
+                                    {realCalc.base > 0 && (
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
+                                            <span className="text-right tabular-nums">{realSurface || surfaceForAuto} m² × {(realCalc.base / ((realSurface || surfaceForAuto) || 1)).toFixed(2)} = <b>{realCalc.base.toFixed(2)}&nbsp;EUR</b></span>
+                                        </div>
+                                    )}
                                     {realCalc.extra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({realCalc.extraThick} cm)</span>
@@ -2846,6 +2902,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
                                             <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Forfait')}</span>
                                             <span className="text-right tabular-nums">+ <b>{realCalc.threshold.toFixed(2)}&nbsp;EUR</b></span>
+                                        </div>
+                                    )}
+                                    {realCalc.purMinAdj > 0 && (
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
+                                            <span className="font-medium">Ajustement minimum PUR</span>
+                                            <span className="text-right tabular-nums">+ <b>{realCalc.purMinAdj.toFixed(2)}&nbsp;EUR</b></span>
+                                        </div>
+                                    )}
+                                    {realCalc.minInvoiceAdj !== 0 && realCalc.minInvoiceAdj !== undefined && (
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
+                                            <span className="font-medium">Forfait minimum chantier</span>
+                                            <span className="text-right tabular-nums">{realCalc.minInvoiceAdj > 0 ? '+ ' : ''}<b>{realCalc.minInvoiceAdj.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.discount > 0 && (
@@ -3859,7 +3927,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     has_fiber: !!calcEditForm.has_fiber,
                                     has_duramint: !!calcEditForm.has_duramint
                                 };
-                                const liveChapeCalc = (calcEditForm.chapes || []).map(c => computeChapeTotal(
+                                const totalLiveChapeSurf = (calcEditForm.chapes || []).reduce((sum, c) => sum + (parseFloat(c.surface) || 0), 0);
+                                const liveChapeParts = (calcEditForm.chapes || []).map(c => computeChapeTotal(
                                     parseFloat(c.surface) || 0,
                                     parseFloat(c.thickness) || 0,
                                     {
@@ -3869,16 +3938,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         has_duramint: !!c.has_duramint
                                     },
                                     livePrices
-                                )).reduce((acc, curr) => ({
-                                    net: acc.net + curr.net,
-                                    base: acc.base + curr.base,
-                                    extra: acc.extra + curr.extra,
-                                    threshold: acc.threshold + curr.threshold
-                                }), { net: 0, base: 0, extra: 0, threshold: 0 });
-                                
-                                let liveNet = liveChapeCalc.net;
-                                let liveChape = liveNet - liveChapeCalc.threshold;
-                                let liveThreshold = liveChapeCalc.threshold;
+                                ));
+                                const liveChapeMaterials = liveChapeParts.reduce((s, curr) => s + curr.base + curr.extra + curr.foil + curr.mesh + curr.fiber, 0);
+                                const liveTotalEval = computeChapeTotal(totalLiveChapeSurf, 5, {}, livePrices);
+                                const liveThreshold = liveTotalEval.threshold;
+                                const liveTruck = liveTotalEval.truck_cost;
+                                const liveGrossBeforeDisc = liveChapeMaterials + liveThreshold + liveTruck;
+                                const liveDiscAmt = liveGrossBeforeDisc * ((parseFloat(livePrices.discount_pct) || 0) / 100);
+                                let liveNet = liveGrossBeforeDisc - liveDiscAmt;
+                                let liveChape = liveNet - liveThreshold;
                                 let livePurMath = '';
                                 let liveEpsMath = '';
                                 let livePur = 0;

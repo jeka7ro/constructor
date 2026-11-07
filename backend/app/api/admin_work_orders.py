@@ -527,69 +527,119 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, pa
                 items_calc = [
                     {'qty': float(i.get('qty', 1)), 'price': float(i.get('price', 0))}
                     for i in p_items
+                    if not i.get('isHeader') and not i.get('isSubtotal')
                 ]
 
-        # 2) Fallback: calcul din volumes
-        if not items_calc:
-            import re as _re2
-            import unicodedata as _ud2
-            volumes = wo.volumes or []
-            for vol in volumes:
-                lbl = vol.get('label', '') or ''
-                lbl_n = _re2.sub(r'[\u0300-\u036f]', '', _ud2.normalize('NFD', lbl)).lower()
-                is_chape = (
-                    bool(_re2.search(r'[sșş]ap[aăâ]', lbl, _re2.IGNORECASE)) or
-                    bool(_re2.search(r'chape', lbl, _re2.IGNORECASE)) or
-                    'sapa' in lbl_n
-                )
-                surface = float(vol.get('quantity') or 0)
-                thick   = float(vol.get('thickness') or 0)
-                if surface <= 0:
-                    continue
-                if is_chape:
-                    std_thick  = p.get('standard_thickness') if p.get('standard_thickness') not in (None, '') else 5
-                    extra_thick = max(0.0, thick - float(std_thick))
-                    items_calc.append({'label': f'{lbl} - Bază', 'qty': surface, 'unit': 'm²', 'price': float(p.get('base') if p.get('base') not in (None, '') else 12.5)})
-                    if extra_thick > 0:
-                        extra_thresh = float(p.get('extra_threshold') if p.get('extra_threshold') not in (None, '') else 200)
-                        
-                        default_extra = p.get('extra') if p.get('extra') not in (None, '') else 1.25
-                        if surface > extra_thresh:
-                            extra_price = float(p.get('extra_large') if p.get('extra_large') not in (None, '') else default_extra)
-                        else:
-                            extra_price = float(default_extra)
-                            
-                        items_calc.append({'label': f'{lbl} - Grosime Extra ({extra_thick} cm)', 'qty': surface, 'unit': 'm²', 'price': extra_thick * extra_price})
-                    if vol.get('has_foil'):
-                        items_calc.append({'label': f'{lbl} - Folie', 'qty': surface, 'unit': 'm²', 'price': float(p.get('foil') if p.get('foil') not in (None, '') else 1.2)})
-                    if vol.get('has_mesh'):
-                        items_calc.append({'label': f'{lbl} - Plasă', 'qty': surface, 'unit': 'm²', 'price': float(p.get('mesh') if p.get('mesh') not in (None, '') else 2.5)})
-                    if vol.get('has_fiber') or vol.get('has_duramint'):
-                        default_fiber = 2.5 if surface <= 200 else 2.0
-                        items_calc.append({'label': f'{lbl} - Fibră / Duramint', 'qty': surface, 'unit': 'm²', 'price': float(p.get('fiber') if p.get('fiber') not in (None, '') else default_fiber)})
-                else:
-                    unit_price = float(vol.get('price') if vol.get('price') not in (None, '') else 0)
-                    if unit_price > 0:
-                        items_calc.append({'label': lbl, 'qty': surface, 'unit': 'm²', 'price': unit_price})
-
-        # Surface thresholds
-        if items_calc and p.get('surface_thresholds'):
-            surf_check = float((wo.volumes or [{}])[0].get('quantity') or getattr(wo, 'surface_m2', 0) or 0)
-            for thresh in (p.get('surface_thresholds') or []):
-                min_s = float(thresh.get('min_sqm') or 0)
-                max_s = float(thresh.get('max_sqm') or 999999)
-                if min_s <= surf_check <= max_s:
-                    charge = float(thresh.get('extra_charge') or 0)
-                    if charge > 0:
-                        items_calc.append({'label': f'Taxă suprafață mică ({surf_check} m²)', 'qty': 1, 'unit': 'buc', 'price': charge})
-
-        for i in items_calc:
-            i['total'] = i['qty'] * i['price']
-
-
+        # 2) Fallback: calcul unificat prin pricing_engine.calculate_quote_price
+        net_after_discount = None
         if items_calc:
             net_total = sum(i['qty'] * i['price'] for i in items_calc)
             net_after_discount = net_total - float(p.get('discount') or 0)
+        else:
+            from app.services.pricing_engine import calculate_quote_price
+            import re as _re2
+            import unicodedata as _ud2
+            volumes = wo.volumes or []
+            surfaces_data = []
+            isolations_data = []
+            use_real = bool(wo.is_invoiced and (float(wo.actual_surface_m2 or 0) > 0 or float(wo.actual_thickness_cm or 0) > 0))
+            inv_flags = p.get('invoice') if isinstance(p.get('invoice'), dict) else {}
+
+            for vol in volumes:
+                lbl = str(vol.get('label', '') or '')
+                lbl_n = _re2.sub(r'[\u0300-\u036f]', '', _ud2.normalize('NFD', lbl)).lower()
+                qty = float(vol.get('quantity') or 0)
+                thick = float(vol.get('thickness') or 0)
+                if qty <= 0 and not use_real:
+                    continue
+                if 'pur' in lbl_n or 'mousse' in lbl_n:
+                    isolations_data.append({
+                        'type': 'pur',
+                        'surface': qty,
+                        'thickness': thick or 3.0,
+                        'pur_aspiration': vol.get('pur_aspiration', False),
+                        'pur_niveller': vol.get('pur_niveller', False),
+                        'pur_poncage': vol.get('pur_poncage', False),
+                        'pur_protection': vol.get('pur_protection', False),
+                    })
+                elif 'eps' in lbl_n or 'thermobeton' in lbl_n:
+                    isolations_data.append({
+                        'type': 'eps',
+                        'surface': qty,
+                        'thickness': thick or 5.0,
+                        'volume_m3': float(vol.get('volume_m3') or (qty * (thick or 5.0) / 100.0)),
+                    })
+                else:
+                    surfaces_data.append({
+                        'surface': float(vol.get('actual_quantity') or qty) if use_real and float(vol.get('actual_quantity') or 0) > 0 else qty,
+                        'thickness': float(vol.get('actual_thickness') or thick) if use_real and float(vol.get('actual_thickness') or 0) > 0 else thick,
+                        'has_foil': inv_flags.get('has_foil', vol.get('has_foil', False)) if use_real else vol.get('has_foil', False),
+                        'has_mesh': inv_flags.get('has_mesh', vol.get('has_mesh', False)) if use_real else vol.get('has_mesh', False),
+                        'has_fiber': inv_flags.get('has_fiber', vol.get('has_fiber', False)) if use_real else vol.get('has_fiber', False),
+                        'has_duramint': inv_flags.get('has_duramint', vol.get('has_duramint', False)) if use_real else vol.get('has_duramint', False),
+                        'label': lbl,
+                        'has_per_chape_real': bool(use_real and float(vol.get('actual_quantity') or 0) > 0)
+                    })
+
+            has_any_per_chape_real = any(s.get('has_per_chape_real') for s in surfaces_data)
+            if use_real and not has_any_per_chape_real and float(wo.actual_surface_m2 or 0) > 0:
+                combined_foil = inv_flags.get('has_foil') if 'has_foil' in inv_flags else any(s.get('has_foil') for s in surfaces_data)
+                combined_mesh = inv_flags.get('has_mesh') if 'has_mesh' in inv_flags else any(s.get('has_mesh') for s in surfaces_data)
+                combined_fiber = inv_flags.get('has_fiber') if 'has_fiber' in inv_flags else any(s.get('has_fiber') for s in surfaces_data)
+                combined_duramint = inv_flags.get('has_duramint') if 'has_duramint' in inv_flags else any(s.get('has_duramint') for s in surfaces_data)
+                default_thick = surfaces_data[0]['thickness'] if surfaces_data else 5.0
+                surfaces_data = [{
+                    'surface': float(wo.actual_surface_m2),
+                    'thickness': float(wo.actual_thickness_cm) if float(wo.actual_thickness_cm or 0) > 0 else default_thick,
+                    'has_foil': bool(combined_foil),
+                    'has_mesh': bool(combined_mesh),
+                    'has_fiber': bool(combined_fiber),
+                    'has_duramint': bool(combined_duramint),
+                    'label': 'Chape'
+                }]
+
+            if surfaces_data or isolations_data:
+                merged_pricing = {}
+                if db is not None and 'pricing' in locals() and pricing:
+                    for col in pricing.__table__.columns:
+                        if col.name not in ('id', 'organization_id', 'client_id', 'created_at', 'updated_at'):
+                            merged_pricing[col.name] = getattr(pricing, col.name)
+                field_map = {
+                    'base': 'base_price_sqm',
+                    'base_large': 'base_price_sqm_large',
+                    'base_threshold': 'base_large_threshold_sqm',
+                    'extra': 'extra_thickness_price_per_cm',
+                    'extra_large': 'extra_thickness_price_per_cm_large',
+                    'extra_threshold': 'extra_thickness_large_threshold_sqm',
+                    'standard_thickness': 'standard_thickness_cm',
+                    'foil': 'plastic_foil_price_sqm',
+                    'mesh': 'metal_mesh_price_sqm',
+                    'fiber': 'fiber_price_sqm',
+                    'fiber_large': 'fiber_price_sqm_large',
+                    'fiber_threshold': 'fiber_large_threshold_sqm',
+                }
+                for k, v in p.items():
+                    if v is not None and v != '':
+                        merged_pricing[k] = v
+                for short, full in field_map.items():
+                    if short in p and p[short] not in (None, '') and full not in p:
+                        merged_pricing[full] = p[short]
+
+                _client_type_calc = (
+                    (wo.client.client_type if wo.client else None) or
+                    getattr(wo, 'client_type', None) or 'fizica'
+                )
+                calc_res = calculate_quote_price({
+                    'surfaces': surfaces_data,
+                    'isolations': isolations_data,
+                    'distance_km': float(p.get('distance_km') or 0),
+                    'client_type': 'juridica' if _client_type_calc in ('pj', 'juridica') else 'fizica',
+                    'work_type': getattr(wo, 'work_type', None) or 'new'
+                }, merged_pricing)
+                if calc_res and calc_res.get('total_net', 0) > 0:
+                    net_after_discount = float(calc_res['total_net'])
+
+        if net_after_discount is not None:
 
             # TVA — prioritate identică cu ProformaView.jsx:
             # 1. proforma_data.vatRate  (cel mai specific — setat pe deviz)
@@ -1140,9 +1190,17 @@ def create_work_order(
     # ── Auto-calculate truck_cost based on distance ──
     try:
         from app.models import PricingSetting
-        pricing = db.query(PricingSetting).filter(
-            PricingSetting.organization_id == current_admin.organization_id
-        ).first()
+        pricing = None
+        if wo.client_id:
+            pricing = db.query(PricingSetting).filter(
+                PricingSetting.organization_id == current_admin.organization_id,
+                PricingSetting.client_id == wo.client_id
+            ).first()
+        if not pricing:
+            pricing = db.query(PricingSetting).filter(
+                PricingSetting.organization_id == current_admin.organization_id,
+                PricingSetting.client_id == None
+            ).first()
         if pricing and wo.route_distance_km:
             total_surface = sum(
                 float(v.get('quantity') or 0) for v in (wo.volumes or [])

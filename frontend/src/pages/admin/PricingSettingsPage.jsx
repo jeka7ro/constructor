@@ -12,11 +12,11 @@ export default function PricingSettingsPage() {
     const { t } = useTranslation()
     const showToast = useUIStore(state => state.showToast)
     
-    // Global Settings
+    //Global Settings
     const [globalSettings, setGlobalSettings] = useState({
         base_price_sqm: 12.5, extra_thickness_price_per_cm: 1.25, standard_thickness_cm: 5.0,
         plastic_foil_price_sqm: 1.2, metal_mesh_price_sqm: 2.5, fiber_price_sqm: 2.5,
-        fiber_price_sqm_large: 2.0, fiber_large_threshold_sqm: 200.0, surface_thresholds: []
+        fiber_price_sqm_large: 2.0, fiber_large_threshold_sqm: 250.0, surface_thresholds: []
     })
     const [loadingGlobal, setLoadingGlobal] = useState(true)
     const [savingGlobal, setSavingGlobal] = useState(false)
@@ -32,6 +32,80 @@ export default function PricingSettingsPage() {
     const [clientSettings, setClientSettings] = useState(null)
     const [loadingClientSettings, setLoadingClientSettings] = useState(false)
     const [savingClient, setSavingClient] = useState(false)
+    const [confirmResetClientId, setConfirmResetClientId] = useState(null)
+
+    const toFloatOrDefault = (val, defaultVal = 0) => {
+        if (val === '' || val === null || val === undefined) return defaultVal
+        const parsed = parseFloat(String(val).replace(',', '.'))
+        return isNaN(parsed) ? defaultVal : parsed
+    }
+
+    const sanitizeSettingsPayload = (rawSettings, clientId = null) => {
+        const s = { ...(rawSettings || {}) }
+        const basePrice = toFloatOrDefault(s.base_price_sqm, 0)
+        const extraThickPrice = toFloatOrDefault(s.extra_thickness_price_per_cm, 0)
+        const fiberPrice = toFloatOrDefault(s.fiber_price_sqm, 0)
+
+        return {
+            ...s,
+            client_id: clientId,
+            base_price_sqm: basePrice,
+            base_price_sqm_large: toFloatOrDefault(s.base_price_sqm_large, basePrice),
+            base_large_threshold_sqm: toFloatOrDefault(s.base_large_threshold_sqm, 250.0),
+            extra_thickness_price_per_cm: extraThickPrice,
+            extra_thickness_price_per_cm_large: toFloatOrDefault(s.extra_thickness_price_per_cm_large, extraThickPrice),
+            extra_thickness_large_threshold_sqm: toFloatOrDefault(s.extra_thickness_large_threshold_sqm, 250.0),
+            standard_thickness_cm: toFloatOrDefault(s.standard_thickness_cm, 5.0),
+            plastic_foil_price_sqm: toFloatOrDefault(s.plastic_foil_price_sqm, 0),
+            metal_mesh_price_sqm: toFloatOrDefault(s.metal_mesh_price_sqm, 0),
+            fiber_price_sqm: fiberPrice,
+            fiber_price_sqm_large: toFloatOrDefault(s.fiber_price_sqm_large, fiberPrice),
+            fiber_large_threshold_sqm: toFloatOrDefault(s.fiber_large_threshold_sqm, 250.0),
+            min_invoice_threshold_sqm: toFloatOrDefault(s.min_invoice_threshold_sqm, 40.0),
+            min_invoice_fixed_price_under: toFloatOrDefault(s.min_invoice_fixed_price_under, null),
+            min_invoice_min_price_over: toFloatOrDefault(s.min_invoice_min_price_over, null),
+            vat_legal_entity: toFloatOrDefault(s.vat_legal_entity, 0),
+            vat_physical_new: toFloatOrDefault(s.vat_physical_new, 21),
+            vat_physical_repair: toFloatOrDefault(s.vat_physical_repair, 6),
+            truck_distance_threshold_km: toFloatOrDefault(s.truck_distance_threshold_km, 50),
+            truck_extra_price_flat: toFloatOrDefault(s.truck_extra_price_flat, 0),
+            truck_surface_threshold_free_sqm: toFloatOrDefault(s.truck_surface_threshold_free_sqm, 500),
+            pur_truck_distance_threshold_km: toFloatOrDefault(s.pur_truck_distance_threshold_km, 50),
+            pur_truck_extra_price_flat: toFloatOrDefault(s.pur_truck_extra_price_flat, 0),
+            pur_truck_surface_threshold_free_sqm: toFloatOrDefault(s.pur_truck_surface_threshold_free_sqm, 500),
+            eps_truck_distance_threshold_km: toFloatOrDefault(s.eps_truck_distance_threshold_km, 50),
+            eps_truck_extra_price_flat: toFloatOrDefault(s.eps_truck_extra_price_flat, 0),
+            eps_truck_volume_threshold_free_m3: toFloatOrDefault(s.eps_truck_volume_threshold_free_m3, 40),
+            pur_base_price_3cm: toFloatOrDefault(s.pur_base_price_3cm, 13.95),
+            pur_step_price_up_to_10cm: toFloatOrDefault(s.pur_step_price_up_to_10cm, 1.65),
+            pur_extra_price_above_10cm: toFloatOrDefault(s.pur_extra_price_above_10cm, 2.10),
+            pur_minimum_execution_price: toFloatOrDefault(s.pur_minimum_execution_price, 1375.0),
+            pur_surface_discount_step: toFloatOrDefault(s.pur_surface_discount_step, -0.50),
+            pur_opt_aspiration: toFloatOrDefault(s.pur_opt_aspiration, 2.0),
+            pur_opt_niveller: toFloatOrDefault(s.pur_opt_niveller, 4.25),
+            pur_opt_poncage: toFloatOrDefault(s.pur_opt_poncage, 1.5),
+            pur_opt_protection: toFloatOrDefault(s.pur_opt_protection, 1.5),
+            surface_thresholds: (s.surface_thresholds || []).map(row => ({
+                id: String(row.id || Date.now()),
+                min_sqm: toFloatOrDefault(row.min_sqm, 0),
+                max_sqm: toFloatOrDefault(row.max_sqm, 0),
+                extra_charge: toFloatOrDefault(row.extra_charge, 0)
+            }))
+        }
+    }
+
+    const formatServerError = (error, fallback) => {
+        const detail = error?.response?.data?.detail
+        if (!detail) return fallback
+        if (typeof detail === 'string') return detail
+        if (Array.isArray(detail)) {
+            return detail.map(item => {
+                const field = Array.isArray(item?.loc) ? item.loc[item.loc.length - 1] : ''
+                return field ? `${field}: ${item.msg}` : (item?.msg || JSON.stringify(item))
+            }).join(' | ')
+        }
+        return fallback
+    }
 
     useEffect(() => {
         loadGlobalSettings()
@@ -121,12 +195,13 @@ export default function PricingSettingsPage() {
         }
         try {
             setSavingGlobal(true)
-            await api.put('/admin/pricing-settings', { ...globalSettings, client_id: null })
+            const payload = sanitizeSettingsPayload(globalSettings, null)
+            await api.put('/admin/pricing-settings', payload)
+            setGlobalSettings(payload)
             showToast(t('common.saved_successfully', 'Paramètres globaux enregistrés avec succès!'), 'success')
         } catch (error) {
             console.error("Failed to save global pricing settings:", error)
-            const serverMsg = error.response?.data?.detail;
-            showToast(serverMsg || t('common.error_saving', "Erreur lors de l'enregistrement"), 'error')
+            showToast(formatServerError(error, t('common.error_saving', "Erreur lors de l'enregistrement")), 'error')
         } finally {
             setSavingGlobal(false)
         }
@@ -141,22 +216,28 @@ export default function PricingSettingsPage() {
         }
         try {
             setSavingClient(true)
-            await api.put('/admin/pricing-settings', { ...clientSettings, client_id: editingClientId })
+            const payload = sanitizeSettingsPayload(clientSettings, editingClientId)
+            await api.put('/admin/pricing-settings', payload)
             showToast(t('common.saved_successfully', 'Prix client enregistrés avec succès!'), 'success')
             setModalOpen(false)
             loadClientsData() // Refresh list of custom clients
         } catch (error) {
             console.error("Failed to save client pricing settings:", error)
-            const serverMsg = error.response?.data?.detail;
-            showToast(serverMsg || t('common.error_saving', "Erreur lors de l'enregistrement"), 'error')
+            showToast(formatServerError(error, t('common.error_saving', "Erreur lors de l'enregistrement")), 'error')
         } finally {
             setSavingClient(false)
         }
     }
 
-    const handleResetClient = async (clientId) => {
+    const handleResetClient = (clientId) => {
         if (!clientId) return
-        if (!window.confirm(t('pricing_settings.confirm_reset', 'Êtes-vous sûr de vouloir réinitialiser les prix pour ce client?'))) return
+        setConfirmResetClientId(clientId)
+    }
+
+    const confirmResetClient = async () => {
+        const clientId = confirmResetClientId
+        if (!clientId) return
+        setConfirmResetClientId(null)
         try {
             await api.delete(`/admin/pricing-settings?client_id=${clientId}`)
             showToast(t('common.deleted_successfully', 'Prix réinitialisés avec succès!'), 'success')
@@ -387,6 +468,34 @@ export default function PricingSettingsPage() {
                             >
                                 {savingClient ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 {t('common.save', 'Enregistrer')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            , document.body)}
+
+            {/* Confirm Reset Modal */}
+            {confirmResetClientId && createPortal(
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-800 p-6" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                            {t('pricing_settings.confirm_reset_title', 'Réinitialiser la tarification')}
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                            {t('pricing_settings.confirm_reset', 'Êtes-vous sûr de vouloir réinitialiser les prix pour ce client ? Il utilisera à nouveau les tarifs globaux.')}
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setConfirmResetClientId(null)}
+                                className="px-4 py-2 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                            >
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button
+                                onClick={confirmResetClient}
+                                className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-colors"
+                            >
+                                {t('common.delete', 'Supprimer')}
                             </button>
                         </div>
                     </div>

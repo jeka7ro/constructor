@@ -78,10 +78,12 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
     const fiberLargeThreshold = getVal(ps, 'fiber_large_threshold_sqm', 200);
     
     // ── Determinare date reale / facturare ──
-    const shouldUseInvoiceData = options.useInvoiceData === true || (options.isInvoice === true && (parseFloat(wo.actual_surface_m2 || 0) > 0 || parseFloat(wo.actual_thickness_cm || 0) > 0));
+    const hasPerChapeRealData = Array.isArray(wo.volumes) && wo.volumes.some(v => parseFloat(v?.actual_quantity || 0) > 0);
+    const shouldUseInvoiceData = options.useInvoiceData === true || (options.isInvoice === true && (hasPerChapeRealData || parseFloat(wo.actual_surface_m2 || 0) > 0 || parseFloat(wo.actual_thickness_cm || 0) > 0));
+    const invoiceFlags = (shouldUseInvoiceData && wo.prices?.invoice) ? wo.prices.invoice : null;
 
     // ── Iterez volumes[] ──
-    let rawVolumes = Array.isArray(wo.volumes) && wo.volumes.length > 0 ? wo.volumes : [];
+    let rawVolumes = Array.isArray(wo.volumes) && wo.volumes.length > 0 ? wo.volumes.map(v => ({ ...v })) : [];
     if (rawVolumes.length === 0 && (parseFloat(wo.actual_surface_m2 || 0) > 0 || parseFloat(wo.surface_m2 || 0) > 0)) {
         rawVolumes = [{
             label: 'Chape',
@@ -92,6 +94,51 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
             has_fiber: wo.has_fiber || false,
             has_duramint: wo.has_duramint || false
         }];
+    }
+
+    // Dacă folosim doar un actual_surface_m2 global (fără actual_quantity per șapă) sau options.surface > 0,
+    // consolidăm volumele de tip Chape într-un singur volum real (ca să nu dublăm suprafața reală pe fiecare cameră)
+    const hasGlobalRealSurface = (options.surface !== undefined && parseFloat(options.surface) > 0) || (shouldUseInvoiceData && !hasPerChapeRealData && parseFloat(wo.actual_surface_m2 || 0) > 0);
+    if (hasGlobalRealSurface && rawVolumes.length > 0) {
+        const chapeVols = [];
+        const nonChapeVols = [];
+        rawVolumes.forEach(vol => {
+            const label = (vol.label || '');
+            const labelNorm = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const isPUR = /isolation\s*pur/i.test(labelNorm);
+            const isEPS = /isolation\s*eps/i.test(labelNorm);
+            const isChape = /chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label) || (!isPUR && !isEPS && label);
+            if (isChape) chapeVols.push(vol);
+            else nonChapeVols.push(vol);
+        });
+        if (chapeVols.length > 0) {
+            const firstChape = chapeVols[0];
+            const combinedChape = {
+                ...firstChape,
+                label: 'Chape',
+                has_foil: invoiceFlags?.has_foil !== undefined ? !!invoiceFlags.has_foil : chapeVols.some(v => !!v.has_foil),
+                has_mesh: invoiceFlags?.has_mesh !== undefined ? !!invoiceFlags.has_mesh : chapeVols.some(v => !!v.has_mesh),
+                has_fiber: invoiceFlags?.has_fiber !== undefined ? !!invoiceFlags.has_fiber : chapeVols.some(v => !!v.has_fiber),
+                has_duramint: invoiceFlags?.has_duramint !== undefined ? !!invoiceFlags.has_duramint : chapeVols.some(v => !!v.has_duramint),
+            };
+            rawVolumes = [combinedChape, ...nonChapeVols];
+        }
+    } else if (invoiceFlags) {
+        rawVolumes = rawVolumes.map(vol => {
+            const label = (vol.label || '');
+            const labelNorm = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const isPUR = /isolation\s*pur/i.test(labelNorm);
+            const isEPS = /isolation\s*eps/i.test(labelNorm);
+            const isChape = /chape|[s\u0219\u015f]ap[a\u0103\u00e2]/i.test(label) || (!isPUR && !isEPS && label);
+            if (!isChape) return vol;
+            return {
+                ...vol,
+                has_foil: invoiceFlags.has_foil !== undefined ? !!invoiceFlags.has_foil : vol.has_foil,
+                has_mesh: invoiceFlags.has_mesh !== undefined ? !!invoiceFlags.has_mesh : vol.has_mesh,
+                has_fiber: invoiceFlags.has_fiber !== undefined ? !!invoiceFlags.has_fiber : vol.has_fiber,
+                has_duramint: invoiceFlags.has_duramint !== undefined ? !!invoiceFlags.has_duramint : vol.has_duramint,
+            };
+        });
     }
     const volumes = rawVolumes;
     let totalChapeSurface = 0;
@@ -110,7 +157,9 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
             let s = parseFloat(vol.quantity || 0);
             if (options.surface !== undefined && parseFloat(options.surface) > 0) {
                 s = parseFloat(options.surface);
-            } else if (shouldUseInvoiceData && parseFloat(wo.actual_surface_m2 || 0) > 0) {
+            } else if (shouldUseInvoiceData && parseFloat(vol.actual_quantity || 0) > 0) {
+                s = parseFloat(vol.actual_quantity);
+            } else if (shouldUseInvoiceData && !hasPerChapeRealData && parseFloat(wo.actual_surface_m2 || 0) > 0) {
                 s = parseFloat(wo.actual_surface_m2);
             }
             totalChapeSurface += s;
@@ -144,13 +193,17 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
         if (isChape) {
             if (options.surface !== undefined && parseFloat(options.surface) > 0) {
                 surface = parseFloat(options.surface);
-            } else if (shouldUseInvoiceData && parseFloat(wo.actual_surface_m2 || 0) > 0) {
+            } else if (shouldUseInvoiceData && parseFloat(vol.actual_quantity || 0) > 0) {
+                surface = parseFloat(vol.actual_quantity);
+            } else if (shouldUseInvoiceData && !hasPerChapeRealData && parseFloat(wo.actual_surface_m2 || 0) > 0) {
                 surface = parseFloat(wo.actual_surface_m2);
             }
 
             if (options.thickness !== undefined && parseFloat(options.thickness) > 0) {
                 thickness = parseFloat(options.thickness);
-            } else if (shouldUseInvoiceData && parseFloat(wo.actual_thickness_cm || 0) > 0) {
+            } else if (shouldUseInvoiceData && parseFloat(vol.actual_thickness || 0) > 0) {
+                thickness = parseFloat(vol.actual_thickness);
+            } else if (shouldUseInvoiceData && !hasPerChapeRealData && parseFloat(wo.actual_thickness_cm || 0) > 0) {
                 thickness = parseFloat(wo.actual_thickness_cm);
             }
         }
@@ -332,6 +385,14 @@ export const buildQuoteItems = (wo, pricingSettings, options = {}) => {
                         const minS = parseFloat(thresh.min_sqm || 0);
                         const maxS = parseFloat(thresh.max_sqm || 999999);
                         return totalChapeSurface >= minS && totalChapeSurface <= maxS;
+                    });
+                }
+                if (!match) {
+                    const floored = Math.floor(totalChapeSurface);
+                    match = sorted.find(thresh => {
+                        const minS = parseFloat(thresh.min_sqm || 0);
+                        const maxS = parseFloat(thresh.max_sqm || 999999);
+                        return floored >= minS && floored <= maxS;
                     });
                 }
                 if (match) {

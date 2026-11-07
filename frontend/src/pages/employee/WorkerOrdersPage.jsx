@@ -1276,8 +1276,22 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: TRIMITE (inchidere comanda)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, setActualSurface, actualThickness, setActualThickness, actualSand, setActualSand, actualSandM3, setActualSandM3, actualCement, setActualCement, onReopen, isReanalyzing, onReanalyze }) {
+function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, setActualSurface, actualThickness, setActualThickness, actualChapes, setActualChapes, actualSand, setActualSand, actualSandM3, setActualSandM3, actualCement, setActualCement, onReopen, isReanalyzing, onReanalyze }) {
     const isCompleted = order.status === 'completed'
+    const hasMultipleChapes = Array.isArray(actualChapes) && actualChapes.length > 1
+
+    const updateChapeItem = (idx, field, val) => {
+        const next = actualChapes.map((c, i) => i === idx ? { ...c, [field]: val } : c)
+        setActualChapes(next)
+        const totalSurf = next.reduce((s, c) => s + (parseFloat(c.actualSurface) || 0), 0)
+        setActualSurface(totalSurf > 0 ? String(Math.round(totalSurf * 100) / 100) : '')
+        if (totalSurf > 0) {
+            const weightedThick = next.reduce((s, c) => s + ((parseFloat(c.actualSurface) || 0) * (parseFloat(c.actualThickness) || 0)), 0) / totalSurf
+            if (weightedThick > 0) {
+                setActualThickness(String(Math.round(weightedThick * 10) / 10))
+            }
+        }
+    }
 
     return (
         <div className="pb-28 px-4 pt-4 space-y-4">
@@ -1334,30 +1348,79 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
 
                     <Section label="Mesures des travaux (OBLIGATOIRE)">
                         <div className="space-y-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-slate-700 mb-1">Surface coulée (m²)</label>
-                                <input 
-                                    type="number" 
-                                    min="0"
-                                    step="0.01"
-                                    value={actualSurface}
-                                    onChange={(e) => setActualSurface(e.target.value)}
-                                    placeholder="Ex: 120.5"
-                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-slate-700 mb-1">Épaisseur réelle (cm)</label>
-                                <input 
-                                    type="number" 
-                                    min="0"
-                                    step="0.1"
-                                    value={actualThickness}
-                                    onChange={(e) => setActualThickness(e.target.value)}
-                                    placeholder="Ex: 6.5"
-                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                />
-                            </div>
+                            {hasMultipleChapes ? (
+                                <div className="space-y-3">
+                                    {actualChapes.map((chape, idx) => (
+                                        <div key={chape.volIndex ?? idx} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
+                                                    {chape.label || `Chape ${idx + 1}`}
+                                                </span>
+                                                <span className="text-[11px] font-medium text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                                    Prévu : {chape.plannedSurface || 0} m² · {chape.plannedThickness || 5} cm
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2.5">
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Surface coulée (m²)</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={chape.actualSurface}
+                                                        onChange={(e) => updateChapeItem(idx, 'actualSurface', e.target.value)}
+                                                        placeholder={`Ex: ${chape.plannedSurface || 80}`}
+                                                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Épaisseur réelle (cm)</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.1"
+                                                        value={chape.actualThickness}
+                                                        onChange={(e) => updateChapeItem(idx, 'actualThickness', e.target.value)}
+                                                        placeholder={`Ex: ${chape.plannedThickness || 6}`}
+                                                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="flex items-center justify-between bg-blue-50/70 border border-blue-200 rounded-xl px-3.5 py-2 text-xs font-bold text-blue-900">
+                                        <span>Total Surface Coulée :</span>
+                                        <span>{actualSurface || 0} m²</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-700 mb-1">Surface coulée (m²)</label>
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            step="0.01"
+                                            value={actualSurface}
+                                            onChange={(e) => setActualSurface(e.target.value)}
+                                            placeholder="Ex: 120.5"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-700 mb-1">Épaisseur réelle (cm)</label>
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            step="0.1"
+                                            value={actualThickness}
+                                            onChange={(e) => setActualThickness(e.target.value)}
+                                            placeholder="Ex: 6.5"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                        />
+                                    </div>
+                                </>
+                            )}
                             <div>
                                 <label className="block text-xs font-semibold text-slate-700 mb-1">Quantité de sable (kg)</label>
                                 <input 
@@ -1466,6 +1529,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const [location, setLocation]     = useState(null)
     const [actualSurface, setActualSurface] = useState('')
     const [actualThickness, setActualThickness] = useState('')
+    const [actualChapes, setActualChapes] = useState([])
     const [actualSand, setActualSand] = useState('')
     const [actualSandM3, setActualSandM3] = useState('')
     const [actualCement, setActualCement] = useState('')
@@ -1571,10 +1635,40 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         setActiveTab('info') // Always open info tab first
         setPhotos([])
         setDocuments([])
-        // Pre-populare suprafata: foloseste suprafata reala daca exista, altfel suprafata planificata din deviz
-        const plannedSurface = order.actual_surface_m2 || order.surface_m2 || order.volumes?.find(v => parseFloat(v.quantity) > 0)?.quantity || ''
-        setActualSurface(plannedSurface ? String(plannedSurface) : '')
-        setActualThickness(order.actual_thickness_cm ? String(order.actual_thickness_cm) : '')
+        // Pre-populare suprafata (si lista de chape daca sunt mai multe)
+        const rawVols = Array.isArray(order.volumes) ? order.volumes : []
+        const chapeList = []
+        rawVols.forEach((v, idx) => {
+            const lbl = (v.label || '')
+            const lblNorm = lbl.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            const isPUR = /isolation\s*pur/i.test(lblNorm)
+            const isEPS = /isolation\s*eps/i.test(lblNorm)
+            const isChape = /chape|[sșş]ap[aăâ]/i.test(lbl) || (!isPUR && !isEPS && lbl)
+            if (isChape && (parseFloat(v.quantity) > 0 || parseFloat(v.actual_quantity) > 0)) {
+                chapeList.push({
+                    volIndex: idx,
+                    label: lbl || `Chape ${chapeList.length + 1}`,
+                    plannedSurface: parseFloat(v.quantity) || 0,
+                    plannedThickness: parseFloat(v.thickness) || 5,
+                    actualSurface: v.actual_quantity ? String(v.actual_quantity) : (v.quantity ? String(v.quantity) : ''),
+                    actualThickness: v.actual_thickness ? String(v.actual_thickness) : (v.thickness ? String(v.thickness) : '')
+                })
+            }
+        })
+        setActualChapes(chapeList)
+
+        if (chapeList.length > 1) {
+            const sumSurf = chapeList.reduce((s, c) => s + (parseFloat(c.actualSurface) || 0), 0)
+            setActualSurface(sumSurf > 0 ? String(Math.round(sumSurf * 100) / 100) : '')
+            const weightedThick = sumSurf > 0
+                ? chapeList.reduce((s, c) => s + ((parseFloat(c.actualSurface) || 0) * (parseFloat(c.actualThickness) || 0)), 0) / sumSurf
+                : 0
+            setActualThickness(weightedThick > 0 ? String(Math.round(weightedThick * 10) / 10) : (order.actual_thickness_cm ? String(order.actual_thickness_cm) : ''))
+        } else {
+            const plannedSurface = order.actual_surface_m2 || order.surface_m2 || order.volumes?.find(v => parseFloat(v.quantity) > 0)?.quantity || ''
+            setActualSurface(plannedSurface ? String(plannedSurface) : '')
+            setActualThickness(order.actual_thickness_cm ? String(order.actual_thickness_cm) : '')
+        }
         setActualSand(order.actual_sand_quantity ? String(order.actual_sand_quantity) : (order.ai_sand_kg ? String(order.ai_sand_kg) : ''))
         setActualSandM3(order.actual_sand_m3 ? String(order.actual_sand_m3) : '')
         setActualCement(order.ai_cement_kg ? String(order.ai_cement_kg) : '')
@@ -1689,6 +1783,19 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     }
 
     const handleClose = async () => {
+        if (actualChapes.length > 1) {
+            for (let i = 0; i < actualChapes.length; i++) {
+                const c = actualChapes[i]
+                if (!c.actualSurface || parseFloat(c.actualSurface) <= 0) {
+                    showToast(`⚠️ La superficie réelle (m²) pour ${c.label || `Chape ${i + 1}`} est obligatoire!`, 'error')
+                    return
+                }
+                if (!c.actualThickness || parseFloat(c.actualThickness) <= 0) {
+                    showToast(`⚠️ L'épaisseur réelle (cm) pour ${c.label || `Chape ${i + 1}`} est obligatoire!`, 'error')
+                    return
+                }
+            }
+        }
         // Câmpuri obligatorii — nu se poate finaliza fără suprafață și grosime reale
         if (!actualSurface || parseFloat(actualSurface) <= 0) {
             showToast('⚠️ La superficie réelle (m²) est obligatoire pour finaliser!', 'error')
@@ -1716,13 +1823,32 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const executeClose = async () => {
         setClosing(true)
         try {
+            let updatedVolumes = [...(selected.volumes || [])]
+            if (actualChapes.length > 1) {
+                actualChapes.forEach(c => {
+                    if (updatedVolumes[c.volIndex]) {
+                        updatedVolumes[c.volIndex] = {
+                            ...updatedVolumes[c.volIndex],
+                            actual_quantity: parseFloat(c.actualSurface) || 0,
+                            actual_thickness: parseFloat(c.actualThickness) || 0
+                        }
+                    }
+                })
+            } else if (actualChapes.length === 1 && updatedVolumes[actualChapes[0].volIndex]) {
+                updatedVolumes[actualChapes[0].volIndex] = {
+                    ...updatedVolumes[actualChapes[0].volIndex],
+                    actual_quantity: parseFloat(actualSurface) || 0,
+                    actual_thickness: parseFloat(actualThickness) || 0
+                }
+            }
+
             const res = await api.post(`/worker/orders/${selected.id}/close`, {
                 materials_consumed: [
                     ...(selected.materials_consumed || []),
                     ...(actualSandM3 ? [{ name: 'Sable (m³)', quantity: parseFloat(actualSandM3), unit: 'm³' }] : []),
                     ...(actualCement ? [{ name: 'Ciment', quantity: parseFloat(actualCement), unit: 'kg' }] : [])
                 ],
-                volumes: selected.volumes || [],
+                volumes: updatedVolumes,
                 actual_surface_m2: parseFloat(actualSurface) || null,
                 actual_thickness_cm: parseFloat(actualThickness) || null,
                 actual_sand_quantity: parseFloat(actualSand) || null,
@@ -2012,6 +2138,8 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         setActualSurface={setActualSurface}
                         actualThickness={actualThickness}
                         setActualThickness={setActualThickness}
+                        actualChapes={actualChapes}
+                        setActualChapes={setActualChapes}
                         actualSand={actualSand}
                         setActualSand={setActualSand}
                         actualSandM3={actualSandM3}

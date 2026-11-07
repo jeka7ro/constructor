@@ -126,6 +126,16 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
                     if min_s <= total_surface <= max_s:
                         matched_thresh = thresh
                         break
+            if not matched_thresh:
+                # Handle decimal surfaces falling between integer gaps (e.g. 40.5 between 40 and 41)
+                import math
+                floored_surf = math.floor(total_surface)
+                for thresh in sorted_thresh:
+                    min_s = float(thresh.get("min_sqm", 0) or 0)
+                    max_s = float(thresh.get("max_sqm", 999999) or 999999)
+                    if min_s <= floored_surf <= max_s:
+                        matched_thresh = thresh
+                        break
             if matched_thresh:
                 charge = float(matched_thresh.get("extra_charge", 0) or 0)
                 hidden_extra = charge
@@ -192,19 +202,19 @@ def calculate_quote_price(payload: dict, pricing: dict) -> dict:
                 items.append({'label': f'{pur_lbl} ({iso_thick} cm)', 'quantity': iso_surface, 'unit': 'm²', 'price': pur_base, 'total': pur_base * iso_surface})
             
             # Options PUR
-            if iso.get('pur_aspiration') or payload.get('isolation_pur_aspiration'):
+            if iso.get('pur_aspiration') or iso.get('isolation_pur_aspiration') or payload.get('isolation_pur_aspiration'):
                 val = float(pricing.get('pur_opt_aspiration', 2.0))
                 iso_pur_opt_total += val * iso_surface
                 items.append({'label': f'Aspiration ({pur_lbl})' if pur_count > 1 else 'Aspiration PUR', 'quantity': iso_surface, 'unit': 'm²', 'price': val, 'total': val * iso_surface})
-            if iso.get('pur_niveller') or payload.get('isolation_pur_niveller'):
+            if iso.get('pur_niveller') or iso.get('isolation_pur_niveller') or payload.get('isolation_pur_niveller'):
                 val = float(pricing.get('pur_opt_niveller', 4.25))
                 iso_pur_opt_total += val * iso_surface
                 items.append({'label': f'Nivellement ({pur_lbl})' if pur_count > 1 else 'Nivellement PUR', 'quantity': iso_surface, 'unit': 'm²', 'price': val, 'total': val * iso_surface})
-            if iso.get('pur_poncage') or payload.get('isolation_pur_poncage'):
+            if iso.get('pur_poncage') or iso.get('isolation_pur_poncage') or payload.get('isolation_pur_poncage'):
                 val = float(pricing.get('pur_opt_poncage', 1.5))
                 iso_pur_opt_total += val * iso_surface
                 items.append({'label': f'Ponçage ({pur_lbl})' if pur_count > 1 else 'Ponçage PUR', 'quantity': iso_surface, 'unit': 'm²', 'price': val, 'total': val * iso_surface})
-            if iso.get('pur_protection') or payload.get('isolation_pur_protection'):
+            if iso.get('pur_protection') or iso.get('isolation_pur_protection') or payload.get('isolation_pur_protection'):
                 val = float(pricing.get('pur_opt_protection', 1.5))
                 iso_pur_opt_total += val * iso_surface
                 items.append({'label': f'Protection ({pur_lbl})' if pur_count > 1 else 'Protection PUR', 'quantity': iso_surface, 'unit': 'm²', 'price': val, 'total': val * iso_surface})

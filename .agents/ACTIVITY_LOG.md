@@ -3,6 +3,28 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-11-07 (Audit și Unificare Calcul Prețuri, Prag 250 m², Măsurători Reale per Șapă & Fix Salvare Client Preferențial în Tarife)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Audit silențios prezentat, reguli confirmate cu clientul Davide Chape și aprobat explicit de Utilizator.
+
+### Probleme Identificate & Rezolvate:
+1. **Fluxul 1 — Devis Online (`devis_online.py` & `pricing_engine.py`):**
+   - S-a corectat condiția `if pricing and payload.surface > 0:` din `devis_online.py` (care sărea calculul când clientul trimitea lista `payload.surfaces`), calculând acum `total_chape_surface = sum(s.surface for s in payload.surfaces)`. Astfel, distanța Google Maps (`distance_km`), transportul (`truck_cost`) și prețul estimat (`estimated_price`) se calculează și se salvează corect la fiecare comandă nouă, inclusiv în notificarea WhatsApp.
+   - S-a adăugat verificarea pragurilor `> 250 m²` (`base_large`, `extra_large`, `fiber_large`) pe `total_chape_surface` (cumulată pe tot șantierul) și suportul pentru opțiunile PUR (`isolation_pur_*`) și suprafețele cu zecimale între pragurile întregi (`40–41`, `60–61`, `119–120`).
+   - S-a actualizat pragul de suprafață mare în baza de date (`PricingSetting` global Davide Chape) de la `200 m²` la `250 m²`, conform confirmării clientului.
+2. **Fluxul 2 — Planning & PDF Backend (`admin_work_orders.py` & `pdf_generator.py`):**
+   - S-a adăugat filtrul `PricingSetting.client_id == None` (cu verificare prealabilă pentru `wo.client_id`) în `create_work_order` și `_compute_pdf_data`, astfel încât clienții normali să primească întotdeauna tariful din Etalon (`250 €` transport >125 km) și să nu mai preia din greșeală rândul `BV ISOFLEX` (`0 €` transport).
+   - Funcția `_serialize` din `admin_work_orders.py` folosește acum direct `calculate_quote_price` din `pricing_engine.py`, incluzând transportul, izolațiile PUR/EPS și plafonul minim Isoflex (`850 €` / `1050 €`).
+3. **Fluxul 3 — Șeful de Echipă / Date Reale per Șapă (`WorkerOrdersPage.jsx`, `pricingEngine.js`, `WorkOrderDetail.jsx`, `ProformaView.jsx`):**
+   - Când o comandă conține mai multe șape (`Chape 1`, `Chape 2`, etc.), șeful de echipă poate introduce acum în `WorkerOrdersPage.jsx` suprafața reală (`actual_quantity` m²) și grosimea reală (`actual_thickness` cm) separat pentru fiecare șapă în parte, calculând automat suma totală (`actual_surface_m2`).
+   - În `pricingEngine.js` și `WorkOrderDetail.jsx` (`Calcul Réel`), fiecare șapă este calculată cu propria ei suprafață și grosime reală, în timp ce taxa de Forfait și pragul de 250 m² se aplică pe suprafața totală cumulată a șantierului (Varianta A confirmată de client).
+   - În `ProformaView.jsx`, când se vizualizează `FACTURE` și există date reale de la șeful de echipă, factura recalculează pe datele reale chiar dacă devizul inițial avusese `manual_override`.
+4. **Fix Eroare `float_parsing` la Salvarea Clienților Preferențiali în Pagina de Tarife (`admin_pricing.py`, `PricingSettingsPage.jsx`, `PricingSettingsForm.jsx`):**
+   - **Cauza tehnică:** Când utilizatorul ștergea sau lăsa gol un câmp numeric în formularul de tarife (ex. `fiber_price_sqm_large` sau câmpurile de limitare facturare), inputul React trimitea un șir gol `""` în payload-ul JSON către `PUT /api/admin/pricing-settings`, pe care Pydantic v2 îl respingea cu eroarea 422 `float_parsing`.
+   - **Soluția aplicată:** S-a adăugat validare și curățare automată (`@model_validator(mode="before")` în `admin_pricing.py` și `sanitizeSettingsPayload` în `PricingSettingsPage.jsx`): dacă un tarif pentru suprafață mare (`base_price_sqm_large`, `extra_thickness_price_per_cm_large`, `fiber_price_sqm_large`) este lăsat gol (`""`), acesta preia automat tariful de bază aferent suprafeței mici; câmpurile opționale de plafon minim (`min_invoice_fixed_price_under`, `min_invoice_min_price_over`) devin `None`; s-a înlocuit `window.confirm` cu modal React (`createPortal`, `z-[99999]`) și s-au tradus etichetele în franceză conform Regulilor 5 și 6.
+
+---
+
 ## 2026-11-06 (Actualizare Grilă Prețuri Stații de Nisip și Afișare pe Culori în Logistică & Hărți Șoferi)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Prezentat tabelul complet de stații/prețuri și aprobat explicit de Utilizator ("da hai laocl sa vad eu ce modifici").

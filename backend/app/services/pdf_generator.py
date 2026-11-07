@@ -10,7 +10,21 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
     from app.database import SessionLocal
     from app.models import PricingSetting
     db = SessionLocal()
-    pricing_settings = db.query(PricingSetting).first()
+    pricing_settings = None
+    client_id = getattr(work_order, 'client_id', None) or (getattr(client, 'id', None) if client else None)
+    org_id = getattr(work_order, 'organization_id', None)
+    if client_id and org_id:
+        pricing_settings = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == org_id,
+            PricingSetting.client_id == client_id
+        ).first()
+    if not pricing_settings and org_id:
+        pricing_settings = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == org_id,
+            PricingSetting.client_id == None
+        ).first()
+    if not pricing_settings:
+        pricing_settings = db.query(PricingSetting).filter(PricingSetting.client_id == None).first()
     db.close()
     
     def safe_str(val):
@@ -95,6 +109,7 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
         chape_items = []
         isolation_items = []
         other_items = []
+        total_chape_surf = sum(float(v.get('quantity', 0) or 0) for v in chape_vols)
 
         for vol in volumes:
             surface = float(vol.get('quantity', 0) or 0)
@@ -108,12 +123,14 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
                     extra_thick = max(0, thick - std_thick)
                     
                     chape_num_suffix = f" {c_idx}" if has_mult_chape else ""
-                    chape_items.append({"desc": f"{_t['chape_pose']}{chape_num_suffix} {min(thick, std_thick)} cm", "qty": surface, "price": float(prices.get('base', 12.5))})
+                    base_rate = float(prices.get('base', 12.5))
+                    if prices.get('base_large') is not None and prices.get('base_threshold') is not None:
+                        base_rate = float(prices['base_large']) if total_chape_surf > float(prices['base_threshold']) else float(prices.get('base_price_sqm', prices.get('base', 12.5)))
+                    chape_items.append({"desc": f"{_t['chape_pose']}{chape_num_suffix} {min(thick, std_thick)} cm", "qty": surface, "price": base_rate})
                     if extra_thick > 0:
-                        # Match computeChapeTotal: use extra_large when surface > extra_threshold
                         extra_rate = float(prices.get('extra', prices.get('extra_thickness_price_per_cm', 1.25)))
                         if prices.get('extra_large') is not None and prices.get('extra_threshold') is not None:
-                            extra_rate = float(prices['extra_large']) if surface > float(prices['extra_threshold']) else float(prices.get('extra', 1.25))
+                            extra_rate = float(prices['extra_large']) if total_chape_surf > float(prices['extra_threshold']) else float(prices.get('extra_thickness_price_per_cm', prices.get('extra', 1.25)))
                         chape_items.append({"desc": f"{_t['extra_thick']}{chape_num_suffix} ({extra_thick} cm)", "qty": surface, "price": extra_thick * extra_rate})
                     if vol.get('has_foil'):
                         foil_desc = f"{_t['foil']} (Chape {c_idx})" if has_mult_chape else _t['foil']
@@ -123,7 +140,10 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
                         chape_items.append({"desc": mesh_desc, "qty": surface, "price": float(prices.get('mesh', 2.5))})
                     if vol.get('has_fiber') or vol.get('has_duramint'):
                         fiber_desc = f"{_t['fiber']} (Chape {c_idx})" if has_mult_chape else _t['fiber']
-                        chape_items.append({"desc": fiber_desc, "qty": surface, "price": float(prices.get('fiber', 2.5 if surface <= 200 else 2.0))})
+                        fiber_rate = float(prices.get('fiber', 2.5 if total_chape_surf <= 200 else 2.0))
+                        if prices.get('fiber_large') is not None and prices.get('fiber_threshold') is not None:
+                            fiber_rate = float(prices['fiber_large']) if total_chape_surf > float(prices['fiber_threshold']) else float(prices.get('fiber_price_sqm', prices.get('fiber', 2.5)))
+                        chape_items.append({"desc": fiber_desc, "qty": surface, "price": fiber_rate})
                         
                 elif 'isolation' in lbl and 'pur' in lbl:
                     p_idx += 1

@@ -14,7 +14,7 @@ function PriceRow({ label, sublabel, value, onChange, unit = '€/m²', isMandat
                 {isMandatory !== undefined && onMandatoryChange !== null && (
                     <label className="flex items-center gap-1.5 cursor-pointer">
                         <input type="checkbox" checked={isMandatory} onChange={e => onMandatoryChange(e.target.checked)} className="rounded border-slate-300 text-blue-500 focus:ring-blue-500 bg-slate-50 dark:bg-slate-800 dark:border-slate-700" />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("pricing_settings.mandatory", "Obligatoriu")}</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("pricing_settings.mandatory", "Obligatoire")}</span>
                     </label>
                 )}
                 <div className="flex items-center gap-1">
@@ -150,26 +150,26 @@ export default function PricingSettingsForm({
 
                         {isCustomClient && (
                             <div className="mt-6 mb-4">
-                                <SectionHeader label="Limitate Facturare (Clienți Preferențiali)" />
+                                <SectionHeader label={t('pricing_settings.min_invoice_section', 'Limitation de Facturation (Clients Préférentiels)')} />
                                 <div className="text-[11px] text-slate-500 mb-2 leading-relaxed">
-                                    Dacă suprafața (m²) este mai mică sau egală cu pragul setat, factura se forțează la valoarea din primul câmp. Dacă suprafața este mai mare, factura va avea un minim garantat conform celui de-al doilea câmp.
+                                    {t('pricing_settings.min_invoice_desc', 'Si la surface (m²) est inférieure ou égale au seuil défini, la facture est fixée au montant du premier champ. Si la surface est supérieure, la facture aura un minimum garanti selon le deuxième champ.')}
                                 </div>
                                 <PriceRow 
-                                    label="Prag Suprafață Șantier Mic" 
+                                    label={t('pricing_settings.min_invoice_threshold', 'Seuil Surface Petit Chantier')} 
                                     sublabel="ex: 40" 
                                     value={settings.min_invoice_threshold_sqm} 
                                     onChange={v => onSettingChange('min_invoice_threshold_sqm', v)} 
                                     unit="m²" 
                                 />
                                 <PriceRow 
-                                    label={`Preț fix dacă ≤ ${settings.min_invoice_threshold_sqm || 40} m²`} 
+                                    label={t('pricing_settings.min_invoice_under', `Prix fixe si ≤ ${settings.min_invoice_threshold_sqm || 40} m²`)} 
                                     sublabel="ex: 850" 
                                     value={settings.min_invoice_fixed_price_under} 
                                     onChange={v => onSettingChange('min_invoice_fixed_price_under', v)} 
                                     unit="€" 
                                 />
                                 <PriceRow 
-                                    label={`Preț minim dacă > ${settings.min_invoice_threshold_sqm || 40} m²`} 
+                                    label={t('pricing_settings.min_invoice_over', `Prix minimum si > ${settings.min_invoice_threshold_sqm || 40} m²`)} 
                                     sublabel="ex: 1050" 
                                     value={settings.min_invoice_min_price_over} 
                                     onChange={v => onSettingChange('min_invoice_min_price_over', v)} 
