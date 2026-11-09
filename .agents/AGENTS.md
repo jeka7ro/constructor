@@ -39,9 +39,10 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 - Frontend-ul rulează întotdeauna pe portul **5678**.
 - Nu rula comenzi sau teste vizuale presupunând portul default 5173 sau alt port.
 
-## 8. Git Commit & Push
+## 8. Git Commit & Push + Audit Gatekeeper Obligatoriu
 - **ESTE STRICT INTERZIS** să folosești comenzi precum `git commit` și `git push` FĂRĂ permisiunea clară și explicită a utilizatorului.
-- După ce scrii și testezi codul, raportează modificările și AȘTEAPTĂ până când utilizatorul spune "dă push" sau "ok, commit".
+- **OBLIGATORIU ÎNAINTE DE A CERE PUSH**: Agentul TREBUIE să ruleze suita de verificare `.agents/skills/audit-gatekeeper/scripts/run_prepush_audit.py` (conform `.agents/skills/audit-gatekeeper/SKILL.md`) și să se asigure că verdictul este **🟢 VERDE — 100% SIGUR PENTRU PUSH**.
+- După ce scrii codul și prezinți raportul de audit verde, AȘTEAPTĂ până când utilizatorul spune "dă push" sau "ok, commit".
 
 ## 9. PROTECȚIA BAZEI DE DATE — REGULĂ CRITICĂ ABSOLUTĂ
 - **ESTE COMPLET INTERZISĂ** orice modificare a înregistrărilor din baza de date prin scripturi, terminal sau alte metode ascunse. Asta include: mutarea înregistrărilor de la o echipă la alta, modificarea câmpurilor, ștergerea (DELETE/DROP/TRUNCATE), adăugarea sau trunchierea datelor.
