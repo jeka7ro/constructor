@@ -1,5 +1,19 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-21 14:44 — Street View 360° cu Urmărire Live a Deplasării și Orientare Automată în Direcția Șoferului (Heading GPS)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Telemetrie Flespi în timp real cu direcția GPS (`position.direction` + azimut dinamic `0°..360°`) în `flespi_service.py` și `clockin.py`:**
+    - Adăugat `get_flespi_live_telemetry` cu cache in-memory de 6 secunde în `/admin/vehicles/live` pentru ca poziția, viteza și unghiul de deplasare (`heading`: `0..360°`) ale camioanelor în mișcare să se actualizeze fluent la câteva secunde (fără a aștepta cronul de 60s și fără încărcare suplimentară pe DB).
+    - Calculat automat azimutul (`compute_bearing_deg`) dintre coordonatele GPS consecutive ca fallback atunci când `position.direction` este 0 sau indisponibil.
+  - **Urmărire Live a Mișcării și Direcției Șoferului în Street View 360° (`MiniLiveTrackingMap.jsx` & `LiveTracking.jsx`):**
+    - Când panoul Street View 360° este deschis (sau un șofer este selectat), polling-ul trece automat la **5 secunde** (doar cât timp tab-ul este vizibil).
+    - Panorama Street View (`cbp=11,${svHeading},0,0,0`) se orientează acum exact **înainte pe drum, în direcția de mers a șoferului (`svHeading°`)**, nu blocată spre Nord (`0°`).
+    - Adăugat `key` dinamic pe `<iframe>` (`sv-${id}-${lat.toFixed(4)}-${lng.toFixed(4)}-${headingStep}`) astfel încât la fiecare deplasare a camionului pe șosea (~10m) sau schimbare de direcție, Street View avansează automat împreună cu șoferul și nu rămâne pe același loc.
+    - Adăugat indicator vectorial stilizat de direcție în bara Street View (`<Navigation />` rotit după unghiul GPS + `NE · 65°` + localitatea curentă).
+- **Fișiere:** `backend/app/services/flespi_service.py`, `backend/app/api/clockin.py`, `frontend/src/components/MiniLiveTrackingMap.jsx`, `frontend/src/pages/admin/LiveTracking.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5)
+
 ### 2026-11-21 14:29 — Butoane Stilizate 3D (Satelit Hybrid) & Street View 360° în Popup-ul Șoferilor + Optimizare Trafic
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

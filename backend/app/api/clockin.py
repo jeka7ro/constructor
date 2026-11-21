@@ -938,9 +938,63 @@ def push_worker_location(
 
 
 _flespi_cache = {"ts": 0, "distances": {}}
+_flespi_live_telemetry_cache = {"ts": 0, "by_ident": {}}
+
+
+def get_flespi_live_telemetry(token):
+    """
+    Lightweight 6-second cached Flespi telemetry snapshot so active moving trucks
+    update their position, speed, and compass direction (position.direction) smoothly
+    without hammering Flespi or waiting 60s for the background DB cron.
+    """
+    import time, httpx
+    from app.services.flespi_service import update_vehicle_heading, LIVE_VEHICLE_HEADINGS
+    global _flespi_live_telemetry_cache
+    now_ts = time.time()
+    if now_ts - _flespi_live_telemetry_cache["ts"] < 6.0:
+        return _flespi_live_telemetry_cache["by_ident"]
+
+    tel_url = "https://flespi.io/gw/devices/all/telemetry/position.latitude,position.longitude,position.speed,position.direction,timestamp,ident"
+    headers = {"Authorization": f"FlespiToken {token}", "Accept": "application/json"}
+    try:
+        resp = httpx.get(tel_url, headers=headers, timeout=4.5)
+        if resp.status_code == 200:
+            by_ident = {}
+            for item in resp.json().get("result", []):
+                t_obj = item.get("telemetry", {})
+                ident_val = str(t_obj.get("ident", {}).get("value", ""))
+                if not ident_val:
+                    continue
+                t_lat = t_obj.get("position.latitude", {}).get("value")
+                t_lon = t_obj.get("position.longitude", {}).get("value")
+                t_speed = t_obj.get("position.speed", {}).get("value")
+                t_dir = t_obj.get("position.direction", {}).get("value")
+                t_ts = (
+                    t_obj.get("position.latitude", {}).get("ts")
+                    or t_obj.get("timestamp", {}).get("value")
+                    or t_obj.get("ident", {}).get("ts")
+                )
+                heading = update_vehicle_heading(ident_val, t_lat, t_lon, t_dir)
+                by_ident[ident_val] = {
+                    "lat": t_lat,
+                    "lng": t_lon,
+                    "speed": t_speed if t_speed is not None else 0.0,
+                    "heading": heading if heading is not None else LIVE_VEHICLE_HEADINGS.get(ident_val, 0.0),
+                    "ts": t_ts,
+                }
+            _flespi_live_telemetry_cache = {"ts": now_ts, "by_ident": by_ident}
+        else:
+            _flespi_live_telemetry_cache["ts"] = now_ts
+    except Exception:
+        _flespi_live_telemetry_cache["ts"] = now_ts
+
+    return _flespi_live_telemetry_cache.get("by_ident", {})
+
+
 def get_flespi_distances(token):
     import time, httpx, json, math
     from datetime import datetime, timezone
+    from app.services.flespi_service import update_vehicle_heading
     global _flespi_cache
     if time.time() - _flespi_cache["ts"] < 300: # 5 minutes cache to prevent 429 Too Many Requests
         return _flespi_cache["distances"]
@@ -951,7 +1005,7 @@ def get_flespi_distances(token):
     ts_to = int(day.timestamp())
     url = "https://flespi.io/gw/devices/all/messages"
     headers = {"Authorization": f"FlespiToken {token}", "Accept": "application/json"}
-    params = {"data": json.dumps({"from": ts_from, "to": ts_to, "fields": "ident,position.latitude,position.longitude"})}
+    params = {"data": json.dumps({"from": ts_from, "to": ts_to, "fields": "ident,position.latitude,position.longitude,position.direction"})}
     
     try:
         resp = httpx.get(url, headers=headers, params=params, timeout=10.0)
@@ -963,7 +1017,9 @@ def get_flespi_distances(token):
                 ident = str(m.get("ident"))
                 lat = m.get("position.latitude")
                 lng = m.get("position.longitude")
+                direction = m.get("position.direction")
                 if not lat or not lng: continue
+                update_vehicle_heading(ident, lat, lng, direction)
                 if ident not in distances:
                     distances[ident] = 0.0
                     last_pos[ident] = (lng, lat)
@@ -1100,12 +1156,16 @@ def get_live_vehicles(
             ORDER BY COALESCE(start_time, '07:00') ASC
         """), {"td_prefix": f"{today_str}%"}).fetchall()
         
-        # Calculate Flespi Distances
+        # Calculate Flespi Distances & Live Telemetry (with hardware GPS direction/course)
         flespi_distances = {}
+        flespi_live_tel = {}
         import os
+        from datetime import timezone
+        from app.services.flespi_service import LIVE_VEHICLE_HEADINGS, update_vehicle_heading, compute_bearing_deg
         FLESPI_TOKEN = os.getenv("FLESPI_TOKEN")
         if FLESPI_TOKEN:
             flespi_distances = get_flespi_distances(FLESPI_TOKEN)
+            flespi_live_tel = get_flespi_live_telemetry(FLESPI_TOKEN)
             
         def dist_km(lat1, lng1, lat2, lng2):
             if lat1 is None or lng1 is None or lat2 is None or lng2 is None:
@@ -1119,23 +1179,41 @@ def get_live_vehicles(
             return dist_km(lat1, lng1, lat2, lng2) < threshold_km
 
         for v in vehicle_rows:
-            dist = flespi_distances.get(str(v.imei), 0.0) if v.imei else 0.0
+            imei_key = str(v.imei) if v.imei else ""
+            dist = flespi_distances.get(imei_key, 0.0) if imei_key else 0.0
+            live_t = flespi_live_tel.get(imei_key, {}) if imei_key else {}
+
+            v_lat = live_t.get("lat") if live_t.get("lat") is not None else v.last_lat
+            v_lng = live_t.get("lng") if live_t.get("lng") is not None else v.last_lng
+            v_speed = live_t.get("speed") if live_t.get("speed") is not None else v.last_speed
+            v_heading = live_t.get("heading")
+            if v_heading is None:
+                v_heading = update_vehicle_heading(imei_key or str(v.id), v_lat, v_lng)
+
+            v_last_seen_dt = v.last_seen_at
+            if live_t.get("ts"):
+                try:
+                    t_dt = datetime.fromtimestamp(float(live_t["ts"]), tz=timezone.utc).replace(tzinfo=None)
+                    if not v_last_seen_dt or t_dt > v_last_seen_dt:
+                        v_last_seen_dt = t_dt
+                except Exception:
+                    pass
             
             loc_text = ""
             at_wo_by_gps = None
             # Check if physically near any of today's work orders (< 600m)
             best_wo_dist = 999999.0
             for w in wos:
-                d_w = dist_km(v.last_lat, v.last_lng, w.site_latitude, w.site_longitude)
+                d_w = dist_km(v_lat, v_lng, w.site_latitude, w.site_longitude)
                 if d_w < best_wo_dist:
                     best_wo_dist = d_w
                     if d_w < 0.6:
                         at_wo_by_gps = w
 
-            if v.last_speed is not None and v.last_speed < 5:
+            if v_speed is not None and v_speed < 5:
                 # Check if at base
                 for b in bases:
-                    if is_near(v.last_lat, v.last_lng, b.latitude, b.longitude, 0.35):
+                    if is_near(v_lat, v_lng, b.latitude, b.longitude, 0.35):
                         loc_text = f"La bază: {b.name}"
                         break
                 # Check if at work order
@@ -1160,9 +1238,9 @@ def get_live_vehicles(
             if team_today_wos:
                 nearest_team_wo = min(
                     team_today_wos,
-                    key=lambda w: dist_km(v.last_lat, v.last_lng, w.site_latitude, w.site_longitude)
+                    key=lambda w: dist_km(v_lat, v_lng, w.site_latitude, w.site_longitude)
                 )
-                d_nearest_team = dist_km(v.last_lat, v.last_lng, nearest_team_wo.site_latitude, nearest_team_wo.site_longitude)
+                d_nearest_team = dist_km(v_lat, v_lng, nearest_team_wo.site_latitude, nearest_team_wo.site_longitude)
                 if d_nearest_team < 1.2:
                     chosen_wo = nearest_team_wo
                 else:
@@ -1184,7 +1262,12 @@ def get_live_vehicles(
                     surf = sum(float(x.get("quantity") or 0) for x in vols if isinstance(x, dict))
                 except Exception:
                     surf = 0
-                wo_d_km = dist_km(v.last_lat, v.last_lng, chosen_wo.site_latitude, chosen_wo.site_longitude)
+                wo_d_km = dist_km(v_lat, v_lng, chosen_wo.site_latitude, chosen_wo.site_longitude)
+                if (not v_heading or v_heading == 0.0) and chosen_wo.site_latitude and chosen_wo.site_longitude and wo_d_km > 0.05:
+                    try:
+                        v_heading = compute_bearing_deg(v_lat, v_lng, chosen_wo.site_latitude, chosen_wo.site_longitude)
+                    except Exception:
+                        pass
                 current_wo_payload = {
                     "id": str(chosen_wo.id),
                     "client_name": chosen_wo.client_name if chosen_wo.client_name and chosen_wo.client_name != 'None' else chosen_wo.title,
@@ -1203,10 +1286,11 @@ def get_live_vehicles(
                 "name":       display_name,
                 "plate_number": v.plate_number if getattr(v, "plate_number", None) and v.plate_number != "NN" else None,
                 "vehicle_type": getattr(v, 'type', "Camion"),
-                "lat":        v.last_lat,
-                "lng":        v.last_lng,
-                "last_seen":  str(v.last_seen_at).replace(' ', 'T') + 'Z' if v.last_seen_at else None,
-                "speed":      v.last_speed,
+                "lat":        v_lat,
+                "lng":        v_lng,
+                "heading":    round(float(v_heading or 0.0), 1),
+                "last_seen":  str(v_last_seen_dt).replace(' ', 'T') + 'Z' if v_last_seen_dt else None,
+                "speed":      v_speed,
                 "team_id":    str(v_team_id) if v_team_id else None,
                 "team_name":  "GPS Flespi",
                 "team_color": v.team_color or "#0ea5e9",

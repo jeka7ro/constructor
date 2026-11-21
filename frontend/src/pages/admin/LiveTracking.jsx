@@ -22,6 +22,38 @@ L.Icon.Default.mergeOptions({
 
 const POLL_INTERVAL = 30000; // 30s
 
+function haversineKm(lat1, lon1, lat2, lon2) {
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return 999999;
+  const la1 = parseFloat(lat1), lo1 = parseFloat(lon1), la2 = parseFloat(lat2), lo2 = parseFloat(lon2);
+  if (isNaN(la1) || isNaN(lo1) || isNaN(la2) || isNaN(lo2)) return 999999;
+  const R = 6371;
+  const dLat = ((la2 - la1) * Math.PI) / 180;
+  const dLon = ((lo2 - lo1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((la1 * Math.PI) / 180) * Math.cos((la2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function computeBearingDeg(lat1, lon1, lat2, lon2) {
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+  const phi1 = (parseFloat(lat1) * Math.PI) / 180;
+  const phi2 = (parseFloat(lat2) * Math.PI) / 180;
+  const dLon = ((parseFloat(lon2) - parseFloat(lon1)) * Math.PI) / 180;
+  if (isNaN(phi1) || isNaN(phi2) || isNaN(dLon)) return null;
+  const y = Math.sin(dLon) * Math.cos(phi2);
+  const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon);
+  const brng = (Math.atan2(y, x) * 180) / Math.PI;
+  return Math.round((brng + 360) % 360);
+}
+
+function formatCardinalDirection(deg) {
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+  const idx = Math.round((((Number(deg) || 0) % 360) + 360) % 360 / 45) % 8;
+  return dirs[idx];
+}
+
 function computeVehiclePixelOffsets(vehicles, zoom = 10) {
   const scale = (256 * Math.pow(2, zoom)) / 360;
   const cosLat = Math.cos((50.85 * Math.PI) / 180);
@@ -245,8 +277,14 @@ export default function LiveTracking() {
     }
   }, [restorePreviousView]);
 
-  // Live Follow Mode: Keep the selected driver centered on the map as their GPS position updates
+  // Live Follow Mode: Keep the selected driver centered on the map and in Street View as their GPS position and direction update
   useEffect(() => {
+    setStreetViewVehicle(prev => {
+      if (!prev) return null;
+      const updated = vehicles.find(v => String(v.id) === String(prev.id));
+      return updated || prev;
+    });
+
     const map = mapRef.current;
     if (!map || !focusedVehicleId) return;
     const focusedVeh = vehicles.find(v => String(v.id) === String(focusedVehicleId));
@@ -258,7 +296,6 @@ export default function LiveTracking() {
     if (Date.now() - lastToggleTsRef.current > 1200) {
       map.panTo([nextLat, nextLng], { animate: true, duration: 0.85 });
     }
-    setStreetViewVehicle(prev => (prev && String(prev.id) === String(focusedVeh.id) ? focusedVeh : prev));
   }, [vehicles, focusedVehicleId]);
   const [showSandStations, setShowSandStations] = useState(() => {
     const saved = localStorage.getItem('livetracking_nisip_toggle');
@@ -266,6 +303,7 @@ export default function LiveTracking() {
   });
   const [isSatellite3D, setIsSatellite3D] = useState(false);
   const [streetViewVehicle, setStreetViewVehicle] = useState(null);
+  const prevVehicleCoordsRef = useRef({});
   const markerRefs = useRef({});
   const intervalRef = useRef(null);
 
@@ -283,12 +321,34 @@ export default function LiveTracking() {
   }, []);
 
   const fetchLive = useCallback(async () => {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     try {
       const [resVehicles, resStations] = await Promise.all([
         api.get('/admin/vehicles/live'),
         isDavideChape ? api.get('/admin/logistics/sand-stations').catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
       ]);
-      setVehicles(resVehicles.data || []);
+      const rawList = resVehicles.data || [];
+      const prevMap = prevVehicleCoordsRef.current;
+      const enrichedList = rawList.map(v => {
+        const prev = prevMap[v.id];
+        let heading = v.heading != null ? Number(v.heading) : 0;
+        if (prev && v.lat != null && v.lng != null) {
+          const distMovedKm = haversineKm(prev.lat, prev.lng, v.lat, v.lng);
+          if (distMovedKm >= 0.004) {
+            const calcBrng = computeBearingDeg(prev.lat, prev.lng, v.lat, v.lng);
+            if (calcBrng !== null && (!heading || distMovedKm >= 0.006)) {
+              heading = calcBrng;
+            }
+            prevMap[v.id] = { lat: v.lat, lng: v.lng, heading };
+          } else if (!heading && prev.heading != null) {
+            heading = prev.heading;
+          }
+        } else if (v.lat != null && v.lng != null) {
+          prevMap[v.id] = { lat: v.lat, lng: v.lng, heading };
+        }
+        return { ...v, heading };
+      });
+      setVehicles(enrichedList);
       if (isDavideChape && resStations.data) {
         setSandStations(resStations.data);
       }
@@ -301,11 +361,14 @@ export default function LiveTracking() {
     }
   }, [isDavideChape]);
 
+  const isActivelyTrackingDriver = Boolean(streetViewVehicle || focusedVehicleId);
+
   useEffect(() => {
     fetchLive();
-    intervalRef.current = setInterval(fetchLive, POLL_INTERVAL);
+    const activePollMs = isActivelyTrackingDriver ? 5000 : POLL_INTERVAL;
+    intervalRef.current = setInterval(fetchLive, activePollMs);
     return () => clearInterval(intervalRef.current);
-  }, [fetchLive]);
+  }, [fetchLive, isActivelyTrackingDriver]);
 
   const center = vehicles.length > 0
     ? [vehicles[0].lat, vehicles[0].lng]
@@ -449,6 +512,8 @@ export default function LiveTracking() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          focusedVehicleIdRef.current = v.id;
+                          setFocusedVehicleId(v.id);
                           setStreetViewVehicle(v);
                         }}
                         className="flex-1 h-7 px-2 rounded-lg text-[10.5px] font-extrabold flex items-center justify-center gap-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition-all cursor-pointer whitespace-nowrap"
@@ -608,6 +673,8 @@ export default function LiveTracking() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          focusedVehicleIdRef.current = v.id;
+                          setFocusedVehicleId(v.id);
                           setStreetViewVehicle(v);
                         }}
                         className="flex-1 h-7 px-2.5 rounded-lg text-[11px] font-extrabold flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/90 hover:border-blue-300 transition-all cursor-pointer whitespace-nowrap"
@@ -673,61 +740,76 @@ export default function LiveTracking() {
             </MapContainer>
           )}
 
-          {/* In-App Street View 360° Overlay Panel */}
-          {streetViewVehicle && (
-            <div
-              className="absolute inset-3 z-[1200] bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/80 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-sky-400 shrink-0">
-                    <Eye className="w-4 h-4" />
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap min-w-0">
-                    <span className="text-xs font-extrabold text-white truncate">{streetViewVehicle.name}</span>
-                    {streetViewVehicle.plate_number && streetViewVehicle.plate_number !== 'NN' && (
-                      <EuroPlate number={streetViewVehicle.plate_number} country="B" size="xs" />
-                    )}
-                    {streetViewVehicle.speed != null && (
-                      <span className="text-[11px] font-bold text-sky-400 tabular-nums">
-                        · {Math.round(streetViewVehicle.speed)} km/h
+          {/* In-App Street View 360° Overlay Panel — Live Movement & Compass Direction Tracking */}
+          {streetViewVehicle && (() => {
+            const svHeading = Math.round(Number(streetViewVehicle.heading) || 0) % 360;
+            const svCardinal = formatCardinalDirection(svHeading);
+            const svKey = `sv-${streetViewVehicle.id}-${Number(streetViewVehicle.lat).toFixed(4)}-${Number(streetViewVehicle.lng).toFixed(4)}-${Math.round(svHeading / 10) * 10}`;
+            return (
+              <div
+                className="absolute inset-3 z-[1200] bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/80 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-sky-400 shrink-0">
+                      <Eye className="w-4 h-4" />
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <span className="text-xs font-extrabold text-white truncate">{streetViewVehicle.name}</span>
+                      {streetViewVehicle.plate_number && streetViewVehicle.plate_number !== 'NN' && (
+                        <EuroPlate number={streetViewVehicle.plate_number} country="B" size="xs" />
+                      )}
+                      {streetViewVehicle.speed != null && (
+                        <span className="text-[11px] font-bold text-sky-400 tabular-nums">
+                          · {Math.round(streetViewVehicle.speed)} km/h
+                        </span>
+                      )}
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[10.5px] font-extrabold text-emerald-400 tabular-nums"
+                        title="Direcția de deplasare GPS"
+                      >
+                        <Navigation
+                          className="w-3 h-3 text-emerald-400 shrink-0 transition-transform duration-300"
+                          style={{ transform: `rotate(${svHeading}deg)` }}
+                        />
+                        <span>{svCardinal} · {svHeading}°</span>
                       </span>
-                    )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${streetViewVehicle.lat},${streetViewVehicle.lng}&heading=${svHeading}&pitch=0`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="h-7 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition-colors"
+                      title="Google Street View"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                      <span>Google Maps</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setStreetViewVehicle(null)}
+                      className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                      title={t('common.close', 'Fermer')}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <a
-                    href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${streetViewVehicle.lat},${streetViewVehicle.lng}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="h-7 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition-colors"
-                    title="Google Street View"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                    <span>Google Maps</span>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => setStreetViewVehicle(null)}
-                    className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
-                    title={t('common.close', 'Fermer')}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                <div className="flex-1 relative bg-slate-950">
+                  <iframe
+                    key={svKey}
+                    title={`Street View - ${streetViewVehicle.name}`}
+                    src={`https://maps.google.com/maps?q=&layer=c&cbll=${streetViewVehicle.lat},${streetViewVehicle.lng}&cbp=11,${svHeading},0,0,0&output=svembed`}
+                    className="w-full h-full border-0"
+                    allowFullScreen
+                  />
                 </div>
               </div>
-              <div className="flex-1 relative bg-slate-950">
-                <iframe
-                  title={`Street View - ${streetViewVehicle.name}`}
-                  src={`https://maps.google.com/maps?q=&layer=c&cbll=${streetViewVehicle.lat},${streetViewVehicle.lng}&cbp=11,0,0,0,0&output=svembed`}
-                  className="w-full h-full border-0"
-                  allowFullScreen
-                  loading="lazy"
-                />
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Compact Vertical List in a Single Panel — normal (non-fullscreen) */}
           {!loading && vehicles.length > 0 && !isMapFull && (
