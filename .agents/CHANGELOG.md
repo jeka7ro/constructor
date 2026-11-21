@@ -1,5 +1,14 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-21 14:58 — Afișare Completă pe iPad / Tablete pentru Devize în Așteptare, Camioane, Harta Urmărire Live și Comenzi Recente
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Eliminat clasele `hidden xl:flex` și `hidden xl:grid` din `AdminOverview.jsx` care ascundeau panoul `Devize în așteptare` + `Camioane (Echipe)`, harta `Urmărire Live` și tabelul `Comenzi Recente` pe ecrane cu lățimea sub `1280px` (toate modelele de iPad în Portrait și Landscape).
+  - Pe **iPad Landscape (`lg: >= 1024px`)**: `Devize în așteptare` și `Camioane (Echipe)` apar în coloana din dreapta lângă calendar (`lg:grid-cols-[1fr_minmax(0,220px)]`), exact ca pe desktop.
+  - Pe **iPad Portrait / Tablete (`md: 768px–1023px`)**: `Devize în așteptare` și `Camioane (Echipe)` apar vizibile pe 2 coloane imediat sub calendar, urmate de harta `Urmărire Live` și `Comenzi Recente`.
+- **Fișiere:** `frontend/src/pages/admin/AdminOverview.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5)
+
 ### 2026-11-21 14:44 — Street View 360° cu Urmărire Live a Deplasării și Orientare Automată în Direcția Șoferului (Heading GPS)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

@@ -1247,7 +1247,7 @@ export default function AdminOverview() {
                     ref={calendarWrapperRef}
                     className={isCalendarFull 
                         ? "w-screen h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden gap-0 p-4 md:p-6" 
-                        : "grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,220px)] 2xl:grid-cols-[1fr_minmax(0,260px)] gap-3 mb-3 tps-planning-split-grid"
+                        : "grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,220px)] 2xl:grid-cols-[1fr_minmax(0,260px)] gap-3 mb-3 tps-planning-split-grid"
                     }
                 >
                     <div className={isCalendarFull ? "flex-1 h-full min-w-0" : "min-w-0"}>
@@ -1317,10 +1317,10 @@ export default function AdminOverview() {
                         </CalendarErrorBoundary>
                     </div>
                     {!isCalendarFull && (
-                    <div className="hidden xl:flex flex-col gap-2.5 h-[820px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:flex-col gap-2.5 md:h-[420px] lg:h-[820px]">
                             {/* Panel DEVIS — draggable pe calendar si invers */}
                             <div 
-                                className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0"
+                                className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0 max-h-[360px] md:max-h-[420px] lg:max-h-none"
                                 onDragOver={(e) => {
                                     e.preventDefault();
                                     if (e.dataTransfer.types.includes("type") || e.dataTransfer.types.includes("text/plain")) {
@@ -2381,7 +2381,7 @@ export default function AdminOverview() {
 
             )}
 
-            <div className="hidden xl:grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
             {/* Live Tracking Module full width under calendar */}
             {isShortTerm && (
                 <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden h-[500px]">
