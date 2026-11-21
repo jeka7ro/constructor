@@ -1,5 +1,34 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-21 14:29 — Butoane Stilizate 3D (Satelit Hybrid) & Street View 360° în Popup-ul Șoferilor + Optimizare Trafic
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Butoane vectoriale stilizate `3D` (`<Box />`) și `Street View` (`<Eye />`) (fără emojis) în popup-ul șoferului/camionului pe harta live (`MiniLiveTrackingMap.jsx` & `LiveTracking.jsx`):**
+    - Click pe **`3D`** comută instant harta pe **Google 3D Satellite Hybrid (`lyrs=y`)** și face zoom (`18`) direct pe poziția șoferului.
+    - Click pe **`Street View`** deschide direct în aplicație panoul interactiv **Street View 360°** la coordonatele GPS ale camionului (cu numărul de înmatriculare Belgia, viteza și buton de deschidere în Google Maps), cu **zero costuri / credite API**.
+  - **Eliminat `setInterval(..., 15000)` pe `/api/public/tenant-config`** din `App.jsx` (configurația de tenant se încarcă o singură dată la pornire, economisind 240 request-uri/oră/tab).
+  - **Eliminat timer-ul nefolosit de 1 secundă (`nowTimer`)** din `AdminOverview.jsx` (care forța re-randarea întregii pagini de Planning + Calendar + Hartă de 3.600 ori/oră).
+  - **Optimizat polling-ul din `AdminOverview.jsx`, `MiniLiveTrackingMap.jsx` și `HeaderNotifications.jsx`:**
+    - Toate intervalele de polling sunt acum **oprite automat când tab-ul este în fundal** (`document.visibilityState !== 'visible'`).
+    - Stațiile de nisip (`/admin/logistics/sand-stations`), echipele (`/admin/teams/`) și clienții (`/admin/clients`) se încarcă **o singură dată la deschidere** (nu la fiecare 15 secunde).
+    - Stabilizat `updateHudList` cu `workOrdersRef` în `liveWeatherCanvas.jsx` pentru ca timerul meteo de 10 minute să nu fie resetat la actualizarea comenzilor.
+- **Fișiere:** `frontend/src/App.jsx`, `frontend/src/pages/admin/AdminOverview.jsx`, `frontend/src/components/MiniLiveTrackingMap.jsx`, `frontend/src/utils/liveWeatherCanvas.jsx`, `frontend/src/components/HeaderNotifications.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5)
+
+### 2026-11-21 14:11 — Carduri Calendar Mai Înalte (120px) pe 4 Rânduri, Interval Orar Dinamic Fără Scroll & Aliniere Header 56px
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Mărit înălțimea rândului orar în calendar (`ShortWorksCalendar.jsx`) de la `100px` la `120px` (carduri de `111px`).
+  - **Interval orar dinamic fără scroll peste ore goale (`dynamicStartHour` / `dynamicEndHour`):** calendarul afișează acum doar intervalul orelor ocupate din săptămâna curentă + câte **1 singură oră liberă tampon** în sus și în jos (ex. dacă lucrările sunt între `08:00` și `14:00`, calendarul afișează doar `07:00`–`15:00`, fără scroll vertical intern).
+  - **Aliniere la pixel a antetelor (`h-[56px] rounded-2xl`):** antetul albastru al Calendarului și antetul albastru `DEVIZE ÎN AȘTEPTARE` au exact aceeași înălțime (`56px`), iar coloana din dreapta se întinde automat la exact aceeași înălțime cu calendarul.
+  - Reorganizat informația de pe cardurile din calendar pe 4 rânduri clare, păstrând și evidențiind harta estompată pe jumătatea dreaptă (`w-[62%]`):
+    1. **Rândul 1 (Antet echipă):** `Nume Client` + pastila `230 m²`.
+    2. **Rândul 2 (100% lățime pentru Șapă):** `🥞 Chape 230m²×7cm` (`shrink-0` pe dimensiune, astfel încât `230m²×7cm` nu mai este niciodată tăiat cu `...`).
+    3. **Rândul 3 (Localitate curată pe toată lățimea):** `📍 Dilbeek`, `📍 Stekene`, `📍 Bonheiden`, `📍 Ecaussinnes` (extrasă automat fără stradă și cod poștal).
+    4. **Rândul 4 (Subsol peste hartă):** pastila de nisip (`25.8T`) + pastila de distanță (`+ 35 km`) + pastila meteo (`☀️ 8°`).
+- **Fișiere:** `frontend/src/components/ShortWorksCalendar.jsx`, `frontend/src/pages/admin/AdminOverview.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5)
+
 ### 2026-11-21 12:09 — Spațiu Extins 5K pentru Devize în Așteptare, Ștergere Deviz cu Confirmare, Traduceri & Stilistică Hărți/Planning
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

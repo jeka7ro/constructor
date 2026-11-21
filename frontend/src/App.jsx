@@ -221,8 +221,6 @@ function App() {
         }
         
         fetchTenantConfig()
-        const interval = setInterval(fetchTenantConfig, 15000)
-        return () => clearInterval(interval)
     }, [])
 
     // Apply tenant styles synchronously when tenant state is available (from persist or fetch)

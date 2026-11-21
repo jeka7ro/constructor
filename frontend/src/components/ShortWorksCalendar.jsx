@@ -81,18 +81,39 @@ const calculateOrderSand = (wo) => {
 
 export const formatAddressCityFirst = (address) => {
     if (!address) return '';
-    const parts = address.split(',').map(p => p.trim());
-    // "doar localc" -> doar localitatea
-    // Dacă adresa e "Bruxelles, Belgia", returnăm "Bruxelles" (parts[0])
-    // Dacă e "Strada X, Oras, Tara", ideal ar fi orasul, dar returnam parts[0] sau parts[1]
-    if (parts.length >= 2) {
-        let cityWithZip = parts[1];
-        let city = cityWithZip.replace(/\d+/g, '').trim();
-        // Dacă e doar "Bruxelles, Belgia", Belgia e parts[1].
-        if (city.toLowerCase() === 'belgia' || city.toLowerCase() === 'belgium') {
-            return parts[0].replace(/\d+/g, '').trim();
+    const parts = address.split(',').map(p => p.trim()).filter(Boolean);
+    const nonCountry = parts.filter(p => !/^(belgique|belgie|belgië|belgium|belgia|france|nederland|luxembourg|romania|românia)$/i.test(p));
+    const list = nonCountry.length > 0 ? nonCountry : parts;
+
+    const streetPrefixRe = /^(rue|av\.?|avenue|chauss[eé]e|clos|boulevard|bd\.?|place|dr[eè]ve|chemin|route|all[eé]e|impasse|square|sentier|steenweg|straat|laan|weg|plein|dreef)\b/i;
+
+    // 1. Prefer a part with a 4-digit postal code that is not a street name
+    const zipCityPart = list.find(p => /\b\d{4}\b/.test(p) && !streetPrefixRe.test(p));
+    if (zipCityPart) {
+        const cleaned = zipCityPart.replace(/\b\d{4,6}\b/g, '').replace(/^[-,\s]+|[-,\s]+$/g, '').trim();
+        if (cleaned) {
+            return cleaned === cleaned.toUpperCase() && cleaned.length > 3
+                ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase()
+                : cleaned;
         }
-        return city || parts[0];
+    }
+
+    // 2. If second part exists and isn't a street, clean digits from it
+    if (list.length >= 2 && !streetPrefixRe.test(list[1])) {
+        const cleaned = list[1].replace(/\d+/g, '').replace(/^[-,\s]+|[-,\s]+$/g, '').trim();
+        if (cleaned) {
+            return cleaned === cleaned.toUpperCase() && cleaned.length > 3
+                ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase()
+                : cleaned;
+        }
+    }
+
+    // 3. Fallback to first part without postal code
+    const firstClean = list[0].replace(/\b\d{4,6}\b/g, '').replace(/^[-,\s]+|[-,\s]+$/g, '').trim();
+    if (firstClean) {
+        return firstClean === firstClean.toUpperCase() && firstClean.length > 3
+            ? firstClean.charAt(0).toUpperCase() + firstClean.slice(1).toLowerCase()
+            : firstClean;
     }
     return address;
 };
@@ -516,65 +537,53 @@ export default function ShortWorksCalendar({
         return map;
     }, [weeklyOrders]);
 
-    const dynamicStartHour = useMemo(() => {
-        // Always start from 06:00 so users can scroll to earlier hours
-        return 6;
-    }, [weeklyOrders]);
+    const { dynamicStartHour, dynamicEndHour } = useMemo(() => {
+        if (!weeklyOrders || weeklyOrders.length === 0) {
+            return { dynamicStartHour: 7, dynamicEndHour: 15 };
+        }
+        let minH = 23;
+        let maxH = 0;
+        weeklyOrders.forEach(wo => {
+            if (deletedIds.has(wo.id)) return;
+            const tStr = wo.start_time ? String(wo.start_time) : '08:00';
+            const [h] = tStr.split(':').map(Number);
+            if (!isNaN(h)) {
+                if (h < minH) minH = h;
+                if (h > maxH) maxH = h;
+            }
+        });
+        if (minH > maxH) {
+            return { dynamicStartHour: 7, dynamicEndHour: 15 };
+        }
+        // Doar 1 singură oră liberă în sus față de prima lucrare existentă (ex: 08:00 -> începe la 07:00)
+        const startH = Math.max(6, minH - 1);
+        // Doar 1 singură oră liberă în jos față de ultima lucrare existentă (ex: 15:00 -> ultimul rând este 16:00; dacă se adaugă la 16:00 -> apare automat 17:00)
+        const endH = Math.min(22, maxH + 2);
+        return { dynamicStartHour: startH, dynamicEndHour: endH };
+    }, [weeklyOrders, deletedIds]);
 
-    const END_HOUR = 21; // Calendar ends at 21:00
+    const END_HOUR = dynamicEndHour;
 
     const getGridRowFromTime = (timeStr) => {
-        if (!timeStr || typeof timeStr !== 'string') return 3;
+        if (!timeStr || typeof timeStr !== 'string') return 2;
         const [hours] = timeStr.split(':').map(Number);
-        if (isNaN(hours)) return 3;
+        if (isNaN(hours)) return 2;
         const row = hours - dynamicStartHour + 1;
         const numRows = END_HOUR - dynamicStartHour;
         const finalRow = Math.max(1, Math.min(numRows, row));
-        return isNaN(finalRow) ? 3 : finalRow;
+        return isNaN(finalRow) ? 2 : finalRow;
     };
 
-    // Auto-scroll to 09:00 on load (or earlier if there are morning events)
     const hasAutoScrolledToData = useRef(false);
 
     useEffect(() => {
-        if (containerRef.current && !hasAutoScrolledToData.current && weeklyOrders.length > 0) {
-            let targetScrollTop = (9 - dynamicStartHour) * 100; // Default to 09:00 (300px)
-            let latestRow = 1;
-            let earliestEventRow = END_HOUR - dynamicStartHour + 1;
-            
-            weeklyOrders.forEach(wo => {
-                const row = getGridRowFromTime(wo.start_time);
-                earliestEventRow = Math.min(earliestEventRow, row);
-                latestRow = Math.max(latestRow, row);
-            });
-            
-            // If there's an event before 09:00, scroll to it
-            if (earliestEventRow < 4) {
-                targetScrollTop = Math.max(0, (earliestEventRow - 1) * 100);
-            }
-
-            containerRef.current.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-            hasAutoScrolledToData.current = true;
-            hasAutoScrolled.current = true;
-
-            const clientH = containerRef.current.clientHeight || 480;
-            const visibleBottom = targetScrollTop + clientH;
-            const eventsBottom = latestRow * 100;
-            setShowScrollHint(eventsBottom > visibleBottom);
+        if (containerRef.current) {
+            // Position view directly at the first occupied hour (e.g. 08:00), keeping the 1 free buffer hour (07:00) accessible 1 row above
+            const hasOrders = weeklyOrders && weeklyOrders.some(wo => !deletedIds.has(wo.id));
+            containerRef.current.scrollTop = hasOrders ? 120 : 0;
+            setShowScrollHint(false);
         }
-    }, [weeklyOrders, dynamicStartHour]);
-
-    // Fallback if the week actually has 0 orders
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (containerRef.current && !hasAutoScrolled.current) {
-                const targetScrollTop = (9 - dynamicStartHour) * 100;
-                containerRef.current.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-                hasAutoScrolled.current = true;
-            }
-        }, 1500);
-        return () => clearTimeout(timer);
-    }, [dynamicStartHour]);
+    }, [weeklyOrders, dynamicStartHour, dynamicEndHour, deletedIds]);
 
     const [swipeDir, setSwipeDir] = useState(0);
     const [swipePhase, setSwipePhase] = useState('idle');
@@ -696,13 +705,13 @@ export default function ShortWorksCalendar({
             
             <div 
                 ref={calendarSwipeRef}
-                className={`hidden md:flex bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-col relative ${isCalendarFull ? 'h-full' : 'h-[800px]'}`}
+                className={`hidden md:flex bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden flex-col relative ${isCalendarFull ? 'h-full' : 'h-[820px]'}`}
                 onTouchStart={onTouchStart}
                 onTouchEnd={onTouchEndEvent}
             >
-                {/* Header */}
+                {/* Header — Fixed 56px height matching DEVIS EN ATTENTE header */}
             <div
-                className="px-4 py-3 flex flex-col gap-2 shadow-inner border-b border-white/15"
+                className="px-4 h-[56px] shrink-0 flex flex-col justify-center shadow-inner border-b border-white/15"
                 style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}
             >
                 {/* Top Row: Date, Teams, and Controls */}
@@ -975,13 +984,13 @@ export default function ShortWorksCalendar({
             {/* Calendar Grid Container (Desktop) */}
             <div 
                 ref={containerRef}
-                className="flex-1 hidden md:flex relative overflow-auto"
+                className="flex-1 hidden md:flex relative overflow-auto custom-scrollbar"
             >
                 {/* Time Gutter */}
                 <div className="w-10 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
                     {Array.from({ length: END_HOUR - dynamicStartHour }).map((_, i) => (
-                        <div key={i} className="h-[100px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[11px] text-slate-500 font-bold pt-1.5 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div key={i} className="h-[120px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[11px] text-slate-500 font-bold pt-1.5 bg-slate-50/50 dark:bg-slate-900/50">
                             {`${(i + dynamicStartHour).toString().padStart(2, '0')}:00`}
                         </div>
                     ))}
@@ -1056,7 +1065,7 @@ export default function ShortWorksCalendar({
                     </div>
 
                     {/* Events Grid */}
-                    <div className="relative grid bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateColumns: gridColsTemplate, gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(100px, 100px))` }}>
+                    <div className="relative grid bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateColumns: gridColsTemplate, gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(120px, 120px))` }}>
                         {weeklyOrders.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                 <span className="text-slate-400 text-sm">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
@@ -1298,9 +1307,9 @@ export default function ShortWorksCalendar({
                                             ${heldOrder?.id === wo.id ? 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/50' : ''}
                                             ${(pendingReschedule && String(pendingReschedule.id) === String(wo.id)) ? '!transition-none z-[60]' : ''}`}
                                         style={{
-                                            top: `${(wo.rowStart - 1) * 100 + 4}px`,
+                                            top: `${(wo.rowStart - 1) * 120 + 4}px`,
                                             height: 'auto',
-                                            minHeight: '88px',
+                                            minHeight: '111px',
                                             left: leftValue,
                                             width: widthValue,
                                             borderLeftColor: borderLeftColorVal,
@@ -1412,8 +1421,8 @@ export default function ShortWorksCalendar({
                                     >
                                         {staticMapLoc && (
                                             <div 
-                                                className="absolute right-0 bottom-0 w-[55%] pointer-events-none overflow-hidden rounded-br-xl opacity-55 dark:opacity-15 mix-blend-multiply dark:mix-blend-normal dark:invert dark:hue-rotate-180 dark:contrast-125 z-0" 
-                                                style={{ top: '26px', WebkitMaskImage: 'linear-gradient(to right, transparent, black 60%)', maskImage: 'linear-gradient(to right, transparent, black 60%)' }}
+                                                className="absolute right-0 bottom-0 w-[62%] pointer-events-none overflow-hidden rounded-br-xl opacity-60 dark:opacity-18 mix-blend-multiply dark:mix-blend-normal dark:invert dark:hue-rotate-180 dark:contrast-125 z-0" 
+                                                style={{ top: '27px', WebkitMaskImage: 'linear-gradient(to right, transparent, black 52%)', maskImage: 'linear-gradient(to right, transparent, black 52%)' }}
                                             >
                                                 <img 
                                                     src={`https://static-maps.yandex.ru/1.x/?ll=${lng},${lat}&size=400,300&z=14&l=map`} 
@@ -1424,16 +1433,16 @@ export default function ShortWorksCalendar({
                                                 />
                                             </div>
                                         )}
-                                        <div className="flex flex-col flex-1 w-full relative z-10">
+                                        <div className="flex flex-col flex-1 w-full relative z-10 justify-between">
                                             {/* TOP ROW: Name and Total Surface */}
-                                            <div className="flex items-center justify-between -mx-1.5 -mt-1.5 px-1.5 py-1 mb-1 border-b rounded-t-xl" style={{ backgroundColor: borderLeftColorVal + '38', borderColor: borderLeftColorVal + '80' }}>
-                                                <div className="flex items-center gap-1.5 truncate pr-2 min-w-0 flex-1">
+                                            <div className="flex items-center justify-between -mx-1.5 -mt-1.5 px-2 py-1 border-b rounded-t-xl" style={{ backgroundColor: borderLeftColorVal + '38', borderColor: borderLeftColorVal + '80' }}>
+                                                <div className="flex items-center gap-1.5 truncate pr-1.5 min-w-0 flex-1">
                                                     {isCompleted ? (
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                                     ) : isExternalSource ? (
                                                         <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: clientColorHex }} title="Sursă externă / Partener" />
                                                     ) : null}
-                                                    <span className="text-[11px] font-extrabold text-slate-900 dark:text-white truncate">
+                                                    <span className="text-[11.5px] font-extrabold text-slate-900 dark:text-white truncate leading-tight">
                                                         {(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}
                                                     </span>
                                                 </div>
@@ -1444,32 +1453,32 @@ export default function ShortWorksCalendar({
                                                     const displaySurf = sumVol > 0 ? parseFloat(sumVol.toFixed(2)) : parseFloat(fallbackSurf.toFixed(2));
                                                     if (displaySurf > 0) {
                                                         const isMultiple = finalVols.length > 1;
-                                                        return <span className="text-[10px] font-extrabold text-slate-800 dark:text-white shrink-0 bg-white/80 dark:bg-slate-950/75 border border-black/5 dark:border-white/15 px-1.5 py-0.5 rounded-md shadow-xs tabular-nums">{isMultiple ? 'Total: ' : ''}{displaySurf} m²</span>;
+                                                        return <span className="text-[10.5px] font-black text-slate-800 dark:text-white shrink-0 bg-white/90 dark:bg-slate-950/80 border border-black/5 dark:border-white/15 px-1.5 py-0.5 rounded-md shadow-2xs tabular-nums leading-none">{isMultiple ? 'Total: ' : ''}{displaySurf} m²</span>;
                                                     }
                                                     return null;
                                                 })()}
                                             </div>
 
-                                            {/* MIDDLE ROW: Volumes / Layers */}
-                                            <div className="flex flex-col gap-[1px] mt-0.5 w-full">
+                                            {/* ROW 2: Volumes / Layers across FULL width so m² × cm is NEVER truncated */}
+                                            <div className="flex flex-col gap-0.5 mt-1 w-full">
                                                 {(() => {
                                                     const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
-                                                    const sandVal = calculateOrderSand(wo);
-                                                    const distText = getDistanceTextForOrder(wo);
                                                     
                                                     if (finalVols.length > 0) {
-                                                        return finalVols.map((vol, idx) => {
+                                                        return finalVols.slice(0, 2).map((vol, idx) => {
                                                             let displayName = vol.name;
                                                             if (!displayName || displayName.toLowerCase() === 'chape') {
                                                                 displayName = finalVols.length > 1 ? `Chape ${idx + 1}` : 'Chape';
                                                             }
+                                                            const qtyPart = vol.quantity ? `${vol.quantity}m²` : '';
+                                                            const thickPart = vol.thickness ? `×${vol.thickness}cm` : '';
                                                             return (
-                                                                <div key={idx} className="flex items-center text-[9.5px] text-slate-800 dark:text-slate-100 font-bold w-full">
+                                                                <div key={idx} className="flex items-center text-[10px] text-slate-800 dark:text-slate-100 font-extrabold w-full leading-tight min-w-0">
                                                                     <Layers className="w-3 h-3 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
-                                                                    <span className="truncate">{displayName}: {vol.quantity}m²&times;{vol.thickness}cm</span>
-                                                                    {idx === 0 && sandVal > 0 && (
-                                                                        <span className="ml-auto text-[9px] text-amber-700 dark:text-amber-300 font-extrabold bg-amber-50/95 dark:bg-amber-500/20 border border-amber-200/80 dark:border-amber-400/35 px-1.5 py-0.5 rounded-md shadow-xs shrink-0 tabular-nums">
-                                                                            {sandVal.toFixed(1)}T
+                                                                    <span className="truncate">{displayName}</span>
+                                                                    {(qtyPart || thickPart) && (
+                                                                        <span className="ml-1 shrink-0 tabular-nums font-black text-slate-900 dark:text-white">
+                                                                            {qtyPart}{thickPart}
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -1477,16 +1486,15 @@ export default function ShortWorksCalendar({
                                                         });
                                                     } else {
                                                         const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+                                                        const fallbackThick = parseFloat(wo.thickness) || parseFloat(wo.thickness_cm) || 0;
                                                         if (fallbackSurf > 0) {
                                                             return (
-                                                                <div className="flex items-center text-[9.5px] text-slate-800 dark:text-slate-100 font-bold w-full">
+                                                                <div className="flex items-center text-[10px] text-slate-800 dark:text-slate-100 font-extrabold w-full leading-tight min-w-0">
                                                                     <Layers className="w-3 h-3 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
-                                                                    <span className="truncate">Chape: {fallbackSurf}m²</span>
-                                                                    {sandVal > 0 && (
-                                                                        <span className="ml-auto text-[9px] text-amber-700 dark:text-amber-300 font-extrabold bg-amber-50/95 dark:bg-amber-500/20 border border-amber-200/80 dark:border-amber-400/35 px-1.5 py-0.5 rounded-md shadow-xs shrink-0 tabular-nums">
-                                                                            {sandVal.toFixed(1)}T
-                                                                        </span>
-                                                                    )}
+                                                                    <span className="truncate">Chape</span>
+                                                                    <span className="ml-1 shrink-0 tabular-nums font-black text-slate-900 dark:text-white">
+                                                                        {fallbackSurf}m²{fallbackThick > 0 ? `×${fallbackThick}cm` : ''}
+                                                                    </span>
                                                                 </div>
                                                             );
                                                         }
@@ -1495,21 +1503,41 @@ export default function ShortWorksCalendar({
                                                 })()}
                                             </div>
 
-                                            {/* BOTTOM ROW: Location, KM, and Weather */}
-                                            <div className="flex items-center justify-between mt-auto pt-1 border-t" style={{ borderColor: borderLeftColorVal + '40' }}>
-                                                <div className="flex items-center gap-1 text-[9.5px] text-slate-700 dark:text-slate-300 font-semibold truncate pr-1">
-                                                    <MapPin className="w-2.5 h-2.5 shrink-0 text-slate-500 dark:text-slate-400" />
-                                                    <span className="truncate">{(wo.site_address || wo.site?.address || wo.address) || t('common.no_location', 'Aucune adresse')}</span>
-                                                </div>
-                                                
-                                                <div className="flex items-center gap-1.5 shrink-0">
+                                            {/* ROW 3: Clean City / Locality Name across full card width */}
+                                            <div
+                                                className="flex items-center gap-1 mt-0.5 text-[10.5px] text-slate-800 dark:text-slate-100 font-bold truncate leading-tight"
+                                                title={(wo.site_address || wo.site?.address || wo.address) || ''}
+                                            >
+                                                <MapPin className="w-3 h-3 shrink-0 text-rose-500 dark:text-rose-400" />
+                                                <span className="truncate">
+                                                    {formatAddressCityFirst(wo.site_address || wo.site?.address || wo.address) || t('common.no_location', 'Aucune adresse')}
+                                                </span>
+                                            </div>
+
+                                            {/* ROW 4 (BOTTOM): Sand (T), Distance (KM) and Weather nicely styled over the map */}
+                                            <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t" style={{ borderColor: borderLeftColorVal + '40' }}>
+                                                <div className="flex items-center gap-1 min-w-0">
+                                                    {(() => {
+                                                        const sandVal = calculateOrderSand(wo);
+                                                        return sandVal > 0 ? (
+                                                            <span className="text-[9.5px] text-amber-800 dark:text-amber-300 font-black bg-amber-50/95 dark:bg-amber-500/20 border border-amber-200/90 dark:border-amber-400/35 px-1 py-0.5 rounded shadow-2xs shrink-0 tabular-nums leading-none">
+                                                                {sandVal.toFixed(1)}T
+                                                            </span>
+                                                        ) : null;
+                                                    })()}
                                                     {(() => {
                                                         const distText = getDistanceTextForOrder(wo);
-                                                        return distText ? <span className="text-[9.5px] text-fuchsia-600 dark:text-fuchsia-300 font-extrabold tabular-nums">{distText}</span> : null;
+                                                        return distText ? (
+                                                            <span className="text-[9.5px] text-fuchsia-600 dark:text-fuchsia-300 font-extrabold bg-white/85 dark:bg-slate-900/80 px-1 py-0.5 rounded border border-fuchsia-200/60 dark:border-fuchsia-800/40 shadow-2xs tabular-nums leading-none whitespace-nowrap">
+                                                                {distText}
+                                                            </span>
+                                                        ) : null;
                                                     })()}
-                                                    
+                                                </div>
+                                                
+                                                <div className="flex items-center shrink-0">
                                                     {!isCompleted && (
-                                                        <span className="text-[9.5px] text-slate-700 dark:text-slate-200 font-bold">
+                                                        <span className="text-[9.5px] text-slate-800 dark:text-slate-200 font-extrabold bg-white/85 dark:bg-slate-900/80 px-1 py-0.5 rounded border border-slate-200/70 dark:border-slate-700/60 shadow-2xs leading-none">
                                                             <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} compact={true} />
                                                         </span>
                                                     )}

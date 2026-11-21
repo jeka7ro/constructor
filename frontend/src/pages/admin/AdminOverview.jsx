@@ -441,12 +441,14 @@ export default function AdminOverview() {
         return () => obs.disconnect()
     }, [])
     useEffect(() => {
+        if (isScreeds) return
         const t = setInterval(() => {
+            if (document.visibilityState !== 'visible') return
             nowRef.current = Date.now()
             setClockTick(c => c + 1)
-        }, 10000) // update every 10s instead of 1s
+        }, 30000)
         return () => clearInterval(t)
-    }, [])
+    }, [isScreeds])
 
     const getLiveHours = (w) => {
         if (w.status === 'terminat' || !w.check_in_time) return w.worked_hours || 0
@@ -504,18 +506,19 @@ export default function AdminOverview() {
 
         if (refreshTimer.current) clearInterval(refreshTimer.current)
         refreshTimer.current = setInterval(() => {
-            fetchStats(true)
-            fetchActiveWorkers(true)
-            fetchChartData(true)
-            fetchComplaints()
-            fetchTeams()
-            fetchClients()
+            if (document.visibilityState !== 'visible') return
             fetchPendingQuotes()
             if (isShortTerm) fetchWorkOrdersStats()
-        }, 15000)
+            if (!isScreeds) {
+                fetchStats(true)
+                fetchActiveWorkers(true)
+                fetchChartData(true)
+                fetchComplaints()
+            }
+        }, 30000)
 
         return () => clearInterval(refreshTimer.current)
-    }, [globalSiteFilter, isShortTerm])
+    }, [globalSiteFilter, isShortTerm, isScreeds])
 
     const fetchStats = async (isBackground = false) => {
         if (!isBackground) setStatsLoading(true)
@@ -1201,12 +1204,6 @@ export default function AdminOverview() {
         return tenant.timezone
     }
 
-    const [nowTimer, setNowTimer] = useState(new Date())
-    useEffect(() => {
-        const t = setInterval(() => setNowTimer(new Date()), 1000)
-        return () => clearInterval(t)
-    }, [])
-
 
     return (
         <div className="pb-3 lg:pb-4 pt-0 bg-slate-50 dark:bg-slate-950 min-h-screen">
@@ -1320,7 +1317,7 @@ export default function AdminOverview() {
                         </CalendarErrorBoundary>
                     </div>
                     {!isCalendarFull && (
-                    <div className="hidden xl:flex flex-col gap-2.5 h-[800px]">
+                    <div className="hidden xl:flex flex-col gap-2.5 h-[820px]">
                             {/* Panel DEVIS — draggable pe calendar si invers */}
                             <div 
                                 className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0"
@@ -1371,16 +1368,16 @@ export default function AdminOverview() {
                                 }}
                             >
                                 <div 
-                                    className="px-3 h-10 shrink-0 flex items-center justify-between gap-2 cursor-pointer hover:opacity-95 transition-opacity" 
+                                    className="px-3.5 h-[56px] shrink-0 flex items-center justify-between gap-2 border-b border-white/15 cursor-pointer hover:opacity-95 transition-opacity" 
                                     style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}
                                     onClick={() => setShowPendingQuotesModal(true)}
                                     title={t('overview.pending_quotes', 'Devis en attente')}
                                 >
-                                    <h3 className="font-extrabold text-white flex items-center gap-1.5 text-[11px] uppercase tracking-wider leading-none min-w-0">
-                                        <ClipboardList className="w-3.5 h-3.5 text-white shrink-0" />
+                                    <h3 className="font-extrabold text-white flex items-center gap-2 text-xs uppercase tracking-wider leading-none min-w-0">
+                                        <ClipboardList className="w-4 h-4 text-white shrink-0" />
                                         <span className="truncate">{t('overview.pending_quotes', 'Devis en attente')}</span>
                                     </h3>
-                                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-white font-black text-[10px] tabular-nums shrink-0 leading-none">
+                                    <span className="px-2.5 py-1 rounded-full bg-white/20 text-white font-black text-[11px] tabular-nums shrink-0 leading-none">
                                         {pendingQuotes.length}
                                     </span>
                                 </div>

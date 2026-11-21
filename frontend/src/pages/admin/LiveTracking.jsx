@@ -4,12 +4,13 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
-import { Radio, Users, Clock, Gauge, RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, Navigation, Truck } from 'lucide-react';
+import { Radio, Users, Clock, Gauge, RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, Navigation, Truck, Box, Eye, ClipboardList, ExternalLink, X } from 'lucide-react';
 import api from '../../lib/api';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { useTenantStore } from '../../store/tenantStore';
 import useViewPreferencesStore from '../../store/viewPreferencesStore';
 import { LiveMapWeatherOverlay } from '../../utils/liveWeatherCanvas.jsx';
+import EuroPlate from '../../components/EuroPlate';
 
 // Fix leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -229,6 +230,12 @@ export default function LiveTracking() {
     focusedVehicleIdRef.current = v.id;
     setFocusedVehicleId(v.id);
     map.flyTo([v.lat, v.lng], 16, { animate: true, duration: 1.15 });
+    const targetMarker = markerInstance || markerRefs.current?.[v.id];
+    if (targetMarker?.openPopup) {
+      setTimeout(() => {
+        try { targetMarker.openPopup(); } catch (_) {}
+      }, 150);
+    }
   }, [restorePreviousView]);
 
   const handleMapBackgroundClick = useCallback(() => {
@@ -237,10 +244,29 @@ export default function LiveTracking() {
       restorePreviousView();
     }
   }, [restorePreviousView]);
+
+  // Live Follow Mode: Keep the selected driver centered on the map as their GPS position updates
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focusedVehicleId) return;
+    const focusedVeh = vehicles.find(v => String(v.id) === String(focusedVehicleId));
+    if (!focusedVeh || focusedVeh.lat == null || focusedVeh.lng == null) return;
+    const nextLat = Number(focusedVeh.lat);
+    const nextLng = Number(focusedVeh.lng);
+    if (isNaN(nextLat) || isNaN(nextLng)) return;
+
+    if (Date.now() - lastToggleTsRef.current > 1200) {
+      map.panTo([nextLat, nextLng], { animate: true, duration: 0.85 });
+    }
+    setStreetViewVehicle(prev => (prev && String(prev.id) === String(focusedVeh.id) ? focusedVeh : prev));
+  }, [vehicles, focusedVehicleId]);
   const [showSandStations, setShowSandStations] = useState(() => {
     const saved = localStorage.getItem('livetracking_nisip_toggle');
     return saved ? JSON.parse(saved) : true;
   });
+  const [isSatellite3D, setIsSatellite3D] = useState(false);
+  const [streetViewVehicle, setStreetViewVehicle] = useState(null);
+  const markerRefs = useRef({});
   const intervalRef = useRef(null);
 
   useEffect(() => {
@@ -397,6 +423,42 @@ export default function LiveTracking() {
                       )}
                     </div>
                   )}
+                  {isFocused && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const next3D = !isSatellite3D;
+                          setIsSatellite3D(next3D);
+                          if (next3D && mapRef.current) {
+                            mapRef.current.flyTo([v.lat, v.lng], 18, { animate: true, duration: 0.9 });
+                          }
+                        }}
+                        className={`flex-1 h-7 px-2 rounded-lg text-[10.5px] font-extrabold flex items-center justify-center gap-1 border transition-all cursor-pointer ${
+                          isSatellite3D
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                            : 'bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-200'
+                        }`}
+                        title="3D / Satellite View"
+                      >
+                        <Box className="w-3.5 h-3.5 shrink-0" />
+                        <span>3D</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStreetViewVehicle(v);
+                        }}
+                        className="flex-1 h-7 px-2 rounded-lg text-[10.5px] font-extrabold flex items-center justify-center gap-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition-all cursor-pointer whitespace-nowrap"
+                        title="Street View 360°"
+                      >
+                        <Eye className="w-3.5 h-3.5 shrink-0" />
+                        <span>Street View</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -417,6 +479,21 @@ export default function LiveTracking() {
                 ? <Minimize2 className="w-5 h-5" />
                 : <Maximize2 className="w-5 h-5" />
               }
+            </button>
+
+            {/* 3D Satellite toggle button */}
+            <button
+              type="button"
+              onClick={() => setIsSatellite3D(s => !s)}
+              title="3D / Satellite View"
+              className={`backdrop-blur-md shadow-lg border px-3 h-10 rounded-xl flex items-center justify-center gap-1.5 text-xs font-extrabold pointer-events-auto transition-all cursor-pointer ${
+                isSatellite3D
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white/90 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600'
+              }`}
+            >
+              <Box className="w-4 h-4 shrink-0" />
+              <span>3D</span>
             </button>
 
             {/* Sand stations toggle */}
@@ -442,7 +519,12 @@ export default function LiveTracking() {
               ref={mapRef}
             >
               <TileLayer
-                url="https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}"
+                key={isSatellite3D ? 'sat-3d' : 'road-2d'}
+                url={
+                  isSatellite3D
+                    ? "https://mt1.google.com/vt/lyrs=y&hl=fr&x={x}&y={y}&z={z}"
+                    : "https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}"
+                }
                 attribution="&copy; Google Maps"
                 maxZoom={20}
               />
@@ -453,6 +535,9 @@ export default function LiveTracking() {
                 return vehicles.map(v => (
                 <Marker
                   key={v.id}
+                  ref={(el) => {
+                    if (el) markerRefs.current[v.id] = el;
+                  }}
                   position={[v.lat, v.lng]}
                   icon={createVehicleIcon(v.team_color, v.name, v.avatar_url, v.speed, vehicleOffsets[v.id] || [0, 0])}
                   eventHandlers={{
@@ -484,7 +569,10 @@ export default function LiveTracking() {
                     {v.current_work_order && (
                       <div className="mt-2 pt-2 border-t border-slate-100 text-xs">
                         <div className="font-bold text-blue-700 flex items-center justify-between gap-2">
-                          <span>📋 {v.current_work_order.start_time} · {v.current_work_order.client_name}</span>
+                          <span className="flex items-center gap-1 min-w-0 truncate">
+                            <ClipboardList className="w-3.5 h-3.5 shrink-0 text-blue-600" />
+                            <span className="truncate">{v.current_work_order.start_time} · {v.current_work_order.client_name}</span>
+                          </span>
                           {v.current_work_order.surface_m2 && (
                             <span className="text-emerald-600 font-extrabold tabular-nums">{v.current_work_order.surface_m2}m²</span>
                           )}
@@ -494,6 +582,41 @@ export default function LiveTracking() {
                         )}
                       </div>
                     )}
+                    {/* Stylized Vector Action Buttons: 3D Satellite & Street View */}
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const next3D = !isSatellite3D;
+                          setIsSatellite3D(next3D);
+                          if (next3D && mapRef.current) {
+                            mapRef.current.flyTo([v.lat, v.lng], 18, { animate: true, duration: 0.9 });
+                          }
+                        }}
+                        className={`flex-1 h-7 px-2.5 rounded-lg text-[11px] font-extrabold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                          isSatellite3D
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                            : 'bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-200/90 hover:border-blue-300'
+                        }`}
+                        title="3D / Satellite View"
+                      >
+                        <Box className="w-3.5 h-3.5 shrink-0" />
+                        <span>3D</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStreetViewVehicle(v);
+                        }}
+                        className="flex-1 h-7 px-2.5 rounded-lg text-[11px] font-extrabold flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/90 hover:border-blue-300 transition-all cursor-pointer whitespace-nowrap"
+                        title="Street View 360°"
+                      >
+                        <Eye className="w-3.5 h-3.5 shrink-0" />
+                        <span>Street View</span>
+                      </button>
+                    </div>
                   </Popup>
                 </Marker>
                 ));
@@ -548,6 +671,62 @@ export default function LiveTracking() {
               {vehicles.length > 0 && <FitBounds vehicles={vehicles} />}
               <MapResizer isMapFull={isMapFull} onZoomChange={setMapZoom} onMapBackgroundClick={handleMapBackgroundClick} />
             </MapContainer>
+          )}
+
+          {/* In-App Street View 360° Overlay Panel */}
+          {streetViewVehicle && (
+            <div
+              className="absolute inset-3 z-[1200] bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/80 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-sky-400 shrink-0">
+                    <Eye className="w-4 h-4" />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span className="text-xs font-extrabold text-white truncate">{streetViewVehicle.name}</span>
+                    {streetViewVehicle.plate_number && streetViewVehicle.plate_number !== 'NN' && (
+                      <EuroPlate number={streetViewVehicle.plate_number} country="B" size="xs" />
+                    )}
+                    {streetViewVehicle.speed != null && (
+                      <span className="text-[11px] font-bold text-sky-400 tabular-nums">
+                        · {Math.round(streetViewVehicle.speed)} km/h
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${streetViewVehicle.lat},${streetViewVehicle.lng}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="h-7 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition-colors"
+                    title="Google Street View"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                    <span>Google Maps</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setStreetViewVehicle(null)}
+                    className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                    title={t('common.close', 'Fermer')}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 relative bg-slate-950">
+                <iframe
+                  title={`Street View - ${streetViewVehicle.name}`}
+                  src={`https://maps.google.com/maps?q=&layer=c&cbll=${streetViewVehicle.lat},${streetViewVehicle.lng}&cbp=11,0,0,0,0&output=svembed`}
+                  className="w-full h-full border-0"
+                  allowFullScreen
+                  loading="lazy"
+                />
+              </div>
+            </div>
           )}
 
           {/* Compact Vertical List in a Single Panel — normal (non-fullscreen) */}

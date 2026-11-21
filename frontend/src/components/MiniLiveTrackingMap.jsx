@@ -5,7 +5,7 @@ import api from '../lib/api'
 import { useTenantStore } from '../store/tenantStore'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { Clock, Gauge, RefreshCw, Radio, CloudRain, Wind } from 'lucide-react'
+import { Clock, Gauge, RefreshCw, Radio, CloudRain, Wind, Box, Eye, ClipboardList, ExternalLink, X } from 'lucide-react'
 import { Expand, Shrink, Truck } from 'lucide-react'
 import { LiveMapWeatherOverlay, WEATHER_STATIONS_24 } from '../utils/liveWeatherCanvas.jsx'
 import EuroPlate from './EuroPlate'
@@ -296,11 +296,21 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
     const [loading, setLoading] = useState(true);
     const [connected, setConnected] = useState(true);
     const [isMapFull, setIsMapFull] = useState(false);
+    const [isSatellite3D, setIsSatellite3D] = useState(() => {
+        try {
+            const saved = localStorage.getItem('minilivetracking_3d_toggle');
+            return saved ? JSON.parse(saved) : false;
+        } catch (_) {
+            return false;
+        }
+    });
+    const [streetViewVehicle, setStreetViewVehicle] = useState(null);
     const [focusedVehicleId, setFocusedVehicleId] = useState(null);
     const focusedVehicleIdRef = useRef(null);
     const previousViewRef = useRef(null);
     const lastToggleTsRef = useRef(0);
     const mapRef = useRef(null);
+    const markerRefs = useRef({});
     const containerRef = useRef(null);
     const intervalRef = useRef(null);
 
@@ -343,6 +353,12 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
         focusedVehicleIdRef.current = v.id;
         setFocusedVehicleId(v.id);
         map.flyTo([v.lat, v.lng], 16, { animate: true, duration: 1.15 });
+        const targetMarker = markerInstance || markerRefs.current?.[v.id];
+        if (targetMarker?.openPopup) {
+            setTimeout(() => {
+                try { targetMarker.openPopup(); } catch (_) { }
+            }, 150);
+        }
     }, [restorePreviousView]);
 
     const handleMapBackgroundClick = useCallback(() => {
@@ -351,6 +367,23 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
             restorePreviousView();
         }
     }, [restorePreviousView]);
+
+    // Live Follow Mode: Keep the selected driver centered on the map as their GPS position updates
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !focusedVehicleId) return;
+        const focusedVeh = vehicles.find(v => String(v.id) === String(focusedVehicleId));
+        if (!focusedVeh || focusedVeh.lat == null || focusedVeh.lng == null) return;
+        const nextLat = Number(focusedVeh.lat);
+        const nextLng = Number(focusedVeh.lng);
+        if (isNaN(nextLat) || isNaN(nextLng)) return;
+
+        // Avoid interrupting the initial zoom-in animation right on click
+        if (Date.now() - lastToggleTsRef.current > 1200) {
+            map.panTo([nextLat, nextLng], { animate: true, duration: 0.85 });
+        }
+        setStreetViewVehicle(prev => (prev && String(prev.id) === String(focusedVeh.id) ? focusedVeh : prev));
+    }, [vehicles, focusedVehicleId]);
 
     const getNearestLocalityName = useCallback((lat, lng) => {
         if (lat == null || lng == null) return '';
@@ -524,16 +557,24 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
         localStorage.setItem('minilivetracking_radar_toggle', JSON.stringify(showRadarFx));
     }, [showRadarFx]);
 
+    useEffect(() => {
+        localStorage.setItem('minilivetracking_3d_toggle', JSON.stringify(isSatellite3D));
+    }, [isSatellite3D]);
+
+    useEffect(() => {
+        if (!isDavideChape) return;
+        api.get('/admin/logistics/sand-stations')
+            .then(res => {
+                if (res.data) setSandStations(res.data);
+            })
+            .catch(() => {});
+    }, [isDavideChape]);
+
     const fetchLive = useCallback(async () => {
+        if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
         try {
-            const [resVehicles, resStations] = await Promise.all([
-                api.get('/admin/vehicles/live'),
-                isDavideChape ? api.get('/admin/logistics/sand-stations').catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
-            ]);
+            const resVehicles = await api.get('/admin/vehicles/live');
             setVehicles(resVehicles.data || []);
-            if (isDavideChape && resStations.data) {
-                setSandStations(resStations.data);
-            }
             setConnected(true);
         } catch (e) {
             setConnected(false);
@@ -577,6 +618,19 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                     {t('dashboard.live_tracking', 'LIVE TRACKING')}
                 </h3>
                 <div className={`flex items-center ${isMapFull ? "gap-4" : "gap-3"}`}>
+                    <button
+                        type="button"
+                        onClick={() => setIsSatellite3D(s => !s)}
+                        title="3D / Satellite View"
+                        className={`h-6 px-2.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 ${
+                            isSatellite3D
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                : 'bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 dark:bg-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                        }`}
+                    >
+                        <Box className="w-3.5 h-3.5 shrink-0" />
+                        <span>3D</span>
+                    </button>
                     <div className="flex items-center gap-1.5" title="Radar Doppler & Vânt Live">
                         <CloudRain className="w-3.5 h-3.5 text-sky-500 shrink-0" />
                         <Wind className="w-3.5 h-3.5 text-emerald-500 shrink-0 -ml-1" />
@@ -724,6 +778,42 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                                                 </div>
                                             </div>
                                         )}
+                                        {isFocused && (
+                                            <div className="flex items-center gap-1.5 ml-4 mt-0.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const next3D = !isSatellite3D;
+                                                        setIsSatellite3D(next3D);
+                                                        if (next3D && mapRef.current) {
+                                                            mapRef.current.flyTo([v.lat, v.lng], 18, { animate: true, duration: 0.9 });
+                                                        }
+                                                    }}
+                                                    className={`flex-1 h-6 px-2 rounded-md text-[10px] font-extrabold flex items-center justify-center gap-1 border transition-all cursor-pointer ${
+                                                        isSatellite3D
+                                                            ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                                            : 'bg-white dark:bg-slate-800 hover:bg-blue-50 text-slate-700 dark:text-slate-200 hover:text-blue-700 border-slate-200 dark:border-slate-700'
+                                                    }`}
+                                                    title="3D / Satellite View"
+                                                >
+                                                    <Box className="w-3 h-3 shrink-0" />
+                                                    <span>3D</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setStreetViewVehicle(v);
+                                                    }}
+                                                    className="flex-1 h-6 px-2 rounded-md text-[10px] font-extrabold flex items-center justify-center gap-1 bg-white dark:bg-slate-800 hover:bg-blue-50 text-slate-700 dark:text-slate-200 hover:text-blue-700 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer whitespace-nowrap"
+                                                    title="Street View 360°"
+                                                >
+                                                    <Eye className="w-3 h-3 shrink-0" />
+                                                    <span>Street View</span>
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             })}
@@ -739,7 +829,12 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                     scrollWheelZoom={isMapFull}
                 >
                     <TileLayer
-                        url="https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}"
+                        key={isSatellite3D ? 'sat-3d' : 'road-2d'}
+                        url={
+                            isSatellite3D
+                                ? "https://mt1.google.com/vt/lyrs=y&hl=fr&x={x}&y={y}&z={z}"
+                                : "https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}"
+                        }
                         attribution="&copy; Google Maps"
                         maxZoom={20}
                     />
@@ -801,6 +896,9 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                             return (
                                 <Marker
                                     key={v.id}
+                                    ref={(el) => {
+                                        if (el) markerRefs.current[v.id] = el;
+                                    }}
                                     position={[v.lat, v.lng]}
                                     icon={createVehicleIcon(v.team_color, v.name, v.avatar_url, v.vehicle_type, v.speed, vehicleOffsets[v.id] || [0, 0], isMapFull)}
                                     eventHandlers={{
@@ -810,17 +908,22 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                                     }}
                                 >
                                     <Popup className="tracking-popup">
-                                        <div className="flex items-center gap-3 mb-2">
+                                        <div className="flex items-center gap-2.5 mb-1.5">
                                             {v.avatar_url && (
                                                 <img
                                                     src={v.avatar_url.startsWith('http') ? v.avatar_url : `http://davidechape.localhost:5678${v.avatar_url}`}
                                                     alt="avatar"
-                                                    className="w-8 h-8 rounded-full object-cover border-2"
+                                                    className="w-8 h-8 rounded-full object-cover border-2 shrink-0"
                                                     style={{ borderColor: v.team_color }}
                                                 />
                                             )}
-                                            <div>
-                                                <div className="text-sm font-bold text-slate-900">{v.name}</div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="text-sm font-extrabold text-slate-900">{v.name}</span>
+                                                    {v.plate_number && v.plate_number !== 'NN' && (
+                                                        <EuroPlate number={v.plate_number} country="B" size="xs" />
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="text-xs mt-1 text-slate-500">{t('live.last_seen', 'Vu')}: {formatLastSeen(v.last_seen, t)}</div>
@@ -833,9 +936,12 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                                         {syncedJob && (
                                             <div className="mt-2 pt-2 border-t border-slate-100 text-xs">
                                                 <div className="font-bold text-blue-700 flex items-center justify-between gap-2">
-                                                    <span>📋 {syncedJob.start_time} · {syncedJob.client_name}</span>
+                                                    <span className="flex items-center gap-1 min-w-0 truncate">
+                                                        <ClipboardList className="w-3.5 h-3.5 shrink-0 text-blue-600" />
+                                                        <span className="truncate">{syncedJob.start_time} · {syncedJob.client_name}</span>
+                                                    </span>
                                                     {syncedJob.surface_m2 && (
-                                                        <span className="text-emerald-600 font-extrabold tabular-nums">{syncedJob.surface_m2}m²</span>
+                                                        <span className="text-emerald-600 font-extrabold tabular-nums shrink-0">{syncedJob.surface_m2}m²</span>
                                                     )}
                                                 </div>
                                                 {jobCity && (
@@ -843,12 +949,103 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                                                 )}
                                             </div>
                                         )}
+                                        {/* Stylized Vector Action Buttons: 3D Satellite & Street View (Zero Emojis) */}
+                                        <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const next3D = !isSatellite3D;
+                                                    setIsSatellite3D(next3D);
+                                                    if (next3D && mapRef.current) {
+                                                        mapRef.current.flyTo([v.lat, v.lng], 18, { animate: true, duration: 0.9 });
+                                                    }
+                                                }}
+                                                className={`flex-1 h-7 px-2.5 rounded-lg text-[11px] font-extrabold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                                                    isSatellite3D
+                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                                        : 'bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-200/90 hover:border-blue-300'
+                                                }`}
+                                                title="3D / Satellite View"
+                                            >
+                                                <Box className="w-3.5 h-3.5 shrink-0" />
+                                                <span>3D</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setStreetViewVehicle(v);
+                                                }}
+                                                className="flex-1 h-7 px-2.5 rounded-lg text-[11px] font-extrabold flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/90 hover:border-blue-300 transition-all cursor-pointer whitespace-nowrap"
+                                                title="Street View 360°"
+                                            >
+                                                <Eye className="w-3.5 h-3.5 shrink-0" />
+                                                <span>Street View</span>
+                                            </button>
+                                        </div>
                                     </Popup>
                                 </Marker>
                             );
                         });
                     })()}
                 </MapContainer>
+
+                {/* In-App Street View 360° Overlay Panel */}
+                {streetViewVehicle && (
+                    <div
+                        className="absolute inset-3 z-[1200] bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/80 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-sky-400 shrink-0">
+                                    <Eye className="w-4 h-4" />
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                    <span className="text-xs font-extrabold text-white truncate">{streetViewVehicle.name}</span>
+                                    {streetViewVehicle.plate_number && streetViewVehicle.plate_number !== 'NN' && (
+                                        <EuroPlate number={streetViewVehicle.plate_number} country="B" size="xs" />
+                                    )}
+                                    {streetViewVehicle.speed != null && (
+                                        <span className="text-[11px] font-bold text-sky-400 tabular-nums">
+                                            · {Math.round(streetViewVehicle.speed)} km/h
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <a
+                                    href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${streetViewVehicle.lat},${streetViewVehicle.lng}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="h-7 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition-colors"
+                                    title="Google Street View"
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                                    <span>Google Maps</span>
+                                </a>
+                                <button
+                                    type="button"
+                                    onClick={() => setStreetViewVehicle(null)}
+                                    className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                                    title={t('common.close', 'Fermer')}
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 relative bg-slate-950">
+                            <iframe
+                                title={`Street View - ${streetViewVehicle.name}`}
+                                src={`https://maps.google.com/maps?q=&layer=c&cbll=${streetViewVehicle.lat},${streetViewVehicle.lng}&cbp=11,0,0,0,0&output=svembed`}
+                                className="w-full h-full border-0"
+                                allowFullScreen
+                                loading="lazy"
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

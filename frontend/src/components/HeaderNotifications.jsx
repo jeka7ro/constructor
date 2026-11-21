@@ -76,11 +76,12 @@ export default function HeaderNotifications() {
 
         fetchMessages()
         fetchQuotes()
-        // Poll every 6s for fast real-time notifications
+        // Poll every 15s only when tab is visible (instant refresh on tab focus/visibilitychange)
         const interval = setInterval(() => {
+            if (document.visibilityState !== 'visible') return
             fetchMessages()
             fetchQuotes()
-        }, 6000) 
+        }, 15000) 
         
         return () => {
             clearInterval(interval)

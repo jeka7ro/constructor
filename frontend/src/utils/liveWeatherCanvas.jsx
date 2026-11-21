@@ -570,6 +570,8 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
     const [hudStations, setHudStations] = useState([]);
     const [selectedCityId, setSelectedCityId] = useState(null);
     const stationsRef = useRef([]);
+    const workOrdersRef = useRef(workOrders);
+    workOrdersRef.current = workOrders;
     const canvasRef = useRef(null);
     const radarLayerRef = useRef(null);
     const selectedMarkerRef = useRef(null);
@@ -610,7 +612,8 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
             todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
-        const todayOrders = (Array.isArray(workOrders) ? workOrders : [])
+        const currentWorkOrders = workOrdersRef.current;
+        const todayOrders = (Array.isArray(currentWorkOrders) ? currentWorkOrders : [])
             .filter(wo => {
                 const dStr = (wo.start_date || wo.deadline_date || '').split('T')[0];
                 return dStr === todayStr && !['cancelled', 'pending'].includes(wo.status);
@@ -653,11 +656,11 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
         }
 
         setHudStations([]);
-    }, [workOrders]);
+    }, []);
 
     useEffect(() => {
         updateHudList();
-    }, [updateHudList]);
+    }, [workOrders, updateHudList]);
 
     useEffect(() => {
         let mounted = true;
@@ -777,17 +780,17 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
                     style={
                         isMapFull
                             ? {
-                                  top: '18px',
-                                  left: '78px',
-                                  transform: 'scale(1.48)',
-                                  transformOrigin: 'top left',
-                                  maxHeight: 'calc((100vh - 96px) / 1.48)',
-                              }
+                                top: '18px',
+                                left: '78px',
+                                transform: 'scale(1.48)',
+                                transformOrigin: 'top left',
+                                maxHeight: 'calc((100vh - 96px) / 1.48)',
+                            }
                             : {
-                                  top: '16px',
-                                  left: '56px',
-                                  maxHeight: 'calc(100% - 2rem)',
-                              }
+                                top: '16px',
+                                left: '56px',
+                                maxHeight: 'calc(100% - 2rem)',
+                            }
                     }
                     onClick={e => e.stopPropagation()}
                     onDoubleClick={e => e.stopPropagation()}
