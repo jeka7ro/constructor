@@ -126,10 +126,10 @@ export default function PartnersManagement() {
             key: 'preferred_language',
             label: t('partners.language', 'Langue'),
             render: (row) => {
-                const flags = { fr: '🇫🇷', nl: '🇳🇱', en: '🇬🇧' }
+                const flags = { fr: '', nl: '', en: '' }
                 return (
                     <span className="text-sm">
-                        {flags[row.preferred_language] || '🌐'} {(row.preferred_language || 'fr').toUpperCase()}
+                        {flags[row.preferred_language] || ''} {(row.preferred_language || 'fr').toUpperCase()}
                     </span>
                 )
             }
@@ -205,7 +205,7 @@ export default function PartnersManagement() {
                     <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
                         {t('partners.login_url_label', 'Lien de connexion partenaire :')}
                     </p>
-                    <code className="text-sm text-blue-600 dark:text-blue-400 mt-1 font-mono">{getPartnerUrl()}</code>
+                    <code className="text-sm text-blue-600 dark:text-blue-400 mt-1 tabular-nums">{getPartnerUrl()}</code>
                 </div>
                 <button
                     onClick={() => navigator.clipboard.writeText(getPartnerUrl())}
@@ -413,9 +413,9 @@ function PartnerFormModal({ partner, clients = [], teams = [], onClose, onSaved 
                         </label>
                         <div className="flex gap-2">
                             {[
-                                { code: 'fr', label: '🇫🇷 Français' },
-                                { code: 'nl', label: '🇳🇱 Nederlands' },
-                                { code: 'en', label: '🇬🇧 English' },
+                                { code: 'fr', label: 'Français' },
+                                { code: 'nl', label: 'Nederlands' },
+                                { code: 'en', label: 'English' },
                             ].map(l => (
                                 <button
                                     key={l.code}

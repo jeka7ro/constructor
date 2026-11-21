@@ -143,9 +143,9 @@ export default function NotificationsPage() {
                             >
                                 <option value="">{t('notifications.all_events', 'Tous les événements')}</option>
                                 <option value="check_in">🟢 {t('notifications.check_ins', 'Entrées')}</option>
-                                <option value="check_out">🔴 {t('notifications.check_outs', 'Sorties')}</option>
-                                <option value="break_start">☕ {t('notifications.breaks', 'Pauses')}</option>
-                                <option value="break_end">🔄 {t('notifications.returns', 'Retours')}</option>
+                                <option value="check_out">{t('notifications.check_outs', 'Sorties')}</option>
+                                <option value="break_start">{t('notifications.breaks', 'Pauses')}</option>
+                                <option value="break_end">{t('notifications.returns', 'Retours')}</option>
                             </select>
                         </div>
                         {/* Today date badge */}
@@ -219,7 +219,7 @@ export default function NotificationsPage() {
                                             </td>
                                             {/* Time */}
                                             <td className="px-5 py-3.5">
-                                                <span className="text-sm font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                                                <span className="text-sm tabular-nums font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
                                                     {formatTime(evt.time)}
                                                 </span>
                                             </td>

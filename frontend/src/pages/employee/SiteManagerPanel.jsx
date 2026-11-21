@@ -432,13 +432,11 @@ export default function SiteManagerPanel() {
                                     )}
                                     {teamBreak > 0 && (
                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-700">
-                                            {teamBreak} ☕
-                                        </span>
+                                            {teamBreak} </span>
                                     )}
                                     {teamFinished > 0 && (
                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">
-                                            {teamFinished} ✓
-                                        </span>
+                                            {teamFinished} </span>
                                     )}
                                     {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                                 </div>

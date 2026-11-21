@@ -47,7 +47,7 @@ export default function EmployeeMaterialRequests() {
                 
                 const hasNew = currentDelivered.some(id => !prevDelivered.includes(id));
                 if (hasNew && 'Notification' in window && Notification.permission === 'granted') {
-                    new Notification('📦 Semnătură Digitală Necesară', {
+                    new Notification('Semnătură Digitală Necesară', {
                         body: 'Administratorul ți-a predat materiale noi. Intră în aplicație pentru a confirma primirea!',
                         icon: '/vite.svg'
                     });

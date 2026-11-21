@@ -675,7 +675,7 @@ export default function AdminChats() {
                                                                         if (roText.trim().toLowerCase() === (msg.message || '').trim().toLowerCase()) return null;
                                                                         return (
                                                                             <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/50 text-xs italic text-slate-500 dark:text-slate-400">
-                                                                                <span className="font-semibold block mb-0.5">🌐 {t('chat.translation', 'Traducere')} (RO):</span>
+                                                                                <span className="font-semibold block mb-0.5">{t('chat.translation', 'Traducere')} (RO):</span>
                                                                                 {roText}
                                                                             </div>
                                                                         );
@@ -692,7 +692,7 @@ export default function AdminChats() {
                                                                     if (transText.trim().toLowerCase() === (msg.message || '').trim().toLowerCase()) return null;
                                                                     return (
                                                                         <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
-                                                                            <span className="font-semibold block mb-0.5">🌐 {t('chat.translation', 'Traduction')} ({displayLang.toUpperCase()}):</span>
+                                                                            <span className="font-semibold block mb-0.5">{t('chat.translation', 'Traduction')} ({displayLang.toUpperCase()}):</span>
                                                                             {transText}
                                                                         </div>
                                                                     );
@@ -726,7 +726,7 @@ export default function AdminChats() {
                                                 {/* Reaction Picker Popover */}
                                                 {showEmojiPickerFor === msg.id && (
                                                     <div className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-1 z-20`}>
-                                                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(em => (
+                                                        {['', '', '', '', '', ''].map(em => (
                                                             <button 
                                                                 key={em} 
                                                                 onClick={() => handleToggleReaction(msg.id, em)}
@@ -854,9 +854,9 @@ export default function AdminChats() {
                                                 title={t('chat.select_language', 'Langue de traduction')}
                                             >
                                                 <option value="none">{t('chat.no_translation', 'Sans trad.')}</option>
-                                                <option value="fr">🇫🇷 FR (Français)</option>
-                                                <option value="en">🇬🇧 EN (English)</option>
-                                                <option value="nl">🇧🇪 NL (Nederlands)</option>
+                                                <option value="fr">FR (Français)</option>
+                                                <option value="en">EN (English)</option>
+                                                <option value="nl">NL (Nederlands)</option>
                                             </select>
                                             <button
                                                 type="submit"

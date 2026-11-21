@@ -643,7 +643,7 @@ export default function TimesheetApprovalPage() {
                                                                 {entry.check_out && ` - ${new Date(entry.check_out).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}`}
                                                             </span>
                                                         )}
-                                                        {entry.break_hours > 0 && <span className="text-orange-500">☕ {formatHours(entry.break_hours)}</span>}
+                                                        {entry.break_hours > 0 && <span className="text-orange-500">{formatHours(entry.break_hours)}</span>}
                                                     </div>
                                                     {entry.activities.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mt-2">

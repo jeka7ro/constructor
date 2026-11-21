@@ -291,7 +291,7 @@ function VehicleCard({ result, speedLimit = 90 }) {
                             <p className="font-bold text-slate-900 text-sm leading-tight truncate">
                                 {result.vehicle_name}
                             </p>
-                            <span className="text-slate-400 font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded-md flex-shrink-0">
+                            <span className="text-slate-400 tabular-nums text-[10px] bg-slate-100 px-1.5 py-0.5 rounded-md flex-shrink-0">
                                 {result.vehicle_plate}
                             </span>
                             {lastPoint && (
@@ -465,7 +465,7 @@ function VehicleCard({ result, speedLimit = 90 }) {
                                         <div className="text-sm font-bold text-slate-800 flex flex-wrap items-center gap-2">
                                             <span>{step.name}</span>
                                             {step.type === 'base' && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-md uppercase tracking-wider">Base</span>}
-                                            <span className="text-xs font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                                            <span className="text-xs tabular-nums text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
                                                 {step.arrived || '--:--'} {'->'} {step.departed || '--:--'}
                                                 {step.duration_min > 0 && ` (${step.duration_min} min)`}
                                             </span>

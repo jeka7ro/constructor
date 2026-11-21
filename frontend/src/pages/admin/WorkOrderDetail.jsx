@@ -51,13 +51,13 @@ const fmtFull = (d) => d ? `${fmt(d)} ${fmtTime(d)}` : '—'
 
 const getLanguageFlag = (lang) => {
     const l = lang?.toLowerCase();
-    if (l === 'ro') return '🇷🇴';
-    if (l === 'fr') return '🇫🇷';
-    if (l === 'en') return '🇬🇧';
-    if (l === 'de') return '🇩🇪';
-    if (l === 'it') return '🇮🇹';
-    if (l === 'es') return '🇪🇸';
-    if (l === 'nl') return '🇳🇱';
+    if (l === 'ro') return '';
+    if (l === 'fr') return '';
+    if (l === 'en') return '';
+    if (l === 'de') return '';
+    if (l === 'it') return '';
+    if (l === 'es') return '';
+    if (l === 'nl') return '';
     return l ? l.toUpperCase() : '';
 };
 
@@ -116,7 +116,7 @@ function Row({ label, value, mono }) {
     return (
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between py-2.5 sm:py-3 border-b border-slate-50 dark:border-slate-700/50 last:border-0 gap-0.5 sm:gap-3">
             <span className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider sm:w-44 shrink-0">{label}</span>
-            <span className={`text-sm font-semibold text-slate-800 dark:text-slate-200 sm:text-right ${mono ? 'font-mono' : ''} break-words whitespace-pre-line`}>{value || '—'}</span>
+            <span className={`text-sm font-semibold text-slate-800 dark:text-slate-200 sm:text-right ${mono ? 'tabular-nums' : ''} break-words whitespace-pre-line`}>{value || '—'}</span>
         </div>
     )
 }
@@ -1847,7 +1847,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 {wo.access_notes && (
                     <div className="px-4 pb-4 pt-3">
                         <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                            <p className="text-[10px] whitespace-nowrap font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">🔑 {t('work_order_detail.access_notes', "Notes d'Accès")}</p>
+                            <p className="text-[10px] whitespace-nowrap font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">{t('work_order_detail.access_notes', "Notes d'Accès")}</p>
                             <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 whitespace-pre-line">{wo.access_notes}</p>
                         </div>
                     </div>
@@ -2053,7 +2053,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                         <div className="flex flex-wrap gap-1.5 mt-1">
                                                                             {options.map((opt, j) => (
                                                                                 <span key={j} className="inline-flex items-center bg-blue-100/60 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider">
-                                                                                    ✓ {opt}
+                                                                                    {opt}
                                                                                 </span>
                                                                             ))}
                                                                         </div>
@@ -2309,7 +2309,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 if (roText.trim().toLowerCase() === (msg.message || '').trim().toLowerCase()) return null;
                                                                 return (
                                                                     <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/50 text-xs italic text-slate-500 dark:text-slate-400">
-                                                                        <span className="font-semibold block mb-0.5">🌐 {t('chat.translation', 'Traducere')} (RO):</span>
+                                                                        <span className="font-semibold block mb-0.5">{t('chat.translation', 'Traducere')} (RO):</span>
                                                                         {roText}
                                                                     </div>
                                                                 );
@@ -2326,7 +2326,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                             if (transText.trim().toLowerCase() === (msg.message || '').trim().toLowerCase()) return null;
                                                             return (
                                                                 <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
-                                                                    <span className="font-semibold block mb-0.5">🌐 {t('chat.translation', 'Traduction')} ({displayLang.toUpperCase()}):</span>
+                                                                    <span className="font-semibold block mb-0.5">{t('chat.translation', 'Traduction')} ({displayLang.toUpperCase()}):</span>
                                                                     {transText}
                                                                 </div>
                                                             );
@@ -2360,7 +2360,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         {/* Reaction Picker Popover */}
                                         {showEmojiPickerFor === msg.id && (
                                             <div className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-1 z-20`}>
-                                                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(em => (
+                                                {['', '', '', '', '', ''].map(em => (
                                                     <button 
                                                         key={em} 
                                                         onClick={() => handleToggleReaction(msg.id, em)}
@@ -2486,9 +2486,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         title={t('chat.select_language', 'Langue de traduction')}
                                     >
                                         <option value="none">{t('chat.no_translation', 'Sans trad.')}</option>
-                                        <option value="fr">🇫🇷 FR (Français)</option>
-                                        <option value="en">🇬🇧 EN (English)</option>
-                                        <option value="nl">🇧🇪 NL (Nederlands)</option>
+                                        <option value="fr">FR (Français)</option>
+                                        <option value="en">EN (English)</option>
+                                        <option value="nl">NL (Nederlands)</option>
                                     </select>
 
                                     <button
@@ -3285,7 +3285,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                     {selectedMats.map((mat, i) => (
                                                                         <div key={`sel-${i}`} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
                                                                             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{mat}</span>
-                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">✓</span>
+                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200"></span>
                                                                         </div>
                                                                     ))}
                                                                     {autoSandKg > 0 && (

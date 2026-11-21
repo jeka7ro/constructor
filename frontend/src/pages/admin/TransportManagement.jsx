@@ -25,11 +25,11 @@ const STATUS_MAP = {
 };
 
 const PURPOSE_LABELS = {
-  transport_materiale:  { key: 'transport.purpose_materials', fallback: '🏗️ Transport matériaux' },
-  deplasare_personal:   { key: 'transport.purpose_personnel', fallback: '👤 Déplacement personnel' },
-  service:              { key: 'transport.purpose_service', fallback: '🔧 Service / Réparations' },
-  livrare:              { key: 'transport.purpose_delivery', fallback: '📦 Livraison' },
-  alte:                 { key: 'transport.purpose_other', fallback: '📋 Autres' },
+  transport_materiale:  { key: 'transport.purpose_materials', fallback: 'Transport matériaux' },
+  deplasare_personal:   { key: 'transport.purpose_personnel', fallback: 'Déplacement personnel' },
+  service:              { key: 'transport.purpose_service', fallback: 'Service / Réparations' },
+  livrare:              { key: 'transport.purpose_delivery', fallback: 'Livraison' },
+  alte:                 { key: 'transport.purpose_other', fallback: 'Autres' },
 };
 
 const DAY_NAMES = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];

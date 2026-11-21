@@ -46,7 +46,7 @@ export default function AdminBackups() {
     
     const handleRestore = async (filename) => {
         const pin = prompt(
-            "⚠️ AVERTISSEMENT CRITIQUE ⚠️\n\n" + 
+            "AVERTISSEMENT CRITIQUE \n\n" + 
             "La restauration d'une sauvegarde va EFFACER TOUTES LES DONNÉES ACTUELLES " + 
             "et les remplacer par celles de la sauvegarde.\n\n" + 
             "Pour confirmer cette action, veuillez taper le code PIN de sécurité : 1234"

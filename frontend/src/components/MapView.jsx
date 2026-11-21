@@ -585,7 +585,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 {/* Mesaj eroare */}
                 {geoError && !geocoding && (
                     <div className="absolute bottom-2 left-2 right-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2 z-[400] pointer-events-none">
-                        <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">⚠️ {t('mapview.geo_error', 'Adresa nu a putut fi localizată. Adaugă GPS manual în Șantiere.')}</p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">{t('mapview.geo_error', 'Adresa nu a putut fi localizată. Adaugă GPS manual în Șantiere.')}</p>
                     </div>
                 )}
             </div>

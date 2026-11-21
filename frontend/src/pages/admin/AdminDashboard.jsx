@@ -9,7 +9,7 @@ import HeaderNotifications from '../../components/HeaderNotifications'
 import GlobalSearch from '../../components/GlobalSearch'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail, MapIcon, HardDrive, Handshake
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail, MapIcon, HardDrive, Handshake, Maximize2, Minimize2
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -35,6 +35,43 @@ export default function AdminDashboard() {
     }, [])
     const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : true)
     const [showGlobalSearch, setShowGlobalSearch] = useState(false)
+
+    // Global Fullscreen state synced with browser & Esc key (including Safari webkit fallback)
+    const [isAppFullscreen, setIsAppFullscreen] = useState(() => {
+        if (typeof document === 'undefined') return false
+        return Boolean(document.fullscreenElement || document.webkitFullscreenElement)
+    })
+
+    useEffect(() => {
+        const syncFsState = () => {
+            setIsAppFullscreen(Boolean(document.fullscreenElement || document.webkitFullscreenElement))
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 80)
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 250)
+        }
+        document.addEventListener('fullscreenchange', syncFsState)
+        document.addEventListener('webkitfullscreenchange', syncFsState)
+        return () => {
+            document.removeEventListener('fullscreenchange', syncFsState)
+            document.removeEventListener('webkitfullscreenchange', syncFsState)
+        }
+    }, [])
+
+    const handleToggleFullscreen = async () => {
+        const rootEl = document.documentElement
+        const activeEl = document.fullscreenElement || document.webkitFullscreenElement
+        try {
+            if (activeEl) {
+                if (document.exitFullscreen) await document.exitFullscreen()
+                else if (document.webkitExitFullscreen) await document.webkitExitFullscreen()
+            } else if (rootEl.requestFullscreen) {
+                await rootEl.requestFullscreen()
+            } else if (rootEl.webkitRequestFullscreen) {
+                await rootEl.webkitRequestFullscreen()
+            }
+        } catch {
+            // Fullscreen unavailable or blocked by browser
+        }
+    }
 
     // Setup Cmd+K / Ctrl+K listener
     useEffect(() => {
@@ -373,9 +410,11 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (darkMode) {
             document.documentElement.classList.add('dark')
+            document.documentElement.setAttribute('data-theme', 'dark')
             localStorage.setItem('theme', 'dark')
         } else {
             document.documentElement.classList.remove('dark')
+            document.documentElement.setAttribute('data-theme', 'light')
             localStorage.setItem('theme', 'light')
         }
     }, [darkMode])
@@ -425,8 +464,8 @@ export default function AdminDashboard() {
             
                 {/* Header Bar */}
                 <header 
-                    className={`h-16 md:h-16 px-6 flex items-center justify-between z-40 text-white shadow-sm transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 ${darkMode ? 'bg-slate-800 border border-slate-700' : 'bg-[color:var(--tenant-bg)]'}`}
-                    style={!darkMode ? { '--tenant-bg': tenant?.primary_color || '#2563EB' } : {}}
+                    className="h-16 md:h-16 px-6 flex items-center justify-between z-40 text-white shadow-md transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 bg-[color:var(--tenant-bg)]"
+                    style={{ '--tenant-bg': tenant?.primary_color || '#2563EB' }}
                 >
                     <div className="flex items-center gap-4">
                          <button 
@@ -526,30 +565,45 @@ export default function AdminDashboard() {
                                    <button
                                        onClick={() => setShowGlobalSearch(true)}
                                        title={t('search.placeholder', 'Rechercher (Cmd+K)')}
-                                       className="w-8 h-8 rounded-full flex items-center justify-center border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 shadow-sm"
+                                       className="w-9 h-9 rounded-full flex items-center justify-center border border-white/30 bg-white/10 text-white/90 hover:text-white hover:bg-white/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
                                    >
-                                       <Search className="w-4 h-4 text-white" />
+                                       <Search className="w-4 h-4 text-white shrink-0" aria-hidden="true" />
                                    </button>
                                </>
                            )}
 
                            <button
+                               type="button"
+                               aria-pressed={isAppFullscreen}
+                               onClick={() => { void handleToggleFullscreen() }}
+                               title={isAppFullscreen ? t('admin.exit_fullscreen', 'Quitter le mode Plein écran (Esc)') : t('admin.enter_fullscreen', 'Activer le mode Plein écran (5K / Ultra-Wide)')}
+                               aria-label={isAppFullscreen ? t('admin.exit_fullscreen', 'Quitter le mode Plein écran') : t('admin.enter_fullscreen', 'Plein écran')}
+                               className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0 ${
+                                   isAppFullscreen
+                                       ? 'bg-white text-blue-700 border-white shadow-md'
+                                       : 'border-white/30 bg-white/10 text-white/90 hover:text-white hover:bg-white/20'
+                               }`}
+                           >
+                               {isAppFullscreen ? <Minimize2 className="w-4 h-4 shrink-0" aria-hidden="true" /> : <Maximize2 className="w-4 h-4 shrink-0" aria-hidden="true" />}
+                           </button>
+
+                           <button
                                onClick={() => setDarkMode(!darkMode)}
                                title={darkMode ? t('admin.light_mode', 'Mode Clair') : t('admin.dark_mode', 'Mode Sombre')}
-                               className="w-8 h-8 rounded-full flex items-center justify-center border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 shadow-sm"
+                               className="w-9 h-9 rounded-full flex items-center justify-center border border-white/30 bg-white/10 text-white/90 hover:text-white hover:bg-white/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
                            >
                                {darkMode
-                                   ? <Moon className="w-4 h-4 text-white" />
-                                   : <Sun className="w-4 h-4 text-white" />
+                                   ? <Moon className="w-4 h-4 text-white shrink-0" aria-hidden="true" />
+                                   : <Sun className="w-4 h-4 text-white shrink-0" aria-hidden="true" />
                                }
                            </button>
 
                            {!(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && !isScreeds && (
                                <>
-                                   <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 transition-colors relative text-white/90 hover:text-white hover:bg-white/10 shadow-sm" title={t('admin.new_complaints', 'Nouvelles plaintes')}>
-                                       <MessageSquareWarning className="w-4 h-4" />
+                                   <button onClick={() => navigate('/admin/complaints')} className="w-9 h-9 flex items-center justify-center rounded-full border border-white/30 bg-white/10 transition-colors relative text-white/90 hover:text-white hover:bg-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0" title={t('admin.new_complaints', 'Nouvelles plaintes')}>
+                                       <MessageSquareWarning className="w-4 h-4 shrink-0" aria-hidden="true" />
                                        {openComplaintsCount > 0 && (
-                                           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900">
+                                           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900 tabular-nums">
                                                {openComplaintsCount > 99 ? '99+' : openComplaintsCount}
                                            </span>
                                        )}
@@ -580,7 +634,7 @@ export default function AdminDashboard() {
                                     onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
                                 />
                             ) : null}
-                            <div className={`w-9 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg items-center justify-center font-bold text-white shadow-md cursor-pointer hover:shadow-lg transition-all border-2 border-white/20 ${admin?.avatar_path ? 'hidden' : 'hidden sm:flex'}`}>
+                            <div className={`w-9 h-9 bg-white/20 rounded-full items-center justify-center font-bold text-white shadow-sm cursor-pointer hover:bg-white/30 transition-all border border-white/30 ${admin?.avatar_path ? 'hidden' : 'hidden sm:flex'}`}>
                                 {admin?.full_name?.charAt(0)}
                             </div>
                             
@@ -612,7 +666,7 @@ export default function AdminDashboard() {
                 ${sidebarOpen ? 'w-56 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
                 ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
-                md:mb-3 md:ml-3 md:h-[calc(100dvh-100px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
+                md:mb-3 md:ml-4 md:h-[calc(100dvh-100px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
             `}
             style={{ 
                 '--tenant-bg': tenant?.primary_color || '#2563EB',
@@ -696,7 +750,7 @@ export default function AdminDashboard() {
                         )}
                     </div>
                     {sidebarOpen && (
-                        <div className={`text-[10px] font-mono mt-1 opacity-70 select-none text-center ${darkMode ? 'text-slate-400' : 'text-white'}`}>
+                        <div className={`text-[10px] tabular-nums mt-1 opacity-70 select-none text-center ${darkMode ? 'text-slate-400' : 'text-white'}`}>
                             Build v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
                             <br />
                             {typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : ''}
@@ -707,7 +761,7 @@ export default function AdminDashboard() {
 
             {/* Main Content Area */}
                 {/* Main View Outlet */}
-                <main className={`flex-1 overflow-y-auto overflow-x-hidden relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                <main className={`tps-main-workspace flex-1 overflow-y-auto overflow-x-hidden relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
                     {/* Page Content with smooth fade transition */}
                     <div
                         key={location.pathname}
@@ -721,7 +775,7 @@ export default function AdminDashboard() {
                                 to   { opacity: 1; }
                             }
                         `}</style>
-                        <div className="p-4 md:p-4 md:pt-0 pb-24">
+                        <div className="tps-main-inner p-4 md:p-4 md:pt-0 pb-24">
                             <Outlet />
                         </div>
                     </div>
@@ -795,7 +849,7 @@ export default function AdminDashboard() {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
                         <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-6 text-center">
                             <div className="w-16 h-16 bg-slate-200 dark:bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
-                                <span className="text-3xl">🎂</span>
+                                <span className="text-3xl"></span>
                             </div>
                             <h3 className="text-2xl font-bold text-white mb-1">{t('admin.happy_birthday', 'Joyeux anniversaire !')}</h3>
                             <p className="text-pink-100 text-sm">{t('admin.celebrating_today', 'Aujourd\'hui c\'est l\'anniversaire de :')}</p>

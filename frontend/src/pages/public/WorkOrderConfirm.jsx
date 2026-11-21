@@ -436,8 +436,10 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const { token } = useParams()
     const [searchParams, setSearchParams] = useSearchParams()
     const urlLang = searchParams.get('lang')
+    const isSeller = searchParams.get('role') === 'seller'
     const initialLang = (urlLang && ['fr', 'nl', 'en', 'de'].includes(urlLang)) ? urlLang : 'fr'
     const [lang, setLang] = useState(initialLang)
+    const [sellerTargetLang, setSellerTargetLang] = useState(initialLang)
     const t = LANG_DICT[lang] || LANG_DICT['fr']
     
     const MODAL_T = {
@@ -479,7 +481,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     useEffect(() => {
         if (isIframe) {
             const link = document.createElement('link');
-            link.href = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap';
+            link.href = 'https://fonts.googleapis.com/css2?family=Inter';
             link.rel = 'stylesheet';
             document.head.appendChild(link);
             
@@ -650,6 +652,9 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 
                 // If user didn't explicitly override language via URL, adopt the quote's saved language
                 const resolvedClientLang = data.client_language || data.workOrderData?.client_language
+                if (resolvedClientLang && ['fr', 'nl', 'en'].includes(resolvedClientLang)) {
+                    setSellerTargetLang(resolvedClientLang);
+                }
                 if (!urlLang && resolvedClientLang && ['fr', 'nl', 'en', 'de', 'ro'].includes(resolvedClientLang)) {
                     setLang(resolvedClientLang);
                 }
@@ -749,7 +754,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 try {
                     const msgRes = await api.get(`/public/work-orders/${token}/messages`)
                     setMessages(prev => {
-                        if (msgRes.data && msgRes.data.length > prev.length) return msgRes.data;
+                        if (msgRes.data && JSON.stringify(msgRes.data) !== JSON.stringify(prev)) return msgRes.data;
                         return prev;
                     })
                 } catch (e) {}
@@ -764,9 +769,10 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         if (!chatMessage.trim()) return;
         setSendingMessage(true);
         try {
-            const res = await api.post(`/public/work-orders/${token}/messages`, {
-                message: chatMessage
-            });
+            const payload = isSeller
+                ? { message: chatMessage, role: 'seller', target_lang: sellerTargetLang }
+                : { message: chatMessage };
+            const res = await api.post(`/public/work-orders/${token}/messages`, payload);
             setMessages(prev => [...prev, res.data]);
             setChatMessage("");
             const now = new Date().toISOString();
@@ -781,7 +787,10 @@ export default function WorkOrderConfirm({ hideMap = false }) {
 
     const handleDeleteMessage = async (msgId) => {
         try {
-            await api.delete(`/public/work-orders/${token}/messages/${msgId}`);
+            const deleteUrl = isSeller
+                ? `/public/work-orders/${token}/messages/${msgId}?role=seller`
+                : `/public/work-orders/${token}/messages/${msgId}`;
+            await api.delete(deleteUrl);
             setMessages(prev => prev.filter(m => m.id !== msgId));
         } catch (err) {
             console.error("Error deleting message", err);
@@ -790,7 +799,10 @@ export default function WorkOrderConfirm({ hideMap = false }) {
 
     const handleToggleReaction = async (msgId, emoji) => {
         try {
-            const res = await api.post(`/public/work-orders/${token}/messages/${msgId}/react`, { emoji })
+            const res = await api.post(`/public/work-orders/${token}/messages/${msgId}/react`, {
+                emoji,
+                role: isSeller ? 'seller' : 'client'
+            })
             setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reactions: res.data.reactions } : m))
             setShowEmojiPickerFor(null)
         } catch (err) {
@@ -910,7 +922,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         }
     }
 
-    const unreadClientCount = messages.filter(m => m.sender === 'admin' && (!lastReadTime || new Date(m.created_at) > new Date(lastReadTime))).length;
+    const unreadClientCount = messages.filter(m => (isSeller ? m.sender === 'client' : m.sender === 'admin') && (!lastReadTime || new Date(m.created_at) > new Date(lastReadTime))).length;
 
     const primaryColor = order?.org_primary_color || '#3b82f6'
     const orgTimezone = order?.org_timezone || 'Europe/Brussels'
@@ -972,7 +984,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     key={l.code}
                                     onClick={() => {
                                         setLang(l.code);
-                                        setSearchParams({ lang: l.code }, { replace: true });
+                                        setSearchParams(isSeller ? { lang: l.code, role: 'seller' } : { lang: l.code }, { replace: true });
                                     }}
                                     className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-[11px] font-black transition-colors flex items-center gap-1 ${lang === l.code ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
@@ -1009,6 +1021,24 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             </div>
 
             <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+                {isSeller && (
+                    <div className="bg-emerald-700 text-white rounded-2xl p-3.5 shadow-md flex flex-wrap items-center justify-between gap-3 print:hidden">
+                        <div className="flex items-center gap-2.5">
+                            <span className="w-3 h-3 rounded-full bg-emerald-300 animate-pulse shrink-0"></span>
+                            <div>
+                                <p className="text-xs sm:text-sm font-black uppercase tracking-wide">Link Davide Chape (Mode Vendeur)</p>
+                                <p className="text-[11px] text-emerald-100">Vos messages dans le chat apparaissent en tant que Davide Chape et notifient le client par Email & WhatsApp.</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleOpenChat}
+                            className="px-3 py-1.5 bg-white text-emerald-800 hover:bg-emerald-50 font-black text-xs rounded-xl shadow-sm transition-colors shrink-0"
+                        >
+                            Ouvrir le Chat ↓
+                        </button>
+                    </div>
+                )}
 
                 {/* Grid Layout: Left = Confirmed & Date Cards, Right = Map */}
                 <div className={`grid gap-4 mb-6 ${(!hideMap && (order?.site_name || order?.site_address || order?.site_lat)) ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-2xl mx-auto'}`}>
@@ -1179,29 +1209,15 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 {/* Action Bar & Language Switcher Removed (moved to header) */}
 
                 {/* Embed the PDF with integrated Signature */}
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-6 w-full relative print:hidden">
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-4 w-full relative print:hidden">
                     <DevisView 
                         key={order?.updated_at || order?.id || 'devis'}
                         embeddedToken={token}
                         lang={lang}
                         signatureElement={
-                            !confirmed ? (
-                                <div className="w-full relative h-full flex flex-col">
-                                    <div className="flex-1 flex flex-col">
-                                        <SignaturePad onChange={setSignature} disabled={confirming} t={t} />
-                                    </div>
-                                    {!signature && !acceptedOffer && (
-                                        <p className="text-[10px] text-amber-600 font-bold mt-1.5 flex items-center gap-1 absolute -bottom-6 left-0">
-                                            <AlertCircle className="w-3 h-3" /> {t.signatureRequired}
-                                        </p>
-                                    )}
-                                    <div className="mt-8 pt-4 border-t border-slate-200">
-                                        <p className="text-xs font-bold text-slate-500 mb-2">{t.orAcceptWithout}</p>
-                                        <label className="flex items-start gap-3 cursor-pointer select-none bg-slate-50 border border-slate-200 rounded-xl p-3 hover:bg-blue-50 hover:border-blue-300 transition-all">
-                                            <input type="checkbox" checked={acceptedOffer} onChange={e => setAcceptedOffer(e.target.checked)} className="mt-0.5 w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0" />
-                                            <span className="text-sm font-semibold text-slate-700 leading-snug">{t.acceptOffer}</span>
-                                        </label>
-                                    </div>
+                            isSeller ? null : !confirmed ? (
+                                <div className="w-full relative flex flex-col">
+                                    <SignaturePad onChange={setSignature} disabled={confirming} t={t} />
                                 </div>
                             ) : (
                                 <div className="w-full flex flex-col">
@@ -1222,12 +1238,27 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             )
                         } 
                     />
-                </div>
 
-                {/* Confirm section (integrated immediately below PDF) */}
-                {!confirmed && (
-                    <div className="flex flex-col mt-2 print:hidden w-full max-w-2xl mx-auto">
-                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-4">
+                    {/* Full-width compact confirmation bar for Client only */}
+                    {!confirmed && !isSeller && (
+                        <div className="px-5 sm:px-10 pb-6 pt-3 border-t border-slate-100 bg-slate-50/70 flex flex-col gap-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t.orAcceptWithout}</span>
+                                {!signature && !acceptedOffer && (
+                                    <span className="text-[11px] text-amber-600 font-bold flex items-center gap-1">
+                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {t.signatureRequired}
+                                    </span>
+                                )}
+                            </div>
+                            <label className="w-full flex items-center gap-3 cursor-pointer select-none bg-white border border-slate-200 rounded-xl px-4 py-3 hover:bg-blue-50/50 hover:border-blue-300 transition-all shadow-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={acceptedOffer}
+                                    onChange={e => setAcceptedOffer(e.target.checked)}
+                                    className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+                                />
+                                <span className="text-xs sm:text-sm font-semibold text-slate-700 leading-snug">{t.acceptOffer}</span>
+                            </label>
                             {error && (
                                 <p className="text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>
                             )}
@@ -1235,8 +1266,8 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 type="button"
                                 onClick={handleConfirm}
                                 disabled={!canConfirm}
-                                className={`w-full h-14 rounded-xl text-white font-black text-lg shadow-md transition-all flex items-center justify-center gap-2 ${
-                                    canConfirm ? 'hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]' : 'opacity-40 cursor-not-allowed'
+                                className={`w-full h-12 rounded-xl text-white font-black text-base shadow-md transition-all flex items-center justify-center gap-2 ${
+                                    canConfirm ? 'hover:scale-[1.01] hover:shadow-lg active:scale-[0.99]' : 'opacity-40 cursor-not-allowed'
                                 }`}
                                 style={{ backgroundColor: primaryColor }}
                             >
@@ -1246,10 +1277,11 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 }
                             </button>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
                 {/* Client Documents (Upload & List) */}
+                {(!isSeller || order?.client_documents?.length > 0) && (
                 <div className="mt-6 print:hidden w-full max-w-2xl mx-auto">
                     <input type="file" ref={docInputRef} onChange={handleDocumentUpload} accept="image/*,application/pdf" className="hidden" multiple max="10" />
                     {order?.client_documents?.length > 0 ? (
@@ -1259,6 +1291,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     <Paperclip className="w-4 h-4 text-slate-500" />
                                     {t.clientDocuments || 'Documents Client (Plans / Photos)'}
                                 </h3>
+                                {!isSeller && (
                                 <button
                                     onClick={() => docInputRef.current?.click()}
                                     disabled={isUploadingDoc}
@@ -1267,6 +1300,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     {isUploadingDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Paperclip className="w-3.5 h-3.5" />}
                                     {t.addDocument || 'Ajouter un Document'}
                                 </button>
+                                )}
                             </div>
                             <div className="flex flex-col gap-2">
                                 {order.client_documents.map((d, i) => (
@@ -1289,7 +1323,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 ))}
                             </div>
                         </div>
-                    ) : (
+                    ) : !isSeller ? (
                         <button
                             onClick={() => docInputRef.current?.click()}
                             disabled={isUploadingDoc}
@@ -1298,8 +1332,9 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
                             {t.addDocument || 'Ajouter des Documents / Plans / Photos'}
                         </button>
-                    )}
+                    ) : null}
                 </div>
+                )}
 
                 {/* Invoice Download */}
                 {order?.final_invoice_path && (
@@ -1343,10 +1378,18 @@ export default function WorkOrderConfirm({ hideMap = false }) {
 
                 {/* Chat Section */}
                 <div id="chat-section" onMouseEnter={markChatAsRead} onTouchStart={markChatAsRead} className="mt-6 print:hidden w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                    {isSeller && (
+                        <div className="bg-emerald-700 text-white px-4 py-2.5 flex items-center justify-between text-xs font-bold">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-pulse"></span>
+                                <span>Mode Vendeur (Davide Chape) — Vous répondez au client en tant que Davide Chape</span>
+                            </div>
+                        </div>
+                    )}
                     <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                                <MessageSquare className="w-4 h-4 text-blue-600" />
+                            <div className={`w-8 h-8 rounded-lg ${isSeller ? 'bg-emerald-100' : 'bg-blue-100'} flex items-center justify-center shrink-0`}>
+                                <MessageSquare className={`w-4 h-4 ${isSeller ? 'text-emerald-600' : 'text-blue-600'}`} />
                             </div>
                             <h3 className="font-black text-slate-800 uppercase text-sm tracking-wider">
                                 {t.communication || 'COMMUNICATION'}
@@ -1364,7 +1407,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     key={l.code}
                                     onClick={() => {
                                         setLang(l.code);
-                                        setSearchParams({ lang: l.code }, { replace: true });
+                                        setSearchParams(isSeller ? { lang: l.code, role: 'seller' } : { lang: l.code }, { replace: true });
                                     }}
                                     className={`px-3 py-1.5 rounded-md text-[11px] font-black transition-colors flex items-center gap-1.5 ${lang === l.code ? 'bg-white text-blue-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
@@ -1374,40 +1417,53 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             ))}
                         </div>
                     </div>
-                    <div ref={chatContainerRef} className="h-64 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+                    <div ref={chatContainerRef} className="h-72 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
                         {messages.length === 0 ? (
                             <div className="text-center text-slate-400 py-10 text-sm font-semibold">
                                 {t.noMessages || 'No messages yet.'}
                             </div>
                         ) : (
                             messages.map(msg => {
-                                const isOwn = msg.sender === 'client';
+                                const isOwn = isSeller ? msg.sender === 'admin' : msg.sender === 'client';
                                 // Determine the message content to show based on language mapping
                                 let displayMessage = msg.message;
-                                if (!isOwn && msg.translations && msg.translations[lang]) {
-                                    // Only replace the message text completely if it's not our own message and we have a translation for the selected UI language
+                                if (!isSeller && !isOwn && msg.translations && msg.translations[lang]) {
+                                    // For client view: replace Davide Chape's message text with the client's selected language translation
                                     displayMessage = msg.translations[lang];
                                 }
                                 
                                 return (
                                 <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative`}>
-                                    <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm relative ${isOwn ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
+                                    <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm relative ${isOwn ? (isSeller ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-blue-600 text-white rounded-br-none') : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
                                         {!isOwn && (
                                             <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-slate-100">
                                                 <span className="inline-flex items-center gap-1.5 text-[11px] font-black tracking-wide text-blue-700 uppercase">
                                                     <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                                                    Davide Chape
+                                                    {isSeller ? (order?.client_name || 'Client') : 'Davide Chape'}
                                                 </span>
                                             </div>
                                         )}
                                         {isOwn && (
                                             <div className="flex items-center justify-end gap-1 mb-1">
-                                                <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider">
-                                                    {t.you || 'Vous (Client)'}
+                                                <span className={`text-[10px] font-bold ${isSeller ? 'text-emerald-100' : 'text-blue-200'} uppercase tracking-wider`}>
+                                                    {isSeller ? 'Davide Chape (Vendeur)' : (t.you || 'Vous (Client)')}
                                                 </span>
                                             </div>
                                         )}
                                         <p className="text-sm whitespace-pre-wrap">{displayMessage}</p>
+                                        {isSeller && !isOwn && msg.translations?.ro && msg.translations.ro !== msg.message && (
+                                            <div className="mt-1.5 pt-1.5 border-t border-slate-100 text-xs text-slate-500 italic">
+                                                🌐 Traducere (RO): {msg.translations.ro}
+                                            </div>
+                                        )}
+                                        {isSeller && isOwn && msg.translations && Object.entries(msg.translations)
+                                            .filter(([k, v]) => !k.startsWith('_') && k !== 'ro' && v && v !== msg.message)
+                                            .map(([k, v]) => (
+                                                <div key={k} className="mt-1.5 pt-1.5 border-t border-emerald-500/40 text-xs text-emerald-100 italic">
+                                                    🌐 Traduction ({k.toUpperCase()}): {v}
+                                                </div>
+                                            ))
+                                        }
                                         
                                         {msg.attachments && msg.attachments.length > 0 && (
                                             <div className="mt-2 flex flex-col gap-2">
@@ -1475,7 +1531,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                         {/* Reaction Picker Popover */}
                                         {showEmojiPickerFor === msg.id && (
                                             <div className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white rounded-lg shadow-lg border border-slate-200 p-1 z-20 text-slate-800`}>
-                                                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(em => (
+                                                {['', '', '', '', '', ''].map(em => (
                                                     <button 
                                                         key={em} 
                                                         onClick={() => handleToggleReaction(msg.id, em)}
@@ -1503,18 +1559,31 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         {/* Scroll ref removed, using container scrollTop instead */}
                     </div>
                     <div className="p-4 bg-white border-t border-slate-100 flex items-center gap-2">
+                        {isSeller && (
+                            <select
+                                value={sellerTargetLang}
+                                onChange={e => setSellerTargetLang(e.target.value)}
+                                className="bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-xs rounded-xl px-2.5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shrink-0"
+                                title="Langue de traduction pour le client"
+                            >
+                                <option value="fr">FR</option>
+                                <option value="nl">NL</option>
+                                <option value="en">EN</option>
+                                <option value="none">Sans trad.</option>
+                            </select>
+                        )}
                         <input
                             type="text"
                             value={chatMessage}
                             onChange={e => setChatMessage(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                            placeholder={t.writeMessage || 'Écrivez à Davide Chape...'}
+                            placeholder={isSeller ? 'Répondre au client en tant que Davide Chape...' : (t.writeMessage || 'Écrivez à Davide Chape...')}
                             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         />
                         <button
                             onClick={handleSendMessage}
                             disabled={sendingMessage || !chatMessage.trim()}
-                            className="w-11 h-11 shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            className={`w-11 h-11 shrink-0 rounded-xl ${isSeller ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white flex items-center justify-center disabled:opacity-50 transition-colors`}
                         >
                             <Send className="w-4 h-4" />
                         </button>
@@ -1558,7 +1627,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-center" style={{ animation: 'slideDown 0.3s ease-out' }}>
                         <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <span className="text-2xl">📩</span>
+                            <span className="text-2xl"></span>
                         </div>
                         <h3 className="font-black text-lg text-slate-800 mb-2">
                             {lang === 'ro' ? 'Actualizare Importantă' : lang === 'fr' ? 'Mise à jour importante' : lang === 'nl' ? 'Belangrijke Update' : 'Important Update'}

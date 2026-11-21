@@ -124,7 +124,7 @@ class GlobalErrorBoundary extends React.Component {
                     <h2 className="text-xl font-bold text-slate-800 mb-2">A apărut o eroare de navigare.</h2>
                     <p className="text-sm text-slate-500 mb-4">Te rugăm să reîncarci pagina.</p>
                     {this.state.error && (
-                        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg max-w-lg overflow-auto text-xs font-mono">
+                        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg max-w-lg overflow-auto text-xs tabular-nums">
                             {this.state.error.message}
                             <br/><br/>
                             {this.state.error.stack}
@@ -153,12 +153,17 @@ function App() {
     
     // Tenant Config Logic
     const setTenant = useTenantStore((state) => state.setTenant)
+    const clearTenant = useTenantStore((state) => state.clearTenant)
     const getCurrentSubdomain = useTenantStore((state) => state.getCurrentSubdomain)
     const [invalidTenant, setInvalidTenant] = useState(false)
 
     useEffect(() => {
         const fetchTenantConfig = async () => {
             const subdomain = getCurrentSubdomain()
+            if (!subdomain) {
+                clearTenant()
+                return
+            }
             if (subdomain) {
                 try {
                     const res = await api.get('/public/tenant-config', { params: { slug: subdomain } })

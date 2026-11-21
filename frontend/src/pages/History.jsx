@@ -174,14 +174,14 @@ export default function History() {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-4 text-xs text-slate-600">
-                                        <span>🕐 {new Date(seg.check_in).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}</span>
+                                        <span>{new Date(seg.check_in).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}</span>
                                         {seg.check_out && (
                                             <span>→ {new Date(seg.check_out).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}</span>
                                         )}
                                         <span className="font-bold text-blue-600">{formatHoursMinutes(seg.worked_hours)}</span>
                                     </div>
                                     {seg.break_hours > 0 && (
-                                        <div className="text-xs text-orange-600">☕ Pauză: {formatHoursMinutes(seg.break_hours)}</div>
+                                        <div className="text-xs text-orange-600">Pauză: {formatHoursMinutes(seg.break_hours)}</div>
                                     )}
                                     {seg.geofence_pause_hours > 0 && (
                                         <div className="text-xs text-red-500 flex items-center gap-1">

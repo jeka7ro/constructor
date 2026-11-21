@@ -203,7 +203,7 @@ export default function AdminMaterialRequests() {
                                             }}
                                             className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                                         >
-                                            <td className="px-6 py-4 font-mono text-xs text-slate-500">#{c.id.substring(0, 6).toUpperCase()}</td>
+                                            <td className="px-6 py-4 tabular-nums text-xs text-slate-500">#{c.id.substring(0, 6).toUpperCase()}</td>
                                             <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{c.user_name}</td>
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 <div className="flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {c.site_name}</div>
@@ -426,7 +426,7 @@ export default function AdminMaterialRequests() {
                                         <div className="relative mb-4">
                                             <div className="absolute -left-4 w-4 h-4 rounded-full bg-orange-500 border-2 border-white dark:border-slate-800 shadow" />
                                             <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-xl p-3">
-                                                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">{t('material_req.delivered_to_site', '🚚 Livré sur le Chantier')}</p>
+                                                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">{t('material_req.delivered_to_site', 'Livré sur le Chantier')}</p>
                                                 {detailReq.admin_response && detailReq.admin_response.includes('[Predat prin:') && (
                                                     <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
                                                         {detailReq.admin_response.match(/\[Predat prin: ([^\]]+)\]/)?.[1] || ''}
@@ -442,9 +442,9 @@ export default function AdminMaterialRequests() {
                                         <div className="relative">
                                             <div className="absolute -left-4 w-4 h-4 rounded-full bg-purple-500 border-2 border-white dark:border-slate-800 shadow" />
                                             <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-xl p-3">
-                                                <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-0.5">{t('material_req.confirmed_by_worker', '✍️ Confirmé par le Travailleur')}</p>
+                                                <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-0.5">{t('material_req.confirmed_by_worker', 'Confirmé par le Travailleur')}</p>
                                                 <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{detailReq.user_name || t('common.worker', 'Travailleur')}</p>
-                                                <p className="text-xs text-purple-500 mt-1 font-medium">{t('material_req.digitally_signed', 'Signé numériquement ✓')}</p>
+                                                <p className="text-xs text-purple-500 mt-1 font-medium">{t('material_req.digitally_signed', 'Signé numériquement ')}</p>
                                             </div>
                                         </div>
                                     )}

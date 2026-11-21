@@ -1372,7 +1372,7 @@ export default function SitesManagement() {
                                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                                                     {reportModal.data.workers.map(w => (
                                                         <tr key={w.code}>
-                                                            <td className="px-3 py-2 text-slate-500 font-mono text-xs">{w.code}</td>
+                                                            <td className="px-3 py-2 text-slate-500 tabular-nums text-xs">{w.code}</td>
                                                             <td className="px-3 py-2 font-semibold text-slate-800 dark:text-white">{w.name}</td>
                                                             <td className="px-3 py-2 font-bold text-blue-600">{w.total_hours}h</td>
                                                             <td className="px-3 py-2 text-slate-500">{w.days_worked} {t('sites.days_worked', 'jours')}</td>

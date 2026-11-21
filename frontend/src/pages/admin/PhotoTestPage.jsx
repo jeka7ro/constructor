@@ -55,7 +55,7 @@ export default function PhotoTestPage() {
                         placeholder="test-timesheet-123"
                     />
                     <p className="text-sm text-slate-500 mt-2">
-                        💡 Acest ID va fi folosit pentru a asocia fotografiile cu un pontaj specific
+                        Acest ID va fi folosit pentru a asocia fotografiile cu un pontaj specific
                     </p>
                 </div>
 

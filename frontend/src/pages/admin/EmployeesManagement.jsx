@@ -700,7 +700,7 @@ export default function EmployeesManagement() {
                                     </div>
                                     {editingUser && (
                                         <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span className="text-white text-[10px]">📷</span>
+                                            <span className="text-white text-[10px]"></span>
                                         </div>
                                     )}
                                     <input
@@ -1251,7 +1251,7 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                                     </div>
                                     <div>
                                         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 transition-colors">{user.last_name} {user.first_name}</p>
-                                        <p className="text-[11px] font-mono text-slate-400">{user.employee_code}</p>
+                                        <p className="text-[11px] tabular-nums text-slate-400">{user.employee_code}</p>
                                     </div>
                                 </div>
                             </td>
@@ -1285,7 +1285,7 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                                     {user.accepted_terms_at && (
                                         <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 mt-1" title={`RGPD accepté le ${new Date(user.accepted_terms_at).toLocaleString('fr-BE')}`}>
                                             <ShieldCheck className="w-3 h-3" />
-                                            <span>RGPD ✓</span>
+                                            <span>RGPD </span>
                                         </div>
                                     )}
                                 </div>
@@ -1365,7 +1365,7 @@ function UsersGrid({ users, onToggleActive, onDelete, onAnonymize, onEdit, onRes
                             </div>
                             <div>
                                 <h3 className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">{user.last_name} {user.first_name}</h3>
-                                <p className="text-xs font-mono text-slate-400">{user.employee_code}</p>
+                                <p className="text-xs tabular-nums text-slate-400">{user.employee_code}</p>
                             </div>
                         </div>
                         {user.is_active ? (

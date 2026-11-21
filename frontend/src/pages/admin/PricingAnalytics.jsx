@@ -30,7 +30,7 @@ const CalculationModal = ({ wo, onClose }) => {
                                     {wo.client_name || wo.title || t('analytics.quote', 'Devis')}
                                 </h3>
                                 <p className="text-sm text-slate-500 mt-0.5">
-                                    {wo.source_system === 'devis_online' ? '🌐 Devis Online' : wo.source_system === 'we-r' ? '🔗 We-R' : '✏️ Manual'} · {wo.work_type === 'repair' ? t('analytics.renovation', 'Rénovation') : t('analytics.new_construction', 'Construction neuve')}
+                                    {wo.source_system === 'devis_online' ? 'Devis Online' : wo.source_system === 'we-r' ? 'We-R' : 'Manual'} · {wo.work_type === 'repair' ? t('analytics.renovation', 'Rénovation') : t('analytics.new_construction', 'Construction neuve')}
                                     {vatRate > 0 ? ` · ${t('analytics.vat', 'TVA')} ${vatRate}%` : ` · ${t('analytics.without_vat', 'Sans TVA')}`}
                                 </p>
                             </div>

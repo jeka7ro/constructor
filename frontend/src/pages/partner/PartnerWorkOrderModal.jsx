@@ -395,7 +395,7 @@ export default function PartnerWorkOrderModal({ order, lang, onClose, onSaved })
                                                         : 'bg-white dark:bg-slate-600 border-slate-200 dark:border-slate-500 text-slate-400'
                                                     }`}
                                             >
-                                                {surface[mat.key] ? '✓ ' : ''}{mat.label}
+                                                {surface[mat.key] ? '' : ''}{mat.label}
                                             </button>
                                         ))}
                                     </div>
@@ -440,7 +440,7 @@ export default function PartnerWorkOrderModal({ order, lang, onClose, onSaved })
                                                     <div className="flex items-center gap-2 truncate">
                                                         {isPdf ? <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <ImageIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
                                                         <span className="truncate text-slate-700 dark:text-slate-200 font-medium">{file.description || (file.photo_path || '').split('/').pop() || 'Document'}</span>
-                                                        <span className="text-[8px] bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0">✓</span>
+                                                        <span className="text-[8px] bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0"></span>
                                                     </div>
                                                     <button type="button" onClick={() => removeExistingFile(file.id)} className="w-6 h-6 flex items-center justify-center rounded-full bg-red-100 hover:bg-red-200 text-red-500 hover:text-red-700 transition-colors shrink-0 ml-2">
                                                         <X className="w-3 h-3" />

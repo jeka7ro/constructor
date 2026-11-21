@@ -191,7 +191,7 @@ export default function EmployeeInventory() {
                                     onClick={() => handleConfirm(unconfirmedReq.id, 'confirm')}
                                     className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-[0.98]"
                                 >
-                                    ✓ Confirm Primirea
+                                    Confirm Primirea
                                 </button>
                                 <button
                                     onClick={() => { setRejectReason(''); setRejectModal({ reqId: unconfirmedReq.id }) }}
@@ -233,7 +233,7 @@ export default function EmployeeInventory() {
                                                 <div>
                                                     <p className="font-bold text-slate-800">{item.name}</p>
                                                     <p className="text-xs text-slate-400 mt-0.5">
-                                                        {item.inventory_code && <span className="font-mono">{item.inventory_code}</span>}
+                                                        {item.inventory_code && <span className="tabular-nums">{item.inventory_code}</span>}
                                                         {item.model && <span> · {item.model}</span>}
                                                     </p>
                                                 </div>

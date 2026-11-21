@@ -190,7 +190,7 @@ export default function BasesPage() {
                     {
                         key: 'coords',
                         label: t('common.coordinates', 'Coordonate'),
-                        render: (row) => <span className="text-slate-500 dark:text-slate-500 text-xs font-mono">{row.latitude}, {row.longitude}</span>
+                        render: (row) => <span className="text-slate-500 dark:text-slate-500 text-xs tabular-nums">{row.latitude}, {row.longitude}</span>
                     },
                     {
                         key: 'actions',

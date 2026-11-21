@@ -56,7 +56,7 @@ const EmailLogs = () => {
             key: 'id',
             label: 'ID',
             sortable: true,
-            render: (row) => <span className="font-mono text-xs text-slate-400">{row.id.substring(0,8)}</span>
+            render: (row) => <span className="tabular-nums text-xs text-slate-400">{row.id.substring(0,8)}</span>
         },
         {
             key: 'sent_at',

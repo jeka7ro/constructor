@@ -429,7 +429,7 @@ export default function UsersManagement() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{user.last_name} {user.first_name}</p>
-                                                <p className="text-[11px] font-mono text-slate-400">{user.employee_code}</p>
+                                                <p className="text-[11px] tabular-nums text-slate-400">{user.employee_code}</p>
                                             </div>
                                         </div>
                                     </td>

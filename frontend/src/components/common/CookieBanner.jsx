@@ -29,7 +29,7 @@ export default function CookieBanner() {
             <div className="max-w-4xl mx-auto bg-slate-900/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 shadow-2xl border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pointer-events-auto">
                 <div className="flex-1">
                     <p className="text-sm text-slate-300 leading-relaxed font-medium">
-                        🍪 <strong className="text-white">Cookies & Confidentialité :</strong> Nous utilisons uniquement des cookies strictement nécessaires pour assurer le fonctionnement technique de la plateforme et votre authentification. 
+                        <strong className="text-white">Cookies & Confidentialité :</strong> Nous utilisons uniquement des cookies strictement nécessaires pour assurer le fonctionnement technique de la plateforme et votre authentification. 
                         En continuant, vous acceptez notre <Link to="/politique-de-confidentialite" className="text-blue-400 hover:text-blue-300 underline underline-offset-4">Politique de Confidentialité</Link>.
                     </p>
                 </div>

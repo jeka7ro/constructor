@@ -402,7 +402,7 @@ export default function FleetManagement() {
             }
         }] : [{
             key: 'imei', label: 'IMEI GPS',
-            render: (v) => v.imei ? <span className="text-sm font-mono font-medium text-slate-700 dark:text-slate-300">{v.imei}</span> : <span className="text-slate-300 dark:text-slate-600">—</span>
+            render: (v) => v.imei ? <span className="text-sm tabular-nums font-medium text-slate-700 dark:text-slate-300">{v.imei}</span> : <span className="text-slate-300 dark:text-slate-600">—</span>
         }]),
         {
             key: 'user_ids', label: t('fleet.drivers', 'Chauffeurs'),
@@ -1070,7 +1070,7 @@ export default function FleetManagement() {
                                                 />
                                                 <div>
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{u.last_name} {u.first_name}</p>
-                                                    <p className="text-xs text-slate-400 font-mono">{u.employee_code} · {u.role_name}</p>
+                                                    <p className="text-xs text-slate-400 tabular-nums">{u.employee_code} · {u.role_name}</p>
                                                 </div>
                                             </label>
                                         ))

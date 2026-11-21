@@ -22,18 +22,26 @@ const useTenantStore = create(
                     return slugParam
                 }
 
-                // Check localStorage fallback (for IP access after navigation)
+                // Check localStorage fallback (only if explicitly set via ?slug=...)
                 const savedSlug = localStorage.getItem('tenant_slug_override')
 
-                // If it's pure localhost or IP, use saved slug or fallback to 'davidechape'
+                // If it's pure localhost or IP (no tenant subdomain), return null for Super Admin (unless ?slug= was explicitly passed)
                 if (hostname === 'localhost' || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
-                    return savedSlug || 'davidechape'
+                    if (!slugParam) {
+                        localStorage.removeItem('tenant_slug_override')
+                        return null
+                    }
+                    return slugParam
                 }
                 
-                // Allow *.localhost for testing locally
+                // Allow <tenant>.localhost for testing tenants locally (e.g. davidechape.localhost:5678)
                 if (hostname.endsWith('.localhost')) {
                     localStorage.removeItem('tenant_slug_override')
-                    return hostname.split('.')[0]
+                    const sub = hostname.split('.')[0]
+                    if (sub && !['www', 'app', 'admin', 'master'].includes(sub)) {
+                        return sub
+                    }
+                    return null
                 }
                 
                 if (hostname.endsWith('.railway.app') || hostname.endsWith('.netlify.app')) {

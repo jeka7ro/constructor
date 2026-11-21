@@ -48,7 +48,7 @@ function DetailModal({ item, onClose }) {
                 <div className="flex items-start justify-between p-5 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-mono text-slate-400 dark:text-slate-500">#{item.ext_id}</span>
+                            <span className="text-xs tabular-nums text-slate-400 dark:text-slate-500">#{item.ext_id}</span>
                             {item.in_db && (
                                 <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800">
                                     <CheckCircle2 size={10} /> {t('isoflex.in_system', 'În sistem')}

@@ -378,7 +378,7 @@ export default function TeamLeaderPanel() {
             {/* Notifications */}
             {notifications.length > 0 && (
                 <div className="space-y-2">
-                    <h3 className="text-sm font-bold text-slate-700">🔔 {t('common.notifications')}</h3>
+                    <h3 className="text-sm font-bold text-slate-700">{t('common.notifications')}</h3>
                     {notifications.slice(0, 3).map(n => (
                         <div key={n.id} className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
                             <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
@@ -566,7 +566,7 @@ export default function TeamLeaderPanel() {
                                                 {m.activities && m.activities.length > 0 && (
                                                     <div className="mt-2 pt-2 border-t border-slate-100">
                                                         <div className="flex items-center justify-between mb-1">
-                                                            <p className="text-xs font-semibold text-slate-600">📋 {t('activities.title')}:</p>
+                                                            <p className="text-xs font-semibold text-slate-600">{t('activities.title')}:</p>
                                                             {m.status === 'finished' && (
                                                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-50 text-green-600 border border-green-200">
                                                                     <CheckCircle className="w-2.5 h-2.5" /> Aprobat
@@ -597,7 +597,7 @@ export default function TeamLeaderPanel() {
             {/* Team Members Management */}
             {team.members && team.members.length > 0 && (
                 <div>
-                    <h3 className="font-bold text-slate-900 mb-3">👥 {t('teams.team_members')} ({team.members.length})</h3>
+                    <h3 className="font-bold text-slate-900 mb-3">{t('teams.team_members')} ({team.members.length})</h3>
                     <div className="space-y-1">
                         {team.members.map(m => (
                             <div key={m.user_id} className="flex items-center justify-between bg-white border border-slate-200 rounded-full px-4 py-3">

@@ -190,7 +190,7 @@ export default function ClientDetail() {
             render: (wo) => (
                 <span className="font-bold text-slate-700 dark:text-slate-300">
                     {wo.invoice_number || wo.quote_number || (
-                        <span className="font-mono text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                        <span className="tabular-nums text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                             {wo.id ? wo.id.substring(0, 8).toUpperCase() : 'MANUAL'}
                         </span>
                     )}

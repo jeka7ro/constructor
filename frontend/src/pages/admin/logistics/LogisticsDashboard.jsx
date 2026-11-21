@@ -600,7 +600,7 @@ export default function LogisticsDashboard() {
                                                         />
                                                         <Marker 
                                                             position={[lastPos.lat, lastPos.lng]}
-                                                            icon={createCustomIcon('★', false, route.team_color, route.vehicle_type)}
+                                                            icon={createCustomIcon('', false, route.team_color, route.vehicle_type)}
                                                         >
                                                             <Popup>
                                                                 <div>
@@ -628,7 +628,7 @@ export default function LogisticsDashboard() {
                                                         icon={createCustomIcon('!', false, route.team_color, route.vehicle_type)}>
                                                         <Popup>
                                                             <strong>{route.team_name}</strong>
-                                                            <br /><span style={{color:'#f59e0b', fontSize:'11px'}}>⚠️ Comenzile nu au coordonate GPS</span>
+                                                            <br /><span style={{color:'#f59e0b', fontSize:'11px'}}>Comenzile nu au coordonate GPS</span>
                                                             <br /><span style={{fontSize:'11px', color:'#64748b'}}>{wp.name}</span>
                                                         </Popup>
                                                     </Marker>

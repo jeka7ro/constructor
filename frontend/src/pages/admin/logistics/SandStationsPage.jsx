@@ -216,7 +216,7 @@ export default function SandStationsPage() {
                         {
                             key: 'coords',
                             label: 'Coordonate',
-                            render: (row) => <span className="text-slate-500 dark:text-slate-500 text-xs font-mono">{row.latitude}, {row.longitude}</span>
+                            render: (row) => <span className="text-slate-500 dark:text-slate-500 text-xs tabular-nums">{row.latitude}, {row.longitude}</span>
                         },
                         {
                             key: 'price',

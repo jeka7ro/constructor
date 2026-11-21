@@ -186,7 +186,7 @@ export default function Login() {
                                 </span>
                             </label>
                             <div className="mt-3 pl-7 text-xs text-slate-500 flex items-start gap-2">
-                                <span className="text-base leading-none">📍</span>
+                                <span className="text-base leading-none"></span>
                                 <span><strong>{t('login.gps_notice_title', "Avis GPS :")}</strong> {t('login.gps_notice_desc', "Cette application collecte vos données de localisation pendant les heures de travail pour assurer le pointage et la gestion des chantiers.")}</span>
                             </div>
                         </div>

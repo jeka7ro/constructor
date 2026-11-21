@@ -151,7 +151,7 @@ export default function LogisticsReport() {
             </td>
             <td className="px-3 py-2.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap hidden sm:table-cell">
                 {row.vehicle_plate !== '—' ? (
-                    <span className="font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{row.vehicle_plate}</span>
+                    <span className="tabular-nums bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{row.vehicle_plate}</span>
                 ) : '—'}
             </td>
             <td className="px-3 py-2.5 min-w-0">

@@ -488,7 +488,7 @@ export default function WorkOrders() {
                         {wo.title}
                     </div>
                     {wo.site_name && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">📍 {wo.site_name}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{wo.site_name}</div>
                     )}
                     {wo.site_address && !wo.site_name && (
                         <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
@@ -626,7 +626,7 @@ export default function WorkOrders() {
                         {wo.is_invoiced ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider whitespace-nowrap">
                                 <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block"></span>
-                                {wo.invoice_number ? `✓ ${wo.invoice_number}` : t('work_order_detail.invoicing.invoiced', 'Facturé')}
+                                {wo.invoice_number ? `${wo.invoice_number}` : t('work_order_detail.invoicing.invoiced', 'Facturé')}
                             </span>
                         ) : wo.status === 'completed' ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider whitespace-nowrap animate-pulse">
@@ -717,7 +717,7 @@ export default function WorkOrders() {
                             <Copy className="w-3 h-3" />
                             {copiedId === 'banner' ? t('common.copied', 'Copié !') : t('common.copy', 'Copier')}
                         </button>
-                        <button onClick={() => setSendResult(null)} className="px-3 h-8 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">✕</button>
+                        <button onClick={() => setSendResult(null)} className="px-3 h-8 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"></button>
                     </div>
                 </div>
             )}
@@ -960,7 +960,7 @@ export default function WorkOrders() {
                                 }}
                                 className="px-5 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-md shadow-emerald-500/30 transition-all disabled:opacity-50"
                             >
-                                {matSaving ? t('common.saving', 'Enregistrement...') : `✓ ${t('common.save', 'Enregistrer')}`}
+                                {matSaving ? t('common.saving', 'Enregistrement...') : `${t('common.save', 'Enregistrer')}`}
                             </button>
                         </div>
                     </div>
@@ -1082,12 +1082,12 @@ export default function WorkOrders() {
                         </div>
                         <div className="p-6 grid grid-cols-2 gap-3">
                             {[
-                                { id: 'ro', label: t('lang.ro', 'Roumain'), flag: '🇷🇴' },
-                                { id: 'en', label: t('lang.en', 'Anglais'), flag: '🇬🇧' },
-                                { id: 'fr', label: t('lang.fr', 'Français'), flag: '🇫🇷' },
-                                { id: 'de', label: t('lang.de', 'Allemand'), flag: '🇩🇪' },
-                                { id: 'nl', label: t('lang.nl', 'Néerlandais'), flag: '🇳🇱' },
-                                { id: 'ru', label: t('lang.ru', 'Russe'), flag: '🇷🇺' },
+                                { id: 'ro', label: t('lang.ro', 'Roumain'), flag: '' },
+                                { id: 'en', label: t('lang.en', 'Anglais'), flag: '' },
+                                { id: 'fr', label: t('lang.fr', 'Français'), flag: '' },
+                                { id: 'de', label: t('lang.de', 'Allemand'), flag: '' },
+                                { id: 'nl', label: t('lang.nl', 'Néerlandais'), flag: '' },
+                                { id: 'ru', label: t('lang.ru', 'Russe'), flag: '' },
                             ].map(lang => {
                                 const isPreferred = sendModal.wo.client_language === lang.id;
                                 return (

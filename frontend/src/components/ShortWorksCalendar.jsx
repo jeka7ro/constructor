@@ -1,7 +1,7 @@
 import MobileAgenda from "./MobileAgenda";
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star, Search, X, Move, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Scan, Shrink, Truck, Building2, Star, Search, X, Move, Layers } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro, enUS, nl, fr, de } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -349,13 +349,54 @@ export default function ShortWorksCalendar({
     };
     const dateLocale = getLocale();
 
-    // Generate week days (Monday to Sunday) - MEMOIZED to prevent weeklyOrders recalculation loop
+    // Generate week days (Monday to Sunday, 7 or 14 days in Ultra-Wide / Full Screen) - MEMOIZED
+    const ULTRA_WIDE_QUERY = '(min-width: 2480px), (min-width: 2350px) and (min-aspect-ratio: 25/10)';
+    const [isUltraWideViewport, setIsUltraWideViewport] = useState(() => {
+        if (typeof window === 'undefined' || !window.matchMedia) return false;
+        return window.matchMedia(ULTRA_WIDE_QUERY).matches;
+    });
+    const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(() => {
+        if (typeof document === 'undefined') return false;
+        return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    });
+    const [calendarWeeksPref, setCalendarWeeksPref] = useState(null); // null = auto (2 on full/5K, 1 on normal), or manual 1 | 2
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.matchMedia) return;
+        const mq = window.matchMedia(ULTRA_WIDE_QUERY);
+        const updateMatch = () => setIsUltraWideViewport(mq.matches);
+        updateMatch();
+        mq.addEventListener('change', updateMatch);
+        return () => mq.removeEventListener('change', updateMatch);
+    }, []);
+
+    useEffect(() => {
+        const syncFs = () => {
+            const fsActive = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+            setIsBrowserFullscreen(fsActive);
+        };
+        document.addEventListener('fullscreenchange', syncFs);
+        document.addEventListener('webkitfullscreenchange', syncFs);
+        return () => {
+            document.removeEventListener('fullscreenchange', syncFs);
+            document.removeEventListener('webkitfullscreenchange', syncFs);
+        };
+    }, []);
+
+    const showTwoWeeks = calendarWeeksPref !== null
+        ? calendarWeeksPref === 2
+        : Boolean(isUltraWideViewport || isCalendarFull || isBrowserFullscreen);
+    const numDays = showTwoWeeks ? 14 : 7;
+    const gridColsTemplate = showTwoWeeks
+        ? '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr 1fr 1fr 1fr 1fr 1fr 1fr 0.6fr'
+        : '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr';
+
     const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
-    const weekDays = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i)), [weekStart]);
+    const weekDays = useMemo(() => Array.from({ length: numDays }).map((_, i) => addDays(weekStart, i)), [weekStart, numDays]);
 
     const isCurrentWeek = isSameWeek(currentDate, new Date(), { weekStartsOn: 1 });
-    const weekEnd = addDays(weekStart, 6);
-    const weekLabel = isCurrentWeek 
+    const weekEnd = addDays(weekStart, numDays - 1);
+    const weekLabel = (isCurrentWeek && !showTwoWeeks)
         ? t('admin_overview.current_week_short', 'Săpt. curentă') 
         : `${format(weekStart, 'dd MMM', { locale: dateLocale })} - ${format(weekEnd, 'dd MMM', { locale: dateLocale })}`;
 
@@ -660,7 +701,10 @@ export default function ShortWorksCalendar({
                 onTouchEnd={onTouchEndEvent}
             >
                 {/* Header */}
-            <div className="bg-[#0ba5e9] px-4 py-3 flex flex-col gap-2 shadow-inner border-b border-[#0284c7]">
+            <div
+                className="px-4 py-3 flex flex-col gap-2 shadow-inner border-b border-white/15"
+                style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}
+            >
                 {/* Top Row: Date, Teams, and Controls */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -698,7 +742,7 @@ export default function ShortWorksCalendar({
                         )}
                     </div>
                     
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
                         {/* Next Holiday Box */}
                         {(() => {
                             const upcomingHolidays = getUpcomingHolidays(4);
@@ -708,20 +752,20 @@ export default function ShortWorksCalendar({
                                 
                                 return (
                                     <div 
-                                        className="group relative hidden md:flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl text-white mr-2 cursor-pointer hover:bg-white/20 transition-colors" 
+                                        className="group relative hidden md:flex items-center gap-2 h-9 bg-white/15 border border-white/25 px-3.5 rounded-full text-white cursor-pointer hover:bg-white/25 transition-colors shadow-xs" 
                                         onClick={() => setCurrentDate(new Date(nextH.date))}
                                     >
-                                        <div className="bg-white/20 rounded p-1">
+                                        <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center shrink-0">
                                             <CalendarIcon className="w-3.5 h-3.5" />
                                         </div>
-                                        <div className="flex flex-col text-left leading-tight">
-                                            <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">{t('planning.next_holiday_full', 'Férié')}</span>
-                                            <span className="text-xs font-bold">{t(`holidays.${nextH.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, nextH.name)} ({format(new Date(nextH.date), 'dd MMM', { locale: dateLocale })})</span>
+                                        <div className="flex flex-col text-left leading-none justify-center">
+                                            <span className="text-[8.5px] font-bold opacity-85 uppercase tracking-wider leading-none">{t('planning.next_holiday_full', 'Férié')}</span>
+                                            <span className="text-[11px] font-extrabold leading-tight mt-0.5 whitespace-nowrap">{t(`holidays.${nextH.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, nextH.name)} ({format(new Date(nextH.date), 'dd MMM', { locale: dateLocale })})</span>
                                         </div>
 
                                         {/* Custom Beautiful Tooltip */}
                                         {tooltipHolidays.length > 0 && (
-                                            <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 text-white rounded-xl shadow-xl p-3 text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] border border-slate-700 pointer-events-none">
+                                            <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 text-white rounded-2xl shadow-xl p-3 text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] border border-slate-700 pointer-events-none">
                                                 <div className="font-bold mb-2 pb-2 border-b border-slate-700 text-slate-300">
                                                     {t('planning.next_holiday_full', 'Următoarele Sărbători')}
                                                 </div>
@@ -747,7 +791,7 @@ export default function ShortWorksCalendar({
 
                         {/* Holding Area (Moved to the right as requested) */}
                         <div 
-                            className={`flex items-center justify-center ${heldOrder ? 'w-auto px-3' : 'w-10'} h-10 rounded-xl border-2 border-dashed ${isSelectingForHolding ? 'border-yellow-400 bg-yellow-400/20 shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse' : heldOrder ? 'border-white bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-white/40 hover:border-white/80 bg-white/10'} transition-all cursor-pointer relative`}
+                            className={`flex items-center justify-center ${heldOrder ? 'w-auto px-3.5' : 'w-9'} h-9 rounded-full border border-dashed ${isSelectingForHolding ? 'border-yellow-300 bg-yellow-400/25 shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse' : heldOrder ? 'border-white bg-white/25 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-white/40 hover:border-white/80 bg-white/15 hover:bg-white/25'} transition-all cursor-pointer relative shrink-0`}
                             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
                             onDrop={(e) => {
                                 e.preventDefault();
@@ -779,14 +823,14 @@ export default function ShortWorksCalendar({
                             title={heldOrder ? t('planning.holding_area_active', 'Choisissez une date/heure dans le calendrier pour déplacer la commande') : t('planning.holding_area', 'Cliquez pour sélectionner une commande à déplacer vers une autre semaine, ou glissez-la ici')}
                         >
                             {isSelectingForHolding && !heldOrder && (
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-yellow-400 rounded-full animate-ping"></div>
                             )}
                             {heldOrder ? (
-                                <div className="flex items-center gap-2 text-white text-xs font-bold pl-1 pr-2">
-                                    <Clock className="w-4 h-4 text-yellow-300" />
-                                    <div className="flex flex-col text-left">
-                                        <span className="truncate max-w-[120px]">{heldOrder.client_name || heldOrder.id.slice(0, 8)}</span>
-                                        <span className="text-[9px] font-medium text-white/70">
+                                <div className="flex items-center gap-2 text-white text-xs font-bold">
+                                    <Clock className="w-3.5 h-3.5 text-yellow-300 shrink-0" />
+                                    <div className="flex flex-col text-left leading-none">
+                                        <span className="truncate max-w-[110px] text-[11px]">{heldOrder.client_name || heldOrder.id.slice(0, 8)}</span>
+                                        <span className="text-[8.5px] font-medium text-white/75">
                                             {heldOrder.start_date?.split('T')[0]} {heldOrder.start_time}
                                         </span>
                                     </div>
@@ -796,35 +840,72 @@ export default function ShortWorksCalendar({
                                             setHeldOrder(null);
                                             setIsSelectingForHolding(false);
                                         }}
-                                        className="ml-2 p-1 hover:bg-white/20 rounded-full transition-colors"
+                                        className="ml-1 p-1 hover:bg-white/20 rounded-full transition-colors"
                                         title={t('planning.holding_area_clear', 'Anulează')}
                                     >
-                                        <X className="w-3.5 h-3.5" />
+                                        <X className="w-3 h-3" />
                                     </button>
                                 </div>
                             ) : (
-                                <Move className="w-5 h-5 text-white/80" />
+                                <Move className="w-4 h-4 text-white/90" />
                             )}
                         </div>
+
+                        {/* 1 Week / 2 Weeks Toggle Pill */}
+                        <div className="hidden md:flex items-center h-9 bg-white/15 rounded-full p-1 border border-white/25 shadow-xs">
+                            <button
+                                type="button"
+                                onClick={() => setCalendarWeeksPref(1)}
+                                className={`h-7 px-3 rounded-full text-xs font-extrabold transition-all flex items-center justify-center ${
+                                    !showTwoWeeks
+                                        ? 'bg-white shadow-xs'
+                                        : 'text-white/85 hover:text-white'
+                                }`}
+                                style={!showTwoWeeks ? { color: tenant?.primary_color || '#2563eb' } : undefined}
+                                title="Afficher 1 semaine (7 jours)"
+                            >
+                                1 Sem.
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCalendarWeeksPref(2)}
+                                className={`h-7 px-3 rounded-full text-xs font-extrabold transition-all flex items-center justify-center ${
+                                    showTwoWeeks
+                                        ? 'bg-white shadow-xs'
+                                        : 'text-white/85 hover:text-white'
+                                }`}
+                                style={showTwoWeeks ? { color: tenant?.primary_color || '#2563eb' } : undefined}
+                                title="Afficher 2 semaines (14 jours - Mode 5K / Plein écran)"
+                            >
+                                2 Sem.
+                            </button>
+                        </div>
+
                         {toggleCalendarFullscreen && (
                             <button 
                                 onClick={toggleCalendarFullscreen} 
-                                className="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center"
-                                title={isCalendarFull ? 'Ieși din fullscreen (ESC)' : 'Calendar Fullscreen'}
+                                className={`w-9 h-9 rounded-full border transition-all flex items-center justify-center shadow-xs shrink-0 ${
+                                    isCalendarFull
+                                        ? 'bg-white border-white'
+                                        : 'bg-white/15 hover:bg-white/25 text-white border-white/25'
+                                }`}
+                                style={isCalendarFull ? { color: tenant?.primary_color || '#2563eb' } : undefined}
+                                title={isCalendarFull ? 'Ieși din Focus Calendar (ESC)' : 'Focus doar pe Calendarul de Planificare'}
                             >
                                 {isCalendarFull
-                                    ? <Minimize2 className="w-4 h-4 text-slate-700 dark:text-slate-200" />
-                                    : <Maximize2 className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+                                    ? <Shrink className="w-4 h-4 shrink-0" />
+                                    : <Scan className="w-4 h-4 shrink-0" />
                                 }
                             </button>
                         )}
-                        <div className="flex items-center gap-1 bg-white/10 dark:bg-slate-800/50 rounded-lg p-1 border border-white/20 dark:border-slate-700 shadow-sm backdrop-blur-sm">
-                            <button onClick={() => navigateWeek(-1)} className="p-1 hover:bg-white/20 dark:hover:bg-slate-700 rounded-md transition-colors text-white">
-                                <ChevronLeft className="w-5 h-5" />
+
+                        <div className="flex items-center gap-1 h-9 bg-white/15 rounded-full px-1 border border-white/25 shadow-xs backdrop-blur-sm">
+                            <button onClick={() => navigateWeek(-1)} className="w-7 h-7 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors text-white">
+                                <ChevronLeft className="w-4 h-4" />
                             </button>
-                            <span className="px-3 text-sm font-semibold text-white min-w-[110px] text-center">{weekLabel}</span>
-                            <button onClick={() => navigateWeek(1)} className="p-1 hover:bg-white/20 dark:hover:bg-slate-700 rounded-md transition-colors text-white">
-                                <ChevronRight className="w-5 h-5" />
+                            <span className="px-2.5 text-xs font-bold text-white min-w-[105px] text-center whitespace-nowrap">{weekLabel}</span>
+                            <button onClick={() => navigateWeek(1)} className="w-7 h-7 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors text-white">
+                                <ChevronRight className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
@@ -907,10 +988,10 @@ export default function ShortWorksCalendar({
                 </div>
 
                 {/* Days Columns */}
-                <div className="flex-1 min-w-[700px]">
+                <div className={`flex-1 ${showTwoWeeks ? 'min-w-[1280px]' : 'min-w-[700px]'}`}>
 
                     {/* Header: Days */}
-                    <div className="grid border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr' }}>
+                    <div className="grid border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-30" style={{ gridTemplateColumns: gridColsTemplate }}>
                         {weekDays.map((day, i) => {
                             const isToday = isSameDay(day, new Date());
                             const dayStr = format(day, 'yyyy-MM-dd');
@@ -922,7 +1003,7 @@ export default function ShortWorksCalendar({
                             return (
                                 <div
                                     key={i}
-                                    className={`h-14 flex flex-col items-center justify-center border-r border-slate-200 dark:border-slate-800 relative ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : (holidayInfo ? 'bg-red-50/50 dark:bg-red-900/10' : '')}`}
+                                    className={`h-14 flex flex-col items-center justify-center ${i === 6 && showTwoWeeks ? 'border-r-2 border-r-blue-400/70 dark:border-r-blue-500/70' : 'border-r border-slate-200 dark:border-slate-800'} relative ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : (holidayInfo ? 'bg-red-50/50 dark:bg-red-900/10' : '')}`}
                                     onMouseEnter={() => setHoveredDay(i)}
                                     onMouseLeave={() => setHoveredDay(null)}
                                     onDoubleClick={(e) => handleUnCompleteDay(day, e)}
@@ -975,7 +1056,7 @@ export default function ShortWorksCalendar({
                     </div>
 
                     {/* Events Grid */}
-                    <div className="relative grid bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr', gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(100px, 100px))` }}>
+                    <div className="relative grid bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateColumns: gridColsTemplate, gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(100px, 100px))` }}>
                         {weeklyOrders.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                 <span className="text-slate-400 text-sm">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
@@ -983,16 +1064,16 @@ export default function ShortWorksCalendar({
                         )}
                         
                         {/* Grid Lines acting as Drop Zones */}
-                        {Array.from({ length: (END_HOUR - dynamicStartHour) * 7 }).map((_, i) => {
-                            const dayIndex = i % 7;
-                            const hourIndex = Math.floor(i / 7);
+                        {Array.from({ length: (END_HOUR - dynamicStartHour) * numDays }).map((_, i) => {
+                            const dayIndex = i % numDays;
+                            const hourIndex = Math.floor(i / numDays);
                             const cellDayStr = format(weekDays[dayIndex], 'yyyy-MM-dd');
                             const isHoliday = PUBLIC_HOLIDAYS_BE.some(h => h.date === cellDayStr);
                             
                             return (
                                 <div 
                                     key={i} 
-                                    className={`group relative flex items-center justify-center border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer ${isHoliday ? 'bg-red-50 dark:bg-red-900/20' : ''} hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
+                                    className={`group relative flex items-center justify-center ${dayIndex === 6 && showTwoWeeks ? 'border-r-2 border-r-blue-400/50 dark:border-r-blue-500/50' : 'border-r border-slate-200 dark:border-slate-800/60'} border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer ${isHoliday ? 'bg-red-50 dark:bg-red-900/20' : ''} hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
                                     onClick={() => {
                                         if (Date.now() - lastSwipeTime.current < 400) return; // Prevent accidental click after scroll
                                         if (heldOrder) {
@@ -1137,18 +1218,23 @@ export default function ShortWorksCalendar({
                             return renderableOrders.map(wo => {
                                 const colorHex = wo.team?.color || wo.assigned_team_color || '#93c5fd';
                                 
-                                // Calculate offset to avoid overlap for custom grid
-                                const totalFr = 6.6;
+                                // Calculate offset to avoid overlap for custom 7-day or 14-day grid
+                                const totalFr = showTwoWeeks ? 13.2 : 6.6;
+                                const getColFr = (dIdx) => (dIdx % 7 === 6 ? 0.6 : 1);
+                                let startFr = 0;
+                                for (let i = 0; i < wo.dayIndex; i++) {
+                                    startFr += getColFr(i);
+                                }
                                 const currentDuration = resizingOrder?.id === wo.id ? resizingOrder.duration : (wo.duration_days || 1);
-                                const maxDurationVis = Math.min(currentDuration, 7 - wo.dayIndex);
+                                const maxDurationVis = Math.min(currentDuration, numDays - wo.dayIndex);
                                 
                                 let spanFr = 0;
                                 for (let i = 0; i < maxDurationVis; i++) {
                                     const dIdx = wo.dayIndex + i;
-                                    spanFr += dIdx === 6 ? 0.6 : 1;
+                                    spanFr += getColFr(dIdx);
                                 }
                                 
-                                const baseLeftPercent = (wo.dayIndex / totalFr) * 100;
+                                const baseLeftPercent = (startFr / totalFr) * 100;
                                 let leftValue = `calc(${baseLeftPercent}% + 5px)`;
                                 let widthValue = `calc(${(spanFr / totalFr) * 100}% - 10px)`;
                                 
@@ -1157,7 +1243,7 @@ export default function ShortWorksCalendar({
                                 const overlapIndex = overlappingWos.indexOf(wo.id);
                                 
                                 if (overlapCount > 1 && maxDurationVis <= 1) {
-                                    const baseWidthPercent = (1 / totalFr) * 100;
+                                    const baseWidthPercent = (getColFr(wo.dayIndex) / totalFr) * 100;
                                     const adjustedLeftPercent = baseLeftPercent + (baseWidthPercent * (overlapIndex / overlapCount));
                                     leftValue = `calc(${adjustedLeftPercent}% + 3px)`;
                                     const adjustedWidthPercent = baseWidthPercent / overlapCount;
@@ -1176,7 +1262,7 @@ export default function ShortWorksCalendar({
 
                                 const clientColorHex = (wo.client_color && wo.client_color.startsWith('#')) ? wo.client_color : colorHex;
                                 const borderLeftColorVal = colorHex;
-                                const borderColorVal = isCompleted ? '#cbd5e1' : `${borderLeftColorVal}30`;
+                                const borderColorVal = isCompleted ? 'rgba(148, 163, 184, 0.42)' : `${borderLeftColorVal}45`;
                                 const isExternalSource = ['public_calculator', 'partner_portal', 'devis_online'].includes(wo.source_system) || wo.is_quote;
 
                                 const lat = wo.site_latitude || wo.site_lat;
@@ -1201,8 +1287,8 @@ export default function ShortWorksCalendar({
                                             setIsDragging(false);
                                             setDraggedOrder(null);
                                         }}
-                                        className={`group absolute flex flex-col p-1.5 rounded-xl shadow-sm border transition-all duration-200 overflow-hidden select-none ${isPast ? '' : 'cursor-move'}
-                                            ${!wo.assigned_team_id ? 'border-red-400 border-2 border-dashed bg-red-50/80 dark:bg-red-900/20 z-20' : 'border-l-[4px] bg-white dark:bg-slate-900 z-10 hover:z-30 hover:scale-[1.02]'}
+                                        className={`group absolute flex flex-col p-1.5 rounded-xl shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.45)] border transition-all duration-200 overflow-hidden select-none ${isPast ? '' : 'cursor-move'}
+                                            ${!wo.assigned_team_id ? 'border-red-400 dark:border-red-500/80 border-2 border-dashed bg-red-50/90 dark:bg-red-950/45 z-20' : 'border-l-[4px] bg-white dark:bg-[#111c2d] z-10 hover:z-30 hover:scale-[1.02]'}
                                             ${isThisDragged ? 'opacity-50 scale-95 ring-2 ring-blue-500 shadow-xl z-50 !transition-none' : ''}
                                             ${syncing ? 'opacity-70 pointer-events-none' : ''} 
                                             ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}
@@ -1219,7 +1305,7 @@ export default function ShortWorksCalendar({
                                             width: widthValue,
                                             borderLeftColor: borderLeftColorVal,
                                             borderColor: borderColorVal,
-                                            borderWidth: isCompleted ? '2px' : undefined,
+                                            borderWidth: isCompleted ? '1.5px' : undefined,
                                             borderStyle: isCompleted ? 'dashed' : undefined,
                                             opacity: 1,
                                             zIndex: isThisDragged ? 50 : (10 + (wo._layoutIndex || 0)),
@@ -1326,7 +1412,7 @@ export default function ShortWorksCalendar({
                                     >
                                         {staticMapLoc && (
                                             <div 
-                                                className="absolute right-0 bottom-0 w-[55%] pointer-events-none overflow-hidden rounded-br-xl opacity-60 dark:opacity-40 mix-blend-multiply dark:mix-blend-lighten z-0" 
+                                                className="absolute right-0 bottom-0 w-[55%] pointer-events-none overflow-hidden rounded-br-xl opacity-55 dark:opacity-15 mix-blend-multiply dark:mix-blend-normal dark:invert dark:hue-rotate-180 dark:contrast-125 z-0" 
                                                 style={{ top: '26px', WebkitMaskImage: 'linear-gradient(to right, transparent, black 60%)', maskImage: 'linear-gradient(to right, transparent, black 60%)' }}
                                             >
                                                 <img 
@@ -1338,16 +1424,16 @@ export default function ShortWorksCalendar({
                                                 />
                                             </div>
                                         )}
-                                        <div className="flex flex-col flex-1 w-full">
+                                        <div className="flex flex-col flex-1 w-full relative z-10">
                                             {/* TOP ROW: Name and Total Surface */}
-                                            <div className="flex items-center justify-between -mx-1.5 -mt-1.5 px-1.5 py-1 mb-1 border-b rounded-t-xl" style={{ backgroundColor: borderLeftColorVal + '40', borderColor: borderLeftColorVal }}>
-                                                <div className="flex items-center gap-1.5 truncate pr-2 shrink-0">
+                                            <div className="flex items-center justify-between -mx-1.5 -mt-1.5 px-1.5 py-1 mb-1 border-b rounded-t-xl" style={{ backgroundColor: borderLeftColorVal + '38', borderColor: borderLeftColorVal + '80' }}>
+                                                <div className="flex items-center gap-1.5 truncate pr-2 min-w-0 flex-1">
                                                     {isCompleted ? (
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                                     ) : isExternalSource ? (
                                                         <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: clientColorHex }} title="Sursă externă / Partener" />
                                                     ) : null}
-                                                    <span className="text-[11px] font-extrabold text-slate-900 truncate">
+                                                    <span className="text-[11px] font-extrabold text-slate-900 dark:text-white truncate">
                                                         {(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}
                                                     </span>
                                                 </div>
@@ -1358,7 +1444,7 @@ export default function ShortWorksCalendar({
                                                     const displaySurf = sumVol > 0 ? parseFloat(sumVol.toFixed(2)) : parseFloat(fallbackSurf.toFixed(2));
                                                     if (displaySurf > 0) {
                                                         const isMultiple = finalVols.length > 1;
-                                                        return <span className="text-[10px] font-bold text-slate-800 shrink-0 bg-white/40 px-1 rounded-sm shadow-sm">{isMultiple ? 'Total: ' : ''}{displaySurf} m²</span>;
+                                                        return <span className="text-[10px] font-extrabold text-slate-800 dark:text-white shrink-0 bg-white/80 dark:bg-slate-950/75 border border-black/5 dark:border-white/15 px-1.5 py-0.5 rounded-md shadow-xs tabular-nums">{isMultiple ? 'Total: ' : ''}{displaySurf} m²</span>;
                                                     }
                                                     return null;
                                                 })()}
@@ -1378,11 +1464,11 @@ export default function ShortWorksCalendar({
                                                                 displayName = finalVols.length > 1 ? `Chape ${idx + 1}` : 'Chape';
                                                             }
                                                             return (
-                                                                <div key={idx} className="flex items-center text-[9px] text-slate-700/90 font-semibold w-full">
-                                                                    <Layers className="w-3 h-3 text-slate-600/70 mr-1 shrink-0" />
+                                                                <div key={idx} className="flex items-center text-[9.5px] text-slate-800 dark:text-slate-100 font-bold w-full">
+                                                                    <Layers className="w-3 h-3 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
                                                                     <span className="truncate">{displayName}: {vol.quantity}m²&times;{vol.thickness}cm</span>
                                                                     {idx === 0 && sandVal > 0 && (
-                                                                        <span className="ml-auto text-[9px] text-amber-600 font-bold bg-white/90 px-1 rounded-sm shadow-sm shrink-0">
+                                                                        <span className="ml-auto text-[9px] text-amber-700 dark:text-amber-300 font-extrabold bg-amber-50/95 dark:bg-amber-500/20 border border-amber-200/80 dark:border-amber-400/35 px-1.5 py-0.5 rounded-md shadow-xs shrink-0 tabular-nums">
                                                                             {sandVal.toFixed(1)}T
                                                                         </span>
                                                                     )}
@@ -1393,11 +1479,11 @@ export default function ShortWorksCalendar({
                                                         const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
                                                         if (fallbackSurf > 0) {
                                                             return (
-                                                                <div className="flex items-center text-[9px] text-slate-700/90 font-semibold w-full">
-                                                                    <Layers className="w-3 h-3 text-slate-600/70 mr-1 shrink-0" />
+                                                                <div className="flex items-center text-[9.5px] text-slate-800 dark:text-slate-100 font-bold w-full">
+                                                                    <Layers className="w-3 h-3 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
                                                                     <span className="truncate">Chape: {fallbackSurf}m²</span>
                                                                     {sandVal > 0 && (
-                                                                        <span className="ml-auto text-[9px] text-amber-600 font-bold bg-white/90 px-1 rounded-sm shadow-sm shrink-0">
+                                                                        <span className="ml-auto text-[9px] text-amber-700 dark:text-amber-300 font-extrabold bg-amber-50/95 dark:bg-amber-500/20 border border-amber-200/80 dark:border-amber-400/35 px-1.5 py-0.5 rounded-md shadow-xs shrink-0 tabular-nums">
                                                                             {sandVal.toFixed(1)}T
                                                                         </span>
                                                                     )}
@@ -1411,19 +1497,19 @@ export default function ShortWorksCalendar({
 
                                             {/* BOTTOM ROW: Location, KM, and Weather */}
                                             <div className="flex items-center justify-between mt-auto pt-1 border-t" style={{ borderColor: borderLeftColorVal + '40' }}>
-                                                <div className="flex items-center gap-1 text-[9px] text-slate-600/80 font-medium truncate pr-1">
-                                                    <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                                <div className="flex items-center gap-1 text-[9.5px] text-slate-700 dark:text-slate-300 font-semibold truncate pr-1">
+                                                    <MapPin className="w-2.5 h-2.5 shrink-0 text-slate-500 dark:text-slate-400" />
                                                     <span className="truncate">{(wo.site_address || wo.site?.address || wo.address) || t('common.no_location', 'Aucune adresse')}</span>
                                                 </div>
                                                 
                                                 <div className="flex items-center gap-1.5 shrink-0">
                                                     {(() => {
                                                         const distText = getDistanceTextForOrder(wo);
-                                                        return distText ? <span className="text-[9px] text-fuchsia-600 font-bold">{distText}</span> : null;
+                                                        return distText ? <span className="text-[9.5px] text-fuchsia-600 dark:text-fuchsia-300 font-extrabold tabular-nums">{distText}</span> : null;
                                                     })()}
                                                     
                                                     {!isCompleted && (
-                                                        <span className="text-[9px] text-slate-600/80 font-bold">
+                                                        <span className="text-[9.5px] text-slate-700 dark:text-slate-200 font-bold">
                                                             <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} compact={true} />
                                                         </span>
                                                     )}

@@ -600,7 +600,7 @@ export default function OrganizationsManagement() {
                                         <select value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}
                                             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                                             <option value="RO">Roumanie</option>
-                                            <option value="BE">🇧🇪 Belgique</option>
+                                            <option value="BE">Belgique</option>
                                             <option value="NL">Pays-Bas</option>
                                             <option value="FR">France</option>
                                             <option value="DE">Allemagne</option>
@@ -615,7 +615,7 @@ export default function OrganizationsManagement() {
                                             <option value="fr">Français (FR)</option>
                                             <option value="nl">Néerlandais (NL)</option>
                                             <option value="de">Allemand (DE)</option>
-                                            <option value="ru">🇲🇩 Russe (RU)</option>
+                                            <option value="ru">Russe (RU)</option>
                                         </select>
                                     </div>
                                 </div>

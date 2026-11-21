@@ -676,21 +676,36 @@ def get_public_work_order_messages(
             "created_at": wo.updated_at.isoformat()
         })
     
-    db_messages = [
-        {
+    db_messages = []
+    for m in messages:
+        if m.sender == "system" or getattr(m, 'is_hidden', False):
+            continue
+        m_trans = dict(m.translations) if isinstance(m.translations, dict) else {}
+        if m.sender == "client" and m.message and "ro" not in m_trans:
+            try:
+                from app.services.translation_service import translate_text
+                ro_val = translate_text(m.message, 'ro')
+                if ro_val:
+                    m_trans["ro"] = ro_val
+            except Exception:
+                pass
+        db_messages.append({
             "id": m.id,
             "sender": m.sender,
+            "sender_name": getattr(m, "sender_name", None),
             "message": m.message,
             "created_at": m.created_at.isoformat() + "Z",
-            "translations": m.translations,
-            "reactions": m.reactions
-        } for m in messages if m.sender != "system" and not getattr(m, 'is_hidden', False)
-    ]
+            "translations": m_trans,
+            "reactions": m.reactions,
+            "attachments": getattr(m, "attachments", None) or []
+        })
     
     return initial_messages + db_messages
 
 class PublicMessageCreate(BaseModel):
     message: str
+    role: Optional[str] = None
+    target_lang: Optional[str] = None
 
 @router.post("/public/work-orders/{token}/messages")
 def post_public_work_order_message(
@@ -704,6 +719,92 @@ def post_public_work_order_message(
         
     if getattr(wo, 'is_chat_closed', False):
         raise HTTPException(status_code=403, detail="Chat is closed")
+
+    is_seller = str(payload.role or "").lower().strip() == "seller"
+
+    if is_seller:
+        translations = {}
+        client_lang = (getattr(wo, 'client_language', 'fr') or 'fr').lower().split('-')[0].strip()
+        target_l = (getattr(payload, 'target_lang', None) or '').lower().split('-')[0].strip()
+        try:
+            from app.services.translation_service import translate_text
+            langs_to_translate = set()
+            if target_l and target_l != 'none':
+                langs_to_translate.add(target_l)
+                translations["_target_lang"] = target_l
+            elif target_l == 'none':
+                translations["_target_lang"] = 'none'
+            else:
+                if client_lang and client_lang != 'none':
+                    langs_to_translate.add(client_lang)
+                    translations["_target_lang"] = client_lang
+
+            if target_l != 'none' and client_lang and client_lang != 'none':
+                langs_to_translate.add(client_lang)
+
+            for t_lang in langs_to_translate:
+                if t_lang not in translations:
+                    translations[t_lang] = translate_text(payload.message, t_lang)
+        except Exception as e:
+            logger.error(f"Seller chat auto-translation failed: {e}")
+
+        text_to_send = payload.message.strip()
+        if target_l == 'none':
+            text_to_send = payload.message.strip()
+        elif target_l and target_l in translations and translations[target_l]:
+            text_to_send = str(translations[target_l]).strip()
+        elif client_lang in translations and translations[client_lang]:
+            text_to_send = str(translations[client_lang]).strip()
+
+        msg = WorkOrderMessage(
+            work_order_id=wo.id,
+            sender="admin",
+            sender_name="Davide Chape",
+            message=payload.message,
+            is_read_by_admin=True,
+            translations=translations
+        )
+        db.add(msg)
+        db.commit()
+        db.refresh(msg)
+
+        # 1. Always notify Client on WhatsApp
+        client_phone = getattr(wo, 'client_phone', None) or (wo.client.phone if getattr(wo, 'client', None) else None)
+        if client_phone and text_to_send:
+            try:
+                from app.services.whatsapp_service import send_chat_text_whatsapp
+                send_chat_text_whatsapp(client_phone, text_to_send)
+            except Exception as e:
+                logger.error(f"Failed to send seller chat WhatsApp to client {client_phone}: {e}")
+
+        # 2. Always notify Client on Email permanently
+        client_email = getattr(wo, 'client_email', None) or (wo.client.email if getattr(wo, 'client', None) else None)
+        if client_email:
+            try:
+                from app.services.email_service import send_chat_notification_email
+                frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
+                chat_url = f"{frontend_url}/confirm/{wo.token}?lang={client_lang}"
+                send_chat_notification_email(
+                    to_email=client_email,
+                    client_name=wo.client_name or (wo.client.name if getattr(wo, 'client', None) else 'Client'),
+                    client_language=client_lang,
+                    chat_url=chat_url,
+                    org_id=wo.organization_id,
+                    wo_id=wo.id,
+                    message_preview=text_to_send
+                )
+            except Exception as e:
+                logger.error(f"Failed to send seller chat email to client {client_email}: {e}")
+
+        return {
+            "id": msg.id,
+            "sender": msg.sender,
+            "sender_name": msg.sender_name,
+            "message": msg.message,
+            "created_at": msg.created_at.isoformat() + "Z",
+            "translations": msg.translations,
+            "reactions": msg.reactions
+        }
         
     translations = {}
     try:
@@ -755,6 +856,7 @@ def post_public_work_order_message(
 
 class ReactionToggle(BaseModel):
     emoji: str
+    role: Optional[str] = None
 
 @router.post("/public/work-orders/{token}/messages/{msg_id}/react")
 def toggle_public_work_order_message_reaction(
@@ -773,16 +875,17 @@ def toggle_public_work_order_message_reaction(
         
     reactions = msg.reactions or {}
     emoji = payload.emoji
+    actor = "admin" if str(payload.role or "").lower().strip() == "seller" else "client"
     
     # Check if they are toggling off their current reaction
     was_toggling_off = False
-    if emoji in reactions and "client" in reactions[emoji]:
+    if emoji in reactions and actor in reactions[emoji]:
         was_toggling_off = True
         
-    # Remove 'client' from ALL emojis (max 1 reaction per user)
+    # Remove actor from ALL emojis (max 1 reaction per user)
     for e in list(reactions.keys()):
-        if "client" in reactions[e]:
-            reactions[e].remove("client")
+        if actor in reactions[e]:
+            reactions[e].remove(actor)
             if not reactions[e]:
                 del reactions[e]
                 
@@ -790,7 +893,7 @@ def toggle_public_work_order_message_reaction(
     if not was_toggling_off:
         if emoji not in reactions:
             reactions[emoji] = []
-        reactions[emoji].append("client")
+        reactions[emoji].append(actor)
     msg.reactions = reactions
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(msg, "reactions")
@@ -807,6 +910,7 @@ def toggle_public_work_order_message_reaction(
 def delete_public_work_order_message(
     token: str,
     msg_id: str,
+    role: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
@@ -817,7 +921,8 @@ def delete_public_work_order_message(
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found")
         
-    if msg.sender != 'client':
+    is_seller = str(role or "").lower().strip() == "seller"
+    if not is_seller and msg.sender != 'client':
         raise HTTPException(status_code=403, detail="Cannot delete admin messages")
         
     db.delete(msg)

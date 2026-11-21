@@ -139,7 +139,7 @@ export default function AuditLogs() {
             render: (row) => (
                 <div className="flex flex-col">
                     <span className="text-sm font-medium">{row.resource_type || '-'}</span>
-                    {row.resource_id && <span className="text-[10px] text-slate-400 font-mono">{row.resource_id.slice(0,8)}...</span>}
+                    {row.resource_id && <span className="text-[10px] text-slate-400 tabular-nums">{row.resource_id.slice(0,8)}...</span>}
                 </div>
             )
         },
@@ -180,11 +180,11 @@ export default function AuditLogs() {
             key: 'device_type',
             label: 'Dispozitiv',
             render: (row) => {
-                if (!row.device_type) return <span className="text-xs font-mono text-slate-500">-</span>;
+                if (!row.device_type) return <span className="text-xs tabular-nums text-slate-500">-</span>;
                 const isMobile = row.device_type.toLowerCase() === 'mobil';
                 return (
                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${isMobile ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                        {isMobile ? '📱 ' : '💻 '}
+                        {isMobile ? '' : ''}
                         {row.device_type}
                     </span>
                 )
@@ -194,13 +194,13 @@ export default function AuditLogs() {
             key: 'ip_address',
             label: 'IP',
             render: (row) => {
-                if (!row.ip_address) return <span className="text-xs font-mono text-slate-500">-</span>;
+                if (!row.ip_address) return <span className="text-xs tabular-nums text-slate-500">-</span>;
                 return (
                     <a 
                         href={`https://ipinfo.io/${row.ip_address}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-xs font-mono text-blue-500 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
+                        className="text-xs tabular-nums text-blue-500 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
                         title={t('audit.view_ip_map', 'Vezi locația IP-ului pe hartă')}
                     >
                         {row.ip_address}

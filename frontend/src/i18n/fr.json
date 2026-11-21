@@ -355,7 +355,8 @@
         "uploaded_by_client": "Téléchargé par le client",
         "document": "Document",
         "preview_not_available": "Aperçu non disponible pour ce type de fichier.",
-        "open_file": "Ouvrir le fichier"
+        "open_file": "Ouvrir le fichier",
+        "member_single": "membre"
     },
     "users": {
         "delete_confirm_msg": "Êtes-vous sûr de vouloir supprimer l'utilisateur ",
@@ -2665,7 +2666,7 @@
         "requested_date": "Date demandée",
         "distance": "Distance",
         "sand": "Sable",
-        "star": "Favorite",
+        "star": "Favori",
         "quick_add_title": "Ajout Rapide Devis",
         "step_client_details": "Client & Détails",
         "step_chape": "Chape",
@@ -2716,7 +2717,13 @@
         "btn_next": "Suivant",
         "btn_back": "Retour",
         "btn_cancel": "Annuler",
-        "btn_create_quote": "Créer le Devis"
+        "btn_create_quote": "Créer le Devis",
+        "tons_sand": "t sable",
+        "manual": "Manuel",
+        "delete_quote": "Supprimer le devis",
+        "delete_confirm_title": "Confirmer la suppression du devis",
+        "delete_confirm_msg": "Êtes-vous sûr de vouloir supprimer définitivement ce devis ? Toutes les données associées seront supprimées de façon irréversible.",
+        "delete_success": "Le devis a été supprimé avec succès !"
     },
     "pricing_settings": {
         "global_title": "Tarifs Globaux",
@@ -2946,7 +2953,10 @@
         "searching": "Recherche des positions...",
         "active_vehicles": "Véhicules actifs",
         "sand": "Sable",
-        "fleet_map_short": "Carte"
+        "fleet_map_short": "Carte",
+        "weather": "Météo",
+        "active_single": "actif",
+        "active_plural": "actifs"
     },
     "workorders": {
         "surface_required": "La surface est obligatoire.",

@@ -703,8 +703,11 @@ def send_admin_new_quote_whatsapp(
             lines.append("")
             lines.extend(mat_block)
 
+    seller_url = f"{proforma_url}{'&' if '?' in proforma_url else '?'}role=seller"
     lines.append("")
-    lines.append(f"🔗 *Vizualizează devizul:*\n{proforma_url}")
+    lines.append(f"🛠️ *Link Davide Chape:*\n{seller_url}")
+    lines.append("")
+    lines.append(f"👤 *Link Client:*\n{proforma_url}")
     if wa_link:
         lines.append("")
         lines.append(f"💬 *Scrie direct clientului pe WhatsApp:*\n{wa_link}")
@@ -801,8 +804,11 @@ def send_admin_quote_confirmed_whatsapp(
     if confirm_key:
         clean_lang = client_language if client_language in ['fr', 'nl', 'en', 'ro'] else 'fr'
         confirm_url = f"https://davidechape.pontaj.app/confirm/{confirm_key}?lang={clean_lang}"
+        seller_url = f"{confirm_url}&role=seller"
         lines.append("")
-        lines.append(f"🔗 *Deschide devizul:*\n{confirm_url}")
+        lines.append(f"🛠️ *Link Davide Chape:*\n{seller_url}")
+        lines.append("")
+        lines.append(f"👤 *Link Client:*\n{confirm_url}")
     
     if wa_link:
         lines.append("")
@@ -859,13 +865,17 @@ def send_admin_client_message_whatsapp(
         f"\"{message_text}\"",
         "",
     ]
-    if wa_link:
-        lines.append(f"👉 *Răspunde-i direct pe WhatsApp:*\n{wa_link}")
     confirm_key = token or wo_id
     if confirm_key:
         clean_lang = client_language if client_language in ['fr', 'nl', 'en', 'ro'] else 'fr'
         confirm_url = f"https://davidechape.pontaj.app/confirm/{confirm_key}?lang={clean_lang}"
-        lines.append(f"🔗 *Deschide devizul:*\n{confirm_url}")
+        seller_url = f"{confirm_url}&role=seller#chat-section"
+        lines.append(f"🛠️ *Link Davide Chape (Răspunde în Chat):*\n{seller_url}")
+        lines.append("")
+        lines.append(f"👤 *Link Client:*\n{confirm_url}")
+    if wa_link:
+        lines.append("")
+        lines.append(f"👉 *Răspunde-i direct pe WhatsApp:*\n{wa_link}")
 
     body_text = "\n".join(lines)
 

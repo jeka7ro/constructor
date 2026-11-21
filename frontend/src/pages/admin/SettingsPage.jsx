@@ -102,7 +102,7 @@ export default function SettingsPage() {
         <div className="p-4 md:p-8 w-full">
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">⚙️ Setări</h1>
+                <h1 className="text-3xl font-bold text-slate-900 mb-2">Setări</h1>
                 <p className="text-slate-600">Configurează aplicația</p>
             </div>
 
@@ -196,7 +196,7 @@ export default function SettingsPage() {
                                                     disabled={uploading}
                                                     className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors text-sm font-medium disabled:opacity-50"
                                                 >
-                                                    {uploading ? 'Se încarcă...' : '📤 Încarcă'}
+                                                    {uploading ? 'Se încarcă...' : 'Încarcă'}
                                                 </button>
                                                 <button
                                                     onClick={() => { setLogoFile(null); setLogoPreview(null) }}
@@ -208,7 +208,7 @@ export default function SettingsPage() {
                                         )}
                                     </div>
                                     {logoFile && (
-                                        <p className="text-xs text-slate-500">📎 {logoFile.name}</p>
+                                        <p className="text-xs text-slate-500">{logoFile.name}</p>
                                     )}
                                     <p className="text-xs text-slate-400">Formate: JPG, PNG, SVG, WebP. Max 2MB.</p>
                                 </div>

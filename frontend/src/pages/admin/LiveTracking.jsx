@@ -9,6 +9,7 @@ import api from '../../lib/api';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { useTenantStore } from '../../store/tenantStore';
 import useViewPreferencesStore from '../../store/viewPreferencesStore';
+import { LiveMapWeatherOverlay } from '../../utils/liveWeatherCanvas.jsx';
 
 // Fix leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -20,21 +21,91 @@ L.Icon.Default.mergeOptions({
 
 const POLL_INTERVAL = 30000; // 30s
 
-function createVehicleIcon(color, name, avatarUrl) {
+function computeVehiclePixelOffsets(vehicles, zoom = 10) {
+  const scale = (256 * Math.pow(2, zoom)) / 360;
+  const cosLat = Math.cos((50.85 * Math.PI) / 180);
+  const PILL_W = 116;
+  const PILL_H = 30;
+  const candidates = [
+    [0, 0],
+    [0, -31],
+    [0, 31],
+    [0, -62],
+    [0, 62],
+    [118, 0],
+    [-118, 0],
+    [118, -31],
+    [-118, -31],
+    [118, 31],
+    [-118, 31],
+    [0, -93],
+    [0, 93],
+  ];
+  const placed = [];
+  const offsets = {};
+
+  vehicles.forEach(v => {
+    if (v.lat == null || v.lng == null) {
+      offsets[v.id] = [0, 0];
+      return;
+    }
+    const px = v.lng * scale;
+    const py = (-v.lat / cosLat) * scale;
+
+    let chosen = [0, 0];
+    for (const [ox, oy] of candidates) {
+      const box = {
+        x1: px + ox - PILL_W / 2,
+        y1: py + oy - PILL_H / 2,
+        x2: px + ox + PILL_W / 2,
+        y2: py + oy + PILL_H / 2,
+      };
+      const collides = placed.some(
+        b => !(box.x2 < b.x1 || box.x1 > b.x2 || box.y2 < b.y1 || box.y1 > b.y2)
+      );
+      if (!collides) {
+        chosen = [ox, oy];
+        placed.push(box);
+        break;
+      }
+    }
+    offsets[v.id] = chosen;
+  });
+
+  return offsets;
+}
+
+function createVehicleIcon(color, name, avatarUrl, speed, offset = [0, 0]) {
+  const cleanName = (name || 'Camion').replace(/\s*\([^)]*\)/g, '').trim();
+  const shortName = cleanName.length > 14 ? cleanName.substring(0, 14) + '…' : cleanName;
   const apiBaseUrl = 'http://davidechape.localhost:5678';
   const fullAvatarUrl = avatarUrl ? (avatarUrl.startsWith('http') ? avatarUrl : `${apiBaseUrl}${avatarUrl}`) : null;
   const themeColor = color || '#3b82f6';
-  
-  const innerHtml = fullAvatarUrl 
-    ? `<img src="${fullAvatarUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid white;" />`
-    : `<div style="width:32px;height:32px;border-radius:50%;background-color:${themeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>`;
+  const spd = speed != null ? Math.round(Number(speed)) : 0;
+  const [ox, oy] = offset;
+
+  const truckSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>`;
+
+  const badgeVisual = fullAvatarUrl
+    ? `<img src="${fullAvatarUrl}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1.5px solid ${themeColor};flex-shrink:0;" />`
+    : `<span style="width:22px;height:22px;border-radius:50%;background-color:${themeColor};border:1.5px solid rgba(255,255,255,0.85);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.3);">${truckSvg}</span>`;
+
+  const speedHtml = spd > 0
+    ? `<span style="color:#38bdf8;font-weight:900;margin-left:2px;">${spd} km/h</span>`
+    : `<span style="width:6px;height:6px;border-radius:50%;background:${themeColor};display:inline-block;margin-left:2px;"></span>`;
+
+  const pillHtml = `<div class="tms-weather-hud-glass tabular-nums" style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;border-radius:999px;background:linear-gradient(160deg,rgba(15,23,42,0.88) 0%,rgba(9,23,46,0.92) 100%);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1.5px solid rgba(255,255,255,0.28);color:#ffffff;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 6px 18px -4px rgba(2,6,23,0.55),inset 0 1px 0 rgba(255,255,255,0.22);transform:translate(calc(-50% + ${ox}px),calc(-50% + ${oy}px));cursor:pointer;">
+    ${badgeVisual}
+    <span style="letter-spacing:-0.01em;">${shortName}</span>
+    ${speedHtml}
+  </div>`;
 
   return L.divIcon({
-    html: innerHtml,
+    html: pillHtml,
     className: '',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16],
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+    popupAnchor: [ox, oy - 16],
   });
 }
 
@@ -65,14 +136,37 @@ function formatLastSeen(dateStr, t) {
   return t ? t('live.ago_h', 'il y a {{count}}h', { count: Math.floor(secs / 3600) }) : `il y a ${Math.floor(secs / 3600)}h`;
 }
 
-function MapResizer({ isMapFull }) {
+function MapResizer({ isMapFull, onZoomChange, onMapBackgroundClick }) {
   const map = useMap();
+  const clickCbRef = useRef(onMapBackgroundClick);
+  clickCbRef.current = onMapBackgroundClick;
+
   useEffect(() => {
-      const timer = setTimeout(() => {
-          map.invalidateSize();
-      }, 300);
-      return () => clearTimeout(timer);
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 300);
+    return () => clearTimeout(timer);
   }, [map, isMapFull]);
+
+  useEffect(() => {
+    if (!map) return;
+    const updateZoom = () => {
+      if (onZoomChange) onZoomChange(map.getZoom());
+    };
+    const handleMapClick = () => {
+      if (clickCbRef.current) clickCbRef.current();
+    };
+    updateZoom();
+    map.on('zoomend', updateZoom);
+    map.on('click', handleMapClick);
+    return () => {
+      try {
+        map.off('zoomend', updateZoom);
+        map.off('click', handleMapClick);
+      } catch (_) {}
+    };
+  }, [map, onZoomChange]);
+
   return null;
 }
 
@@ -87,50 +181,90 @@ export default function LiveTracking() {
   const [connected, setConnected] = useState(true);
   const [isMapFull, setIsMapFull] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [mapZoom, setMapZoom] = useState(10);
+  const [focusedVehicleId, setFocusedVehicleId] = useState(null);
+  const focusedVehicleIdRef = useRef(null);
+  const previousViewRef = useRef(null);
+  const lastToggleTsRef = useRef(0);
   const mapRef = useRef(null);
   const globalTheme = useViewPreferencesStore(state => state.globalTheme);
   const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
 
-  const handleCardClick = (v) => {
-    if (mapRef.current) {
-      mapRef.current.setView([v.lat - 0.004, v.lng], 15, { animate: true });
+  const restorePreviousView = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    try { map.closePopup(); } catch (_) {}
+    if (previousViewRef.current) {
+      const { center: prevCenter, zoom: prevZoom } = previousViewRef.current;
+      map.flyTo(prevCenter, prevZoom, { animate: true, duration: 1.1 });
+    } else if (vehicles.length > 0) {
+      const bounds = L.latLngBounds(vehicles.map(v => [v.lat, v.lng]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14, animate: true });
     }
-  };
+    previousViewRef.current = null;
+    focusedVehicleIdRef.current = null;
+    setFocusedVehicleId(null);
+  }, [vehicles]);
+
+  const handleCardClick = useCallback((v, markerInstance = null) => {
+    const map = mapRef.current;
+    if (!map || v?.lat == null || v?.lng == null) return;
+    lastToggleTsRef.current = Date.now();
+
+    if (String(focusedVehicleIdRef.current) === String(v.id)) {
+      if (markerInstance?.closePopup) {
+        setTimeout(() => { try { markerInstance.closePopup(); } catch (_) {} }, 10);
+      }
+      restorePreviousView();
+      return;
+    }
+
+    if (!previousViewRef.current) {
+      const c = map.getCenter();
+      previousViewRef.current = {
+        center: [c.lat, c.lng],
+        zoom: map.getZoom(),
+      };
+    }
+    focusedVehicleIdRef.current = v.id;
+    setFocusedVehicleId(v.id);
+    map.flyTo([v.lat, v.lng], 16, { animate: true, duration: 1.15 });
+  }, [restorePreviousView]);
+
+  const handleMapBackgroundClick = useCallback(() => {
+    if (Date.now() - lastToggleTsRef.current < 250) return;
+    if (focusedVehicleIdRef.current !== null) {
+      restorePreviousView();
+    }
+  }, [restorePreviousView]);
   const [showSandStations, setShowSandStations] = useState(() => {
-      const saved = localStorage.getItem('livetracking_nisip_toggle');
-      return saved ? JSON.parse(saved) : true;
+    const saved = localStorage.getItem('livetracking_nisip_toggle');
+    return saved ? JSON.parse(saved) : true;
   });
   const intervalRef = useRef(null);
 
   useEffect(() => {
-      localStorage.setItem('livetracking_nisip_toggle', JSON.stringify(showSandStations));
+    localStorage.setItem('livetracking_nisip_toggle', JSON.stringify(showSandStations));
   }, [showSandStations]);
 
   useEffect(() => {
-      const handleFullscreenChange = () => {
-          const isFull = !!document.fullscreenElement;
-          setIsMapFull(isFull);
-      };
-      
-      const handler = (e) => { if (e.key === 'Escape') setIsMapFull(false) }
-      document.addEventListener('keydown', handler);
-      document.addEventListener('fullscreenchange', handleFullscreenChange);
-      
-      return () => {
-          document.removeEventListener('keydown', handler);
-          document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      }
+    const handler = (e) => { if (e.key === 'Escape') setIsMapFull(false) }
+    document.addEventListener('keydown', handler);
+
+    return () => {
+      document.removeEventListener('keydown', handler);
+    }
   }, []);
 
   const fetchLive = useCallback(async () => {
     try {
       const [resVehicles, resStations] = await Promise.all([
-          api.get('/admin/vehicles/live'),
-          isDavideChape ? api.get('/admin/logistics/sand-stations').catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
+        api.get('/admin/vehicles/live'),
+        isDavideChape ? api.get('/admin/logistics/sand-stations').catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
       ]);
       setVehicles(resVehicles.data || []);
       if (isDavideChape && resStations.data) {
-          setSandStations(resStations.data);
+        setSandStations(resStations.data);
       }
       setLastUpdate(new Date());
       setConnected(true);
@@ -170,9 +304,8 @@ export default function LiveTracking() {
 
         <div className="flex items-center gap-3">
           {/* Status */}
-          <div className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
-            connected ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'
-          }`}>
+          <div className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${connected ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'
+            }`}>
             {connected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
             {connected ? t("tracking.online", "Online") : t("tracking.offline", "Offline")}
           </div>
@@ -195,94 +328,108 @@ export default function LiveTracking() {
       <div className={`flex flex-1 overflow-hidden`}>
         {/* Sidebar */}
         {!isMapFull && (
-        <div className="hidden md:flex md:flex-col w-72 shrink-0 bg-white border-r border-slate-200 overflow-y-auto">
-          <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 font-bold border-b border-slate-100 bg-slate-50">
-            {t("live.active_vehicles", "Véhicules actifs")}
-          </div>
-
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-5 h-5 text-slate-400 animate-spin" />
+          <div className="hidden md:flex md:flex-col w-72 shrink-0 bg-white border-r border-slate-200 overflow-y-auto">
+            <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 font-bold border-b border-slate-100 bg-slate-50">
+              {t("live.active_vehicles", "Véhicules actifs")}
             </div>
-          )}
 
-          {!loading && vehicles.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-3">
-              <Radio className="w-8 h-8 text-slate-300" />
-              <p className="text-slate-500 text-sm">{t("tracking.no_active", "Aucun véhicule actif")}</p>
-              <p className="text-slate-400 text-xs">{t("tracking.no_active_hint", "Assurez-vous que les appareils GPS sont allumés.")}</p>
-            </div>
-          )}
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="w-5 h-5 text-slate-400 animate-spin" />
+              </div>
+            )}
 
-          {vehicles.map(v => {
-            const secs = secondsAgo(v.last_seen);
-            const isStale = secs !== null && secs > 120;
-            return (
-              <div
-                key={v.id}
-                className="px-3 py-2.5 border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  {/* Color dot */}
-                  <div
-                    className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
-                    style={{ backgroundColor: v.team_color }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-slate-800 truncate">{v.name}</div>
-                    {v.team_name && (
-                      <div className="text-[10px] text-slate-500 truncate">{v.team_name}</div>
+            {!loading && vehicles.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-3">
+                <Radio className="w-8 h-8 text-slate-300" />
+                <p className="text-slate-500 text-sm">{t("tracking.no_active", "Aucun véhicule actif")}</p>
+                <p className="text-slate-400 text-xs">{t("tracking.no_active_hint", "Assurez-vous que les appareils GPS sont allumés.")}</p>
+              </div>
+            )}
+
+            {vehicles.map(v => {
+              const secs = secondsAgo(v.last_seen);
+              const isStale = secs !== null && secs > 120;
+              const isFocused = String(focusedVehicleId) === String(v.id);
+              return (
+                <div
+                  key={v.id}
+                  onClick={() => handleCardClick(v)}
+                  className={`px-3 py-2.5 border-b border-slate-100 transition-colors cursor-pointer ${isFocused ? 'bg-blue-50/90 border-l-4 border-l-blue-500' : 'hover:bg-slate-50'}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    {/* Color dot */}
+                    <div
+                      className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
+                      style={{ backgroundColor: v.team_color }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-slate-800 truncate">{v.name}</div>
+                      {v.team_name && (
+                        <div className="text-[10px] text-slate-500 truncate">{v.team_name}</div>
+                      )}
+                    </div>
+                    {/* Stale indicator */}
+                    <div className={`w-2 h-2 rounded-full shrink-0 shadow-sm ${isStale ? 'bg-amber-400' : 'bg-emerald-500 animate-pulse'}`} />
+                  </div>
+
+                  <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-500 font-medium">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatLastSeen(v.last_seen, t)}
+                    </span>
+                    {v.speed != null && (
+                      <span className="flex items-center gap-1">
+                        <Gauge className="w-3 h-3" />
+                        {Math.round(v.speed)} km/h
+                      </span>
                     )}
                   </div>
-                  {/* Stale indicator */}
-                  <div className={`w-2 h-2 rounded-full shrink-0 shadow-sm ${isStale ? 'bg-amber-400' : 'bg-emerald-500 animate-pulse'}`} />
-                </div>
-
-                <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-500 font-medium">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {formatLastSeen(v.last_seen, t)}
-                  </span>
-                  {v.speed != null && (
-                    <span className="flex items-center gap-1">
-                      <Gauge className="w-3 h-3" />
-                      {Math.round(v.speed)} km/h
-                    </span>
+                  {v.current_work_order && (
+                    <div className="mt-1.5 flex items-center justify-between gap-1.5 bg-blue-50/80 border border-blue-200/70 px-2 py-1 rounded-lg text-[10px]">
+                      <div className="flex items-center gap-1 min-w-0 flex-1">
+                        <span className="font-black text-blue-700 shrink-0 tabular-nums">{v.current_work_order.start_time}</span>
+                        <span className="text-slate-400">·</span>
+                        <span className="font-bold text-slate-800 truncate">{v.current_work_order.client_name}</span>
+                      </div>
+                      {v.current_work_order.surface_m2 && (
+                        <span className="font-extrabold text-emerald-700 shrink-0 tabular-nums">{v.current_work_order.surface_m2}m²</span>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
         )}
 
         {/* Map */}
         <div className="flex-1 relative" id="livetracking-map-container">
           {/* Controls overlay */}
           <div className="absolute top-3 right-3 z-[1001] flex items-center gap-2 pointer-events-none md:top-4 md:left-14 md:right-auto">
-              {/* Fullscreen button */}
-              <button 
-                  onClick={() => setIsMapFull(f => !f)}
-                  title={isMapFull ? 'Quitter plein écran' : 'Plein écran'}
-                  className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700 w-10 h-10 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 pointer-events-auto transition-all"
-              >
-                  {isMapFull 
-                      ? <Minimize2 className="w-5 h-5" /> 
-                      : <Maximize2 className="w-5 h-5" />
-                  }
-              </button>
+            {/* Fullscreen button */}
+            <button
+              onClick={() => setIsMapFull(f => !f)}
+              title={isMapFull ? 'Quitter plein écran' : 'Plein écran'}
+              className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700 w-10 h-10 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 pointer-events-auto transition-all"
+            >
+              {isMapFull
+                ? <Minimize2 className="w-5 h-5" />
+                : <Maximize2 className="w-5 h-5" />
+              }
+            </button>
 
-              {/* Sand stations toggle */}
-              {isDavideChape && (
-                  <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto flex items-center gap-3">
-                      <div className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                          onClick={() => setShowSandStations(!showSandStations)}
-                      >
-                          <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
-                      </div>
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Stations de Sable</span>
-                  </div>
-              )}
+            {/* Sand stations toggle */}
+            {isDavideChape && (
+              <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto flex items-center gap-3">
+                <div className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  onClick={() => setShowSandStations(!showSandStations)}
+                >
+                  <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
+                </div>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Stations de Sable</span>
+              </div>
+            )}
           </div>
 
           {!loading && (
@@ -299,20 +446,28 @@ export default function LiveTracking() {
                 attribution="&copy; Google Maps"
                 maxZoom={20}
               />
+              <LiveMapWeatherOverlay compact={false} />
 
-              {vehicles.map(v => (
+              {(() => {
+                const vehicleOffsets = computeVehiclePixelOffsets(vehicles, mapZoom);
+                return vehicles.map(v => (
                 <Marker
                   key={v.id}
                   position={[v.lat, v.lng]}
-                  icon={createVehicleIcon(v.team_color, v.name, v.avatar_url)}
+                  icon={createVehicleIcon(v.team_color, v.name, v.avatar_url, v.speed, vehicleOffsets[v.id] || [0, 0])}
+                  eventHandlers={{
+                    click: (e) => {
+                      handleCardClick(v, e.target);
+                    }
+                  }}
                 >
                   <Popup className="tracking-popup">
                     <div className="flex items-center gap-3 mb-2">
                       {v.avatar_url && (
-                        <img 
-                          src={v.avatar_url.startsWith('http') ? v.avatar_url : `http://davidechape.localhost:5678${v.avatar_url}`} 
-                          alt="avatar" 
-                          className="w-10 h-10 rounded-full object-cover border-2" 
+                        <img
+                          src={v.avatar_url.startsWith('http') ? v.avatar_url : `http://davidechape.localhost:5678${v.avatar_url}`}
+                          alt="avatar"
+                          className="w-10 h-10 rounded-full object-cover border-2"
                           style={{ borderColor: v.team_color }}
                         />
                       )}
@@ -326,140 +481,154 @@ export default function LiveTracking() {
                     {v.speed != null && (
                       <div className="text-xs text-slate-400">{t('live.speed', 'Vitesse')}: {Math.round(v.speed)} km/h</div>
                     )}
+                    {v.current_work_order && (
+                      <div className="mt-2 pt-2 border-t border-slate-100 text-xs">
+                        <div className="font-bold text-blue-700 flex items-center justify-between gap-2">
+                          <span>📋 {v.current_work_order.start_time} · {v.current_work_order.client_name}</span>
+                          {v.current_work_order.surface_m2 && (
+                            <span className="text-emerald-600 font-extrabold tabular-nums">{v.current_work_order.surface_m2}m²</span>
+                          )}
+                        </div>
+                        {v.current_work_order.site_address && (
+                          <div className="text-[11px] text-slate-500 mt-0.5 truncate">{v.current_work_order.site_address}</div>
+                        )}
+                      </div>
+                    )}
                   </Popup>
                 </Marker>
-              ))}
+                ));
+              })()}
 
               {/* Sand Stations Markers */}
               {isDavideChape && showSandStations && (() => {
-                  const validPrices = sandStations
-                      .map(s => parseFloat(s.price_per_ton))
-                      .filter(p => !isNaN(p))
-                      .sort((a, b) => a - b);
+                const validPrices = sandStations
+                  .map(s => parseFloat(s.price_per_ton))
+                  .filter(p => !isNaN(p))
+                  .sort((a, b) => a - b);
 
-                  const getPriceColor = (priceStr) => {
-                      if (priceStr == null || priceStr === '') return '#64748b'; // slate-500
-                      const price = parseFloat(priceStr);
-                      if (isNaN(price) || validPrices.length === 0) return '#64748b';
-                      if (validPrices[0] === validPrices[validPrices.length - 1]) return '#10b981'; // green
-                      
-                      const lessCount = validPrices.filter(p => p < price).length;
-                      const ratio = lessCount / Math.max(1, validPrices.length - 1);
-                      if (ratio < 0.34) return '#10b981'; // emerald-500
-                      if (ratio < 0.67) return '#f59e0b'; // amber-500
-                      return '#ef4444'; // red-500
-                  };
+                const getPriceColor = (priceStr) => {
+                  if (priceStr == null || priceStr === '') return '#64748b'; // slate-500
+                  const price = parseFloat(priceStr);
+                  if (isNaN(price) || validPrices.length === 0) return '#64748b';
+                  if (validPrices[0] === validPrices[validPrices.length - 1]) return '#10b981'; // green
 
-                  return sandStations.filter(s => s.latitude && s.longitude).map((s) => (
-                      <Marker 
-                          key={`sand-${s.id}`} 
-                          position={[s.latitude, s.longitude]} 
-                          icon={L.divIcon({
-                              html: `<div style="background-color: ${getPriceColor(s.price_per_ton)}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;">S</div>`,
-                              className: '',
-                              iconSize: [24, 24],
-                              iconAnchor: [12, 12],
-                              popupAnchor: [0, -12]
-                          })}
-                      >
-                          <Popup>
-                              <div className="font-bold text-sm text-slate-900">{s.name}</div>
-                              <div className="text-xs text-slate-500 mt-1">{s.address}</div>
-                              {s.price_per_ton != null && s.price_per_ton !== '' && (
-                                  <div className="text-xs font-bold text-slate-700 mt-2 bg-slate-50 p-2 border border-slate-100 rounded-lg flex items-center justify-between">
-                                      <span>Preț:</span>
-                                      <span className="text-emerald-600 text-sm">{s.price_per_ton} € / tonă</span>
-                                  </div>
-                              )}
-                          </Popup>
-                      </Marker>
-                  ));
+                  const lessCount = validPrices.filter(p => p < price).length;
+                  const ratio = lessCount / Math.max(1, validPrices.length - 1);
+                  if (ratio < 0.34) return '#10b981'; // emerald-500
+                  if (ratio < 0.67) return '#f59e0b'; // amber-500
+                  return '#ef4444'; // red-500
+                };
+
+                return sandStations.filter(s => s.latitude && s.longitude).map((s) => (
+                  <Marker
+                    key={`sand-${s.id}`}
+                    position={[s.latitude, s.longitude]}
+                    icon={L.divIcon({
+                      html: `<div style="background-color: ${getPriceColor(s.price_per_ton)}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;">S</div>`,
+                      className: '',
+                      iconSize: [24, 24],
+                      iconAnchor: [12, 12],
+                      popupAnchor: [0, -12]
+                    })}
+                  >
+                    <Popup>
+                      <div className="font-bold text-sm text-slate-900">{s.name}</div>
+                      <div className="text-xs text-slate-500 mt-1">{s.address}</div>
+                      {s.price_per_ton != null && s.price_per_ton !== '' && (
+                        <div className="text-xs font-bold text-slate-700 mt-2 bg-slate-50 p-2 border border-slate-100 rounded-lg flex items-center justify-between">
+                          <span>Preț:</span>
+                          <span className="text-emerald-600 text-sm">{s.price_per_ton} € / tonă</span>
+                        </div>
+                      )}
+                    </Popup>
+                  </Marker>
+                ));
               })()}
 
               {vehicles.length > 0 && <FitBounds vehicles={vehicles} />}
-              <MapResizer isMapFull={isMapFull} />
+              <MapResizer isMapFull={isMapFull} onZoomChange={setMapZoom} onMapBackgroundClick={handleMapBackgroundClick} />
             </MapContainer>
           )}
 
           {/* Compact Vertical List in a Single Panel — normal (non-fullscreen) */}
           {!loading && vehicles.length > 0 && !isMapFull && (
             <div className={`absolute bottom-28 md:hidden left-4 right-4 z-[1000] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out overflow-hidden transform-gpu isolate ${isPanelOpen ? 'max-h-[45vh]' : 'max-h-12'}`}>
-              <div 
+              <div
                 className="px-4 py-3 flex items-center justify-between cursor-pointer border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 sticky top-0 z-10"
                 onClick={() => setIsPanelOpen(!isPanelOpen)}
               >
-                 <div className="flex items-center gap-2">
-                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('admin_overview.trucks_teams', 'Équipes')}</span>
-                   <span className="text-[10px] font-bold text-slate-800 dark:text-slate-100 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                      {vehicles.length}
-                   </span>
-                 </div>
-                 <button className="text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                   {isPanelOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-                 </button>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('admin_overview.trucks_teams', 'Équipes')}</span>
+                  <span className="text-[10px] font-bold text-slate-800 dark:text-slate-100 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                    {vehicles.length}
+                  </span>
+                </div>
+                <button className="text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                  {isPanelOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                </button>
               </div>
-              
+
               {isPanelOpen && (
                 <div className="flex-1 overflow-y-auto overscroll-contain pb-6">
                   <div className="grid grid-cols-2 md:grid-cols-4 p-2 gap-2">
-                  {vehicles.map(v => (
-                      <div 
-                        key={v.id} 
+                    {vehicles.map(v => (
+                      <div
+                        key={v.id}
                         onClick={() => handleCardClick(v)}
                         className="flex flex-col gap-2 p-2.5 rounded-2xl border-2 shadow-sm transition-transform cursor-pointer relative active:scale-95 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
-                        style={{ 
+                        style={{
                           borderColor: v.team_color || (globalTheme === 'dark' ? '#334155' : '#e2e8f0')
                         }}
                       >
-                      <div className="flex items-center gap-2 pr-7">
-                        <div 
-                          className="w-8 h-8 rounded-full flex-shrink-0 border shadow-sm flex items-center justify-center bg-slate-100 dark:bg-slate-800 overflow-hidden"
-                          style={{ borderColor: v.team_color || (globalTheme === 'dark' ? '#475569' : '#3b82f6') }}
-                        >
-                          {v.avatar_url ? (
-                            <img src={v.avatar_url.startsWith('http') ? v.avatar_url : `${API_BASE}${v.avatar_url}`} className="w-full h-full object-cover" />
-                          ) : (
-                            v.vehicle_type === 'Grue' ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-500 dark:text-slate-400" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M7 21v-4"/><path d="M17 21v-4"/><path d="M12 17V3l-7 4"/><path d="M12 10l5 3"/></svg>
+                        <div className="flex items-center gap-2 pr-7">
+                          <div
+                            className="w-8 h-8 rounded-full flex-shrink-0 border shadow-sm flex items-center justify-center bg-slate-100 dark:bg-slate-800 overflow-hidden"
+                            style={{ borderColor: v.team_color || (globalTheme === 'dark' ? '#475569' : '#3b82f6') }}
+                          >
+                            {v.avatar_url ? (
+                              <img src={v.avatar_url.startsWith('http') ? v.avatar_url : `${API_BASE}${v.avatar_url}`} className="w-full h-full object-cover" />
                             ) : (
-                              <Truck className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                            )
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <span className="font-bold text-slate-800 dark:text-slate-100 text-[11px] truncate leading-tight">{v.name}</span>
-                            {v.distance != null ? (
-                              <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1 rounded-sm border border-emerald-100/50 dark:border-emerald-500/20 whitespace-nowrap">
-                                {v.distance.toFixed(1)} km
-                              </span>
-                            ) : (
-                              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-1 rounded-sm border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                                -- km
-                              </span>
+                              v.vehicle_type === 'Grue' ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-500 dark:text-slate-400" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M7 21v-4" /><path d="M17 21v-4" /><path d="M12 17V3l-7 4" /><path d="M12 10l5 3" /></svg>
+                              ) : (
+                                <Truck className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                              )
                             )}
                           </div>
-                          <div className="text-[9px] text-slate-500 dark:text-slate-400 font-medium truncate flex items-center gap-0.5 mt-0.5">
-                            <Clock className={`w-2.5 h-2.5 ${globalTheme === 'dark' ? 'opacity-80' : ''}`} />
-                            {formatLastSeen(v.last_seen, t)}
+                          <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="font-bold text-slate-800 dark:text-slate-100 text-[11px] truncate leading-tight">{v.name}</span>
+                              {v.distance != null ? (
+                                <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1 rounded-sm border border-emerald-100/50 dark:border-emerald-500/20 whitespace-nowrap">
+                                  {v.distance.toFixed(1)} km
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-1 rounded-sm border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                                  -- km
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[9px] text-slate-500 dark:text-slate-400 font-medium truncate flex items-center gap-0.5 mt-0.5">
+                              <Clock className={`w-2.5 h-2.5 ${globalTheme === 'dark' ? 'opacity-80' : ''}`} />
+                              {formatLastSeen(v.last_seen, t)}
+                            </div>
                           </div>
                         </div>
+
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute top-2 right-2 w-7 h-7 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-500/20 active:bg-blue-200 dark:active:bg-blue-500/30 transition-colors shadow-sm"
+                        >
+                          <Navigation className="w-3 h-3" />
+                        </a>
                       </div>
-                      
-                      <a 
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute top-2 right-2 w-7 h-7 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-500/20 active:bg-blue-200 dark:active:bg-blue-500/30 transition-colors shadow-sm"
-                      >
-                        <Navigation className="w-3 h-3" />
-                      </a>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
               )}
             </div>
           )}
@@ -495,39 +664,39 @@ export default function LiveTracking() {
                       </Marker>
                     ))}
                     {isDavideChape && showSandStations && (() => {
-                        const validPrices = sandStations.map(s => parseFloat(s.price_per_ton)).filter(p => !isNaN(p));
-                        const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
-                        const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : 0;
-      
-                        const getPriceColor = (priceStr) => {
-                            if (priceStr == null || priceStr === '') return '#64748b'; // slate-500
-                            const price = parseFloat(priceStr);
-                            if (isNaN(price)) return '#64748b';
-                            if (minPrice === maxPrice) return '#10b981'; // green
-                            
-                            const ratio = (price - minPrice) / (maxPrice - minPrice);
-                            if (ratio < 0.33) return '#10b981'; // emerald-500
-                            if (ratio < 0.66) return '#f59e0b'; // amber-500
-                            return '#ef4444'; // red-500
-                        };
-      
-                        return sandStations.filter(s => s.latitude && s.longitude).map((s) => (
-                            <Marker key={`sand-fs-${s.id}`} position={[s.latitude, s.longitude]} icon={L.divIcon({
-                              html: `<div style="background-color: ${getPriceColor(s.price_per_ton)}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;">S</div>`,
-                              className: '', iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12]
-                            })}>
-                              <Popup>
-                                <div className="font-bold text-sm text-slate-900">{s.name}</div>
-                                <div className="text-xs text-slate-500 mt-1">{s.address}</div>
-                                {s.price_per_ton != null && s.price_per_ton !== '' && (
-                                    <div className="text-xs font-bold text-slate-700 mt-2 bg-slate-50 p-2 border border-slate-100 rounded-lg flex items-center justify-between">
-                                        <span>Preț:</span>
-                                        <span className="text-emerald-600 text-sm">{s.price_per_ton} € / tonă</span>
-                                    </div>
-                                )}
-                              </Popup>
-                            </Marker>
-                        ));
+                      const validPrices = sandStations.map(s => parseFloat(s.price_per_ton)).filter(p => !isNaN(p));
+                      const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+                      const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : 0;
+
+                      const getPriceColor = (priceStr) => {
+                        if (priceStr == null || priceStr === '') return '#64748b'; // slate-500
+                        const price = parseFloat(priceStr);
+                        if (isNaN(price)) return '#64748b';
+                        if (minPrice === maxPrice) return '#10b981'; // green
+
+                        const ratio = (price - minPrice) / (maxPrice - minPrice);
+                        if (ratio < 0.33) return '#10b981'; // emerald-500
+                        if (ratio < 0.66) return '#f59e0b'; // amber-500
+                        return '#ef4444'; // red-500
+                      };
+
+                      return sandStations.filter(s => s.latitude && s.longitude).map((s) => (
+                        <Marker key={`sand-fs-${s.id}`} position={[s.latitude, s.longitude]} icon={L.divIcon({
+                          html: `<div style="background-color: ${getPriceColor(s.price_per_ton)}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;">S</div>`,
+                          className: '', iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12]
+                        })}>
+                          <Popup>
+                            <div className="font-bold text-sm text-slate-900">{s.name}</div>
+                            <div className="text-xs text-slate-500 mt-1">{s.address}</div>
+                            {s.price_per_ton != null && s.price_per_ton !== '' && (
+                              <div className="text-xs font-bold text-slate-700 mt-2 bg-slate-50 p-2 border border-slate-100 rounded-lg flex items-center justify-between">
+                                <span>Preț:</span>
+                                <span className="text-emerald-600 text-sm">{s.price_per_ton} € / tonă</span>
+                              </div>
+                            )}
+                          </Popup>
+                        </Marker>
+                      ));
                     })()}
                     {vehicles.length > 0 && <FitBounds vehicles={vehicles} />}
                   </MapContainer>

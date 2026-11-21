@@ -1251,11 +1251,11 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
                 {ocrData && ocrData.status === 'success' && (
                     <div className="mb-3 bg-emerald-50 text-emerald-700 p-3 text-xs rounded-xl border border-emerald-200 space-y-1.5">
                         <div className="font-medium">
-                            ✅ Vérifié par IA: <strong>Sable: {ocrData.sand_kg}kg {ocrData.sand_m3 ? `(${ocrData.sand_m3}m³)` : ''}</strong> | Ciment: {ocrData.cement_kg}kg
+                            Vérifié par IA: <strong>Sable: {ocrData.sand_kg}kg {ocrData.sand_m3 ? `(${ocrData.sand_m3}m³)` : ''}</strong> | Ciment: {ocrData.cement_kg}kg
                         </div>
                         {actualThickness && parseFloat(actualThickness) > 0 && (
                             <div className="flex items-center gap-2 font-bold text-emerald-900 text-xs pt-1 border-t border-emerald-200">
-                                <span>📏 Épaisseur calculée :</span>
+                                <span>Épaisseur calculée :</span>
                                 <span className="bg-emerald-200/80 px-2 py-0.5 rounded text-emerald-950">{actualThickness} cm</span>
                                 <span className="text-[11px] text-emerald-700 font-normal">({actualSurface} m²)</span>
                             </div>
@@ -1787,22 +1787,22 @@ export default function WorkerOrdersPage({ isHistory = false }) {
             for (let i = 0; i < actualChapes.length; i++) {
                 const c = actualChapes[i]
                 if (!c.actualSurface || parseFloat(c.actualSurface) <= 0) {
-                    showToast(`⚠️ La superficie réelle (m²) pour ${c.label || `Chape ${i + 1}`} est obligatoire!`, 'error')
+                    showToast(`La superficie réelle (m²) pour ${c.label || `Chape ${i + 1}`} est obligatoire!`, 'error')
                     return
                 }
                 if (!c.actualThickness || parseFloat(c.actualThickness) <= 0) {
-                    showToast(`⚠️ L'épaisseur réelle (cm) pour ${c.label || `Chape ${i + 1}`} est obligatoire!`, 'error')
+                    showToast(`L'épaisseur réelle (cm) pour ${c.label || `Chape ${i + 1}`} est obligatoire!`, 'error')
                     return
                 }
             }
         }
         // Câmpuri obligatorii — nu se poate finaliza fără suprafață și grosime reale
         if (!actualSurface || parseFloat(actualSurface) <= 0) {
-            showToast('⚠️ La superficie réelle (m²) est obligatoire pour finaliser!', 'error')
+            showToast('La superficie réelle (m²) est obligatoire pour finaliser!', 'error')
             return
         }
         if (!actualThickness || parseFloat(actualThickness) <= 0) {
-            showToast('⚠️ L\'épaisseur réelle (cm) est obligatoire pour finaliser!', 'error')
+            showToast('L\'épaisseur réelle (cm) est obligatoire pour finaliser!', 'error')
             return
         }
         if (ocrData?.sand_kg && actualSand) {

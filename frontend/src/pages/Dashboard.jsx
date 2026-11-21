@@ -135,8 +135,7 @@ export default function Dashboard() {
                 {/* Welcome Section */}
                 <div className="slide-up">
                     <h2 className="text-3xl font-bold text-slate-900 mb-2">
-                        {t('dashboard.hello', "Bună")}, {user?.full_name?.split(' ')[0]}! 👋
-                    </h2>
+                        {t('dashboard.hello', "Bună")}, {user?.full_name?.split(' ')[0]}! </h2>
                     <p className="text-slate-600">
                         {t('dashboard.welcome_back')}
                     </p>

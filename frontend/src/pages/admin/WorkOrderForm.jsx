@@ -592,9 +592,9 @@ export default function WorkOrderForm() {
                                         </div>
                                         <div className="flex items-center gap-3 flex-wrap flex-1 min-w-0">
                                             <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{form.client_name || <span className="text-slate-400 italic">— client —</span>}</span>
-                                            {form.client_phone && <span className="text-xs text-slate-500">📞 {form.client_phone}</span>}
-                                            {form.client_email && <span className="text-xs text-slate-500">✉️ {form.client_email}</span>}
-                                            {form.client_language && <span className="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">{form.client_language === 'fr' ? '🇫🇷' : form.client_language === 'en' ? '🇬🇧' : form.client_language === 'nl' ? '🇳🇱' : form.client_language === 'de' ? '🇩🇪' : form.client_language === 'ru' ? '🇷🇺' : '🇷🇴'} {form.client_language?.toUpperCase()}</span>}
+                                            {form.client_phone && <span className="text-xs text-slate-500">{form.client_phone}</span>}
+                                            {form.client_email && <span className="text-xs text-slate-500">{form.client_email}</span>}
+                                            {form.client_language && <span className="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">{form.client_language === 'fr' ? '' : form.client_language === 'en' ? '' : form.client_language === 'nl' ? '' : form.client_language === 'de' ? '' : form.client_language === 'ru' ? '' : ''} {form.client_language?.toUpperCase()}</span>}
                                         </div>
                                         <span className="text-xs text-slate-300 group-hover:text-blue-500 transition-colors shrink-0 flex items-center gap-1"><Edit2 className="w-3 h-3" /> {t('common.edit', 'Modifier')}</span>
                                     </div>
@@ -617,7 +617,7 @@ export default function WorkOrderForm() {
                                                 <span className="text-sm text-slate-400 italic">— {t('work_order_form.no_location', 'adresse non définie')} —</span>
                                             )}
                                             {(form.site_latitude && form.site_longitude) && (
-                                                <span className="text-xs text-slate-400 shrink-0">📌 {parseFloat(form.site_latitude).toFixed(4)}, {parseFloat(form.site_longitude).toFixed(4)}</span>
+                                                <span className="text-xs text-slate-400 shrink-0">{parseFloat(form.site_latitude).toFixed(4)}, {parseFloat(form.site_longitude).toFixed(4)}</span>
                                             )}
                                         </div>
                                         <span className="text-xs text-slate-300 group-hover:text-emerald-500 transition-colors shrink-0 flex items-center gap-1"><Edit2 className="w-3 h-3" /> {t('common.edit', 'Modifier')}</span>
@@ -691,8 +691,8 @@ export default function WorkOrderForm() {
                                                 </div>
                                                 {selectedClient && (
                                                     <div className="sm:col-span-4 flex gap-4 text-xs text-slate-500 px-1">
-                                                        {selectedClient.phone && <span>📞 {selectedClient.phone}</span>}
-                                                        {selectedClient.email && <span>✉️ {selectedClient.email}</span>}
+                                                        {selectedClient.phone && <span>{selectedClient.phone}</span>}
+                                                        {selectedClient.email && <span>{selectedClient.email}</span>}
                                                     </div>
                                                 )}
                                             </div>
@@ -1015,7 +1015,7 @@ export default function WorkOrderForm() {
                     Instructions d&apos;accès
                     {(form.access_notes || instructionPhotos.length > 0) && (
                         <span className="normal-case font-normal text-blue-500 ml-1">
-                            {[form.access_notes ? '✓ notes' : null, instructionPhotos.length > 0 ? `${instructionPhotos.length} 📷` : null].filter(Boolean).join('  ')}
+                            {[form.access_notes ? 'notes' : null, instructionPhotos.length > 0 ? `${instructionPhotos.length} ` : null].filter(Boolean).join('  ')}
                         </span>
                     )}
                     <span className="ml-1">{showAccess ? '▲' : '▼'}</span>

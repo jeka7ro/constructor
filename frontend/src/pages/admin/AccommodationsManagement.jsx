@@ -289,7 +289,7 @@ export default function AccommodationsManagement() {
                                         <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                             <UserPlus className="w-5 h-5 text-blue-500" /> {t('accommodations.add_workers_title', 'Ajouter Muncitori')}
                                         </h2>
-                                        <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name} &middot; {available.length} {t('accommodations.available_workers', 'disponibili')} &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} {t('accommodations.selected', 'selectați')}</span></p>
+                                        <p className="text-xs text-slate-400 mt-0.5">{detailAcc.name} &middot; {available.length} {t('accommodations.available_workers', 'disponibili')} &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} {t('accommodations.selected', 'selectați')}</span></p>
                                     </div>
                                     <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
                                 </div>
@@ -570,7 +570,7 @@ export default function AccommodationsManagement() {
                                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                         <UserPlus className="w-5 h-5 text-blue-500" /> {t('accommodations.add_workers_title', 'Ajouter Muncitori')}
                                     </h2>
-                                    <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name} &middot; {available.length} {t('accommodations.available_workers', 'disponibili')} &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} {t('accommodations.selected', 'selectați')}</span></p>
+                                    <p className="text-xs text-slate-400 mt-0.5">{detailAcc.name} &middot; {available.length} {t('accommodations.available_workers', 'disponibili')} &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} {t('accommodations.selected', 'selectați')}</span></p>
                                 </div>
                                 <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
                             </div>

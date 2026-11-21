@@ -162,7 +162,7 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                     <div className="flex flex-col gap-1 mt-0.5 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-slate-900 dark:text-white text-base truncate">{user.full_name}</span>
-                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500 shrink-0">{user.employee_code}</span>
+                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] tabular-nums text-slate-500 shrink-0">{user.employee_code}</span>
                             {user.is_active
                                 ? <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full font-bold shrink-0">Activ</span>
                                 : <span className="px-2 py-0.5 text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-bold shrink-0">Inactiv</span>
@@ -394,7 +394,7 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                                             }
                                             return (
                                                 <tr key={mr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">{idx + 1}</td>
+                                                    <td className="px-4 py-3 text-slate-400 tabular-nums text-xs">{idx + 1}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{new Date(mr.created_at).toLocaleString('ro-RO')}</td>
                                                     <td className="px-4 py-3 text-slate-800 dark:text-white max-w-xs">{mr.items_text || '—'}</td>
                                                     <td className="px-4 py-3">
@@ -432,11 +432,11 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                                             <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 italic text-sm">Nicio tranzacție de magazie pentru acest angajat.</td></tr>
                                         ) : realWarehouseHistory.map((tx, idx) => (
                                             <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                <td className="px-4 py-3 text-slate-400 font-mono text-xs">{idx + 1}</td>
+                                                <td className="px-4 py-3 text-slate-400 tabular-nums text-xs">{idx + 1}</td>
                                                 <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{new Date(tx.created_at || tx.date).toLocaleString('ro-RO')}</td>
                                                 <td className="px-4 py-3">
                                                     <span className="font-bold text-slate-900 dark:text-white block">{tx.item_name}</span>
-                                                    <span className="text-[10px] text-slate-400 font-mono">SKU: {tx.item_sku}</span>
+                                                    <span className="text-[10px] text-slate-400 tabular-nums">SKU: {tx.item_sku}</span>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {tx.tx_type === 'out' ? (
@@ -630,7 +630,7 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                                         <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{new Date(log.date).toLocaleDateString('ro-RO')}</td>
                                         <td className="px-4 py-3">
                                             <span className="font-bold text-slate-900 dark:text-white block">{log.vehicle_name}</span>
-                                            <span className="text-[10px] text-slate-400 font-mono">{log.plate_number}</span>
+                                            <span className="text-[10px] text-slate-400 tabular-nums">{log.plate_number}</span>
                                         </td>
                                         <td className="px-4 py-3">
                                             {log.is_used ? (

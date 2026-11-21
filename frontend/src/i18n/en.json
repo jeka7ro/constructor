@@ -314,7 +314,8 @@
         "uploaded_by_client": "Téléchargé par le client",
         "document": "Document",
         "preview_not_available": "Aperçu non disponible pour ce type de fichier.",
-        "open_file": "Ouvrir le fichier"
+        "open_file": "Ouvrir le fichier",
+        "member_single": "member"
     },
     "users": {
         "delete_confirm_msg": "Êtes-vous sûr de vouloir supprimer l'utilisateur ",
@@ -2468,13 +2469,13 @@
         "construction_renovation": "Rénovation",
         "date": "Date Devis",
         "tva_disabled": "TVA non appliquée",
-        "convert": "Transformer",
+        "convert": "Convert",
         "bulk_delete_success": "Devizele au fost șterse cu succes.",
         "bulk_delete_error": "Erreur lors de la suppression des devis.",
         "success_create": "Le devis a été enregistré avec succès.",
         "quote_details": "N° Devis / Date",
         "btn_edit": "Modifier",
-        "err_delete": "Erreur lors de la suppression du devis.",
+        "err_delete": "Error deleting quote.",
         "unknown": "Inconnu",
         "total_est": "Total Est. (€)",
         "details_notes": "Détails / Observations",
@@ -2496,8 +2497,8 @@
         "btn_restore_short": "Restaurează",
         "restore_success": "Devizul a fost restaurat cu succes!",
         "restore_error": "Eroare la restaurare: ",
-        "open_link": "Ouvrir le lien",
-        "address": "Adresse",
+        "open_link": "Open link",
+        "address": "Address",
         "scheduled_works": "Lucrări planificate pe",
         "no_works_scheduled": "Nicio lucrare planificată.",
         "view_planning": "Vezi planificarea",
@@ -2510,9 +2511,9 @@
         "mark_read": "Marquer comme lu",
         "chat_client": "Messages / Chat Client",
         "recalculate_distances": "Recalculare distanțe",
-        "requested_date": "Date demandée",
+        "requested_date": "Requested Date",
         "distance": "Distance",
-        "sand": "Sable",
+        "sand": "Sand",
         "star": "Favorite",
         "quick_add_title": "Quick Add Quote",
         "step_client_details": "Client & Details",
@@ -2564,7 +2565,13 @@
         "btn_next": "Next",
         "btn_back": "Back",
         "btn_cancel": "Cancel",
-        "btn_create_quote": "Create Quote"
+        "btn_create_quote": "Create Quote",
+        "tons_sand": "t sand",
+        "manual": "Manual",
+        "delete_quote": "Delete quote",
+        "delete_confirm_title": "Confirm Quote Deletion",
+        "delete_confirm_msg": "Are you sure you want to permanently delete this quote? This action cannot be undone.",
+        "delete_success": "Quote deleted successfully!"
     },
     "pricing_settings": {
         "global_title": "Global Rates",
@@ -2835,8 +2842,11 @@
         "teams": "Équipes",
         "searching": "Recherche des positions...",
         "active_vehicles": "Véhicules actifs",
-        "sand": "Sable",
-        "fleet_map_short": "Carte"
+        "sand": "Sand",
+        "fleet_map_short": "Carte",
+        "weather": "Weather",
+        "active_single": "active",
+        "active_plural": "active"
     },
     "workorders": {
         "surface_required": "The surface is required.",

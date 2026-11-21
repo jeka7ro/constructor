@@ -56,30 +56,30 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`
         }
 
-        // Inject tenant subdomain for Super Admin impersonation support
+        // Inject tenant subdomain ONLY when a tenant subdomain is active (e.g. davidechape.localhost or davidechape.pontaj.app)
         try {
-            const hostname = window.location.hostname;
-            let subdomain = hostname ? hostname.split('.')[0] : null;
-            if (!subdomain || ['localhost', '127', 'pontaj'].includes(subdomain)) {
-                try {
-                    const savedSlug = localStorage.getItem('tenant_slug_override');
-                    if (savedSlug) {
-                        subdomain = savedSlug;
-                    } else {
-                        const tenantStorage = localStorage.getItem('tenant-storage');
-                        if (tenantStorage) {
-                            const parsed = JSON.parse(tenantStorage);
-                            if (parsed.state?.tenant?.slug) {
-                                subdomain = parsed.state.tenant.slug;
-                            }
-                        }
+            const hostname = window.location.hostname || '';
+            let subdomain = null;
+            if (hostname.endsWith('.localhost')) {
+                const sub = hostname.split('.')[0];
+                if (sub && !['www', 'app', 'admin', 'master', 'localhost'].includes(sub)) {
+                    subdomain = sub;
+                }
+            } else if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+                const parts = hostname.split('.');
+                if (parts.length >= 3) {
+                    const sub = parts[0];
+                    if (sub && !['www', 'app', 'admin', 'master', 'pontaj'].includes(sub)) {
+                        subdomain = sub;
                     }
-                } catch (err) {}
-                if (!subdomain || ['localhost', '127', 'pontaj'].includes(subdomain)) {
-                    subdomain = 'davidechape';
                 }
             }
-            if (subdomain && !['localhost', '127', 'pontaj'].includes(subdomain)) {
+            if (!subdomain) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const slugParam = urlParams.get('slug');
+                if (slugParam) subdomain = slugParam;
+            }
+            if (subdomain) {
                 config.headers['X-Tenant-Subdomain'] = subdomain;
             }
         } catch (e) { }

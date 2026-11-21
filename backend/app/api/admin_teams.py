@@ -105,12 +105,37 @@ def list_teams(
                 "employee_code": u.employee_code,
                 "role_name": role.name if role else "N/A",
             })
+
+    team_vehicle_map = {}
+    try:
+        from sqlalchemy import text as sqlt
+        veh_rows = db.execute(sqlt("""
+            SELECT t.id AS team_id, v.id AS vehicle_id, v.name AS vehicle_name, v.plate_number
+            FROM saas_app.teams t
+            LEFT JOIN saas_app.team_members tm ON tm.team_id = t.id AND tm.is_active = true
+            LEFT JOIN saas_app.vehicle_user_assignments vua
+                   ON (vua.user_id = tm.user_id OR vua.user_id = t.team_leader_id) AND vua.is_active = true
+            LEFT JOIN saas_app.vehicles v ON v.id = vua.vehicle_id
+            WHERE v.id IS NOT NULL
+        """)).fetchall()
+        for vr in veh_rows:
+            if vr.team_id not in team_vehicle_map:
+                plate = vr.plate_number if vr.plate_number and vr.plate_number != 'NN' else None
+                team_vehicle_map[vr.team_id] = {
+                    "vehicle_id": str(vr.vehicle_id),
+                    "vehicle_name": vr.vehicle_name,
+                    "plate_number": plate,
+                }
+    except Exception as _ve:
+        db.rollback()
+        print(f"team_vehicle_map lookup skipped: {_ve}")
             
     result = []
     for team in teams:
         leader = leaders.get(team.team_leader_id)
         site = sites.get(team.site_id)
         members = team_members_map.get(team.id, [])
+        veh_info = team_vehicle_map.get(team.id, {})
         
         result.append({
             "id": team.id,
@@ -125,6 +150,9 @@ def list_teams(
             "robaws_password": team.robaws_password,
             "member_count": len(members) + (1 if leader else 0),
             "members": members,
+            "vehicle_id": veh_info.get("vehicle_id"),
+            "vehicle_name": veh_info.get("vehicle_name"),
+            "plate_number": veh_info.get("plate_number"),
             "created_at": team.created_at.isoformat() if team.created_at else None,
         })
         

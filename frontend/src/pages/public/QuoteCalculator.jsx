@@ -52,7 +52,7 @@ export default function QuoteCalculator() {
     useEffect(() => {
         if (isIframe) {
             const link = document.createElement('link');
-            link.href = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap';
+            link.href = 'https://fonts.googleapis.com/css2?family=Inter';
             link.rel = 'stylesheet';
             document.head.appendChild(link);
             const style = document.createElement('style');
@@ -343,7 +343,7 @@ export default function QuoteCalculator() {
                             {['fr', 'nl', 'en'].map(lang => (
                                 <button key={lang} onClick={() => handleLanguageChange(lang)}
                                     className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded transition-all ${i18n.language === lang ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:bg-slate-200'}`}>
-                                    <span className="text-xs sm:text-sm">{lang === 'fr' ? '🇫🇷' : lang === 'nl' ? '🇳🇱' : '🇬🇧'}</span>
+                                    <span className="text-xs sm:text-sm">{lang === 'fr' ? '' : lang === 'nl' ? '' : ''}</span>
                                     {lang.toUpperCase()}
                                 </button>
                             ))}
@@ -370,7 +370,7 @@ export default function QuoteCalculator() {
                                         : isActive ? 'bg-white border-yellow-400 text-yellow-500 shadow shadow-yellow-200'
                                         : 'bg-white border-slate-200 text-slate-300'
                                     }`}>
-                                        {isDone ? '✓' : s}
+                                        {isDone ? '' : s}
                                     </div>
                                     <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wide whitespace-nowrap ${
                                         isActive ? 'text-slate-700' : isDone ? 'text-yellow-500' : 'text-slate-300'

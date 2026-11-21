@@ -1036,6 +1036,7 @@ def get_live_vehicles(
                    COALESCE(u_direct.avatar_path, u_leader.avatar_path) AS avatar_path,
                    COALESCE(t_direct.color, t_leader.color, recent_team.team_color) AS team_color,
                    COALESCE(t_direct.name, t_leader.name, recent_team.team_name, u_direct.full_name) AS driver_name,
+                   COALESCE(t_direct.id, t_leader.id, recent_team.team_id) AS team_id,
                    COALESCE(u_direct.id, u_leader.id, recent_team.team_leader_id) AS assigned_user_id
             FROM saas_app.vehicles v
             LEFT JOIN saas_app.vehicle_user_assignments vua ON vua.vehicle_id = v.id AND vua.is_active = true
@@ -1046,7 +1047,7 @@ def get_live_vehicles(
             -- Try to find if vehicle is assigned to a team (via a recent work order) and get leader's avatar and team color
             LEFT JOIN (
                 SELECT DISTINCT ON (wo.assigned_vehicle_id)
-                       wo.assigned_vehicle_id, t.team_leader_id, t.color as team_color, t.name as team_name
+                       wo.assigned_vehicle_id, t.id as team_id, t.team_leader_id, t.color as team_color, t.name as team_name
                 FROM saas_app.work_orders wo
                 JOIN saas_app.teams t ON t.id = wo.assigned_team_id
                 WHERE wo.created_at >= CURRENT_DATE - INTERVAL '7 days'
@@ -1078,10 +1079,26 @@ def get_live_vehicles(
                 "avatar_url": r.avatar_path,
             })
             
-                # Fetch Bases and Today's Work Orders for Location Matching
+        # Use Belgium time (Europe/Brussels) for today's schedule & current hour matching
+        try:
+            from zoneinfo import ZoneInfo
+            be_now = datetime.now(ZoneInfo("Europe/Brussels"))
+        except Exception:
+            be_now = datetime.utcnow() + timedelta(hours=1)
+
+        today_str = be_now.strftime("%Y-%m-%d")
+        now_hm = be_now.strftime("%H:%M")
+
+        # Fetch Bases and Today's Work Orders for Location Matching
         bases = db.execute(sqlt("SELECT name, latitude, longitude FROM saas_app.logistic_bases WHERE latitude IS NOT NULL AND longitude IS NOT NULL")).fetchall()
-        today_str = datetime.utcnow().strftime("%Y-%m-%d")
-        wos = db.execute(sqlt("SELECT title, client_name, site_latitude, site_longitude FROM saas_app.work_orders WHERE (start_date = :td OR deadline_date = :td) AND status NOT IN ('draft', 'completed') AND site_latitude IS NOT NULL AND site_longitude IS NOT NULL"), {"td": today_str}).fetchall()
+        wos = db.execute(sqlt("""
+            SELECT id, title, client_name, site_address, site_latitude, site_longitude,
+                   start_time, status, assigned_team_id, assigned_vehicle_id, volumes
+            FROM saas_app.work_orders
+            WHERE (CAST(start_date AS TEXT) LIKE :td_prefix OR CAST(deadline_date AS TEXT) LIKE :td_prefix)
+              AND status NOT IN ('cancelled', 'pending')
+            ORDER BY COALESCE(start_time, '07:00') ASC
+        """), {"td_prefix": f"{today_str}%"}).fetchall()
         
         # Calculate Flespi Distances
         flespi_distances = {}
@@ -1090,46 +1107,114 @@ def get_live_vehicles(
         if FLESPI_TOKEN:
             flespi_distances = get_flespi_distances(FLESPI_TOKEN)
             
-        def is_near(lat1, lng1, lat2, lng2):
-            return haversine(lng1, lat1, lng2, lat2) < 0.2 # 200 meters
+        def dist_km(lat1, lng1, lat2, lng2):
+            if lat1 is None or lng1 is None or lat2 is None or lng2 is None:
+                return 999999.0
+            try:
+                return haversine(float(lng1), float(lat1), float(lng2), float(lat2))
+            except Exception:
+                return 999999.0
+
+        def is_near(lat1, lng1, lat2, lng2, threshold_km=0.35):
+            return dist_km(lat1, lng1, lat2, lng2) < threshold_km
 
         for v in vehicle_rows:
             dist = flespi_distances.get(str(v.imei), 0.0) if v.imei else 0.0
             
             loc_text = ""
+            at_wo_by_gps = None
+            # Check if physically near any of today's work orders (< 600m)
+            best_wo_dist = 999999.0
+            for w in wos:
+                d_w = dist_km(v.last_lat, v.last_lng, w.site_latitude, w.site_longitude)
+                if d_w < best_wo_dist:
+                    best_wo_dist = d_w
+                    if d_w < 0.6:
+                        at_wo_by_gps = w
+
             if v.last_speed is not None and v.last_speed < 5:
                 # Check if at base
                 for b in bases:
-                    if is_near(v.last_lat, v.last_lng, b.latitude, b.longitude):
-                        loc_text = f"La baza: {b.name}"
+                    if is_near(v.last_lat, v.last_lng, b.latitude, b.longitude, 0.35):
+                        loc_text = f"La bază: {b.name}"
                         break
                 # Check if at work order
-                if not loc_text:
-                    for w in wos:
-                        if is_near(v.last_lat, v.last_lng, w.site_latitude, w.site_longitude):
-                            loc_text = f"La lucrare: {w.client_name if w.client_name and w.client_name != 'None' else w.title}"
-                            break
+                if not loc_text and at_wo_by_gps is not None:
+                    loc_text = f"La lucrare: {at_wo_by_gps.client_name if at_wo_by_gps.client_name and at_wo_by_gps.client_name != 'None' else at_wo_by_gps.title}"
 
             # Format name: use driver_name/team_name if available, else vehicle name
             display_name = v.driver_name if hasattr(v, 'driver_name') and v.driver_name else (f"{v.name} ({v.plate_number})" if v.plate_number else v.name)
             if display_name and str(display_name).lower().startswith("echipa"):
                 display_name = str(display_name)[6:].strip() # remove 'echipa'
+
+            v_team_id = getattr(v, "team_id", None)
+            team_today_wos = [
+                w for w in wos
+                if (v_team_id and str(w.assigned_team_id) == str(v_team_id))
+                or (w.assigned_vehicle_id and str(w.assigned_vehicle_id) == str(v.id))
+            ]
+            current_wo_payload = None
+            chosen_wo = None
+
+            # 1. Priority: if GPS shows the truck is physically at one of its team's jobs (or any today's job within 600m)
+            if team_today_wos:
+                nearest_team_wo = min(
+                    team_today_wos,
+                    key=lambda w: dist_km(v.last_lat, v.last_lng, w.site_latitude, w.site_longitude)
+                )
+                d_nearest_team = dist_km(v.last_lat, v.last_lng, nearest_team_wo.site_latitude, nearest_team_wo.site_longitude)
+                if d_nearest_team < 1.2:
+                    chosen_wo = nearest_team_wo
+                else:
+                    # 2. Pick by Belgium time (Europe/Brussels) + proximity tie-breaker
+                    active_candidates = [w for w in team_today_wos if w.status != 'completed'] or team_today_wos
+                    chosen_wo = active_candidates[0]
+                    for cw in active_candidates:
+                        st = (cw.start_time or "07:00")[:5]
+                        if st <= now_hm:
+                            chosen_wo = cw
+            elif at_wo_by_gps is not None:
+                # E.g. Crane (Grue Ionel / Grue Alexei) physically at a today's work site
+                chosen_wo = at_wo_by_gps
+
+            if chosen_wo is not None:
+                surf = 0
+                try:
+                    vols = chosen_wo.volumes if isinstance(chosen_wo.volumes, list) else []
+                    surf = sum(float(x.get("quantity") or 0) for x in vols if isinstance(x, dict))
+                except Exception:
+                    surf = 0
+                wo_d_km = dist_km(v.last_lat, v.last_lng, chosen_wo.site_latitude, chosen_wo.site_longitude)
+                current_wo_payload = {
+                    "id": str(chosen_wo.id),
+                    "client_name": chosen_wo.client_name if chosen_wo.client_name and chosen_wo.client_name != 'None' else chosen_wo.title,
+                    "site_address": chosen_wo.site_address or "",
+                    "start_time": (chosen_wo.start_time or "07:00")[:5],
+                    "surface_m2": round(surf, 1) if surf > 0 else None,
+                    "status": chosen_wo.status,
+                    "total_today": max(1, len(team_today_wos)),
+                    "truck_to_site_km": round(wo_d_km, 1) if wo_d_km < 5000 else None,
+                    "is_at_site": wo_d_km < 0.6,
+                }
                 
             result.append({
                 "type":       "vehicle",
                 "id":         v.id,
                 "name":       display_name,
+                "plate_number": v.plate_number if getattr(v, "plate_number", None) and v.plate_number != "NN" else None,
                 "vehicle_type": getattr(v, 'type', "Camion"),
                 "lat":        v.last_lat,
                 "lng":        v.last_lng,
                 "last_seen":  str(v.last_seen_at).replace(' ', 'T') + 'Z' if v.last_seen_at else None,
                 "speed":      v.last_speed,
+                "team_id":    str(v_team_id) if v_team_id else None,
                 "team_name":  "GPS Flespi",
                 "team_color": v.team_color or "#0ea5e9",
                 "avatar_url": v.avatar_path,
                 "distance_today": round(dist, 1),
                 "location_text": loc_text,
-                "assigned_user_id": getattr(v, "assigned_user_id", None)
+                "assigned_user_id": getattr(v, "assigned_user_id", None),
+                "current_work_order": current_wo_payload,
             })
 
         return result

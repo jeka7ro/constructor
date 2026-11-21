@@ -258,7 +258,7 @@ export default function SiteDetailView({ site, onBack }) {
                                             </div>
                                             <div>
                                                 <p className="font-bold text-slate-800 dark:text-white text-sm">{v.name}</p>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{v.plate_number || '—'}</p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{v.plate_number || '—'}</p>
                                                 <p className="text-xs text-slate-400 capitalize">{v.type} · {v.year}</p>
                                             </div>
                                         </div>

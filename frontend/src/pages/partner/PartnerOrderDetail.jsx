@@ -394,10 +394,10 @@ export default function PartnerOrderDetail() {
 
     // Timeline events
     const timeline = []
-    if (order.created_at) timeline.push({ time: order.created_at, label: t.created, icon: '📋', color: 'bg-slate-400' })
+    if (order.created_at) timeline.push({ time: order.created_at, label: t.created, icon: '', color: 'bg-slate-400' })
     if (order.checkin_at) timeline.push({ time: order.checkin_at, label: t.checkin, icon: '🟢', color: 'bg-emerald-500' })
-    if (order.team_leader_confirmed_at) timeline.push({ time: order.team_leader_confirmed_at, label: t.confirmed_by_team, icon: '✅', color: 'bg-green-500' })
-    if (order.checkout_at) timeline.push({ time: order.checkout_at, label: t.checkout, icon: '🔴', color: 'bg-red-400' })
+    if (order.team_leader_confirmed_at) timeline.push({ time: order.team_leader_confirmed_at, label: t.confirmed_by_team, icon: '', color: 'bg-green-500' })
+    if (order.checkout_at) timeline.push({ time: order.checkout_at, label: t.checkout, icon: '', color: 'bg-red-400' })
     timeline.sort((a, b) => new Date(a.time) - new Date(b.time))
 
     return (
@@ -583,7 +583,7 @@ export default function PartnerOrderDetail() {
                             <div key={i} className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
                                 <div className="flex justify-between items-center mb-1">
                                     <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{v.label || `Surface ${i + 1}`}</span>
-                                    <span className="font-mono text-sm font-semibold text-blue-800 dark:text-blue-200">{v.quantity} m²</span>
+                                    <span className="tabular-nums text-sm font-semibold text-blue-800 dark:text-blue-200">{v.quantity} m²</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs text-blue-500 dark:text-blue-400">
                                     <span>{t.thickness}: {v.thickness || '?'} cm</span>

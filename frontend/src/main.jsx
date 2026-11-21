@@ -19,6 +19,18 @@ if (typeof window !== 'undefined' && L && L.Map) {
         if (!this._panes || !this._panes.mapPane) return new L.Point(0, 0);
         return origGetMapPanePos?.apply(this, arguments);
     };
+    if (!L.Map.prototype.__safeInitPatched) {
+        const origInitContainer = L.Map.prototype._initContainer;
+        L.Map.prototype._initContainer = function (id) {
+            const container = typeof id === 'string' ? document.getElementById(id) : id;
+            if (container && container._leaflet_id) {
+                container._leaflet_id = null;
+                container.innerHTML = '';
+            }
+            return origInitContainer.call(this, id);
+        };
+        L.Map.prototype.__safeInitPatched = true;
+    }
 }
 
 // Activeaza polyfill pentru Drag & Drop pe ecrane touch (ex: iPad)

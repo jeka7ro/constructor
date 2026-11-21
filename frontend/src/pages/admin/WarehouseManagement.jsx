@@ -944,7 +944,7 @@ export default function WarehouseManagement() {
                                 <div className="flex-1">
                                     <p className="font-bold text-slate-800">{pr.name}</p>
                                     <p className="text-xs text-slate-500 mt-0.5">
-                                        {pr.inventory_code && <span className="font-mono mr-2">{pr.inventory_code}</span>}
+                                        {pr.inventory_code && <span className="tabular-nums mr-2">{pr.inventory_code}</span>}
                                         {pr.model && <span className="mr-2">· {pr.model}</span>}
                                         · {t('warehouse.handed_over_by', 'Predat de')} <strong>{pr.returned_by}</strong>
                                         {pr.pending_return_at && (
@@ -1106,7 +1106,7 @@ export default function WarehouseManagement() {
                                                 {item.inventory_code && (
                                                     <div className="flex items-center gap-1.5">
                                                         {item.model && <span className="text-[11px] text-slate-500 font-medium border-l border-slate-200 dark:border-slate-700 pl-2">{t('warehouse.mod', 'Mod:')} {item.model}</span>}
-                                                        <span className="text-[10px] text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{item.inventory_code}</span>
+                                                        <span className="text-[10px] text-slate-500 tabular-nums bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{item.inventory_code}</span>
                                                         
                                                         {/* Inline Assignment Status */}
                                                         {(item.current_site_id || item.current_holder_id) ? (

@@ -728,7 +728,7 @@ export default function InvoicingManagement() {
                 {(selectedTeams.length > 0 || statusFilter) && (
                     <button onClick={() => { setSelectedTeams([]); setStatusFilter(null) }}
                         className="h-8 px-3 rounded-xl text-xs font-bold text-red-500 border border-red-200 hover:bg-red-50 transition-all">
-                        ✕ Reset
+                        Reset
                     </button>
                 )}
             </div>

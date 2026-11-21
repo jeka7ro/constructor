@@ -62,7 +62,7 @@ export default function DevisOnline() {
     useEffect(() => {
         if (isIframe) {
             const link = document.createElement('link');
-            link.href = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap';
+            link.href = 'https://fonts.googleapis.com/css2?family=Inter';
             link.rel = 'stylesheet';
             document.head.appendChild(link);
             const style = document.createElement('style');
@@ -420,7 +420,7 @@ export default function DevisOnline() {
                                         : isActive ? 'bg-white border-yellow-400 text-yellow-500 shadow shadow-yellow-200'
                                         : 'bg-white border-slate-200 text-slate-300'
                                     }`}>
-                                        {isDone ? '✓' : s}
+                                        {isDone ? '' : s}
                                     </div>
                                     <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wide whitespace-nowrap ${
                                         isActive ? 'text-slate-700' : isDone ? 'text-yellow-500' : 'text-slate-300'

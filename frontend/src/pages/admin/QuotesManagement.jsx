@@ -707,7 +707,7 @@ export default function QuotesManagement() {
                     )
                 }
                 const getSourceBadge = (src, lang) => {
-                    const flag = lang ? (lang.toLowerCase() === 'fr' ? '🇫🇷' : lang.toLowerCase() === 'nl' ? '🇳🇱' : lang.toLowerCase() === 'en' ? '🇬🇧' : '') : '';
+                    const flag = lang ? (lang.toLowerCase() === 'fr' ? '' : lang.toLowerCase() === 'nl' ? '' : lang.toLowerCase() === 'en' ? '' : '') : '';
                     if (src === 'calculator_public' || src === 'we-r') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-500 whitespace-nowrap">
                             {t('source.we_r', 'WE-R')} {flag && <span className="text-sm">{flag}</span>}
@@ -1122,7 +1122,7 @@ export default function QuotesManagement() {
                 : q
             ))
             setPlanningModal(null)
-            showToast('✅ Devis planifié dans le calendrier!', 'success')
+            showToast('Devis planifié dans le calendrier!', 'success')
         } catch (e) {
             console.error(e)
             showToast('Erreur lors de la planification.', 'error')
@@ -1259,7 +1259,7 @@ export default function QuotesManagement() {
                                     <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider mb-1 ${row.status === 'planning' ? 'bg-emerald-100 text-emerald-700' : row.status === 'archived' ? 'bg-slate-200 text-slate-600' : 'bg-amber-100 text-amber-700'}`}>
                                         {row.status === 'planning' ? 'En Planification' : row.status === 'archived' ? 'Archivé' : 'En Attente'}
                                     </span>
-                                    <span className="text-[11px] font-mono text-slate-500 tracking-wider">
+                                    <span className="text-[11px] tabular-nums text-slate-500 tracking-wider">
                                         {row.quote_number || `DEV${String(row.id).padStart(4, '0')}`}
                                     </span>
                                 </div>

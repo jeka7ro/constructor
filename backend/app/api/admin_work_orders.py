@@ -3252,30 +3252,37 @@ def post_work_order_message(
         except Exception as e:
             logger.error(f"Failed to send chat WhatsApp notification: {e}")
 
-    # Fallback to Email if WhatsApp was NOT sent (client has no phone or WhatsApp failed)
-    if not whatsapp_sent:
-        delivery_channel = "email"
-        delivery_status = "email_sent"
-        client_email = getattr(wo, 'client_email', None) or (wo.client.email if getattr(wo, 'client', None) else None)
-        if client_email:
-            try:
-                from app.services.email_service import send_chat_notification_email
-                import os
-                frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
-                client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
-                chat_url = f"{frontend_url}/public/proforma/{wo.token}?lang={client_lang}"
-                
-                send_chat_notification_email(
-                    to_email=client_email,
-                    client_name=getattr(wo, 'client_name', 'Client') or (wo.client.name if getattr(wo, 'client', None) else 'Client'),
-                    client_language=client_lang,
-                    chat_url=chat_url,
-                    org_id=wo.organization_id,
-                    wo_id=wo.id
-                )
-                logger.info(f"Fallback email successfully sent to {client_email}")
-            except Exception as e:
-                logger.error(f"Failed to send fallback chat email: {e}")
+    # Always send Email notification to Client alongside WhatsApp when admin replies in chat
+    client_email = getattr(wo, 'client_email', None) or (wo.client.email if getattr(wo, 'client', None) else None)
+    if client_email:
+        try:
+            from app.services.email_service import send_chat_notification_email
+            import os
+            frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
+            client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
+            chat_url = f"{frontend_url}/confirm/{wo.token}?lang={client_lang}"
+            
+            email_preview = payload.message.strip() if payload.message else None
+            if target_l and target_l != 'none' and target_l in translations and translations[target_l]:
+                email_preview = str(translations[target_l]).strip()
+            elif client_lang in translations and translations[client_lang]:
+                email_preview = str(translations[client_lang]).strip()
+
+            send_chat_notification_email(
+                to_email=client_email,
+                client_name=getattr(wo, 'client_name', 'Client') or (wo.client.name if getattr(wo, 'client', None) else 'Client'),
+                client_language=client_lang,
+                chat_url=chat_url,
+                org_id=wo.organization_id,
+                wo_id=wo.id,
+                message_preview=email_preview
+            )
+            if not whatsapp_sent:
+                delivery_channel = "email"
+                delivery_status = "email_sent"
+            logger.info(f"Chat notification email successfully sent to {client_email}")
+        except Exception as e:
+            logger.error(f"Failed to send chat email notification: {e}")
 
     if wamid:
         translations["_wamid"] = wamid

@@ -3,6 +3,38 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-11-21 (Link Davide Chape — Versiune Vânzător pentru Chat Mobil & Notificare Permanentă Email + WhatsApp la Răspuns în Chat)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Plan verificat și aprobat explicit de Utilizator ("DA! SA MPRIEMAS EMAIL PERMANENT SI PE WHASTPP").
+
+### Probleme Identificate & Rezolvate:
+1. **Problema Chatului pe Mobil din Linkul primit pe WhatsApp (`WorkOrderConfirm.jsx` & `public_work_orders.py`):**
+   - Anterior, notificările trimise echipei în grupul `Davide Chape APP` conțineau exclusiv linkul clientului (`/confirm/{token}`). Când Davide sau un membru al echipei deschidea linkul de pe telefon și scria în chatul din pagină, mesajul era salvat ca `sender = "client"` (`Vous (Client)`), apărând ca și cum clientul și-ar scrie singur.
+   - **Soluția aplicată:**
+     - S-au adăugat **2 linkuri distincte** în toate notificările trimise echipei pe WhatsApp (`whatsapp_service.py`: Deviz Nou, Deviz Acceptat, Mesaj Nou în Chat) și pe emailul intern (`email_service.py` -> `send_admin_new_quote_alert`):
+       1. `🛠️ Link Davide Chape:` `https://davidechape.pontaj.app/confirm/{token}?lang={lang}&role=seller`
+       2. `👤 Link Client:` `https://davidechape.pontaj.app/confirm/{token}?lang={lang}`
+     - Pe pagina `/confirm/{token}?role=seller` (`WorkOrderConfirm.jsx`), se activează **Mode Vendeur (Davide Chape)**:
+       - Afișează bannerul verde de vânzător și selectorul de limbă țintă lângă căsuța de chat (`FR`, `NL`, `EN`, `Sans trad.`).
+       - Mesajele scrise de pe acest link se salvează ca `sender = "admin"` (`Davide Chape`), se traduc automat în limba clientului și apar pe partea dreaptă (verde) pentru vânzător și pe partea stângă cu ecusonul **Davide Chape** pe linkul clientului.
+       - Mesajele clientului afișează automat dedesubt traducerea în limba română (`🌐 Traducere (RO)`).
+2. **Notificare Permanentă Email + WhatsApp către Client la Răspuns în Chat (`public_work_orders.py`, `admin_work_orders.py`, `email_service.py`):**
+   - Anterior, în `admin_work_orders.py`, emailul de notificare către client (`send_chat_notification_email`) era trimis doar ca fallback dacă eșua WhatsApp-ul, și folosea ruta veche `/public/proforma/{token}`.
+   - Acum, de fiecare dată când Davide Chape răspunde în chat (fie de pe **Linkul Davide Chape** de pe telefon, fie din panoul Admin de pe PC), clientul primește **permanent atât mesajul pe WhatsApp**, **cât și emailul** cu previzualizarea mesajului și butonul direct către `/confirm/{token}?lang={lang}#chat-section`.
+3. **Buton Global Full Screen, Layout 5K Ultra-Wide, Planning 2 Săptămâni (14 zile) & Hărți Live cu Terminator Solar / Radar Doppler / Vânt Canvas:**
+   - În `AdminDashboard.jsx` și `index.css`: adăugat butonul global de Full Screen în Header Bar și cele 3 praguri `@media` Ultra-Wide / 5K (fără impact pe laptop/mobil).
+   - În `ShortWorksCalendar.jsx`: adăugat modul de **2 săptămâni (14 zile)** în Full Screen / 5K + comutatorul `1 Sem. / 2 Sem.`.
+   - În `solarTerminator.js`, `liveWeatherCanvas.js`, `MiniLiveTrackingMap.jsx` și `LiveTracking.jsx`: adăugat terminatorul solar NOAA/Meeus, vederea Glob, telemetria meteo batch Open-Meteo (24 stații), radarul Doppler RainViewer, animația canvas de vânt/precipitații și HUD-ul meteo.
+
+4. **Spațiu Extins 5K pentru „Devize în așteptare”, Ștergere Deviz cu Confirmare, Corectare Traduceri & Stilistică Hărți/Planning:**
+   - Lățit panoul lateral din dreapta Planning-ului (`.tps-planning-split-grid` până la `340px`–`375px` pe 5K Ultra-Wide) și modalul `Devize în așteptare` (`max-w-7xl 2xl:max-w-[1620px]`), eliminând trunchierile agresive pe numele clienților, orașelor și adreselor.
+   - Adăugat ștergere cu confirmare prin **swipe de la stânga la dreapta** pe cardurile din `DEVIS EN ATTENTE` (cu bandă roșie `Supprimer` și modal de confirmare prin `createPortal` `z-[10005]`), plus buton de ștergere (`Trash2`) în tabelul modalului `Devize în așteptare`.
+   - Stilizat `EuroPlate.jsx` ca plăcuță oficială de înmatriculare Belgia (`[ B | 2-FVB-027 ]` — fundal alb, chenar și text roșu-rubiniu `#991b1b`, bandă UE `#003399` cu `B`) și afișat plăcuțele camioanelor în `Comenzi Recente` (fără coduri UUID trunchiate!), `Camioane (Echipe)` și legenda `Urmărire Live`.
+   - Corectat toate traducerile mixte în `ro.json`, `fr.json`, `nl.json`, `en.json` (`1 membru / membri`, `6 activi`, `Nisip`, `Data solicitată`, `Adresă`, `Distanță`, `t nisip`, `Văzut: acum 12m`, `Viteză`, `Data Execuției`, `Ciornă`).
+   - Rafinat markerii de camion pe harta live (pastile alungite cu anti-suprapunere la apropiere), adăugat **Zoom In / Zoom Out la click pe camion sau oriunde pe hartă** (`handleVehicleToggleZoom` + `restorePreviousView`), **zoom concentrat pe Belgia și scalare `1.48x` în Full Screen pentru cardul Meteo, butoanele `+`/`-` și Legendă**, adăugat **lucrarea actuală sincronizată cu Planning-ul (după ora Belgiei și GPS) în Legenda hărții** (`getSyncedPlanningJob` + `current_work_order` în `/admin/vehicles/live`) și reparat complet contrastul **Dark Mode** pe cardurile din calendar (`ShortWorksCalendar.jsx`), Header Bar (`AdminDashboard.jsx`) și panoul lateral (`AdminOverview.jsx`).
+
+---
+
 ## 2026-11-07 (Audit și Unificare Calcul Prețuri, Prag 250 m², Măsurători Reale per Șapă & Fix Salvare Client Preferențial în Tarife)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Audit silențios prezentat, reguli confirmate cu clientul Davide Chape și aprobat explicit de Utilizator.

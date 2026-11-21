@@ -6,9 +6,9 @@ import { Handshake, LogOut, Globe, LayoutDashboard } from 'lucide-react'
 import i18n from '../../i18n'
 
 const LANGUAGES = [
-    { code: 'fr', label: 'Français', flag: '🇫🇷' },
-    { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
-    { code: 'en', label: 'English', flag: '🇬🇧' },
+    { code: 'fr', label: 'Français', flag: '' },
+    { code: 'nl', label: 'Nederlands', flag: '' },
+    { code: 'en', label: 'English', flag: '' },
 ]
 
 const TRANSLATIONS = {

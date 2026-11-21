@@ -1123,8 +1123,7 @@ export default function ClockInPage() {
                             {geofenceStatus.isWithin ? (
                                 <>
                                     <CheckCircle className="w-4 h-4" />
-                                    {t('timesheets.on_site')} — {geofenceStatus.distance}m distanță ✓
-                                </>
+                                    {t('timesheets.on_site')} — {geofenceStatus.distance}m distanță </>
                             ) : (
                                 <>
                                     <XCircle className="w-4 h-4" />
@@ -1206,7 +1205,7 @@ export default function ClockInPage() {
                                     )}
                                     <div className="mt-3 pt-3 border-t border-white/20">
                                         <p className="text-xs text-white/80 font-medium">
-                                            💡 {t('timesheets.timer_stopped_hint')}
+                                            {t('timesheets.timer_stopped_hint')}
                                         </p>
                                     </div>
                                 </div>
@@ -1217,7 +1216,7 @@ export default function ClockInPage() {
                                 <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl shadow-lg p-4 text-white text-center">
                                     <div className="flex items-center justify-center gap-2 mb-1">
                                         <AlertCircle className="w-6 h-6" />
-                                        <span className="font-bold text-sm">📡 {t('timesheets.gps_lost')}</span>
+                                        <span className="font-bold text-sm">{t('timesheets.gps_lost')}</span>
                                     </div>
                                     <p className="text-xs text-white/90">
                                         {t('timesheets.gps_lost_desc')}
@@ -1225,7 +1224,7 @@ export default function ClockInPage() {
                                     </p>
                                     <div className="mt-3 pt-3 border-t border-white/20">
                                         <p className="text-xs text-white/80 font-medium">
-                                            💡 {t('timesheets.gps_lost_hint')}
+                                            {t('timesheets.gps_lost_hint')}
                                         </p>
                                     </div>
                                 </div>
@@ -1236,7 +1235,7 @@ export default function ClockInPage() {
                                 <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-lg p-3 text-white text-center">
                                     <div className="flex items-center justify-center gap-2">
                                         <ShieldCheck className="w-5 h-5" />
-                                        <span className="font-semibold text-sm">✅ {t('timesheets.returned_to_site')}</span>
+                                        <span className="font-semibold text-sm">{t('timesheets.returned_to_site')}</span>
                                     </div>
                                 </div>
                             )}
@@ -1245,7 +1244,7 @@ export default function ClockInPage() {
                             <div className={`bg-white rounded-2xl shadow-lg p-6 text-center ${activeShift.is_outside_geofence ? 'opacity-60' : ''}`}>
                                 <div className="text-sm text-slate-600 mb-2">
                                     {activeShift.is_outside_geofence
-                                        ? `🚫 ${t('timesheets.timer_stopped_outside')}`
+                                        ? `${t('timesheets.timer_stopped_outside')}`
                                         : activeShift.is_on_break
                                             ? `⏸ ${t('timesheets.timer_stopped_break')}`
                                             : `⏱ ${t('timesheets.time_worked')}`
@@ -1258,21 +1257,21 @@ export default function ClockInPage() {
                                     {formatTime(elapsedTime)}
                                 </div>
                                 <div className="text-sm text-slate-500">
-                                    📍 {activeShift.site_name}
+                                    {activeShift.site_name}
                                 </div>
                                 {activeShift.work_order_title && (
                                     <div className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 rounded-full border border-blue-200">
-                                        <span className="text-xs">🗂</span>
+                                        <span className="text-xs"></span>
                                         <span className="text-xs font-semibold text-blue-700">{activeShift.work_order_title}</span>
                                     </div>
                                 )}
                                 <div className="mt-2 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
                                     <span>{t('timesheets.check_in')}: {new Date(activeShift.check_in_time).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}</span>
                                     {(breakTime > 0 || activeShift.break_hours > 0) && (
-                                        <span>☕ {t('timesheets.breaks')}: {formatTime(breakTime || activeShift.break_hours || 0)}</span>
+                                        <span>{t('timesheets.breaks')}: {formatTime(breakTime || activeShift.break_hours || 0)}</span>
                                     )}
                                     {geofencePauseTime > 0 && (
-                                        <span>🚫 {t('timesheets.outside')}: {formatTime(geofencePauseTime / 3600)}</span>
+                                        <span>{t('timesheets.outside')}: {formatTime(geofencePauseTime / 3600)}</span>
                                     )}
                                 </div>
                             </div>
@@ -1452,7 +1451,7 @@ export default function ClockInPage() {
                                                                                         }`}
                                                                                     style={lastAddedActivityId !== act.id ? { backgroundColor: cat.color } : {}}
                                                                                 >
-                                                                                    {lastAddedActivityId === act.id ? '✓' : t('common.add')}
+                                                                                    {lastAddedActivityId === act.id ? '' : t('common.add')}
                                                                                 </button>
                                                                             </div>
                                                                         </div>
@@ -1487,7 +1486,7 @@ export default function ClockInPage() {
                                 <CheckCircle className="w-8 h-8 text-green-600" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">{t('timesheets.shift_ended')} ✅</h3>
+                                <h3 className="text-lg font-bold text-slate-900">{t('timesheets.shift_ended')} </h3>
                                 <p className="text-sm text-slate-500 mt-1">{t('timesheets.shift_ended_desc')}</p>
                             </div>
                             <button
@@ -1503,7 +1502,7 @@ export default function ClockInPage() {
                             {/* Site Selection */}
                             <div className="bg-white rounded-2xl shadow-lg p-3">
                                 <label className="block text-xs font-semibold text-slate-700 mb-2">
-                                    📍 {t('timesheets.select_site')}
+                                    {t('timesheets.select_site')}
                                 </label>
                                 <select
                                     value={selectedSite || ''}
@@ -1526,7 +1525,7 @@ export default function ClockInPage() {
                                 {selectedSiteObj && (
                                     <div className="mt-2 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 space-y-1">
                                         <div className="flex items-center gap-2 text-xs">
-                                            <span className="text-red-500">📍</span>
+                                            <span className="text-red-500"></span>
                                             <span className="font-medium text-slate-800">{selectedSiteObj.name}</span>
                                         </div>
                                         {selectedSiteObj.address && (
@@ -1543,7 +1542,7 @@ export default function ClockInPage() {
                             {selectedSite && siteWorkOrders.length > 0 && (
                                 <div className="bg-white rounded-2xl shadow-lg p-3">
                                     <label className="block text-xs font-semibold text-slate-700 mb-2">
-                                        🗂 {t('work_orders.work_order_select', 'Comandă de lucru')} <span className="text-slate-400 font-normal">({t('work_orders.optional', 'opțional')})</span>
+                                        {t('work_orders.work_order_select', 'Comandă de lucru')} <span className="text-slate-400 font-normal">({t('work_orders.optional', 'opțional')})</span>
                                     </label>
                                     <select
                                         value={selectedWorkOrder}
@@ -1557,7 +1556,7 @@ export default function ClockInPage() {
                                     </select>
                                     {selectedWorkOrder && (
                                         <div className="mt-2 bg-blue-50 rounded-xl px-3 py-2 flex items-center gap-2">
-                                            <span className="text-blue-600 text-xs">🗂</span>
+                                            <span className="text-blue-600 text-xs"></span>
                                             <span className="text-blue-700 text-xs font-semibold">{t('work_orders.logging_for_wo', 'Timpul va fi alocat pe această lucrare.')}</span>
                                         </div>
                                     )}
@@ -1657,7 +1656,7 @@ export default function ClockInPage() {
                             </div>
                             <h3 className="text-xl font-bold text-slate-900 mb-2">{t('timesheets.clock_out_confirm')}</h3>
                             <p className="text-slate-600 text-sm">{t('timesheets.clock_out_confirm_desc')}</p>
-                            <p className="text-red-500 text-xs font-semibold mt-2">⚠️ {t('timesheets.clock_out_warning')}</p>
+                            <p className="text-red-500 text-xs font-semibold mt-2">{t('timesheets.clock_out_warning')}</p>
                         </div>
                         <div className="flex gap-3">
                             <button
@@ -1702,23 +1701,23 @@ export default function ClockInPage() {
                                         </div>
                                         {clockOutResult.break_hours > 0 && (
                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                <span className="text-slate-600">☕ {t('timesheets.lunch_break_label')}</span>
+                                                <span className="text-slate-600">{t('timesheets.lunch_break_label')}</span>
                                                 <span className="font-bold text-orange-600">{formatHoursMinutes(clockOutResult.break_hours)}</span>
                                             </div>
                                         )}
                                         {clockOutResult.geofence_pause_hours > 0 && (
                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                <span className="text-slate-600">🚫 {t('timesheets.outside_zone_label')}</span>
+                                                <span className="text-slate-600">{t('timesheets.outside_zone_label')}</span>
                                                 <span className="font-bold text-red-500">{formatHoursMinutes(clockOutResult.geofence_pause_hours)}</span>
                                             </div>
                                         )}
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                            <span className="text-slate-600">📊 {t('timesheets.total_with_break')}</span>
+                                            <span className="text-slate-600">{t('timesheets.total_with_break')}</span>
                                             <span className="font-bold text-slate-900">{formatHoursMinutes(clockOutResult.total_hours)}</span>
                                         </div>
                                         {clockOutResult.activities && clockOutResult.activities.length > 0 && (
                                             <div className="pt-2">
-                                                <p className="text-xs font-semibold text-slate-700 mb-1">📋 {t('activities.recorded_activities')}</p>
+                                                <p className="text-xs font-semibold text-slate-700 mb-1">{t('activities.recorded_activities')}</p>
                                                 {clockOutResult.activities.map((act, i) => (
                                                     <div key={i} className="flex justify-between text-xs py-1">
                                                         <span className="text-slate-600">{act.activity_name || act.name}</span>

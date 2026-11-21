@@ -271,8 +271,8 @@ export default function SitePhotosPage() {
                                                 autoFocus
                                                 onKeyDown={(e) => e.key === 'Enter' && saveEdit(photo.id)}
                                             />
-                                            <button onClick={() => saveEdit(photo.id)} className="px-2 py-1 bg-violet-500 text-white rounded-lg text-xs font-semibold">✓</button>
-                                            <button onClick={() => setEditingId(null)} className="px-2 py-1 bg-slate-200 text-slate-600 rounded-lg text-xs">✕</button>
+                                            <button onClick={() => saveEdit(photo.id)} className="px-2 py-1 bg-violet-500 text-white rounded-lg text-xs font-semibold"></button>
+                                            <button onClick={() => setEditingId(null)} className="px-2 py-1 bg-slate-200 text-slate-600 rounded-lg text-xs"></button>
                                         </div>
                                     ) : photo.description ? (
                                         <p className="text-sm text-slate-800 font-medium mb-2 line-clamp-2 cursor-pointer hover:text-violet-600" onClick={() => startEdit(photo)}>
@@ -347,8 +347,8 @@ export default function SitePhotosPage() {
                                                         autoFocus
                                                         onKeyDown={(e) => e.key === 'Enter' && saveEdit(photo.id)}
                                                     />
-                                                    <button onClick={() => saveEdit(photo.id)} className="px-2 py-1 bg-violet-500 text-white rounded-lg text-xs">✓</button>
-                                                    <button onClick={() => setEditingId(null)} className="px-2 py-1 bg-slate-200 rounded-lg text-xs">✕</button>
+                                                    <button onClick={() => saveEdit(photo.id)} className="px-2 py-1 bg-violet-500 text-white rounded-lg text-xs"></button>
+                                                    <button onClick={() => setEditingId(null)} className="px-2 py-1 bg-slate-200 rounded-lg text-xs"></button>
                                                 </div>
                                             ) : (
                                                 <span

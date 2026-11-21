@@ -724,14 +724,14 @@ export default function QuickAddWizard({ onClose, onSuccess, clients = [], showT
                                                     <Layers className="w-4 h-4 text-blue-600" />
                                                     {t('quotes.step_chape', 'Chape')}
                                                 </span>
-                                                <span className="font-mono text-slate-600 bg-white px-2 py-0.5 rounded-lg border border-slate-200 text-xs">
+                                                <span className="tabular-nums text-slate-600 bg-white px-2 py-0.5 rounded-lg border border-slate-200 text-xs">
                                                     {sapa.surfaces.reduce((acc, s) => acc + (parseFloat(s.surface) || 0), 0)} m² total
                                                 </span>
                                             </div>
                                             {sapa.surfaces.map((s, idx) => (
                                                 <div key={s.id} className="text-xs text-slate-600 flex justify-between pl-6">
                                                     <span>{t('quotes.chape_n', 'Chape {{n}}', { n: idx + 1 })}</span>
-                                                    <span className="font-mono font-medium">{s.surface} m² · {s.thickness} cm</span>
+                                                    <span className="tabular-nums font-medium">{s.surface} m² · {s.thickness} cm</span>
                                                 </div>
                                             ))}
                                             <div className="flex flex-wrap gap-1.5 pt-1 pl-6">
@@ -751,14 +751,14 @@ export default function QuickAddWizard({ onClose, onSuccess, clients = [], showT
                                                     <Wind className="w-4 h-4 text-indigo-600" />
                                                     {t('quotes.step_isolation', 'Isolation')}
                                                 </span>
-                                                <span className="font-mono text-slate-600 bg-white px-2 py-0.5 rounded-lg border border-slate-200 text-xs">
+                                                <span className="tabular-nums text-slate-600 bg-white px-2 py-0.5 rounded-lg border border-slate-200 text-xs">
                                                     {isolation.items.reduce((acc, i) => acc + (parseFloat(i.surface) || 0), 0)} m² total
                                                 </span>
                                             </div>
                                             {isolation.items.map((iso, idx) => (
                                                 <div key={iso.id} className="text-xs text-slate-600 flex justify-between pl-6">
                                                     <span>{iso.type} {isolation.items.length > 1 ? `#${idx + 1}` : ''}</span>
-                                                    <span className="font-mono font-medium">{iso.surface} m² · {iso.thickness} cm</span>
+                                                    <span className="tabular-nums font-medium">{iso.surface} m² · {iso.thickness} cm</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -789,7 +789,7 @@ export default function QuickAddWizard({ onClose, onSuccess, clients = [], showT
                                         </div>
                                     </div>
                                     <p className="text-[10px] text-slate-400 italic text-right">
-                                        {t('quotes.truck_extra_notice', '⚠️ Si distance > 125 km → +250 € déplacement camion (auto)')}
+                                        {t('quotes.truck_extra_notice', 'Si distance > 125 km → +250 € déplacement camion (auto)')}
                                     </p>
                                 </div>
                             </div>

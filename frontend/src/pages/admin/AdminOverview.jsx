@@ -19,6 +19,7 @@ import {
 } from 'recharts'
 import KPICard from '../../components/KPICard'
 import DataTable from '../../components/DataTable'
+import EuroPlate from '../../components/EuroPlate'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
 import CalendarErrorBoundary from '../../components/CalendarErrorBoundary'
 import WorkOrderDetail from './WorkOrderDetail'
@@ -91,6 +92,45 @@ export default function AdminOverview() {
     const [recentWorkOrders, setRecentWorkOrders] = useState([])
     const [teams, setTeams] = useState([])
     const [bases, setBases] = useState([])
+    const [swipingQuote, setSwipingQuote] = useState({ id: null, dx: 0 })
+    const quoteGestureRef = useRef({ id: null, quote: null, startX: 0, startY: 0, mode: null, dx: 0 })
+
+    useEffect(() => {
+        const handleWindowMouseMove = (e) => {
+            const g = quoteGestureRef.current;
+            if (!g.id || g.mode === 'drag-left') return;
+            const dx = e.clientX - g.startX;
+            const dy = e.clientY - g.startY;
+            if (!g.mode) {
+                if (dx > 4 && dx > Math.abs(dy)) {
+                    g.mode = 'swipe-right';
+                } else if (Math.abs(dy) > 10 || dx < -6) {
+                    g.mode = 'drag-left';
+                    return;
+                }
+            }
+            if (g.mode === 'swipe-right') {
+                const clamped = Math.min(180, Math.max(0, dx));
+                g.dx = clamped;
+                setSwipingQuote({ id: g.id, dx: clamped });
+            }
+        };
+        const handleWindowMouseUp = () => {
+            const g = quoteGestureRef.current;
+            if (!g.id) return;
+            if (g.mode === 'swipe-right' && g.dx >= 55 && g.quote) {
+                setQuoteToDelete(g.quote);
+            }
+            quoteGestureRef.current = { id: null, quote: null, startX: 0, startY: 0, mode: null, dx: 0 };
+            setSwipingQuote({ id: null, dx: 0 });
+        };
+        window.addEventListener('mousemove', handleWindowMouseMove);
+        window.addEventListener('mouseup', handleWindowMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleWindowMouseMove);
+            window.removeEventListener('mouseup', handleWindowMouseUp);
+        };
+    }, [])
 
     // Calcul distantă (Haversine)
     const getDistanceKm = (lat1, lon1, lat2, lon2) => {
@@ -207,7 +247,8 @@ export default function AdminOverview() {
 
     useEffect(() => {
         const handleFullscreenChange = () => {
-            const isFull = !!document.fullscreenElement;
+            const activeFs = document.fullscreenElement || document.webkitFullscreenElement;
+            const isFull = Boolean(calendarWrapperRef.current && activeFs === calendarWrapperRef.current);
             setIsCalendarFull(isFull);
             setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
         };
@@ -257,6 +298,26 @@ export default function AdminOverview() {
     const [approveQuoteLoading, setApproveQuoteLoading] = useState(false)
     const [planningModal, setPlanningModal] = useState(null)
     const [planningForm, setPlanningForm] = useState({ date: '', time: '07:00', teamId: '' })
+    const [quoteToDelete, setQuoteToDelete] = useState(null)
+    const [isDeletingQuote, setIsDeletingQuote] = useState(false)
+
+    const handleConfirmDeleteQuote = async () => {
+        if (!quoteToDelete) return;
+        setIsDeletingQuote(true);
+        try {
+            await api.delete(`/admin/work-orders/${quoteToDelete.id}`);
+            setPendingQuotes(prev => prev.filter(q => String(q.id) !== String(quoteToDelete.id)));
+            setAllWorkOrders(prev => prev.filter(w => String(w.id) !== String(quoteToDelete.id)));
+            showToast(t('quotes.delete_success', 'Le devis a été supprimé avec succès !'), 'success');
+            setQuoteToDelete(null);
+            fetchWorkOrdersStats();
+        } catch (err) {
+            console.error('Error deleting pending quote:', err);
+            showToast(t('quotes.err_delete', 'Erreur lors de la suppression du devis.'), 'error');
+        } finally {
+            setIsDeletingQuote(false);
+        }
+    }
     const [isSendingPlanning, setIsSendingPlanning] = useState(false)
 
     useEffect(() => {
@@ -561,7 +622,7 @@ export default function AdminOverview() {
             fetchWorkOrdersStats()
         } catch (error) {
             console.error("Error assigning team:", error)
-            alert(t('overview.team_assign_error', 'Erreur lors de l\'affectation de l\'équipe.'));
+            showToast(t('overview.team_assign_error', 'Erreur lors de l\'affectation de l\'équipe.'), 'error');
             fetchWorkOrdersStats()
         }
     }
@@ -590,7 +651,7 @@ export default function AdminOverview() {
             fetchWorkOrdersStats()
         } catch (error) {
             console.error("Error assigning client:", error)
-            alert(t('overview.client_assign_error', 'Erreur lors de l\'affectation du client.'));
+            showToast(t('overview.client_assign_error', 'Erreur lors de l\'affectation du client.'), 'error');
             fetchWorkOrdersStats()
         }
     }
@@ -603,14 +664,14 @@ export default function AdminOverview() {
     const handleDetectGPS = () => {
         setDetectingLocation(true)
         if (!navigator.geolocation) {
-            alert(t('overview.geo_not_supported', 'La géolocalisation n\'est pas supportée par le navigateur.'));
+            showToast(t('overview.geo_not_supported', 'La géolocalisation n\'est pas supportée par le navigateur.'), 'error');
             setDetectingLocation(false);
             return;
         }
 
         const gpsTimeout = setTimeout(() => {
             setDetectingLocation(false);
-            alert(t('overview.geo_timeout', 'Délai dépassé. Vérifiez les paramètres de permission GPS.'));
+            showToast(t('overview.geo_timeout', 'Délai dépassé. Vérifiez les paramètres de permission GPS.'), 'error');
         }, 8000);
 
         navigator.geolocation.getCurrentPosition(
@@ -633,7 +694,7 @@ export default function AdminOverview() {
             err => {
                 clearTimeout(gpsTimeout);
                 setDetectingLocation(false);
-                alert(t('overview.location_detect_error', 'Erreur lors de la détection de la localisation.'));
+                showToast(t('overview.location_detect_error', 'Erreur lors de la détection de la localisation.'), 'error');
             },
             { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
         );
@@ -665,7 +726,7 @@ export default function AdminOverview() {
             }
         } catch (error) {
             console.error('VIES Error:', error);
-            alert(t('clients.vies_error', "L'entreprise n'a pas été trouvée ou le service VIES est indisponible. Veuillez vérifier le code TVA."));
+            showToast(t('clients.vies_error', "L'entreprise n'a pas été trouvée ou le service VIES est indisponible. Veuillez vérifier le code TVA."), 'error');
         } finally {
             setIsSearchingVies(false);
         }
@@ -705,7 +766,7 @@ export default function AdminOverview() {
             }
         } catch (error) {
             console.error('KBO Error:', error);
-            alert(t('clients.kbo_error', "L'entreprise n'a pas été trouvée dans KBO ou le service est indisponible. Veuillez vérifier le numéro d'entreprise."));
+            showToast(t('clients.kbo_error', "L'entreprise n'a pas été trouvée dans KBO ou le service est indisponible. Veuillez vérifier le numéro d'entreprise."), 'error');
         } finally {
             setIsSearchingKbo(false);
         }
@@ -740,7 +801,7 @@ export default function AdminOverview() {
             setQuickCreateStep(1)
         } catch (error) {
             console.error("Error creating client:", error)
-            alert(t('overview.client_create_error', 'Erreur lors de la création du client.'));
+            showToast(t('overview.client_create_error', 'Erreur lors de la création du client.'), 'error');
         } finally {
             setQuickCreateSaving(false)
         }
@@ -869,7 +930,7 @@ export default function AdminOverview() {
             fetchPendingQuotes()
         } catch (error) {
             console.error("Error quick editing work order:", error)
-            alert(t('overview.save_changes_error', 'Une erreur est survenue lors de l\'enregistrement des modifications.'));
+            showToast(t('overview.save_changes_error', 'Une erreur est survenue lors de l\'enregistrement des modifications.'), 'error');
         } finally {
             setQuickEditSaving(false)
         }
@@ -1148,7 +1209,7 @@ export default function AdminOverview() {
 
 
     return (
-        <div className="p-3 lg:p-4 pt-0 lg:pt-0 bg-slate-50 dark:bg-slate-950 min-h-screen">
+        <div className="pb-3 lg:pb-4 pt-0 bg-slate-50 dark:bg-slate-950 min-h-screen">
             {/* Subtle loading bar at very top */}
             {(statsLoading || workersLoading) && (
                 <div className="fixed top-0 left-0 right-0 z-[999] h-1 bg-blue-100 overflow-hidden">
@@ -1189,7 +1250,7 @@ export default function AdminOverview() {
                     ref={calendarWrapperRef}
                     className={isCalendarFull 
                         ? "w-screen h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden gap-0 p-4 md:p-6" 
-                        : "grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,160px)] gap-3 mb-3"
+                        : "grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,220px)] 2xl:grid-cols-[1fr_minmax(0,260px)] gap-3 mb-3 tps-planning-split-grid"
                     }
                 >
                     <div className={isCalendarFull ? "flex-1 h-full min-w-0" : "min-w-0"}>
@@ -1259,7 +1320,7 @@ export default function AdminOverview() {
                         </CalendarErrorBoundary>
                     </div>
                     {!isCalendarFull && (
-                        <div className="hidden xl:flex flex-col gap-4 h-[800px]">
+                    <div className="hidden xl:flex flex-col gap-2.5 h-[800px]">
                             {/* Panel DEVIS — draggable pe calendar si invers */}
                             <div 
                                 className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0"
@@ -1303,139 +1364,254 @@ export default function AdminOverview() {
                                                 fetchPendingQuotes();
                                             } catch (err) {
                                                 console.error("Error unplanning order:", err);
-                                                alert(t('overview.error_unplanning', "Erreur lors de l'annulation de la planification."));
+                                                showToast(t('overview.error_unplanning', "Erreur lors de l'annulation de la planification."), 'error');
                                             }
                                         }
                                     }
                                 }}
                             >
                                 <div 
-                                    className="px-4 h-[61px] shrink-0 flex items-center border-b border-transparent cursor-pointer hover:opacity-90 transition-opacity" 
+                                    className="px-3 h-10 shrink-0 flex items-center justify-between gap-2 cursor-pointer hover:opacity-95 transition-opacity" 
                                     style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}
                                     onClick={() => setShowPendingQuotesModal(true)}
+                                    title={t('overview.pending_quotes', 'Devis en attente')}
                                 >
-                                    <h3 className="font-extrabold text-white flex items-center gap-2 text-xs uppercase tracking-wide leading-tight">
-                                        <ClipboardList className="w-4 h-4 text-white shrink-0" />
-                                        <span>{t('overview.pending_quotes', 'Devis en attente')}</span>
+                                    <h3 className="font-extrabold text-white flex items-center gap-1.5 text-[11px] uppercase tracking-wider leading-none min-w-0">
+                                        <ClipboardList className="w-3.5 h-3.5 text-white shrink-0" />
+                                        <span className="truncate">{t('overview.pending_quotes', 'Devis en attente')}</span>
                                     </h3>
+                                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-white font-black text-[10px] tabular-nums shrink-0 leading-none">
+                                        {pendingQuotes.length}
+                                    </span>
                                 </div>
                                 
-                                <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar min-h-0">
+                                <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5 custom-scrollbar min-h-0 bg-slate-50/50 dark:bg-slate-950/30">
                                     {pendingQuotes.length === 0 && (
-                                        <p className="text-xs text-slate-400 p-2 text-center italic">{t('overview.no_pending_quotes', 'Aucun devis en attente')}</p>
+                                        <p className="text-xs text-slate-400 p-4 text-center italic">{t('overview.no_pending_quotes', 'Aucun devis en attente')}</p>
                                     )}
-                                    {pendingQuotes.slice().sort((a,b) => (starredQuotes.includes(b.id)?1:0) - (starredQuotes.includes(a.id)?1:0)).map(quote => (
-                                        <div 
-                                            key={quote.id}
-                                            draggable
-                                            onDragStart={(e) => {
-                                                e.dataTransfer.setData("type", "quote")
-                                                e.dataTransfer.setData("id", String(quote.id))
-                                                e.dataTransfer.setData("name", quote.client_name || t('common.unknown_client', 'Client Inconnu'))
-                                                e.dataTransfer.setData("address", quote.site_address || '')
-                                                e.dataTransfer.setData("latitude", String(quote.site_latitude || ''))
-                                                e.dataTransfer.setData("longitude", String(quote.site_longitude || ''))
-                                                e.dataTransfer.setData("clientId", String(quote.client_id || ''))
-                                                e.currentTarget.classList.add('opacity-50', 'scale-95')
-                                            }}
-                                            onDragEnd={(e) => {
-                                                e.currentTarget.classList.remove('opacity-50', 'scale-95')
-                                            }}
-                                            onDoubleClick={() => navigate(`/admin/work-orders/${quote.id}`)}
-                                            className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
-                                            title={`Client: ${quote.client_name || t('common.unknown_client', 'Client Inconnu')}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${(() => { const rd = parseFloat(quote.route_distance_km || 0); const pd = parseFloat(quote.prices?.distance_km || 0); const d = rd > 0 ? rd * 2 : pd > 0 ? pd * 2 : 0; return d > 0 ? Math.round(d) + ' km' : '?'; })()}`}
-                                        >
-                                            {starredQuotes.includes(quote.id) && (
-                                                <Star className="w-3.5 h-3.5 text-amber-500 fill-current absolute top-2 right-2 opacity-80" />
-                                            )}
-                                            {/* ROW 1: Name + Date */}
-                                            <div className="flex justify-between items-center pr-4">
-                                                <div className="font-bold text-[11px] truncate flex-1">
-                                                    {(quote.source_system === 'calculator_public' || quote.source_system === 'we-r') ? (
-                                                        <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full inline-block truncate max-w-full" title="WE-R">
-                                                            {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
-                                                        </span>
-                                                    ) : quote.source_system === 'devis_online' ? (
-                                                        <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full inline-block truncate max-w-full" title="Devis en ligne">
-                                                            {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-rose-900 dark:text-rose-100 truncate">
-                                                            {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
-                                                        </span>
-                                                    )}
+                                    {pendingQuotes.slice().sort((a,b) => (starredQuotes.includes(b.id)?1:0) - (starredQuotes.includes(a.id)?1:0)).map(quote => {
+                                        const isStarred = starredQuotes.includes(quote.id);
+                                        const isWeR = quote.source_system === 'calculator_public' || quote.source_system === 'we-r';
+                                        const isOnline = quote.source_system === 'devis_online';
+                                        let dist = 0;
+                                        let hasDist = false;
+                                        if (quote.route_segments && quote.route_segments.length > 0) {
+                                            dist = quote.route_segments.reduce((sum, seg) => sum + (seg.km || 0), 0) * 2;
+                                            hasDist = dist > 0;
+                                        }
+                                        if (!hasDist && quote.route_distance_km && parseFloat(quote.route_distance_km) > 0) {
+                                            dist = parseFloat(quote.route_distance_km) * 2;
+                                            hasDist = true;
+                                        }
+                                        if (!hasDist && quote.prices?.distance_km && parseFloat(quote.prices.distance_km) > 0) {
+                                            dist = parseFloat(quote.prices.distance_km) * 2;
+                                            hasDist = true;
+                                        }
+                                        if (isNaN(dist)) dist = 0;
+
+                                        const isSwipingThis = String(swipingQuote.id) === String(quote.id) && swipingQuote.dx > 0;
+
+                                        return (
+                                            <div
+                                                key={quote.id}
+                                                className="relative rounded-lg overflow-hidden select-none"
+                                            >
+                                                {/* Red Delete Background revealed when swiping Left -> Right */}
+                                                <div
+                                                    className={`absolute inset-0 rounded-lg bg-rose-600 text-white flex items-center justify-start px-3 gap-1.5 font-extrabold text-[10.5px] uppercase tracking-wider transition-opacity ${
+                                                        isSwipingThis ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                                                    }`}
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                                    <span>{t('common.delete', 'Supprimer')}</span>
                                                 </div>
-                                                {quote.approximate_date && (
-                                                    <div className="bg-rose-100 dark:bg-rose-900/40 px-1 py-0.5 rounded text-[8px] font-bold text-rose-700 dark:text-rose-300 shrink-0 ml-1">
-                                                        {new Date(quote.approximate_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }).replace(/\//g, '.')}
+
+                                                <div 
+                                                    draggable
+                                                    onMouseDown={(e) => {
+                                                        if (e.button !== 0) return;
+                                                        quoteGestureRef.current = {
+                                                            id: quote.id,
+                                                            quote,
+                                                            startX: e.clientX,
+                                                            startY: e.clientY,
+                                                            mode: null,
+                                                            dx: 0,
+                                                        };
+                                                    }}
+                                                    onTouchStart={(e) => {
+                                                        const t0 = e.touches?.[0];
+                                                        if (!t0) return;
+                                                        quoteGestureRef.current = {
+                                                            id: quote.id,
+                                                            quote,
+                                                            startX: t0.clientX,
+                                                            startY: t0.clientY,
+                                                            mode: null,
+                                                            dx: 0,
+                                                        };
+                                                    }}
+                                                    onTouchMove={(e) => {
+                                                        const t0 = e.touches?.[0];
+                                                        const g = quoteGestureRef.current;
+                                                        if (!t0 || !g.id) return;
+                                                        const dx = t0.clientX - g.startX;
+                                                        const dy = t0.clientY - g.startY;
+                                                        if (!g.mode && dx > 6 && dx > Math.abs(dy)) {
+                                                            g.mode = 'swipe-right';
+                                                        }
+                                                        if (g.mode === 'swipe-right') {
+                                                            const clamped = Math.min(180, Math.max(0, dx));
+                                                            g.dx = clamped;
+                                                            setSwipingQuote({ id: quote.id, dx: clamped });
+                                                        }
+                                                    }}
+                                                    onTouchEnd={() => {
+                                                        const g = quoteGestureRef.current;
+                                                        if (g.id && g.mode === 'swipe-right' && g.dx >= 55) {
+                                                            setQuoteToDelete(quote);
+                                                        }
+                                                        quoteGestureRef.current = { id: null, quote: null, startX: 0, startY: 0, mode: null, dx: 0 };
+                                                        setSwipingQuote({ id: null, dx: 0 });
+                                                    }}
+                                                    onDragStart={(e) => {
+                                                        const g = quoteGestureRef.current;
+                                                        const dx = e.clientX - (g.startX || e.clientX);
+                                                        const dy = e.clientY - (g.startY || e.clientY);
+                                                        // If user drags from LEFT to RIGHT (dx > 2), cancel native HTML5 drag and slide to delete!
+                                                        if (g.mode === 'swipe-right' || (dx > 2 && dx >= Math.abs(dy))) {
+                                                            e.preventDefault();
+                                                            g.id = quote.id;
+                                                            g.quote = quote;
+                                                            g.mode = 'swipe-right';
+                                                            const clamped = Math.min(180, Math.max(0, dx));
+                                                            g.dx = clamped;
+                                                            setSwipingQuote({ id: quote.id, dx: clamped });
+                                                            return;
+                                                        }
+                                                        g.mode = 'drag-left';
+                                                        e.dataTransfer.setData("type", "quote")
+                                                        e.dataTransfer.setData("id", String(quote.id))
+                                                        e.dataTransfer.setData("name", quote.client_name || t('common.unknown_client', 'Client Inconnu'))
+                                                        e.dataTransfer.setData("address", quote.site_address || '')
+                                                        e.dataTransfer.setData("latitude", String(quote.site_latitude || ''))
+                                                        e.dataTransfer.setData("longitude", String(quote.site_longitude || ''))
+                                                        e.dataTransfer.setData("clientId", String(quote.client_id || ''))
+                                                        e.currentTarget.classList.add('opacity-50', 'scale-95')
+                                                    }}
+                                                    onDrag={(e) => {
+                                                        const g = quoteGestureRef.current;
+                                                        if (e.clientX > 0 && g.startX > 0) {
+                                                            const dx = e.clientX - g.startX;
+                                                            if (dx > 20) {
+                                                                g.dx = dx;
+                                                            }
+                                                        }
+                                                    }}
+                                                    onDragEnd={(e) => {
+                                                        e.currentTarget.classList.remove('opacity-50', 'scale-95')
+                                                        const g = quoteGestureRef.current;
+                                                        const endDx = (e.clientX > 0 && g.startX > 0) ? (e.clientX - g.startX) : g.dx;
+                                                        if (endDx >= 55 && e.dataTransfer?.dropEffect !== 'move') {
+                                                            setQuoteToDelete(quote);
+                                                        }
+                                                        quoteGestureRef.current = { id: null, quote: null, startX: 0, startY: 0, mode: null, dx: 0 };
+                                                        setSwipingQuote({ id: null, dx: 0 });
+                                                    }}
+                                                    onDoubleClick={() => navigate(`/admin/work-orders/${quote.id}`)}
+                                                    style={{
+                                                        transform: isSwipingThis ? `translateX(${swipingQuote.dx}px)` : 'translateX(0px)',
+                                                        transition: isSwipingThis ? 'none' : 'transform 180ms ease-out',
+                                                    }}
+                                                    className={`bg-white dark:bg-slate-800/95 border rounded-lg px-2.5 py-1.5 cursor-grab active:cursor-grabbing hover:shadow-sm relative group ${
+                                                        isStarred
+                                                            ? 'border-amber-300 dark:border-amber-600/70 ring-1 ring-amber-200/60 dark:ring-amber-800/40'
+                                                            : 'border-slate-200/90 dark:border-slate-700/80 hover:border-blue-300 dark:hover:border-sky-600'
+                                                    }`}
+                                                    title={`Client: ${quote.client_name || t('common.unknown_client', 'Client Inconnu')}\n${t('quotes.address', 'Adresse')}: ${quote.site_address || '-'}\n${t('quotes.surface_thickness', 'Surface / Épaisseur')}: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\n${t('quotes.requested_date', 'Date demandée')}: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : '-'}\n${t('quotes.distance', 'Distance')}: ${hasDist && dist > 0 ? Math.round(dist) + ' km' : '-'}`}
+                                                >
+                                                    {/* ROW 1: Source dot / Star toggle + Client Name + Requested Date */}
+                                                    <div className="flex justify-between items-center gap-1.5">
+                                                        <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                                                            <button
+                                                                type="button"
+                                                                title={t('quotes.star', 'Favori')}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    toggleStar(quote.id);
+                                                                }}
+                                                                className="shrink-0 flex items-center justify-center"
+                                                            >
+                                                                {isStarred ? (
+                                                                    <Star className="w-3 h-3 text-amber-500 fill-current shrink-0" />
+                                                                ) : (
+                                                                    <span
+                                                                        className={`w-2 h-2 rounded-full shrink-0 hover:scale-125 transition-transform ${
+                                                                            isWeR ? 'bg-amber-500' : isOnline ? 'bg-blue-500' : 'bg-slate-400'
+                                                                        }`}
+                                                                        title={isWeR ? 'WE-R' : isOnline ? 'Devis en ligne' : 'Manuel'}
+                                                                    />
+                                                                )}
+                                                            </button>
+                                                            <span className="font-extrabold text-[11.5px] text-slate-900 dark:text-slate-100 truncate leading-tight">
+                                                                {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
+                                                            </span>
+                                                        </div>
+                                                        {quote.approximate_date && (
+                                                            <div className="bg-rose-50 dark:bg-rose-900/40 border border-rose-200/70 dark:border-rose-800/50 px-1.5 py-0.5 rounded text-[9.5px] font-extrabold text-rose-700 dark:text-rose-300 shrink-0 tabular-nums leading-none">
+                                                                {new Date(quote.approximate_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }).replace(/\//g, '.')}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
-                                            
-                                            {/* ROW 2: Location + Surface + Distance */}
-                                            <div className="text-[9px] text-rose-600 dark:text-rose-400 mt-0.5 flex items-center gap-1.5 truncate">
-                                                {quote.site_address && (
-                                                    <span className="flex items-center gap-0.5 shrink-0">
-                                                        <MapPin className="w-2.5 h-2.5" />
-                                                        <span className="truncate max-w-[65px]">{formatCityOnly(quote.site_address)}</span>
-                                                    </span>
-                                                )}
-                                                {quote.volumes?.[0]?.quantity && (
-                                                    <span className="text-slate-500 shrink-0">
-                                                        · {quote.volumes[0].quantity}m²
-                                                        {quote.volumes[0].thickness ? ` × ${quote.volumes[0].thickness}cm` : ''}
-                                                    </span>
-                                                )}
-                                                {(() => {
-                                                    let dist = 0;
-                                                    let hasDist = false;
-                                                    if (quote.route_segments && quote.route_segments.length > 0) {
-                                                        dist = quote.route_segments.reduce((sum, seg) => sum + (seg.km || 0), 0) * 2;
-                                                        hasDist = dist > 0;
-                                                    }
-                                                    if (!hasDist && quote.route_distance_km && parseFloat(quote.route_distance_km) > 0) {
-                                                        dist = parseFloat(quote.route_distance_km) * 2;
-                                                        hasDist = true;
-                                                    }
-                                                    // Fallback: distance din prices (setat de devis online) — e one-way
-                                                    if (!hasDist && quote.prices?.distance_km && parseFloat(quote.prices.distance_km) > 0) {
-                                                        dist = parseFloat(quote.prices.distance_km) * 2;
-                                                        hasDist = true;
-                                                    }
-                                                    if (!hasDist) return null;
-                                                    if (isNaN(dist)) dist = 0;
                                                     
-                                                    return dist > 0 ? (
-                                                        <span className="font-bold shrink-0">
-                                                            · {dist.toFixed(0)}km
-                                                        </span>
-                                                    ) : (
-                                                        <span className="font-bold shrink-0 text-red-600">
-                                                            · 0km
-                                                        </span>
-                                                    );
-                                                })()}
+                                                    {/* ROW 2: Location + Surface × Thickness + Distance */}
+                                                    <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-1 flex items-center justify-between gap-1 leading-none">
+                                                        {quote.site_address ? (
+                                                            <span className="flex items-center gap-0.5 min-w-0 flex-1 text-rose-600 dark:text-rose-400 font-semibold">
+                                                                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                                                <span className="truncate">{formatCityOnly(quote.site_address)}</span>
+                                                            </span>
+                                                        ) : <span className="flex-1" />}
+                                                        <div className="flex items-center gap-1 shrink-0 tabular-nums">
+                                                            {quote.volumes?.[0]?.quantity && (
+                                                                <span className="font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/80 px-1.5 py-0.5 rounded text-[9.5px] leading-none">
+                                                                    {quote.volumes[0].quantity}m²{quote.volumes[0].thickness ? `×${quote.volumes[0].thickness}cm` : ''}
+                                                                </span>
+                                                            )}
+                                                            {hasDist && (
+                                                                <span className={`font-extrabold text-[9.5px] min-w-[32px] text-right ${dist > 0 ? 'text-slate-500 dark:text-slate-400' : 'text-rose-600'}`}>
+                                                                    {dist.toFixed(0)}km
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
 
 
-                        {/* Drag and Drop Teams Module */}
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
-                            <div className="px-4 py-3 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
-                                <h3 className="font-extrabold text-white flex items-center gap-2 mb-0.5 text-xs uppercase tracking-wide">
-                                    <Truck className="w-3.5 h-3.5 text-white" />
-                                    {t('admin_overview.trucks_teams', 'Camioane (Echipe)')}
+                        {/* Drag and Drop Teams Module — Compact shrink-0 so all 7 teams fit with zero scroll */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 shrink-0 flex flex-col overflow-hidden">
+                            <div className="px-3 h-9 shrink-0 flex items-center justify-between gap-2" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                                <h3 className="font-extrabold text-white flex items-center gap-1.5 text-[11px] uppercase tracking-wider truncate leading-none">
+                                    <Truck className="w-3.5 h-3.5 text-white shrink-0" />
+                                    <span className="truncate">{t('admin_overview.trucks_teams', 'Camioane (Echipe)')}</span>
                                 </h3>
-                                <p className="text-[10px] text-blue-100">
-                                    {t('admin_overview.drag_truck_job', 'Trage un camion peste lucrare.')}
-                                </p>
+                                <span className="px-2 py-0.5 rounded-full bg-white/20 text-white font-black text-[10px] tabular-nums shrink-0 leading-none">
+                                    {teams.length}
+                                </span>
                             </div>
                             
-                            <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar min-h-0">
-                                {teams.map(team => (
+                            <div className="p-1.5 space-y-1 bg-slate-50/50 dark:bg-slate-950/30">
+                                {teams.slice().sort((a, b) => {
+                                    const aHasPlate = a.plate_number && a.plate_number !== 'NN' ? 1 : 0;
+                                    const bHasPlate = b.plate_number && b.plate_number !== 'NN' ? 1 : 0;
+                                    if (bHasPlate !== aHasPlate) return bHasPlate - aHasPlate;
+                                    return (a.name || '').localeCompare(b.name || '');
+                                }).map(team => (
                                     <div 
                                         key={team.id}
                                         draggable
@@ -1447,35 +1623,27 @@ export default function AdminOverview() {
                                         onDragEnd={(e) => {
                                             e.currentTarget.classList.remove('opacity-50', 'border-dashed', 'scale-95')
                                         }}
-                                        className="p-1.5 rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between border-transparent shadow-sm hover:shadow-md"
-                                        style={{ borderLeftColor: team.color || '#3b82f6', borderLeftWidth: '3px' }}
+                                        className="px-2 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.01] bg-white dark:bg-slate-800 flex items-center justify-between gap-2 shadow-2xs hover:shadow-sm"
+                                        style={{ borderLeftColor: team.color || '#3b82f6', borderLeftWidth: '4px' }}
                                     >
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${team.color || '#3b82f6'}20` }}>
-                                                <Truck className="w-3 h-3" style={{ color: team.color || '#3b82f6' }} />
-                                            </div>
-                                            <div className="min-w-0 flex flex-col justify-center">
-                                                <div className="font-bold text-xs text-slate-800 dark:text-white truncate max-w-[120px] leading-tight">{team.name.replace(/^echipa\s*/i, '')}</div>
-                                                {team.members?.length > 0 && (
-                                                    <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none mt-0.5">{team.members.length} {t('common.members_short', 'membri')}</div>
-                                                )}
-                                            </div>
+                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <Truck className="w-3.5 h-3.5 shrink-0" style={{ color: team.color || '#3b82f6' }} />
+                                            <span className="font-extrabold text-[11.5px] text-slate-800 dark:text-white truncate leading-tight" title={team.name}>
+                                                {team.name.replace(/^echipa\s*/i, '')}
+                                            </span>
                                         </div>
-                                        <div className="flex -space-x-2 shrink-0">
-                                            {team.members?.slice(0, 3).map((m, i) => (
-                                                <AvatarImg key={i} name={m.user_full_name || m.name || m.first_name || 'E'} size="w-5 h-5 border border-white dark:border-slate-800" textSize="text-[7px]" />
-                                            ))}
-                                            {(team.members?.length || 0) > 3 && (
-                                                <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 border border-white dark:border-slate-800 flex items-center justify-center text-[7px] font-bold text-slate-600 dark:text-slate-300 z-10 relative">
-                                                    +{team.members.length - 3}
-                                                </div>
-                                            )}
-                                        </div>
+                                        {team.plate_number && team.plate_number !== 'NN' ? (
+                                            <EuroPlate number={team.plate_number} country="B" size="xs" />
+                                        ) : (
+                                            <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 tabular-nums shrink-0">
+                                                {team.members?.length || 1} {((team.members?.length || 1) === 1) ? t('common.member_single', 'membre') : t('common.members_short', 'membres')}
+                                            </span>
+                                        )}
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        </div>
+                    </div>
                     )}
 
             {/* Activity Popup (Portal) */}
@@ -1883,7 +2051,7 @@ export default function AdminOverview() {
                                                     className="w-24 h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
                                                     title={t('dashboard.quick_create.country', 'Pays')}
                                                 >
-                                                    <option value="BE">🇧🇪 BE</option>
+                                                    <option value="BE">BE</option>
                                                     <option value="RO">RO</option>
                                                     <option value="FR">FR</option>
                                                     <option value="NL">NL</option>
@@ -1891,20 +2059,20 @@ export default function AdminOverview() {
                                                     <option value="IT">IT</option>
                                                     <option value="ES">ES</option>
                                                     <option value="GB">GB</option>
-                                                    <option value="LU">🇱🇺 LU</option>
-                                                    <option value="AT">🇦🇹 AT</option>
-                                                    <option value="PL">🇵🇱 PL</option>
-                                                    <option value="CZ">🇨🇿 CZ</option>
-                                                    <option value="SK">🇸🇰 SK</option>
-                                                    <option value="HU">🇭🇺 HU</option>
-                                                    <option value="BG">🇧🇬 BG</option>
-                                                    <option value="HR">🇭🇷 HR</option>
-                                                    <option value="DK">🇩🇰 DK</option>
-                                                    <option value="FI">🇫🇮 FI</option>
-                                                    <option value="SE">🇸🇪 SE</option>
-                                                    <option value="PT">🇵🇹 PT</option>
-                                                    <option value="IE">🇮🇪 IE</option>
-                                                    <option value="GR">🇬🇷 GR</option>
+                                                    <option value="LU">LU</option>
+                                                    <option value="AT">AT</option>
+                                                    <option value="PL">PL</option>
+                                                    <option value="CZ">CZ</option>
+                                                    <option value="SK">SK</option>
+                                                    <option value="HU">HU</option>
+                                                    <option value="BG">BG</option>
+                                                    <option value="HR">HR</option>
+                                                    <option value="DK">DK</option>
+                                                    <option value="FI">FI</option>
+                                                    <option value="SE">SE</option>
+                                                    <option value="PT">PT</option>
+                                                    <option value="IE">IE</option>
+                                                    <option value="GR">GR</option>
                                                 </select>
                                             )}
                                             <div className="relative flex-1 flex items-center">
@@ -2220,90 +2388,274 @@ export default function AdminOverview() {
             {/* Live Tracking Module full width under calendar */}
             {isShortTerm && (
                 <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden h-[500px]">
-                    <MiniLiveTrackingMap />
+                    <MiniLiveTrackingMap workOrders={allWorkOrders} teams={teams} />
                 </div>
             )}
 
-{/* Recent Work Orders */}
+            {/* Recent Work Orders */}
             {dashboardLayout.recent_work_orders?.visible && (
-                <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-3.5" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                        <div className="flex items-center gap-2.5">
                             <ClipboardList className="w-4 h-4 text-white" />
-                            {t('admin_overview.recent_orders', 'Commandes Récentes')}
-                        </h3>
-                        <button onClick={() => navigate('/admin/work-orders')} className="text-xs font-bold text-blue-100 hover:text-white transition-colors bg-white/10 px-2 py-1 rounded">{t('admin_overview.view_all', 'Voir tout')} →</button>
+                            <h3 className="text-sm font-extrabold text-white uppercase tracking-wide">
+                                {t('admin_overview.recent_orders', 'Commandes Récentes')}
+                            </h3>
+                            <span className="px-2 py-0.5 rounded-full bg-white/20 text-white font-black text-xs tabular-nums">
+                                {recentWorkOrders.length}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => navigate('/admin/work-orders')}
+                            className="text-xs font-extrabold text-white bg-white/15 hover:bg-white/25 border border-white/25 px-3.5 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                        >
+                            {t('admin_overview.view_all', 'Voir tout')} →
+                        </button>
                     </div>
                     {recentWorkOrders.length === 0 ? (
                         <div className="text-center py-6 text-slate-400 text-sm">
                             {t('admin_overview.no_recent_orders', 'Aucune commande récente.')}
                         </div>
                     ) : (
-                        <div className="border-t border-slate-200 dark:border-slate-700">
+                        <div className="border-t border-slate-200 dark:border-slate-800">
                             <DataTable 
+                                onRowClick={(wo) => navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } })}
                                 columns={[
+                                    {
+                                        key: 'quote_number',
+                                        label: (
+                                            <div className="flex flex-col leading-tight gap-0.5">
+                                                <span>{t('logistics.col_vehicle', 'Camion')}</span>
+                                                <span>{t('common.execution_date', "Date d'exécution")}</span>
+                                            </div>
+                                        ),
+                                        sortable: true,
+                                        sortValue: (wo) => wo.start_date || wo.created_at,
+                                        render: (wo) => {
+                                            const teamObj = teams.find(tm => String(tm.id) === String(wo.assigned_team_id)) || wo.team;
+                                            const plateNumber = wo.vehicle_plate_number || teamObj?.plate_number;
+                                            return (
+                                                <div>
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        {plateNumber && plateNumber !== 'NN' ? (
+                                                            <EuroPlate number={plateNumber} country="B" size="sm" />
+                                                        ) : wo.quote_number ? (
+                                                            <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-300 border border-blue-200/60 dark:border-sky-800/60 font-extrabold text-[11px] tabular-nums inline-block">
+                                                                {wo.quote_number}
+                                                            </span>
+                                                        ) : null}
+                                                        {plateNumber && plateNumber !== 'NN' && wo.quote_number && (
+                                                            <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-300 border border-blue-200/60 dark:border-sky-800/60 font-extrabold text-[10px] tabular-nums inline-block">
+                                                                {wo.quote_number}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mt-1 flex items-center gap-1 tabular-nums whitespace-nowrap">
+                                                        <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                                                        <span>{wo.start_date ? new Date(wo.start_date).toLocaleDateString('fr-FR') : '—'}</span>
+                                                        {wo.start_time && (
+                                                            <span className="text-blue-600 dark:text-sky-400 font-bold">· {wo.start_time.slice(0, 5)}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                    },
                                     {
                                         key: 'client_name',
                                         label: t('common.client', 'Client'),
                                         sortable: true,
                                         render: (wo) => (
-                                            <div
-                                                className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
-                                                onClick={() => navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } })}
-                                            >
-                                                <div className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                                                    {wo.client_name || t('common.unknown_client', 'Client Inconnu')}
+                                            <div>
+                                                <div className="font-extrabold text-slate-900 dark:text-white text-sm">
+                                                    {wo.client_name && wo.client_name !== 'None' ? wo.client_name : (wo.title || t('common.unknown_client', 'Client Inconnu'))}
                                                 </div>
-                                                {wo.site_name && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">📍 {wo.site_name}</div>}
+                                                {(wo.client_phone || wo.client_email) && (
+                                                    <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                                        <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                                                        <span className="truncate max-w-[160px]">{wo.client_phone || wo.client_email}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         )
                                     },
                                     {
-                                        key: 'start_date',
-                                        label: t('common.execution_date', "Date d'exécution"),
+                                        key: 'site_address',
+                                        label: t('quotes.address', 'Adresse'),
                                         sortable: true,
-                                        render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.start_date ? new Date(wo.start_date).toLocaleDateString('fr-FR') : '—'}</div>
+                                        render: (wo) => (
+                                            <div className="flex items-start gap-1.5 max-w-[260px] xl:max-w-[340px]">
+                                                <MapPin className="w-3.5 h-3.5 text-rose-500 mt-0.5 shrink-0" />
+                                                <span
+                                                    className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate hover:text-blue-600 hover:underline cursor-pointer"
+                                                    title={wo.site_address || '-'}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (wo.site_latitude || wo.site_address) setMapModalData(wo);
+                                                    }}
+                                                >
+                                                    {wo.site_address || '—'}
+                                                </span>
+                                            </div>
+                                        )
+                                    },
+                                    {
+                                        key: 'assigned_team_id',
+                                        label: t('logistics.col_team', 'Équipe'),
+                                        sortable: true,
+                                        render: (wo) => {
+                                            const teamObj = teams.find(tm => String(tm.id) === String(wo.assigned_team_id)) || wo.team;
+                                            if (!teamObj) {
+                                                return <span className="text-xs italic text-slate-400">{t('common.unassigned', 'Non assigné')}</span>;
+                                            }
+                                            const tColor = teamObj.color || '#3b82f6';
+                                            return (
+                                                <span
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold border shadow-2xs whitespace-nowrap"
+                                                    style={{
+                                                        backgroundColor: `${tColor}18`,
+                                                        borderColor: `${tColor}55`,
+                                                        color: tColor,
+                                                    }}
+                                                >
+                                                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tColor }} />
+                                                    <span>{(teamObj.name || '').replace(/^echipa\s*/i, '')}</span>
+                                                </span>
+                                            );
+                                        }
+                                    },
+                                    {
+                                        key: 'surface',
+                                        label: (
+                                            <div className="flex flex-col leading-tight gap-0.5">
+                                                {t('quotes.surface_thickness', 'Surface / Épaisseur').split(' / ').map((text, i) => (
+                                                    <span key={i}>{text}</span>
+                                                ))}
+                                            </div>
+                                        ),
+                                        sortable: true,
+                                        sortValue: (wo) => wo.volumes?.[0]?.quantity || 0,
+                                        render: (wo) => {
+                                            const vols = Array.isArray(wo.volumes) ? wo.volumes : [];
+                                            const totalSurf = vols.reduce((s, v) => s + (parseFloat(v.quantity) || 0), 0) || parseFloat(wo.surface_area || wo.surface || 0) || 0;
+                                            const thick = vols[0]?.thickness || wo.thickness || 0;
+                                            return (
+                                                <div className="tabular-nums">
+                                                    <div className="font-extrabold text-slate-800 dark:text-slate-100 text-xs">{totalSurf > 0 ? `${totalSurf} m²` : '—'}</div>
+                                                    {thick > 0 && <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{thick} cm</div>}
+                                                </div>
+                                            );
+                                        }
+                                    },
+                                    {
+                                        key: 'distance',
+                                        label: (
+                                            <div className="flex flex-col leading-tight gap-0.5">
+                                                <span>{t('quotes.distance', 'Distance')}</span>
+                                                <span>{t('quotes.sand', 'Sable')}</span>
+                                            </div>
+                                        ),
+                                        sortable: true,
+                                        sortValue: (wo) => parseFloat(wo.route_distance_km || wo.distance_km || 0),
+                                        render: (wo) => {
+                                            const km = parseFloat(wo.route_distance_km || wo.distance_km || wo.prices?.distance_km || 0);
+                                            const sandKg = parseFloat(wo.route_sand_kg || 0);
+                                            return (
+                                                <div className="tabular-nums">
+                                                    <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                                                        {km > 0 ? `${km.toFixed(1)} km` : '—'}
+                                                    </div>
+                                                    {sandKg > 0 && (
+                                                        <div className="text-[11px] text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap">
+                                                            {(sandKg / 1000).toFixed(1)} {t('quotes.tons_sand', 't sable')}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        }
+                                    },
+                                    {
+                                        key: 'estimated_price',
+                                        label: t('quotes.price', 'Prix (€)'),
+                                        sortable: true,
+                                        sortValue: (wo) => parseFloat(wo.estimated_price || 0),
+                                        render: (wo) => (
+                                            <div className="font-extrabold text-slate-900 dark:text-white text-sm whitespace-nowrap tabular-nums">
+                                                {wo.estimated_price && parseFloat(wo.estimated_price) > 0
+                                                    ? `${parseFloat(wo.estimated_price).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €`
+                                                    : '—'}
+                                            </div>
+                                        )
                                     },
                                     {
                                         key: 'status',
                                         label: t('common.status', 'Statut'),
                                         sortable: true,
                                         render: (wo) => {
+                                            const effectiveStatus = (wo.status === 'draft' && wo.start_date && wo.assigned_team_id) ? 'planning' : wo.status;
                                             const cfg = {
-                                                draft:       { label: t('common.status_draft', 'Brouillon'),       color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' },
-                                                sent:        { label: t('common.status_sent', 'Envoyé'),     color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
-                                                confirmed:   { label: t('common.status_confirmed', 'Confirmé'),  color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
-                                                in_progress: { label: t('common.status_in_progress', 'En cours'), color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
-                                                completed:   { label: t('common.status_completed', 'Terminé'),  color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500' },
-                                                cancelled:   { label: t('common.status_cancelled', 'Annulé'),     color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' }
-                                            }[wo.status] || { label: t('common.status_draft', 'Brouillon'), color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' }
+                                                draft:       { label: t('common.status_draft', 'Brouillon'),       color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300', dot: 'bg-slate-400' },
+                                                planning:    { label: t('nav.planning', 'Planificat'),             color: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300', dot: 'bg-sky-500' },
+                                                sent:        { label: t('common.status_sent', 'Envoyé'),           color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
+                                                confirmed:   { label: t('common.status_confirmed', 'Confirmé'),    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
+                                                in_progress: { label: t('common.status_in_progress', 'En cours'),  color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
+                                                completed:   { label: t('common.status_completed', 'Terminé'),     color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500' },
+                                                cancelled:   { label: t('common.status_cancelled', 'Annulé'),      color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' }
+                                            }[effectiveStatus] || { label: t('common.status_draft', 'Brouillon'), color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300', dot: 'bg-slate-400' };
                                             return (
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${cfg.color}`}>
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                                    {cfg.label}
-                                                </span>
-                                            )
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold whitespace-nowrap ${cfg.color}`}>
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                                        {cfg.label}
+                                                    </span>
+                                                    {wo.status === 'completed' && (
+                                                        wo.is_invoiced ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider whitespace-nowrap">
+                                                                {wo.invoice_number || t('work_order_detail.invoicing.invoiced', 'Facturé')}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 uppercase tracking-wider whitespace-nowrap">
+                                                                {t('work_order_detail.invoicing.not_invoiced', 'Non Facturé')}
+                                                            </span>
+                                                        )
+                                                    )}
+                                                </div>
+                                            );
                                         }
                                     },
                                     {
-                                        key: 'is_invoiced',
-                                        label: t('work_order_detail.invoicing.title', 'Facturation'),
-                                        sortable: true,
-                                        render: (wo) => wo.status === 'completed' ? (
-                                            wo.is_invoiced ? (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider whitespace-nowrap">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                                                    {wo.invoice_number || t('work_order_detail.invoicing.invoiced', 'Facturé')}
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider whitespace-nowrap animate-pulse">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
-                                                    {t('work_order_detail.invoicing.not_invoiced', 'Non Facturé')}
-                                                </span>
-                                            )
-                                        ) : <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
-                                    },
-
+                                        key: 'actions',
+                                        label: t('common.actions', 'Actions'),
+                                        render: (wo) => (
+                                            <div className="flex items-center gap-1.5">
+                                                {wo.token && (
+                                                    <button
+                                                        type="button"
+                                                        title={t('quotes.copy_link', 'Copier le lien')}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigator.clipboard.writeText(`${window.location.origin}/confirm/${wo.token}`);
+                                                            showToast(t('quotes.link_copied', 'Lien copié!'), 'success');
+                                                        }}
+                                                        className="w-8 h-8 flex items-center justify-center border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
+                                                    >
+                                                        <Copy className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    title={t('overview.view_order_details', 'Voir les détails')}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
+                                                    }}
+                                                    className="w-8 h-8 flex items-center justify-center border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )
+                                    }
                                 ]}
                                 data={recentWorkOrders}
                                 defaultPageSize={5}
@@ -3309,7 +3661,7 @@ export default function AdminOverview() {
 
             {showPendingQuotesModal && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-7xl 2xl:max-w-[1620px] h-[88vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-200/80 dark:border-slate-800">
                         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 shrink-0">
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <ClipboardList className="w-6 h-6 text-blue-600" />
@@ -3335,17 +3687,19 @@ export default function AdminOverview() {
                                     ), sortable: true, sortValue: (row) => row.created_at, render: (row) => (
                                         <div>
                                             <div className="flex items-center gap-1.5 mb-0.5">
-                                                {row.source_system ? (
-                                                    <span 
-                                                        title={row.source_system.replace('_', ' ').toUpperCase()}
-                                                        className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-bold shrink-0 ${row.source_system.includes('we-r') || row.source_system.includes('calculator') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}
-                                                    >
-                                                        {row.quote_number || (row.id || '').substring(0,8).toUpperCase()}
-                                                    </span>
-                                                ) : (
-                                                    <span className="font-mono text-xs font-semibold text-blue-600">
-                                                        {row.quote_number || (row.id || '').substring(0,8).toUpperCase()}
-                                                    </span>
+                                                {row.quote_number && (
+                                                    row.source_system ? (
+                                                        <span 
+                                                            title={row.source_system.replace('_', ' ').toUpperCase()}
+                                                            className={`px-2 py-0.5 rounded-full tabular-nums text-[11px] font-bold shrink-0 ${row.source_system.includes('we-r') || row.source_system.includes('calculator') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}
+                                                        >
+                                                            {row.quote_number}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="tabular-nums text-xs font-semibold text-blue-600">
+                                                            {row.quote_number}
+                                                        </span>
+                                                    )
                                                 )}
                                             </div>
                                             <div className="text-[10px] text-slate-500 flex items-center gap-1 flex-wrap">
@@ -3360,26 +3714,26 @@ export default function AdminOverview() {
                                         </div>
                                     ), sortable: true, render: (row) => (
                                         <div>
-                                            <div className="font-semibold text-slate-900">{row.client_name}</div>
+                                            <div className="font-semibold text-slate-900 dark:text-white">{row.client_name}</div>
                                             {row.approximate_date ? (
-                                                <div className="text-[10px] text-blue-600 font-medium truncate max-w-[150px]" title={row.approximate_date}>
+                                                <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate max-w-[180px]" title={row.approximate_date}>
                                                     {row.approximate_date}
                                                 </div>
                                             ) : !row.source_system ? (
-                                                <div className="text-[10px] text-slate-400 italic">Manual</div>
+                                                <div className="text-[10px] text-slate-400 italic">{t('quotes.manual', 'Manuel')}</div>
                                             ) : null}
                                         </div>
                                     )},
                                     { key: 'address', label: t('quotes.address', 'Adresse'), sortable: true, sortValue: (row) => row.site_address, render: (row) => (
                                         <div>
-                                            <div className="flex items-center gap-1 text-xs text-slate-600 font-medium mb-0.5">
+                                            <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300 font-medium mb-0.5">
                                                 <Phone className="w-3 h-3 text-slate-400 shrink-0" />
                                                 <span>{row.client_phone || row.client_email || '-'}</span>
                                             </div>
                                             <div className="flex items-start gap-1">
                                                 <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
                                                 <span 
-                                                    className="text-sm truncate max-w-[200px] hover:text-blue-600 hover:underline cursor-pointer" 
+                                                    className="text-sm truncate max-w-[260px] xl:max-w-[360px] 2xl:max-w-[480px] hover:text-blue-600 hover:underline cursor-pointer" 
                                                     title={row.site_address}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -3401,7 +3755,7 @@ export default function AdminOverview() {
                                         const vol = row.volumes?.[0] || {};
                                         return (
                                             <div>
-                                                <div className="font-semibold text-slate-700">{vol.quantity || 0} {vol.unit || 'm²'}</div>
+                                                <div className="font-semibold text-slate-700 dark:text-slate-200">{vol.quantity || 0} {vol.unit || 'm²'}</div>
                                                 <div className="text-xs text-slate-500">{vol.thickness || 0} CM</div>
                                             </div>
                                         );
@@ -3413,32 +3767,32 @@ export default function AdminOverview() {
                                         </div>
                                     ), sortable: true, sortValue: (row) => parseFloat(row.distance_km || 0), render: (row) => (
                                         <div>
-                                            <div className="text-sm font-semibold text-slate-700">
+                                            <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                                                 {row.distance_km ? `${parseFloat(row.distance_km).toFixed(1)} km` : '-'}
                                             </div>
                                             {row.route_sand_kg ? (
-                                                <div className="text-xs text-amber-600 font-medium">
-                                                    {(row.route_sand_kg / 1000).toFixed(1)} t sable
+                                                <div className="text-xs text-amber-600 font-medium whitespace-nowrap">
+                                                    {(row.route_sand_kg / 1000).toFixed(1)} {t('quotes.tons_sand', 't sable')}
                                                 </div>
                                             ) : null}
                                         </div>
                                     )},
                                     { key: 'price', label: t('quotes.price', 'Prix (€)'), sortable: true, sortValue: (row) => parseFloat(row.estimated_price || 0), render: (row) => (
                                         <div>
-                                            <div className="font-bold text-slate-900 whitespace-nowrap">
+                                            <div className="font-bold text-slate-900 dark:text-white whitespace-nowrap">
                                                 {row.estimated_price ? `${parseFloat(row.estimated_price).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` : '-'}
                                             </div>
                                         </div>
                                     )},
                                     { key: 'actions', label: t('common.actions', 'Actions'), render: (row) => (
-                                        <div className="flex items-center gap-1">
+                                        <div className="flex items-center gap-1.5">
                                             <button
-                                                title={t('quotes.star', 'Favorite')}
+                                                title={t('quotes.star', 'Favori')}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     toggleStar(row.id);
                                                 }}
-                                                className={`w-8 h-8 flex items-center justify-center border border-slate-200 rounded-full transition-colors ${starredQuotes.includes(row.id) ? 'text-amber-500 bg-amber-50 border-amber-200' : 'text-slate-400 hover:text-amber-500 hover:bg-slate-50'}`}
+                                                className={`w-8 h-8 flex items-center justify-center border border-slate-200 dark:border-slate-700 rounded-full transition-colors ${starredQuotes.includes(row.id) ? 'text-amber-500 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-700' : 'text-slate-400 hover:text-amber-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                                             >
                                                 <Star className={`w-4 h-4 ${starredQuotes.includes(row.id) ? 'fill-current' : ''}`} />
                                             </button>
@@ -3447,9 +3801,9 @@ export default function AdminOverview() {
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`);
-                                                    if (window.showToast) window.showToast(t('quotes.link_copied', 'Lien copié!'), 'success');
+                                                    showToast(t('quotes.link_copied', 'Lien copié!'), 'success');
                                                 }}
-                                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                                                className="w-8 h-8 flex items-center justify-center border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
                                             >
                                                 <Copy className="w-4 h-4" />
                                             </button>
@@ -3468,7 +3822,7 @@ export default function AdminOverview() {
                                                     });
                                                     setPlanningModal(row);
                                                 }}
-                                                className="w-8 h-8 flex items-center justify-center border border-emerald-200 bg-emerald-50 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 rounded-full transition-colors"
+                                                className="w-8 h-8 flex items-center justify-center border border-emerald-200 dark:border-emerald-800/70 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-100 rounded-full transition-colors"
                                             >
                                                 <CalendarDays className="w-4 h-4" />
                                             </button>
@@ -3478,14 +3832,97 @@ export default function AdminOverview() {
                                                     e.stopPropagation();
                                                     navigate(`/admin/work-orders/${row.id}`);
                                                 }}
-                                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                                                className="w-8 h-8 flex items-center justify-center border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
                                             >
                                                 <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                title={t('quotes.delete_quote', 'Supprimer le devis')}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setQuoteToDelete(row);
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center border border-rose-200 dark:border-rose-800/70 bg-rose-50/70 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:text-white hover:bg-rose-600 hover:border-rose-600 rounded-full transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     )}
                                 ]}
                             />
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {quoteToDelete && createPortal(
+                <div className="fixed inset-0 z-[10005] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-rose-50/70 dark:bg-rose-950/30">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                                    <Trash2 className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">
+                                        {t('quotes.delete_confirm_title', 'Confirmer la suppression du devis')}
+                                    </h3>
+                                    {quoteToDelete.quote_number && (
+                                        <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+                                            {quoteToDelete.quote_number}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => !isDeletingQuote && setQuoteToDelete(null)}
+                                className="p-1.5 rounded-full hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-400 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                {t('quotes.delete_confirm_msg', 'Êtes-vous sûr de vouloir supprimer définitivement ce devis ? Toutes les données associées seront supprimées de façon irréversible.')}
+                            </p>
+                            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/70 space-y-1 text-xs">
+                                <div className="font-bold text-slate-900 dark:text-white text-sm">
+                                    {quoteToDelete.client_name || t('common.unknown_client', 'Client Inconnu')}
+                                </div>
+                                {quoteToDelete.site_address && (
+                                    <div className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 truncate">
+                                        <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                        <span className="truncate">{quoteToDelete.site_address}</span>
+                                    </div>
+                                )}
+                                {quoteToDelete.volumes?.[0]?.quantity && (
+                                    <div className="text-slate-600 dark:text-slate-300 font-semibold pt-0.5 tabular-nums">
+                                        {quoteToDelete.volumes[0].quantity} m² · {quoteToDelete.volumes[0].thickness || 0} cm
+                                        {quoteToDelete.estimated_price ? ` — ${parseFloat(quoteToDelete.estimated_price).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` : ''}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="pt-2 flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    disabled={isDeletingQuote}
+                                    onClick={() => setQuoteToDelete(null)}
+                                    className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    {t('common.cancel', 'Annuler')}
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isDeletingQuote}
+                                    onClick={handleConfirmDeleteQuote}
+                                    className="flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 transition-colors shadow-sm"
+                                >
+                                    {isDeletingQuote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                    {t('common.delete', 'Supprimer')}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>,

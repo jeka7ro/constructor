@@ -38,11 +38,14 @@
 
   /* ─── Dark Mode: Global text color overrides ─── */
   /* Only text colors — backgrounds are handled per-component with dark: classes */
-  .dark .text-slate-900 { color: #f1f5f9 !important; }
-  .dark .text-slate-800 { color: #e2e8f0 !important; }
-  .dark .text-slate-700 { color: #cbd5e1 !important; }
-  .dark .text-slate-600 { color: #94a3b8 !important; }
-  .dark .text-slate-500 { color: #64748b !important; }
+  .dark .text-slate-900 { color: #f1f5f9; }
+  .dark .text-slate-800 { color: #e2e8f0; }
+  .dark .text-slate-700,
+  .dark .text-slate-700\/90 { color: #cbd5e1; }
+  .dark .text-slate-600,
+  .dark .text-slate-600\/80,
+  .dark .text-slate-600\/70 { color: #94a3b8; }
+  .dark .text-slate-500 { color: #64748b; }
 
   /* Dark dividers */
   .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #334155 !important; }
@@ -159,3 +162,290 @@
     background-color: #334155;
   }
 }
+
+/* ─── Ultra-Wide & 5K Full-Screen Adaptive Layout (Zero impact on laptop/mobile < 2050px) ─── */
+body.modal-scroll-locked {
+  overflow: hidden !important;
+}
+
+/* Fullscreen Live Map: Scale up Zoom In / Out (+ / -) buttons next to Meteo card */
+.tms-map-fullscreen .leaflet-top.leaflet-left .leaflet-control-zoom {
+  margin-top: 18px !important;
+  margin-left: 18px !important;
+  transform: scale(1.48);
+  transform-origin: top left;
+  border-radius: 12px !important;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.25) !important;
+}
+
+.dark .tms-map-fullscreen .leaflet-top.leaflet-left .leaflet-control-zoom {
+  border-color: rgba(51, 65, 85, 0.9) !important;
+}
+.dark .tms-map-fullscreen .leaflet-control-zoom a {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  color: #f8fafc !important;
+  border-bottom-color: rgba(51, 65, 85, 0.8) !important;
+}
+
+/* Tier 1: Screens >= 2050px or 21:9 aspect ratio */
+@media (min-width: 2050px), (min-width: 1700px) and (min-aspect-ratio: 21/10) {
+  .tps-main-workspace,
+  .tps-main-workspace .tps-main-inner,
+  .tps-main-workspace .max-w-7xl,
+  .tps-main-workspace .max-w-6xl,
+  .tps-main-workspace .max-w-5xl,
+  .tps-main-workspace .max-w-\[1600px\] {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .tps-main-workspace .tps-main-inner {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .tps-planning-split-grid {
+    grid-template-columns: 1fr 295px !important;
+    gap: 0.875rem !important;
+  }
+}
+
+/* Tier 2: Screens >= 2480px or >= 2350px at 25:10 aspect ratio (Ultra-Wide / 4K / 5K) */
+@media (min-width: 2480px), (min-width: 2350px) and (min-aspect-ratio: 25/10) {
+  .tps-planning-split-grid {
+    grid-template-columns: 1fr 340px !important;
+    gap: 1.1rem !important;
+  }
+
+  .tps-orders-ultrawide-split {
+    display: grid !important;
+    grid-template-columns: 1.48fr 1fr !important;
+    gap: 1.25rem !important;
+    align-items: start !important;
+  }
+
+  .tps-orders-ultrawide-split > :last-child {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100dvh - 110px);
+    overflow-y: auto;
+  }
+
+  .tps-uw-fleet-cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(1020px, 1fr));
+    gap: 0.75rem;
+  }
+  .tps-uw-fleet-cards-grid > .tps-uw-grid-span-full {
+    grid-column: 1 / -1;
+  }
+
+  .tps-uw-auto-cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(430px, 1fr)) !important;
+    gap: 1rem;
+  }
+
+  .tps-uw-match-cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(660px, 1fr)) !important;
+    gap: 0.875rem;
+  }
+}
+
+/* Tier 3: 32:9 / 5K (>= 2900px) */
+@media (min-width: 2900px), (min-width: 2350px) and (min-aspect-ratio: 25/10) {
+  .tps-main-workspace .tps-main-inner {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .tps-planning-split-grid {
+    grid-template-columns: 1fr 375px !important;
+    gap: 1.25rem !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   macOS Tahoe / Golden Gate — Liquid Glass Design System (Dark + Light Mode)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Typography & Tabular Numbers (Inter + Zero Ligatures) */
+html, body, #root, button, input, select, textarea {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-feature-settings: "liga" 0, "clig" 0, "calt" 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.tabular-nums,
+table,
+td,
+th,
+input[type="number"],
+.planning-card-km,
+.planning-card-temp {
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* 2. Liquid Glass Surfaces & Containers */
+.tahoe-wallpaper {
+  background-color: #091326;
+  background-image:
+    radial-gradient(at 12% 10%, rgba(10, 132, 255, 0.24) 0px, transparent 50%),
+    radial-gradient(at 88% 14%, rgba(56, 120, 246, 0.20) 0px, transparent 48%),
+    radial-gradient(at 50% 88%, rgba(48, 209, 88, 0.11) 0px, transparent 52%),
+    radial-gradient(at 82% 75%, rgba(100, 210, 255, 0.13) 0px, transparent 45%);
+  background-attachment: fixed;
+}
+
+.tahoe-glass {
+  background: linear-gradient(145deg, rgba(28, 36, 56, 0.68) 0%, rgba(17, 23, 38, 0.78) 100%);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+  border-radius: 24px;
+}
+
+.tahoe-glass-elevated {
+  background: linear-gradient(145deg, rgba(38, 49, 76, 0.72) 0%, rgba(22, 30, 50, 0.82) 100%);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.24);
+  border-radius: 28px;
+}
+
+.tahoe-card-inner {
+  background: rgba(12, 17, 30, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+
+.tms-weather-hud-glass {
+  background: linear-gradient(160deg, rgba(12, 31, 61, 0.76) 0%, rgba(9, 23, 46, 0.84) 100%);
+  backdrop-filter: blur(16px) saturate(175%);
+  -webkit-backdrop-filter: blur(16px) saturate(175%);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow: 0 14px 34px -8px rgba(2, 6, 23, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Light Mode Adaptive Overrides for Tahoe Glass */
+html[data-theme="light"] .tahoe-glass,
+html:not(.dark) .tahoe-glass {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  box-shadow: 0 14px 34px -12px rgba(15, 23, 42, 0.09), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme="light"] .tahoe-glass-elevated,
+html:not(.dark) .tahoe-glass-elevated {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 22px 48px -12px rgba(15, 23, 42, 0.16), inset 0 1px 0 0 rgba(255, 255, 255, 1);
+}
+
+html[data-theme="light"] .tahoe-card-inner,
+html:not(.dark) .tahoe-card-inner {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+}
+
+.planning-card-km,
+.planning-card-temp {
+  background: rgba(8, 47, 73, 0.84);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(56, 189, 248, 0.46);
+  color: #f0f9ff;
+}
+
+/* 3. Capsule Buttons (.tahoe-btn-primary, .tahoe-btn-secondary & Global Pill Buttons) */
+.tahoe-btn-primary {
+  border-radius: 9999px !important;
+  background: linear-gradient(180deg, #1a8cff 0%, #007aff 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 20px -4px rgba(0, 122, 255, 0.50);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.tahoe-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 24px -4px rgba(0, 122, 255, 0.62);
+}
+.tahoe-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.tahoe-btn-secondary {
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+html[data-theme="light"] .tahoe-btn-secondary,
+html:not(.dark) .tahoe-btn-secondary {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* Global macOS Tahoe Capsule Buttons & Pill Controls across the application */
+button:not(.aspect-square):not([class*="flex-col"]):not([class*="text-left"]):not([class*="rounded-2xl"]):not([class*="rounded-3xl"]):not([role="switch"]),
+a[class*="px-"][class*="py-"][class*="rounded-lg"],
+a[class*="px-"][class*="py-"][class*="rounded-xl"],
+select[class*="rounded-lg"],
+select[class*="rounded-xl"] {
+  border-radius: 9999px !important;
+}
+
+/* Specular Liquid Glass highlight on primary colored action buttons */
+button[class*="bg-blue-600"],
+button[class*="bg-emerald-600"],
+button[class*="bg-indigo-600"],
+button[class*="bg-red-600"] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 4px 14px -3px rgba(15, 23, 42, 0.25);
+}
+
+/* 4. Capsule Tabs without residual outline flash */
+[role="tab"] {
+  border-radius: 9999px !important;
+  outline: none;
+}
+[role="tab"][aria-selected="true"] {
+  transition: none !important;
+  outline: none;
+  position: relative;
+}
+[role="tab"]:focus-visible {
+  outline: 2px solid #0a84ff;
+  outline-offset: 2px;
+}
+
+/* 5. Tahoe Tables — Sticky Translucent Header & 48px Zebra Rows */
+.tahoe-table-header th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
+.tahoe-table-row {
+  height: 48px;
+}
+.tahoe-table-row:nth-child(even) {
+  background-color: rgba(148, 163, 184, 0.045);
+}
+
+

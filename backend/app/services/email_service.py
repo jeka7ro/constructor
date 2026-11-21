@@ -575,6 +575,7 @@ def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone:
         
     from_email = os.getenv("EMAIL_FROM", "info@davidechape.pontaj.app")
     subject = f"NOTIFICATION: Nouveau Devis de {client_name}"
+    seller_url = f"{proforma_url}{'&' if '?' in proforma_url else '?'}role=seller"
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; border: 1px solid #ddd; max-width: 600px; margin: 0 auto; border-radius: 8px;">
@@ -590,8 +591,10 @@ def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone:
                 <td style="padding: 8px; border-bottom: 1px solid #eee;">{client_phone or '-'}</td>
             </tr>
         </table>
-        <div style="text-align: center; margin-top: 30px;">
-            <a href="{proforma_url}" style="background-color: #2b5c8f; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ouvrir le Devis (Proforma)</a>
+        <div style="text-align: center; margin-top: 25px;">
+            <a href="{seller_url}" style="background-color: #0f766e; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; margin-bottom: 12px;">🛠️ Link Davide Chape (Vendeur / Chat)</a>
+            <br>
+            <a href="{proforma_url}" style="background-color: #2b5c8f; color: white; padding: 10px 22px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 14px;">👤 Link Client</a>
         </div>
     </div>
     """
@@ -618,7 +621,7 @@ def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone:
         logger.error(f"Failed to send admin quote alert: {e}")
         _log_email(org_id, wo_id, admin_email, "Admin", subject, html_content, "failed", str(e))
         return False
-def send_chat_notification_email(to_email: str, client_name: str, client_language: str, chat_url: str, org_id: str = None, wo_id: str = None):
+def send_chat_notification_email(to_email: str, client_name: str, client_language: str, chat_url: str, org_id: str = None, wo_id: str = None, message_preview: str = None):
     client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
     if client_language in ['eng', 'english']: client_language = 'en'
     if client_language in ['ro', 'romana', 'romanian']: client_language = 'ro'
@@ -635,26 +638,26 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
         subject = "Nieuw bericht van Davide Chape"
         greeting = f"Beste {client_name}"
         intro = "U heeft een nieuw bericht ontvangen van ons team."
-        body_main = "U kunt het bericht lezen en erop reageren via de onderstaande knop."
-        btn_text = "Bekijk bericht"
+        body_main = "U kunt het bericht lezen en rechtstreeks in de chat van uw offerte reageren via de onderstaande knop."
+        btn_text = "Bekijk bericht & Reageer in Chat"
         fallback = "Als de knop niet werkt, kopieer en plak deze link in uw browser:"
-        footer = "Het team van Davide Chape<br>Dit is een automatisch bericht, gelieve hier niet rechtstreeks op te antwoorden."
+        footer = "Het team van Davide Chape<br>Dit is een automatisch bericht, gelieve via de chatknop hierboven te antwoorden."
     elif client_language == "en":
         subject = "New message from Davide Chape"
         greeting = f"Dear {client_name}"
         intro = "You have received a new message from our team."
-        body_main = "You can read and reply to the message using the button below."
-        btn_text = "View message"
+        body_main = "You can read and reply directly in the quote chat using the button below."
+        btn_text = "View message & Reply in Chat"
         fallback = "If the button doesn't work, copy and paste this link into your browser:"
-        footer = "The Davide Chape Team<br>This is an automated message, please do not reply directly."
+        footer = "The Davide Chape Team<br>This is an automated message, please reply using the chat button above."
     else: # Default to FR
         subject = "Nouveau message de Davide Chape"
         greeting = f"Bonjour {client_name}"
         intro = "Vous avez reçu un nouveau message de notre équipe."
-        body_main = "Vous pouvez lire et répondre au message via le bouton ci-dessous."
-        btn_text = "Voir le message"
+        body_main = "Vous pouvez lire et répondre directement dans le chat de votre devis via le bouton ci-dessous."
+        btn_text = "Voir le message & Répondre dans le Chat"
         fallback = "Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur:"
-        footer = "L'équipe Davide Chape<br>Ceci est un message automatique, merci de ne pas y répondre directement."
+        footer = "L'équipe Davide Chape<br>Ceci est un message automatique, merci de répondre via le bouton de chat ci-dessus."
 
     primary_color = "#3b82f6"
     tenant_name = "Davide Chape"
@@ -693,6 +696,14 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
     # Replace "Davide Chape" in subject and footer dynamically
     subject = subject.replace("Davide Chape", tenant_name)
     footer = footer.replace("Davide Chape", tenant_name)
+    
+    preview_block = ""
+    if message_preview and str(message_preview).strip():
+        preview_block = f"""
+            <div style="background-color: #f8fafc; border-left: 4px solid {primary_color}; padding: 14px 18px; margin: 20px 0; border-radius: 6px; font-size: 15px; color: #1e293b; font-style: italic;">
+                "{str(message_preview).strip()}"
+            </div>
+        """
             
     html_content = f"""
     <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
@@ -702,6 +713,7 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
         <div style="padding: 30px; background-color: #ffffff;">
             <p style="font-size: 16px;"><strong>{greeting}</strong>,</p>
             <p style="font-size: 16px;">{intro}</p>
+            {preview_block}
             <p style="font-size: 16px;">{body_main}</p>
             
             <div style="text-align: center; margin: 35px 0;">

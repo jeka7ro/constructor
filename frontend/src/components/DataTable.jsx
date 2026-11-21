@@ -172,8 +172,8 @@ export default function DataTable({
 
             {/* Table */}
             <div className={`overflow-x-auto pb-4 ${mobileCard ? 'hidden md:block' : ''}`}>
-                <table className={`w-full text-sm text-left ${tableClassName || ''}`}>
-                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                <table className={`w-full text-sm text-left tabular-nums ${tableClassName || ''}`}>
+                    <thead className="tahoe-table-header bg-white/85 dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                         <tr>
                             {/* Row number column */}
                             <th className="px-1 py-2 text-center w-8 select-none">
@@ -215,7 +215,7 @@ export default function DataTable({
                             slice.map((row, idx) => (
                                 <tr
                                     key={row.id ?? idx}
-                                    className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group ${onRowClick ? 'cursor-pointer' : ''} ${rowClassName ? rowClassName(row) : ''}`}
+                                    className={`tahoe-table-row hover:bg-blue-50/40 dark:hover:bg-slate-800/60 transition-colors group ${onRowClick ? 'cursor-pointer' : ''} ${rowClassName ? rowClassName(row) : ''}`}
                                     style={rowStyle ? rowStyle(row) : undefined}
                                     onClick={onRowClick ? (e) => {
                                         // Nu naviga daca s-a dat click pe un buton/link/input din rand
