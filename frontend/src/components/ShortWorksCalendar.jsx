@@ -709,9 +709,9 @@ export default function ShortWorksCalendar({
                 onTouchStart={onTouchStart}
                 onTouchEnd={onTouchEndEvent}
             >
-                {/* Header — Fixed 56px height matching DEVIS EN ATTENTE header */}
+                {/* Header — Fixed 56px height matching DEVIS EN ATTENTE header with Apple Specular Glass finish */}
             <div
-                className="px-4 h-[56px] shrink-0 flex flex-col justify-center shadow-inner border-b border-white/15"
+                className="apple-header-glass px-4 h-[56px] shrink-0 flex flex-col justify-center border-b border-white/20"
                 style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}
             >
                 {/* Top Row: Date, Teams, and Controls */}

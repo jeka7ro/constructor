@@ -6,10 +6,11 @@ import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import HeaderNotifications from '../../components/HeaderNotifications'
+import HeaderDynamicIsland from '../../components/HeaderDynamicIsland'
 import GlobalSearch from '../../components/GlobalSearch'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail, MapIcon, HardDrive, Handshake, Maximize2, Minimize2
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail, MapIcon, HardDrive, Handshake, Maximize2, Minimize2, Cloud, CloudSun, CloudRain, CloudSnow, CloudLightning
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -33,7 +34,111 @@ export default function AdminDashboard() {
         const timer = setInterval(() => setNow(new Date()), 1000)
         return () => clearInterval(timer)
     }, [])
-    const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : true)
+
+    // Live weather + timezone for the user's current location (auto-detected via geolocation/IP, cached for 15 min)
+    const [userWeather, setUserWeather] = useState(() => {
+        try {
+            const cached = sessionStorage.getItem('pontaj_user_header_weather_v2')
+            if (cached) {
+                const parsed = JSON.parse(cached)
+                if (parsed && Date.now() - (parsed.ts || 0) < 15 * 60 * 1000) {
+                    return parsed
+                }
+            }
+        } catch (_) {}
+        return null
+    })
+
+    const fetchUserLocationWeather = useCallback(async (forceGpsPrompt = false) => {
+        const loadFromCoords = async (lat, lon, fallbackCity = '') => {
+            try {
+                const [wRes, gRes] = await Promise.all([
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`).then(r => r.json()),
+                    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=${i18n.language || 'fr'}`).then(r => r.json()).catch(() => ({}))
+                ])
+                const cw = wRes?.current_weather
+                if (cw && cw.temperature != null) {
+                    const city = gRes?.city || gRes?.locality || fallbackCity || gRes?.principalSubdivision || 'Local'
+                    const payload = {
+                        temp: Math.round(Number(cw.temperature)),
+                        code: Number(cw.weathercode || 0),
+                        wind: Math.round(Number(cw.windspeed || 0)),
+                        city,
+                        timezone: wRes?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        ts: Date.now(),
+                    }
+                    setUserWeather(payload)
+                    try { sessionStorage.setItem('pontaj_user_header_weather_v2', JSON.stringify(payload)) } catch (_) {}
+                }
+            } catch (_) {}
+        }
+
+        const loadFromIpOrTimezone = async () => {
+            try {
+                const ipRes = await fetch('https://ipwho.is/').then(r => r.json()).catch(() => null)
+                if (ipRes && ipRes.latitude && ipRes.longitude) {
+                    await loadFromCoords(ipRes.latitude, ipRes.longitude, ipRes.city || '')
+                    return
+                }
+                const ipApi = await fetch('https://ipapi.co/json/').then(r => r.json()).catch(() => null)
+                if (ipApi && ipApi.latitude && ipApi.longitude) {
+                    await loadFromCoords(ipApi.latitude, ipApi.longitude, ipApi.city || '')
+                    return
+                }
+            } catch (_) {}
+            await loadFromCoords(50.8503, 4.3517, 'Bruxelles')
+        }
+
+        try {
+            if (forceGpsPrompt && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => { void loadFromCoords(pos.coords.latitude, pos.coords.longitude) },
+                    () => { void loadFromIpOrTimezone() },
+                    { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
+                )
+                return
+            }
+
+            if (navigator.geolocation) {
+                let handled = false
+                if (navigator.permissions) {
+                    try {
+                        const perm = await navigator.permissions.query({ name: 'geolocation' })
+                        if (perm.state === 'granted') {
+                            handled = true
+                            navigator.geolocation.getCurrentPosition(
+                                (pos) => { void loadFromCoords(pos.coords.latitude, pos.coords.longitude) },
+                                () => { void loadFromIpOrTimezone() },
+                                { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+                            )
+                            return
+                        }
+                    } catch (_) {}
+                }
+                if (!handled) {
+                    await loadFromIpOrTimezone()
+                }
+            } else {
+                await loadFromIpOrTimezone()
+            }
+        } catch (_) {}
+    }, [i18n.language])
+
+    useEffect(() => {
+        void fetchUserLocationWeather(false)
+        const wTimer = setInterval(() => {
+            if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+                void fetchUserLocationWeather(false)
+            }
+        }, 15 * 60 * 1000)
+        return () => clearInterval(wTimer)
+    }, [fetchUserLocationWeather])
+    // On iPad / tablets (< 1280px or coarse touch pointer), keep sidebar minimized by default so Planning + Pending Quotes have full width
+    const [sidebarOpen, setSidebarOpen] = useState(() => {
+        if (typeof window === 'undefined') return true
+        const isTouchTablet = window.matchMedia && window.matchMedia('(pointer: coarse)').matches
+        return window.innerWidth >= 1280 && !isTouchTablet
+    })
     const [showGlobalSearch, setShowGlobalSearch] = useState(false)
 
     // Global Fullscreen state synced with browser & Esc key (including Safari webkit fallback)
@@ -387,9 +492,12 @@ export default function AdminDashboard() {
             return found ? next : prev
         })
         
-        // Auto-close sidebar on mobile after navigation
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
-            setSidebarOpen(false)
+        // Auto-close sidebar on mobile & iPad/tablet after navigation
+        if (typeof window !== 'undefined') {
+            const isTouchTablet = window.matchMedia && window.matchMedia('(pointer: coarse)').matches
+            if (window.innerWidth < 1280 || isTouchTablet) {
+                setSidebarOpen(false)
+            }
         }
     }, [location.pathname])
 
@@ -464,8 +572,8 @@ export default function AdminDashboard() {
             
                 {/* Header Bar */}
                 <header 
-                    className="h-16 md:h-16 px-6 flex items-center justify-between z-40 text-white shadow-md transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 bg-[color:var(--tenant-bg)]"
-                    style={{ '--tenant-bg': tenant?.primary_color || '#2563EB' }}
+                    className="apple-header-glass relative h-16 md:h-16 px-6 flex items-center justify-between z-40 text-white shadow-md transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 bg-[color:var(--tenant-bg)] dark:border dark:border-sky-400/20"
+                    style={{ '--tenant-bg': darkMode ? '#0f243c' : (tenant?.primary_color || '#2563EB') }}
                 >
                     <div className="flex items-center gap-4">
                          <button 
@@ -492,18 +600,28 @@ export default function AdminDashboard() {
                              </button>
                          )}
 
-                     {/* Desktop Logo */}
-                     <div className="hidden md:flex items-center justify-center mr-2">
+                     {/* Desktop Logo — Animated SVG for Davide Chape */}
+                     <div
+                         onClick={() => navigate('/admin/planning')}
+                         className="hidden md:flex items-center justify-center mr-2 cursor-pointer group"
+                         title="Davide Chape — Planning"
+                     >
                          {tenant ? (
-                             tenant.logo_url ? (
+                             (tenant.slug?.toLowerCase().includes('davide') || tenant.name?.toLowerCase().includes('davide') || (tenant.logo_url && tenant.logo_url.includes('davide_logo'))) ? (
+                                 <img
+                                     src="/davide_logo.svg?v=anim2"
+                                     alt={tenant.name || 'Davide Chape'}
+                                     className="h-10 max-h-12 w-auto object-contain bg-transparent transition-transform duration-300 group-hover:scale-[1.03]"
+                                 />
+                             ) : tenant.logo_url ? (
                                  <img 
                                      src={getImageUrl(tenant.logo_url)} 
                                      alt={tenant.name || 'Logo'} 
-                                     className="h-10 max-h-12 w-auto object-contain bg-transparent"
+                                     className="h-10 max-h-12 w-auto object-contain bg-transparent transition-transform duration-300 group-hover:scale-[1.03]"
                                      onError={(e) => {
                                          if (!e.currentTarget.dataset.failedOnce) {
                                              e.currentTarget.dataset.failedOnce = 'true';
-                                             e.currentTarget.src = '/davide_logo.svg';
+                                             e.currentTarget.src = '/davide_logo.svg?v=anim2';
                                          }
                                      }}
                                  />
@@ -516,9 +634,18 @@ export default function AdminDashboard() {
                      </div>
 
                      {/* Mobile Logo Only */}
-                     <div className="md:hidden flex items-center justify-center mr-2">
+                     <div
+                         onClick={() => navigate('/admin/planning')}
+                         className="md:hidden flex items-center justify-center mr-2 cursor-pointer"
+                     >
                          {tenant ? (
-                             tenant.logo_url ? (
+                             (tenant.slug?.toLowerCase().includes('davide') || tenant.name?.toLowerCase().includes('davide') || (tenant.logo_url && tenant.logo_url.includes('davide_logo'))) ? (
+                                 <img
+                                     src="/davide_logo.svg?v=anim2"
+                                     alt={tenant.name || 'Davide Chape'}
+                                     className="h-8 max-h-10 w-auto object-contain bg-transparent"
+                                 />
+                             ) : tenant.logo_url ? (
                                  <img 
                                      src={getImageUrl(tenant.logo_url)} 
                                      alt={tenant.name || 'Logo'} 
@@ -526,7 +653,7 @@ export default function AdminDashboard() {
                                      onError={(e) => {
                                          if (!e.currentTarget.dataset.failedOnce) {
                                              e.currentTarget.dataset.failedOnce = 'true';
-                                             e.currentTarget.src = '/davide_logo.svg';
+                                             e.currentTarget.src = '/davide_logo.svg?v=anim2';
                                          }
                                      }}
                                  />
@@ -540,8 +667,16 @@ export default function AdminDashboard() {
 
                     </div>
 
+                    {/* Apple Dynamic Island — Geometrically centered at 50% of the Header Bar */}
+                    {(isScreeds || currentSubdomain) && (
+                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
+                            <HeaderDynamicIsland />
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-3 sm:gap-5">
-                        <div className="hidden md:block text-sm font-medium text-white/90 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
+                        {/* Stacked Clock (Time top, Date bottom, no capsule) + User Location Weather next to it */}
+                        <div className="hidden md:flex items-center gap-4 text-white select-none">
                             {(() => {
                                 const langMap = {
                                     'fr': 'fr-FR',
@@ -551,7 +686,53 @@ export default function AdminDashboard() {
                                     'de': 'de-DE'
                                 };
                                 const locale = langMap[i18n.language] || 'fr-FR';
-                                return `${now.toLocaleDateString(locale, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} • ${now.toLocaleTimeString(locale)}`;
+                                const accessTz = userWeather?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+                                const tzOpts = accessTz ? { timeZone: accessTz } : {};
+                                const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit', ...tzOpts });
+                                const dateStr = now.toLocaleDateString(locale, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', ...tzOpts });
+                                return (
+                                    <div className="flex flex-col items-end justify-center leading-tight tabular-nums">
+                                        <span className="text-[15px] font-black tracking-tight text-white">
+                                            {timeStr}
+                                        </span>
+                                        <span className="text-[11px] font-semibold text-white/80">
+                                            {dateStr}
+                                        </span>
+                                    </div>
+                                );
+                            })()}
+
+                            {userWeather && (() => {
+                                const code = userWeather.code;
+                                let WeatherIcon = Sun;
+                                let iconColor = 'text-amber-300';
+                                if (code >= 95) { WeatherIcon = CloudLightning; iconColor = 'text-amber-300'; }
+                                else if (code >= 71 && code <= 86) { WeatherIcon = CloudSnow; iconColor = 'text-sky-200'; }
+                                else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) { WeatherIcon = CloudRain; iconColor = 'text-sky-200'; }
+                                else if (code >= 3 && code <= 48) { WeatherIcon = Cloud; iconColor = 'text-white/90'; }
+                                else if (code === 1 || code === 2) { WeatherIcon = CloudSun; iconColor = 'text-amber-200'; }
+
+                                return (
+                                    <>
+                                        <div className="w-[1px] h-7 bg-white/20" />
+                                        <button
+                                            type="button"
+                                            onClick={() => { void fetchUserLocationWeather(true) }}
+                                            title={`${userWeather.city}: ${userWeather.temp}°C · ${userWeather.wind} km/h (Click pentru actualizare GPS)`}
+                                            className="flex items-center gap-2 text-left cursor-pointer hover:opacity-90 transition-opacity"
+                                        >
+                                            <WeatherIcon className={`w-5 h-5 shrink-0 ${iconColor}`} />
+                                            <div className="flex flex-col justify-center leading-tight tabular-nums">
+                                                <span className="text-[15px] font-black tracking-tight text-white">
+                                                    {userWeather.temp}°C
+                                                </span>
+                                                <span className="text-[11px] font-semibold text-white/80 max-w-[115px] truncate">
+                                                    {userWeather.city}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </>
+                                );
                             })()}
                         </div>
 
@@ -665,11 +846,11 @@ export default function AdminDashboard() {
             <aside className={`
                 ${sidebarOpen ? 'w-56 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
-                ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
+                ${darkMode ? 'bg-slate-900/95 border-slate-800 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
                 md:mb-3 md:ml-4 md:h-[calc(100dvh-100px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
             `}
             style={{ 
-                '--tenant-bg': tenant?.primary_color || '#2563EB',
+                '--tenant-bg': darkMode ? '#133152' : (tenant?.primary_color || '#2563EB'),
                 '--tenant-border': tenant?.primary_color ? 'rgba(255,255,255,0.1)' : '#1D4ED8'
             }}>
                 
@@ -703,7 +884,7 @@ export default function AdminDashboard() {
                                                 if (item.path === '/admin/work-orders') finalIsActive = false;
                                             }
                                             return `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${finalIsActive
-                                                ? (darkMode ? 'bg-[color:var(--tenant-bg)] text-white font-semibold shadow-md shadow-black/20' : 'bg-white text-[color:var(--tenant-bg)] font-bold shadow-md')
+                                                ? (darkMode ? 'bg-[#143456] text-sky-100 border border-sky-400/25 font-semibold shadow-[inset_0_1px_0_rgba(125,211,252,0.22),0_4px_12px_rgba(2,6,23,0.4)]' : 'bg-white text-[color:var(--tenant-bg)] font-bold shadow-md')
                                                 : (darkMode ? 'text-slate-400 font-medium hover:bg-white/10 hover:text-white' : 'text-blue-100 font-medium hover:bg-white/10 hover:text-white')
                                             }`
                                         }}

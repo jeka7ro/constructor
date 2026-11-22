@@ -1,5 +1,36 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-22 12:22 — Apple Dynamic Island Centrat (Emergență & Întoarcere în Insulă), Dark Mode Midnight Navy, Siluete SF-Symbol în Camions (Équipes), Ceas/Meteo & WorkOrderDetail Apple HIG
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Apple Dynamic Island centrat geometric la 50% în Header Bar (`frontend/src/components/HeaderDynamicIsland.jsx` & `AdminDashboard.jsx`):**
+    - **Starea 1 — Repaus (DOAR ICONIȚE):** capsula sticlă-translucidă centrată în Header Bar afișează exclusiv cele 4 iconițe (`Truck`, `CalendarDays`, `ClipboardList`, `MessageSquare` + micro-puncte de status), fără text și fără expandare la hover sau la încărcare.
+    - **Starea 2 — Notificare Nouă care Iese Fizic din Insulă și Se Întoarce în Ea (`transformOrigin: '50% -18px'`):** când intră un mesaj nou de la client sau un deviz nou în așteptare, cardul notificării se desprinde din interiorul Dynamic Island-ului (`translateY(-34px) scale(0.26) -> translateY(6px) scale(1)`), plutește chiar sub el timp de 5.5s, apoi se micșorează și urcă înapoi în interiorul insulei.
+    - **Starea 3 — Panou Complet (La Click, Light Mode Frosted Glass + Dark Mode):** sincronizat 100% cu ruta și ordinea din `DEVIS EN ATTENTE` (`/admin/work-orders?status=draft,pending,confirmed&is_quote=true&slim=true` + `!q.start_date`) și tradus 100% în franceză (`fallbackLng: 'fr'` în `i18n/index.js` + `fr.json`).
+  - **Dark Mode Midnight Navy (`#0f243c`) pe toate barele de titlu ale tenantului (`index.css` & `AdminDashboard.jsx`):**
+    - În Dark Mode, Header Bar-ul de sus, antetul Calendarului (`Novembre 2026`), `DEVIS EN ATTENTE`, `CAMIONS (ÉQUIPES)`, `COMENZI RECENTE` și butonul activ `Planification` din sidebar trec automat pe Midnight Navy închis (`#0f243c`) cu reflexie speculară fină, armonizat cu `SUIVI EN DIRECT`.
+  - **Rânduri `CAMIONS (ÉQUIPES)` în stil Apple SF-Symbol (`AdminOverview.jsx`):**
+    - Linie verticală internă fină (`w-1 h-4 rounded-full`) în culoarea echipei + silueta plină monocromă `slate-600` (`box.truck.fill` / `crane.truck.fill`) + numele șoferului + plăcuța belgiană `[ B | 2-HCN-786 ]`; click pe antetul `CAMIONS (ÉQUIPES)` deschide `/admin/fleet`.
+  - **Ceas sus + Data dedesubt (fără capsulă) + Vremea locației utilizatorului + Logo Animat Davide Chape + Sidebar Minimizat Default pe iPad (`AdminDashboard.jsx` & `davide_logo.svg`):**
+    - Ora afișată sus și data dedesubt fără chenar, alături de vremea live a locației utilizatorului; animație SVG fluidă (`4.2s`) pe logo-ul Davide Chape; sidebar minimizat default pe iPad (`< 1280px` / `pointer: coarse`).
+  - **Butoane Hartă Live Monocrome Doar cu Iconițe (`MiniLiveTrackingMap.jsx`) & Pagina Detalii Deviz Apple HIG (`WorkOrderDetail.jsx`):**
+    - Cele 5 butoane de pe harta live (`3D`, `Radar`, `Météo`, `Légende`, `Sable`) sunt cercuri uniforme doar cu iconițe și o singură culoare activă (`bg-sky-600`); `WorkOrderDetail.jsx` optimizat conform Apple HIG.
+- **Fișiere:** `frontend/src/components/HeaderDynamicIsland.jsx`, `frontend/src/pages/admin/AdminDashboard.jsx`, `frontend/src/pages/admin/AdminOverview.jsx`, `frontend/src/components/MiniLiveTrackingMap.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `frontend/public/davide_logo.svg`, `frontend/src/index.css`, `frontend/src/i18n/index.js`, `frontend/src/i18n/fr.json`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5)
+
+### 2026-11-22 11:26 — Instalare Skill Apple Design (HIG 2025/2026) & Optimizări Liquid Glass + iPadOS Multi-Touch (Local)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Instalat `.agents/skills/apple-design` (`dickwu/apple-design-skill`):** cele 123 de pagini oficiale din Apple Human Interface Guidelines (inclusiv `liquid-glass.md`, `designing-for-ipados.md`, `accessibility.md`, `typography.md`).
+  - **Apple HIG Liquid Glass & Accessibility Floor în `frontend/src/index.css` și `MiniLiveTrackingMap.jsx`:**
+    - Adăugat clasa `.apple-liquid-glass` (cu reflexie speculară superioară, `backdrop-filter: blur(24px) saturate(185%)` și adaptare automată Light/Dark) pentru panoul flotant de Legendă și straturile funcționale.
+    - Adăugat suport nativ pentru `@media (prefers-reduced-transparency: reduce)` și `@media (prefers-reduced-motion: reduce)` pentru rulare la 60 FPS pe iPadOS și macOS.
+  - **Ergonomie iPadOS / Multi-Touch (`@media (pointer: coarse)`) fără impact pe Desktop (`index.css` & `AdminOverview.jsx`):**
+    - Mărit zonele de atingere pe ecranele touch (butoanele `+`/`-` de pe hartă la `38×38px`, butoanele din popup-uri și panouri flotante la `min-height: 32px`, pragul minim de font ridicat la `10.5px` pe touch devices).
+    - Pe iPad / tablete touch (sau la click pe pastila cu data solicitată `27.11`), atingerea unui card din `Devize în așteptare` deschide instant fereastra rapidă **Planifier dans le calendrier** (cu data precompletată, ora, echipa și buton rapid **`Détails`** către deviz), păstrând intacte pe desktop atât drag & drop-ul pe calendar, swipe-ul spre dreapta pentru ștergere, cât și dublu-click-ul.
+- **Fișiere:** `.agents/skills/apple-design/`, `frontend/src/index.css`, `frontend/src/components/MiniLiveTrackingMap.jsx`, `frontend/src/pages/admin/AdminOverview.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5) — păstrat local pentru verificare
+
 ### 2026-11-21 14:58 — Afișare Completă pe iPad / Tablete pentru Devize în Așteptare, Camioane, Harta Urmărire Live și Comenzi Recente
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

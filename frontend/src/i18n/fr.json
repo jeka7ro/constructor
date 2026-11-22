@@ -3671,5 +3671,26 @@
         "no_translation": "Sans trad.",
         "select_language": "Langue de traduction",
         "error_sending": "Erreur lors de l'envoi du message."
+    },
+    "dynamic_island": {
+        "tooltip": "Dynamic Island — Activité en direct, Messages & Devis",
+        "today": "Aujourd'hui",
+        "jobs_short": "chantiers",
+        "planned_short": "planifiés",
+        "fleet_gps": "Flotte GPS",
+        "active_plural": "actifs",
+        "moving_short": "en route",
+        "quotes_title": "Nouveaux Devis",
+        "quotes_short": "devis",
+        "pending": "En attente",
+        "messages_clients": "Messages Clients",
+        "mark_all_read": "Tout marquer lu",
+        "no_unread_messages": "Aucun message non lu",
+        "view_all": "Voir tout",
+        "latest_pending_quotes": "Derniers devis en attente",
+        "new_message_alert": "Nouveau message client",
+        "new_quote_title": "Nouveau devis",
+        "new_quote_subtitle": "Nouveau devis en attente",
+        "msg_short": "msg"
     }
 }

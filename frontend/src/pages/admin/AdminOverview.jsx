@@ -1368,7 +1368,7 @@ export default function AdminOverview() {
                                 }}
                             >
                                 <div 
-                                    className="px-3.5 h-[56px] shrink-0 flex items-center justify-between gap-2 border-b border-white/15 cursor-pointer hover:opacity-95 transition-opacity" 
+                                    className="apple-header-glass px-3.5 h-[56px] shrink-0 flex items-center justify-between gap-2 border-b border-white/20 cursor-pointer hover:opacity-95 transition-opacity" 
                                     style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}
                                     onClick={() => setShowPendingQuotesModal(true)}
                                     title={t('overview.pending_quotes', 'Devis en attente')}
@@ -1382,7 +1382,7 @@ export default function AdminOverview() {
                                     </span>
                                 </div>
                                 
-                                <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5 custom-scrollbar min-h-0 bg-slate-50/50 dark:bg-slate-950/30">
+                                <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5 custom-scrollbar apple-scroll-container min-h-0 bg-slate-50/50 dark:bg-slate-950/30">
                                     {pendingQuotes.length === 0 && (
                                         <p className="text-xs text-slate-400 p-4 text-center italic">{t('overview.no_pending_quotes', 'Aucun devis en attente')}</p>
                                     )}
@@ -1515,12 +1515,27 @@ export default function AdminOverview() {
                                                         quoteGestureRef.current = { id: null, quote: null, startX: 0, startY: 0, mode: null, dx: 0 };
                                                         setSwipingQuote({ id: null, dx: 0 });
                                                     }}
+                                                    onClick={() => {
+                                                        // On iPad / touch devices (where double-click & HTML5 drag don't fire on tap), open quick planning modal on tap
+                                                        if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+                                                            const todayStr = new Date().toISOString().split('T')[0];
+                                                            const initialDate = quote.approximate_date
+                                                                ? quote.approximate_date.split('T')[0]
+                                                                : (quote.start_date ? quote.start_date.split('T')[0] : todayStr);
+                                                            setPlanningForm({
+                                                                date: initialDate,
+                                                                time: (quote.start_time || '').substring(0, 5) || '07:00',
+                                                                teamId: quote.assigned_team_id ? String(quote.assigned_team_id) : ''
+                                                            });
+                                                            setPlanningModal(quote);
+                                                        }
+                                                    }}
                                                     onDoubleClick={() => navigate(`/admin/work-orders/${quote.id}`)}
                                                     style={{
                                                         transform: isSwipingThis ? `translateX(${swipingQuote.dx}px)` : 'translateX(0px)',
                                                         transition: isSwipingThis ? 'none' : 'transform 180ms ease-out',
                                                     }}
-                                                    className={`bg-white dark:bg-slate-800/95 border rounded-lg px-2.5 py-1.5 cursor-grab active:cursor-grabbing hover:shadow-sm relative group ${
+                                                    className={`apple-craft-card border rounded-lg px-2.5 py-1.5 cursor-grab active:cursor-grabbing relative group ${
                                                         isStarred
                                                             ? 'border-amber-300 dark:border-amber-600/70 ring-1 ring-amber-200/60 dark:ring-amber-800/40'
                                                             : 'border-slate-200/90 dark:border-slate-700/80 hover:border-blue-300 dark:hover:border-sky-600'
@@ -1555,9 +1570,27 @@ export default function AdminOverview() {
                                                             </span>
                                                         </div>
                                                         {quote.approximate_date && (
-                                                            <div className="bg-rose-50 dark:bg-rose-900/40 border border-rose-200/70 dark:border-rose-800/50 px-1.5 py-0.5 rounded text-[9.5px] font-extrabold text-rose-700 dark:text-rose-300 shrink-0 tabular-nums leading-none">
-                                                                {new Date(quote.approximate_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }).replace(/\//g, '.')}
-                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const todayStr = new Date().toISOString().split('T')[0];
+                                                                    const initialDate = quote.approximate_date
+                                                                        ? quote.approximate_date.split('T')[0]
+                                                                        : (quote.start_date ? quote.start_date.split('T')[0] : todayStr);
+                                                                    setPlanningForm({
+                                                                        date: initialDate,
+                                                                        time: (quote.start_time || '').substring(0, 5) || '07:00',
+                                                                        teamId: quote.assigned_team_id ? String(quote.assigned_team_id) : ''
+                                                                    });
+                                                                    setPlanningModal(quote);
+                                                                }}
+                                                                title={t('overview.send_to_planning', 'Planifier dans le calendrier')}
+                                                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 dark:bg-rose-900/40 dark:hover:bg-rose-600 border border-rose-200/80 hover:border-rose-600 dark:border-rose-800/50 px-1.5 py-0.5 rounded-full text-[9.5px] font-extrabold text-rose-700 hover:text-white dark:text-rose-300 dark:hover:text-white shrink-0 tabular-nums leading-none cursor-pointer transition-all shadow-2xs"
+                                                            >
+                                                                <CalendarDays className="w-2.5 h-2.5 shrink-0" />
+                                                                <span>{new Date(quote.approximate_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }).replace(/\//g, '.')}</span>
+                                                            </button>
                                                         )}
                                                     </div>
                                                     
@@ -1592,7 +1625,12 @@ export default function AdminOverview() {
 
                         {/* Drag and Drop Teams Module — Compact shrink-0 so all 7 teams fit with zero scroll */}
                         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 shrink-0 flex flex-col overflow-hidden">
-                            <div className="px-3 h-9 shrink-0 flex items-center justify-between gap-2" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                            <div
+                                className="apple-header-glass px-3 h-9 shrink-0 flex items-center justify-between gap-2 border-b border-white/20 cursor-pointer hover:opacity-95 transition-opacity"
+                                style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}
+                                onClick={() => navigate('/admin/fleet')}
+                                title={t('nav.fleet', 'Flotte / Camions')}
+                            >
                                 <h3 className="font-extrabold text-white flex items-center gap-1.5 text-[11px] uppercase tracking-wider truncate leading-none">
                                     <Truck className="w-3.5 h-3.5 text-white shrink-0" />
                                     <span className="truncate">{t('admin_overview.trucks_teams', 'Camioane (Echipe)')}</span>
@@ -1608,7 +1646,11 @@ export default function AdminOverview() {
                                     const bHasPlate = b.plate_number && b.plate_number !== 'NN' ? 1 : 0;
                                     if (bHasPlate !== aHasPlate) return bHasPlate - aHasPlate;
                                     return (a.name || '').localeCompare(b.name || '');
-                                }).map(team => (
+                                }).map(team => {
+                                    const cleanTeamName = (team.name || '').replace(/^echipa\s*/i, '');
+                                    const isCrane = cleanTeamName.toLowerCase().includes('grue');
+
+                                    return (
                                     <div 
                                         key={team.id}
                                         draggable
@@ -1620,13 +1662,36 @@ export default function AdminOverview() {
                                         onDragEnd={(e) => {
                                             e.currentTarget.classList.remove('opacity-50', 'border-dashed', 'scale-95')
                                         }}
-                                        className="px-2 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.01] bg-white dark:bg-slate-800 flex items-center justify-between gap-2 shadow-2xs hover:shadow-sm"
-                                        style={{ borderLeftColor: team.color || '#3b82f6', borderLeftWidth: '4px' }}
+                                        className="apple-craft-card px-2.5 py-1.5 rounded-lg border border-slate-200/90 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 cursor-grab active:cursor-grabbing flex items-center justify-between gap-2 group"
                                     >
                                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                                            <Truck className="w-3.5 h-3.5 shrink-0" style={{ color: team.color || '#3b82f6' }} />
-                                            <span className="font-extrabold text-[11.5px] text-slate-800 dark:text-white truncate leading-tight" title={team.name}>
-                                                {team.name.replace(/^echipa\s*/i, '')}
+                                            {/* Clean internal vertical color capsule (no curved border, no dot overlapping the truck) */}
+                                            <span
+                                                className="w-1 h-4 rounded-full shrink-0"
+                                                style={{ backgroundColor: team.color || '#3b82f6' }}
+                                            />
+                                            {/* Clean Monochrome Slate Apple SF-Symbol Filled Truck / Crane */}
+                                            <span className="text-slate-600 dark:text-slate-300 shrink-0 flex items-center justify-center">
+                                                {isCrane ? (
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                                                        <path d="M5 11V4.5L16.5 2.5M15.5 2.8V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                        <path d="M2 12.5C2 11.67 2.67 11 3.5 11H13.5V16.5H2V12.5Z" fill="currentColor" />
+                                                        <path d="M14.5 9.5H17.4C18.02 9.5 18.59 9.84 18.88 10.39L21.15 14.7C21.38 15.13 21.5 15.61 21.5 16.1V16.5H14.5V9.5Z" fill="currentColor" />
+                                                        <circle cx="6.2" cy="17.8" r="2.1" fill="currentColor" />
+                                                        <circle cx="17.2" cy="17.8" r="2.1" fill="currentColor" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                                                        <path d="M1.5 7.5C1.5 6.4 2.4 5.5 3.5 5.5H13.5C14.05 5.5 14.5 5.95 14.5 6.5V16.5H1.5V7.5Z" fill="currentColor" />
+                                                        <path d="M15.5 9.5H18.1C18.73 9.5 19.31 9.85 19.6 10.41L21.72 14.52C21.9 14.88 22 15.27 22 15.67V16.5H15.5V9.5Z" fill="currentColor" />
+                                                        <path d="M16.8 11H18.15C18.43 11 18.69 11.16 18.82 11.41L19.9 13.5H16.8V11Z" fill="white" className="dark:fill-slate-900" />
+                                                        <circle cx="6.2" cy="18" r="2.2" fill="currentColor" />
+                                                        <circle cx="17.8" cy="18" r="2.2" fill="currentColor" />
+                                                    </svg>
+                                                )}
+                                            </span>
+                                            <span className="font-extrabold text-[11.5px] text-slate-800 dark:text-slate-100 truncate leading-tight" title={team.name}>
+                                                {cleanTeamName}
                                             </span>
                                         </div>
                                         {team.plate_number && team.plate_number !== 'NN' ? (
@@ -1637,7 +1702,8 @@ export default function AdminOverview() {
                                             </span>
                                         )}
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
@@ -2392,7 +2458,7 @@ export default function AdminOverview() {
             {/* Recent Work Orders */}
             {dashboardLayout.recent_work_orders?.visible && (
                 <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between px-5 py-3.5" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                    <div className="apple-header-glass flex items-center justify-between px-5 py-3.5 border-b border-white/20" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                         <div className="flex items-center gap-2.5">
                             <ClipboardList className="w-4 h-4 text-white" />
                             <h3 className="text-sm font-extrabold text-white uppercase tracking-wide">
@@ -3945,12 +4011,27 @@ export default function AdminOverview() {
                                     </div>
                                 )}
                             </div>
-                            <button 
-                                onClick={() => setPlanningModal(null)} 
-                                className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const targetId = planningModal.id;
+                                        setPlanningModal(null);
+                                        navigate(`/admin/work-orders/${targetId}`);
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-blue-600 dark:text-slate-200 text-xs font-extrabold flex items-center gap-1 border border-slate-200 dark:border-slate-700 transition-colors"
+                                    title={t('overview.view_order_details', 'Voir les détails')}
+                                >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>{t('common.details', 'Détails')}</span>
+                                </button>
+                                <button 
+                                    onClick={() => setPlanningModal(null)} 
+                                    className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                         <form onSubmit={handleSendQuoteToPlanning} className="p-6 space-y-4">
                             {planningModal.volumes?.[0]?.quantity ? (

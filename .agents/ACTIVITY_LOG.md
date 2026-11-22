@@ -3,6 +3,28 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-11-22 (Apple HIG / Liquid Glass UI Upgrade: Apple Dynamic Island Centrat, Dark Mode Midnight Navy, Siluete SF-Symbol în Camions, Ceas/Meteo Live, Logo Animat & iPad Ergonomics)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Plan verificat local în mai multe iterații și aprobat explicit de Utilizator pentru push ("ok. hai sa socatem mesajele d etest si facem pusha, ar vezi la incpeut dca este safe").
+
+### Modificări Aplicare & Verificate:
+1. **Apple Dynamic Island Centrat în Header Bar (`HeaderDynamicIsland.jsx` & `AdminDashboard.jsx`):**
+   - Centrat geometric la 50% din lățimea Header Bar-ului (`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2`).
+   - **Starea 1 (Repaus):** afișează doar cele 4 iconițe (`Truck`, `CalendarDays`, `ClipboardList`, `MessageSquare` + micro-puncte de status), fără text și fără mișcare la hover sau la încărcare.
+   - **Starea 2 (Notificare Nouă):** când apare un mesaj nou de la client sau un deviz nou în așteptare, cardul notificării se desprinde fluid din interiorul Dynamic Island-ului (`transformOrigin: '50% -18px'`), coboară chiar sub el timp de 5.5s, apoi urcă și se absoarbe înapoi în insulă.
+   - **Starea 3 (La Click):** panou Light Frosted Glass în Modul Deschis și Dark Slate în Dark Mode, sincronizat 100% cu ruta `/admin/work-orders?status=draft,pending,confirmed&is_quote=true&slim=true` (`!q.start_date`) și tradus complet în franceză (`fallbackLng: 'fr'` în `i18n/index.js` + `fr.json`).
+2. **Dark Mode Midnight Navy (`#0f243c`) pentru Culoarea Tenantului (`index.css` & `AdminDashboard.jsx`):**
+   - Toate barele de titlu ale tenantului (Header Bar, Calendar `Novembre 2026`, `DEVIS EN ATTENTE`, `CAMIONS (ÉQUIPES)`, `COMENZI RECENTE` și butonul activ din sidebar) trec automat în Dark Mode pe Midnight Navy (`#0f243c`) cu reflexie speculară fină.
+3. **Rânduri `CAMIONS (ÉQUIPES)` în stil Apple SF-Symbol (`AdminOverview.jsx`):**
+   - Linie verticală internă fină (`w-1 h-4 rounded-full`) în culoarea echipei + silueta plină monocromă `slate-600` (`box.truck.fill` / `crane.truck.fill`) + numele șoferului + plăcuța belgiană `[ B | 2-HCN-786 ]`; click pe antetul `CAMIONS (ÉQUIPES)` navighează la `/admin/fleet`.
+4. **Ceas + Data dedesubt (fără capsulă), Vremea Locației Utilizatorului, Logo Animat Davide Chape, Butoane Hartă Monocrome cu Iconițe, iPad Sidebar Minimizat Default & `WorkOrderDetail.jsx` Apple HIG:**
+   - Ceasul din dreapta-sus afișează ora sus și data dedesubt (fără chenar), alături de vremea live a locației utilizatorului.
+   - Logo-ul `davide_logo.svg` are o animație SVG continuă de `4.2s` (shimmer auriu pe `DC`, undă laser pe șapă și ferestrele casei luminate în auriu).
+   - Cele 5 comutatoare de pe harta `SUIVI EN DIRECT` (`3D`, `Radar`, `Météo`, `Légende`, `Sable`) sunt butoane circulare doar cu iconițe și o singură culoare activă (`bg-sky-600`).
+   - Pe iPad / ecrane touch (`< 1280px` / `pointer: coarse`), sidebar-ul pornește minimizat default, iar pagina `WorkOrderDetail.jsx` folosește antet Frosted Glass și badge-uri KPI pastelate conform Apple HIG.
+
+---
+
 ## 2026-11-21 (Link Davide Chape — Versiune Vânzător pentru Chat Mobil & Notificare Permanentă Email + WhatsApp la Răspuns în Chat)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Plan verificat și aprobat explicit de Utilizator ("DA! SA MPRIEMAS EMAIL PERMANENT SI PE WHASTPP").

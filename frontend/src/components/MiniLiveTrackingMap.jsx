@@ -5,7 +5,7 @@ import api from '../lib/api'
 import { useTenantStore } from '../store/tenantStore'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { Clock, Gauge, RefreshCw, Radio, CloudRain, Wind, Box, Eye, ClipboardList, ExternalLink, X, Navigation } from 'lucide-react'
+import { Clock, Gauge, RefreshCw, Radio, CloudRain, Wind, Box, Eye, ClipboardList, ExternalLink, X, Navigation, CloudSun, Layers } from 'lucide-react'
 import { Expand, Shrink, Truck } from 'lucide-react'
 import { LiveMapWeatherOverlay, WEATHER_STATIONS_24 } from '../utils/liveWeatherCanvas.jsx'
 import EuroPlate from './EuroPlate'
@@ -660,61 +660,87 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
 
     return (
         <div ref={containerRef} className={`flex flex-col bg-white dark:bg-slate-900 overflow-hidden shadow-sm ${isMapFull ? "tms-map-fullscreen fixed inset-0 z-[9999] rounded-none border-none w-screen h-screen" : "w-full h-full rounded-xl border border-slate-200 dark:border-slate-700"}`}>
-            <div className={`flex items-center justify-between border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900 ${isMapFull ? "px-6 py-3.5" : "px-4 py-3"}`}>
-                <h3 className={`font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 uppercase tracking-wide ${isMapFull ? "text-base" : "text-sm"}`}>
-                    <Radio className={`${isMapFull ? "w-5 h-5" : "w-4 h-4"} text-blue-500`} />
-                    {t('dashboard.live_tracking', 'LIVE TRACKING')}
+            <div className={`flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 shrink-0 bg-gradient-to-b from-white to-slate-50/90 dark:from-slate-900 dark:to-slate-900 ${isMapFull ? "px-6 py-3.5" : "px-4 py-2.5"}`}>
+                <h3 className={`font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2.5 uppercase tracking-wide ${isMapFull ? "text-base" : "text-sm"}`}>
+                    <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200/70 dark:border-blue-800/60">
+                        <Radio className={`${isMapFull ? "w-4 h-4" : "w-3.5 h-3.5"} text-blue-600 dark:text-sky-400`} />
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+                    </span>
+                    <span>{t('dashboard.live_tracking', 'LIVE TRACKING')}</span>
                 </h3>
-                <div className={`flex items-center ${isMapFull ? "gap-4" : "gap-3"}`}>
-                    <button
-                        type="button"
-                        onClick={() => setIsSatellite3D(s => !s)}
-                        title="3D / Satellite View"
-                        className={`h-6 px-2.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 ${
-                            isSatellite3D
-                                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                                : 'bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 dark:bg-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
-                        }`}
-                    >
-                        <Box className="w-3.5 h-3.5 shrink-0" />
-                        <span>3D</span>
-                    </button>
-                    <div className="flex items-center gap-1.5" title="Radar Doppler & Vânt Live">
-                        <CloudRain className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-                        <Wind className="w-3.5 h-3.5 text-emerald-500 shrink-0 -ml-1" />
-                        <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showRadarFx ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                <div className={`flex items-center ${isMapFull ? "gap-3" : "gap-2"}`}>
+                    {/* Apple HIG Segmented Control Center Tray for Map Layers — Monochrome / Single Accent, Uniform Button Borders */}
+                    <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-100/95 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-inner">
+                        <button
+                            type="button"
+                            onClick={() => setIsSatellite3D(s => !s)}
+                            title="3D / Satellite View"
+                            aria-label="3D / Satellite View"
+                            className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                                isSatellite3D
+                                    ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                                    : 'bg-white dark:bg-slate-900 text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 border-slate-200/90 dark:border-slate-700 shadow-2xs'
+                            }`}
+                        >
+                            <Box className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => setShowRadarFx(!showRadarFx)}
+                            title="Radar Doppler & Vânt Live"
+                            aria-label="Radar Doppler & Vânt Live"
+                            className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                                showRadarFx
+                                    ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                                    : 'bg-white dark:bg-slate-900 text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 border-slate-200/90 dark:border-slate-700 shadow-2xs'
+                            }`}
                         >
-                            <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showRadarFx ? 'translate-x-3' : 'translate-x-0'}`} />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{t('live.weather', 'Météo')}</span>
-                        <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showWeatherCard ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                            <Wind className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => setShowWeatherCard(!showWeatherCard)}
+                            title={t('live.weather', 'Météo')}
+                            aria-label={t('live.weather', 'Météo')}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                                showWeatherCard
+                                    ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                                    : 'bg-white dark:bg-slate-900 text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 border-slate-200/90 dark:border-slate-700 shadow-2xs'
+                            }`}
                         >
-                            <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showWeatherCard ? 'translate-x-3' : 'translate-x-0'}`} />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{t('logistics.legend', 'Légende')}</span>
-                        <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showLegend ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                            <CloudSun className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => setShowLegend(!showLegend)}
+                            title={t('logistics.legend', 'Légende')}
+                            aria-label={t('logistics.legend', 'Légende')}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                                showLegend
+                                    ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                                    : 'bg-white dark:bg-slate-900 text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 border-slate-200/90 dark:border-slate-700 shadow-2xs'
+                            }`}
                         >
-                            <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showLegend ? 'translate-x-3' : 'translate-x-0'}`} />
-                        </div>
-                    </div>
-                    {isDavideChape && (
-                        <div className="flex items-center gap-2 mr-2">
-                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{t('live.sand', 'Sable')}</span>
-                            <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                            <Truck className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+                        {isDavideChape && (
+                            <button
+                                type="button"
                                 onClick={() => setShowSandStations(!showSandStations)}
+                                title={t('live.sand', 'Sable')}
+                                aria-label={t('live.sand', 'Sable')}
+                                className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                                    showSandStations
+                                        ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                                        : 'bg-white dark:bg-slate-900 text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 border-slate-200/90 dark:border-slate-700 shadow-2xs'
+                                }`}
                             >
-                                <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-3' : 'translate-x-0'}`} />
-                            </div>
-                        </div>
-                    )}
-                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full tabular-nums">
+                                <Layers className="w-3.5 h-3.5 shrink-0" />
+                            </button>
+                        )}
+                    </div>
+                    <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full tabular-nums flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         {vehicles.length} {vehicles.length === 1 ? t("live.active_single", "actif") : t("live.active_plural", "actifs")}
                     </span>
                     <button onClick={() => {
@@ -725,10 +751,10 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                         } else {
                             document.exitFullscreen();
                         }
-                    }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mr-2">
-                        {isMapFull ? <Shrink className="w-4 h-4" /> : <Expand className="w-4 h-4" />}
+                    }} className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors border border-slate-200/80 dark:border-slate-700">
+                        {isMapFull ? <Shrink className="w-3.5 h-3.5" /> : <Expand className="w-3.5 h-3.5" />}
                     </button>
-                    <button onClick={fetchLive} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <button onClick={fetchLive} className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors border border-slate-200/80 dark:border-slate-700">
                         <RefreshCw className="w-3.5 h-3.5" />
                     </button>
                 </div>
@@ -739,10 +765,10 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                         <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />
                     </div>
                 )}
-                {/* Floating Legend right aligned — Scales up in Full Screen for 4K/5K readability */}
+                {/* Floating Legend right aligned — Apple Liquid Glass functional layer, scales up in Full Screen for 4K/5K readability */}
                 {showLegend && (
                     <div
-                        className="absolute z-[1000] w-68 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-2.5 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-700/90 pointer-events-auto flex flex-col gap-1 transition-transform duration-150"
+                        className="apple-liquid-glass apple-scroll-container absolute z-[1000] w-68 p-2.5 rounded-2xl pointer-events-auto flex flex-col gap-1 transition-transform duration-150 overflow-y-auto"
                         style={
                             isMapFull
                                 ? {

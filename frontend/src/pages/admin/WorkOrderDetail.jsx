@@ -61,34 +61,34 @@ const getLanguageFlag = (lang) => {
     return l ? l.toUpperCase() : '';
 };
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
-function KPI({ icon: Icon, label, value, sub, color = 'blue' }) {
-    const grad = {
-        blue:   'from-blue-500 to-blue-600 shadow-blue-500/30',
-        green:  'from-emerald-500 to-green-600 shadow-emerald-500/30',
-        purple: 'from-violet-500 to-purple-600 shadow-violet-500/30',
-        amber:  'from-amber-400 to-orange-500 shadow-amber-400/30',
-        slate:  'from-slate-500 to-slate-600 shadow-slate-500/20',
-        rose:   'from-rose-400 to-rose-500 shadow-rose-400/30',
+// ─── Sub-components (Apple HIG / macOS Tahoe Enterprise Craft) ─────────────────
+function KPI({ icon: Icon, label, value, sub, color = 'blue', iconColor }) {
+    const tone = {
+        blue:   'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border-sky-200/70 dark:border-sky-800/60',
+        green:  'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/70 dark:border-emerald-800/60',
+        purple: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-200/70 dark:border-indigo-800/60',
+        amber:  'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200/70 dark:border-amber-800/60',
+        slate:  'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700',
+        rose:   'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200/70 dark:border-rose-800/60',
     }
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 sm:p-2.5 border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-2">
-            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br ${grad[color]} flex items-center justify-center shadow-sm shrink-0`}>
-                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+        <div className="apple-craft-card rounded-2xl p-3 border border-slate-200/85 dark:border-slate-800 flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl border ${tone[color] || tone.blue} flex items-center justify-center shrink-0`}>
+                <Icon className="w-4 h-4" color={iconColor} />
             </div>
-            <div className="min-w-0">
-                <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight truncate">{value}</div>
-                <div className="text-[8px] sm:text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest truncate">
-                    {label} {sub && <span className="text-slate-400 lowercase font-normal ml-0.5">({sub})</span>}
+            <div className="min-w-0 flex-1">
+                <div className="text-sm sm:text-[15px] font-black text-slate-900 dark:text-white leading-tight truncate tabular-nums">{value}</div>
+                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate mt-0.5">
+                    {label} {sub && <span className="text-slate-400 dark:text-slate-500 lowercase font-medium ml-0.5">({sub})</span>}
                 </div>
             </div>
         </div>
     )
 }
 
-function TruckSVG({ color = '#2563eb', className = 'w-4 h-4' }) {
+function TruckSVG({ color = 'currentColor', className = 'w-4 h-4' }) {
     return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
             <rect x="1" y="3" width="15" height="13" rx="1" />
             <path d="M16 8h4l3 5v4h-7V8z" />
             <circle cx="5.5" cy="18.5" r="2.5" />
@@ -99,11 +99,13 @@ function TruckSVG({ color = '#2563eb', className = 'w-4 h-4' }) {
 
 function Section({ className = '', contentClassName = '', icon: Icon, title, children, headerRight }) {
     return (
-        <div className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden ${className}`}>
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0">
+        <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/85 dark:border-slate-800 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.07),0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col overflow-hidden ${className}`}>
+            <div className="px-5 py-3.5 bg-gradient-to-b from-slate-50/90 to-white dark:from-slate-800/70 dark:to-slate-900 border-b border-slate-200/75 dark:border-slate-800 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <h2 className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide">{title}</h2>
+                    <span className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200/70 dark:border-sky-800/60 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
+                        <Icon className="w-3.5 h-3.5" />
+                    </span>
+                    <h2 className="font-extrabold text-slate-800 dark:text-slate-100 text-xs sm:text-[13px] uppercase tracking-wider">{title}</h2>
                 </div>
                 {headerRight && <div>{headerRight}</div>}
             </div>
@@ -1607,24 +1609,31 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const hasSig = wo.client_signature && (wo.status === 'confirmed' || wo.status === 'completed')
 
     const pageContent = (
-        <div className="p-4 sm:p-6 max-w-7xl ml-0 space-y-5 pb-10">
+        <div className="p-4 sm:p-6 w-full max-w-[1680px] mx-auto space-y-5 pb-10">
 
-            {/* ── Header ──────────────────────────────────────────────────────── */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            {/* ── Header (Apple HIG Frosted Toolbar Card) ─────────────────────── */}
+            <div className="apple-craft-card bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-200/85 dark:border-slate-800 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                     <button onClick={() => goBack()}
-                        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0">
-                        <ChevronLeft className="w-5 h-5 text-slate-500" />
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 transition-colors shrink-0">
+                        <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                     </button>
-                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/30 shrink-0">
-                        <ClipboardList className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-sky-50 dark:bg-sky-950/70 border border-sky-200/80 dark:border-sky-800/70 rounded-xl flex items-center justify-center shrink-0">
+                        <ClipboardList className="w-5 h-5 text-sky-600 dark:text-sky-400" />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white leading-tight truncate">
-                            {wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title}
-                        </h1>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-tight truncate tracking-tight">
+                                {wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title}
+                            </h1>
+                            {wo.quote_number && (
+                                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-[11px] font-black text-slate-600 dark:text-slate-300 tabular-nums">
+                                    {wo.quote_number}
+                                </span>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${cfg.color}`}>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${cfg.color}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                                 {cfg.label}
                             </span>
@@ -1633,21 +1642,21 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>
                 <div className="flex gap-2 sm:ml-auto shrink-0 items-center">
                     {quoteIds.length > 0 && (
-                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm mr-1 sm:mr-3">
+                        <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-full p-1 shadow-inner mr-1 sm:mr-2">
                             <button 
                                 onClick={() => navigate(`/admin/work-orders/${prevId}`, { state: location.state })}
                                 disabled={!prevId}
                                 title={t('common.prev', 'Précédent')}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-slate-500 disabled:opacity-30 transition-colors"
+                                className="w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 disabled:opacity-30 transition-colors"
                             >
                                 <ChevronLeft className="w-4 h-4" />
                             </button>
-                            <span className="text-[10px] font-bold text-slate-400 px-1">{currentIndex + 1} / {quoteIds.length}</span>
+                            <span className="text-[10.5px] font-extrabold text-slate-500 dark:text-slate-400 px-1.5 tabular-nums">{currentIndex + 1} / {quoteIds.length}</span>
                             <button 
                                 onClick={() => navigate(`/admin/work-orders/${nextId}`, { state: location.state })}
                                 disabled={!nextId}
                                 title={t('common.next', 'Suivant')}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-slate-500 disabled:opacity-30 transition-colors"
+                                className="w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 disabled:opacity-30 transition-colors"
                             >
                                 <ChevronRight className="w-4 h-4" />
                             </button>
@@ -1661,7 +1670,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         orderTime={wo.start_time}
                         inline={true}
                     />
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-inner">
                         <button
                             onClick={async () => {
                                 try {
@@ -1672,10 +1681,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     showToast('Eroare la marcarea ca necitit.', 'error');
                                 }
                             }}
-                            className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors shrink-0"
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-sky-600 dark:text-slate-400 transition-colors shrink-0 shadow-2xs"
                             title={t('work_order_detail.mark_unread_desc', 'Marchează înapoi ca Nou (Necitit)')}
                         >
-                            <EyeOff className="w-4 h-4" />
+                            <EyeOff className="w-3.5 h-3.5" />
                         </button>
                         {wo.token && (
                             <>
@@ -1689,10 +1698,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         setCopiedLink(true)
                                         setTimeout(() => setCopiedLink(false), 3000)
                                     }}
-                                    className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors shrink-0 ${copiedLink ? 'bg-emerald-50 text-emerald-600 border border-emerald-500' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
+                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors shrink-0 shadow-2xs ${copiedLink ? 'bg-emerald-600 text-white border border-emerald-600' : 'bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-sky-600 dark:text-slate-400'}`}
                                     title={wo.is_invoiced ? t('quotes.copy_link_invoice', 'Copier le lien de la facture') : t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
                                 >
-                                    {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                    {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                                 </button>
                                 <a
                                     href={wo.is_invoiced 
@@ -1700,58 +1709,58 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         : `/confirm/${wo.token}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors shrink-0"
+                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-sky-600 dark:text-slate-400 transition-colors shrink-0 shadow-2xs"
                                     title={t('quotes.open_link', 'Ouvrir le lien')}
                                 >
-                                    <ExternalLink className="w-4 h-4" />
+                                    <ExternalLink className="w-3.5 h-3.5" />
                                 </a>
                             </>
                         )}
-                    </div>
-                    {wo.status !== 'completed' && wo.status !== 'cancelled' && wo.status !== 'draft' && (
-                        <button
-                            onClick={() => setShowCompleteConfirm(true)}
-                            className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors shrink-0"
-                            title={t('work_order_detail.mark_completed_btn', 'Marquer comme terminé')}
+                        {wo.status !== 'completed' && wo.status !== 'cancelled' && wo.status !== 'draft' && (
+                            <button
+                                onClick={() => setShowCompleteConfirm(true)}
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-slate-900 text-emerald-600 border border-slate-200/90 dark:border-slate-700 hover:bg-emerald-50 transition-colors shrink-0 shadow-2xs"
+                                title={t('work_order_detail.mark_completed_btn', 'Marquer comme terminé')}
+                            >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                        <button 
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-slate-900 text-rose-600 border border-slate-200/90 dark:border-slate-700 hover:bg-rose-50 transition-colors shrink-0 shadow-2xs"
+                            title={t('common.delete', 'Supprimer')}
                         >
-                            <CheckCircle2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                    )}
-                    <button 
-                        onClick={() => setShowDeleteConfirm(true)}
-                        className="flex items-center justify-center w-9 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors shrink-0"
-                        title={t('common.delete', 'Supprimer')}
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
 
-                    {wo.client_email && (
-                        <button
-                            onClick={async () => {
-                                try {
-                                    const res = await api.get(`/admin/work-orders/${id}/email-preview`);
-                                    setEmailPreviewContent(res.data.html);
-                                    setShowEmailPreview(true);
-                                } catch (err) {
-                                    showToast(t('work_order_detail.email_prev_err', 'Erreur lors de la prévisualisation de l\'email.'), 'error');
-                                }
-                            }}
-                            className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors shrink-0"
-                            title={t('planning.send_email_btn', 'Envoyer Notification')}
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                        </button>
-                    )}
+                        {wo.client_email && (
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const res = await api.get(`/admin/work-orders/${id}/email-preview`);
+                                        setEmailPreviewContent(res.data.html);
+                                        setShowEmailPreview(true);
+                                    } catch (err) {
+                                        showToast(t('work_order_detail.email_prev_err', 'Erreur lors de la prévisualisation de l\'email.'), 'error');
+                                    }
+                                }}
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-slate-900 text-sky-600 border border-slate-200/90 dark:border-slate-700 hover:bg-sky-50 transition-colors shrink-0 shadow-2xs"
+                                title={t('planning.send_email_btn', 'Envoyer Notification')}
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* ── KPIs ────────────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
                 <KPI icon={Users}    label={t('work_order_detail.kpi.employees', 'Employés')}       value={workersValue}     sub={workersSub}       color="purple" />
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', 'Volume')}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
                 <KPI icon={Layers}   label={t('work_order_detail.kpi.thickness', 'Épaisseur')}        value={maxThickness > 0 ? `${maxThickness.toFixed(1)} cm` : '—'} sub={t('work_order_detail.kpi.avg', 'moyenne')} color="rose" />
-                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.base_dist', 'Distance Base')}       
+                <KPI icon={({ className }) => <TruckSVG color="currentColor" className={className} />} label={t('work_order_detail.kpi.base_dist', 'Distance Base')}       
                     value={
                         <div className="flex items-center gap-1.5">
                             <span>{wo.route_distance_km ? `${parseFloat(wo.route_distance_km).toFixed(1)} km` : (wo.prices?.distance_km ? `${(parseFloat(wo.prices.distance_km) * 2).toFixed(1)} km` : (
@@ -2775,10 +2784,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         )}
                                     </div>
 
-                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>
-                                    <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white">
-                                        <span>{t('work_order_detail.invoicing.gross', 'TOTAL À PAYER:')}</span>
-                                        <span className="tabular-nums">{totalGross.toFixed(2)}&nbsp;EUR</span>
+                                    <div className="mt-3 px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-950 text-white flex justify-between items-center shadow-sm">
+                                        <span className="text-xs font-extrabold uppercase tracking-wider text-slate-300">{t('work_order_detail.invoicing.gross', 'TOTAL À PAYER:')}</span>
+                                        <span className="text-lg font-black tabular-nums whitespace-nowrap">{totalGross.toFixed(2)}&nbsp;EUR</span>
                                     </div>
                                 </div>
                             </div>
@@ -2948,10 +2956,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         )}
                                     </div>
 
-                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-3" />
-                                    <div className="flex justify-between text-base font-black text-slate-900 dark:text-white">
-                                        <span>{t('work_order_detail.invoicing.gross', 'TOTAL RÉEL (TTC):')}</span>
-                                        <span className="tabular-nums">{(realCalc.net + realCalc.net * vatRate).toFixed(2)}&nbsp;EUR</span>
+                                    <div className="mt-3 px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-950 text-white flex justify-between items-center shadow-sm">
+                                        <span className="text-xs font-extrabold uppercase tracking-wider text-slate-300">{t('work_order_detail.invoicing.gross', 'TOTAL RÉEL (TTC):')}</span>
+                                        <span className="text-base font-black tabular-nums whitespace-nowrap">{(realCalc.net + realCalc.net * vatRate).toFixed(2)}&nbsp;EUR</span>
                                     </div>
                                     {bigDiff && (
                                         <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-slate-200 dark:border-slate-700">
