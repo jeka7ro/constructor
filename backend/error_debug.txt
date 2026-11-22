@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/eugeniucazmal/Downloads/dev_office/Client B - pontaje/backend/app/api/partner_work_orders.py", line 231, in create_partner_work_order
+    client = db.query(Client).filter(Client.id == partner.client_id).first()
+AttributeError: 'Admin' object has no attribute 'client_id'
+

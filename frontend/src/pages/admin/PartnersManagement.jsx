@@ -240,23 +240,25 @@ export default function PartnersManagement() {
                 />
             )}
 
-            {/* Delete Confirm */}
+            {/* Delete Confirm — Apple HIG Alert */}
             {showDeleteConfirm && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(null)}>
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <p className="text-slate-700 dark:text-slate-200 font-medium mb-4">
-                            {t('partners.confirm_delete', 'Êtes-vous sûr de vouloir supprimer ce partenaire ?')}
-                        </p>
-                        <div className="flex gap-3">
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4" onClick={() => setShowDeleteConfirm(null)}>
+                    <div className="bg-[#F2F4F8] dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] p-5 max-w-sm w-full border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)]" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 p-5 shadow-xs mb-4 text-center">
+                            <p className="text-slate-900 dark:text-slate-100 text-[15px] font-bold leading-snug">
+                                {t('partners.confirm_delete', 'Êtes-vous sûr de vouloir supprimer ce partenaire ?')}
+                            </p>
+                        </div>
+                        <div className="flex gap-2.5">
                             <button
                                 onClick={() => setShowDeleteConfirm(null)}
-                                className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium transition-colors"
+                                className="flex-1 h-[44px] rounded-[13px] bg-white border border-slate-300/90 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]"
                             >
                                 {t('common.cancel', 'Annuler')}
                             </button>
                             <button
                                 onClick={() => handleDelete(showDeleteConfirm)}
-                                className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                                className="flex-1 h-[44px] rounded-[13px] bg-red-600 hover:bg-red-700 text-white font-bold text-[14px] shadow-[0_8px_18px_-4px_rgba(220,38,38,0.45)] transition-all active:scale-[0.98]"
                             >
                                 {t('common.delete', 'Supprimer')}
                             </button>
@@ -318,16 +320,18 @@ function PartnerFormModal({ partner, clients = [], teams = [], onClose, onSaved 
     }
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700 shrink-0">
-                    <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <Handshake className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-700 shrink-0">
+                    <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                            <Handshake className="w-4 h-4" />
+                        </div>
                         {isEdit ? t('partners.edit_title', 'Modifier le partenaire') : t('partners.add_title', 'Nouveau partenaire')}
                     </h2>
-                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-                        <X className="w-5 h-5 text-slate-400" />
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 shadow-2xs">
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -513,18 +517,18 @@ function PartnerFormModal({ partner, clients = [], teams = [], onClose, onSaved 
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-3 pt-2">
+                    <div className="flex gap-3 pt-3 border-t border-slate-200/85">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium transition-colors"
+                            className="flex-1 h-[42px] rounded-[13px] bg-white border border-slate-300/90 hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]"
                         >
                             {t('common.cancel', 'Annuler')}
                         </button>
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex-1 py-2.5 rounded-xl text-white font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm hover:brightness-110"
+                            className="flex-1 h-[42px] rounded-[13px] text-white font-bold text-[14px] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] hover:brightness-110"
                             style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
                         >
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}

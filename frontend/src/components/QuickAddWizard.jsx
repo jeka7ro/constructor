@@ -265,23 +265,24 @@ export default function QuickAddWizard({ onClose, onSuccess, clients = [], showT
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl relative animate-in zoom-in-95 duration-200 my-auto flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-3xl relative animate-in zoom-in-95 duration-200 my-auto flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
                 
                 {/* Header */}
-                <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
-                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                <div className="p-5 sm:px-6 border-b border-slate-200/80 dark:border-slate-800 bg-[#F2F4F8]/90 dark:bg-slate-900 flex items-center justify-between shrink-0">
+                    <h3 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-sky-500/12 border border-sky-500/25 flex items-center justify-center text-sky-600">
                             <Plus className="w-5 h-5" />
                         </div>
                         {t('quotes.quick_add_title', 'Ajout Rapide Devis')}
                     </h3>
                     <button 
+                        type="button"
                         onClick={onClose} 
-                        className="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl p-2 transition-colors"
+                        className="text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-300/80 rounded-full w-8 h-8 flex items-center justify-center transition-colors cursor-pointer"
                         title={t('quotes.btn_cancel', 'Annuler')}
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 

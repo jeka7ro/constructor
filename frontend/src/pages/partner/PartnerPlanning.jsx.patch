@@ -1,0 +1,12 @@
+--- frontend/src/App.jsx
++++ frontend/src/App.jsx
+@@ -345,6 +345,9 @@
+                     <Route path="/public/quotes/:token/pdf" element={<DevisView />} />
+                     <Route path="/calculator" element={<PublicCalculator />} />
+ 
++                    {/* Partner Routes */}
++                    <Route path="/partner/planning" element={<PartnerPlanning />} />
++
+                     {/* Public Routes */}
+                     <Route path="/login" element={
+                         <PublicWorkerRoute>

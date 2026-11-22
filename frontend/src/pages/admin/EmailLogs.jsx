@@ -155,20 +155,20 @@ const EmailLogs = () => {
                 </div>
             </div>
 
-            {/* Email Viewer Modal */}
+            {/* Email Viewer Modal — Apple HIG System Sheet */}
             {selectedLog && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden relative">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden relative">
+                        <div className="flex items-center justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800">{selectedLog.subject || t('emails.content_title', 'Contenu de l\'E-mail')}</h3>
-                                <p className="text-sm text-slate-500 mt-0.5">{t('emails.to', 'À :')} {selectedLog.client_email}</p>
+                                <h3 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">{selectedLog.subject || t('emails.content_title', 'Contenu de l\'E-mail')}</h3>
+                                <p className="text-xs font-medium text-slate-500 mt-0.5">{t('emails.to', 'À :')} {selectedLog.client_email}</p>
                             </div>
                             <button 
                                 onClick={() => setSelectedLog(null)}
-                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs"
                             >
-                                <X className="w-6 h-6" />
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         

@@ -3,6 +3,24 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-11-22 (Upgrade Complet Apple HIG pe Toate Ferestrele Modale din Platformă, Animație Meteo Live 100% Real-Data pe Hartă, Ciclu Animație Logo la 30s & Redesign `/confirm/{token}`)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Plan aprobat explicit de Utilizator ("da. vezi sa nu distrugi din funcionalitea").
+
+### Modificări Aplicate & Verificate:
+1. **Upgrade Complet Apple HIG (`apple-design`) pe toate ferestrele modale (Create, Edit, Confirm, Detail, Preview, Toast) din întreaga platformă:**
+   - Toate ferestrele modale din `ShortWorksCalendar.jsx`, `QuickAddWizard.jsx`, `GlobalSearch.jsx`, `PricingAuditModal.jsx`, `AdminOverview.jsx`, `AdminChats.jsx`, `PricingSettingsPage.jsx`, `ClientsManagement.jsx`, `WorkOrders.jsx`, `QuotesManagement.jsx`, `WorkOrderDetail.jsx`, `FleetManagement.jsx`, `TransportManagement.jsx`, `SandStationsPage.jsx`, `BasesPage.jsx`, `TeamsManagement.jsx`, `UsersManagement.jsx`, `PartnersManagement.jsx`, `PartnerWorkOrderModal.jsx`, `EmployeesManagement.jsx`, `AccommodationsManagement.jsx`, `WarehouseManagement.jsx`, `ExpensesManagement.jsx`, `ImportInvoiceModal.jsx`, `SitesManagement.jsx`, `ActivitiesManagement.jsx`, `AdminMaterialRequests.jsx`, `ComplaintsManagement.jsx`, `AdminEmergencies.jsx`, `EmailLogs.jsx`, `IsoflexHistory.jsx` și `PricingAnalytics.jsx` au fost aduse la standardul Apple Liquid Glass / System Sheet (`createPortal(..., document.body)`, `z-[99999]`, `rounded-[24px]`, `border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10`, antet `#F2F4F8` cu badge-uri circulare și butoane în franceză), păstrând 100% din funcționalitate.
+   - Eliminat toate apelurile native `alert(...)` și `window.confirm(...)` din `WorkOrders.jsx`, `SandStationsPage.jsx` și `BasesPage.jsx`.
+2. **Animație Meteo Live 100% Real-Data pe Harta `SUIVI EN DIRECT` (`liveWeatherCanvas.jsx` & `index.css`):**
+   - Eliminat cercurile gri artificiale (`CLOUD_LOBES`) care acopereau Belgia și camioanele.
+   - Implementat linii de curent de vânt HiDPI Retina (Apple Weather / Windy.com) conduse de vectorii reali de vânt de la cele 24 stații Open-Meteo, picături de ploaie + splash ripples și fulgi de zăpadă randate strict acolo unde `precipMm >= 0.05` sau `snowCm > 0`, plus radar Doppler RainViewer animat multi-frame fără linii albe între tile-uri.
+3. **Ciclu Animație Logo la 30 Secunde (`davide_logo.svg` & `AdminDashboard.jsx`):**
+   - Rărit ciclul animației logo-ului la `30s` (3 secunde activ, 27 secunde repaus).
+4. **Redesign Apple HIG pe `/confirm/{token}` (`WorkOrderConfirm.jsx`):**
+   - Eliminat `(Vlaams)` din selectorul de limbă (`FR | NL | EN`), eliminat textul duplicat „Davide Chape” din header și aliniat cardul de status/dată cu harta la aceeași înălțime.
+
+---
+
 ## 2026-11-22 (Separare Chape vs. Isolation în `/devisonline`, TVA Opțional + Căutare Oficială BCE/KBO Belgia, Protecție Tarife Preferențiale Online, Validare Automată Dată la Planificare & Dynamic Island 120fps)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Plan și modificări verificate și aprobate explicit de Utilizator pentru push ("OK PUSH SI MSEK ACATRE CORINA SI IULIK").

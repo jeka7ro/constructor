@@ -168,6 +168,18 @@ body.modal-scroll-locked {
   overflow: hidden !important;
 }
 
+/* Eliminate 1px white grid seams on Leaflet & RainViewer Doppler Radar tiles */
+.leaflet-container img.leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
+  outline: 1px solid transparent;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.leaflet-container .tms-doppler-radar-tile {
+  filter: saturate(1.25) contrast(1.05);
+}
+
 /* Fullscreen Live Map: Scale up Zoom In / Out (+ / -) buttons next to Meteo card */
 .tms-map-fullscreen .leaflet-top.leaflet-left .leaflet-control-zoom {
   margin-top: 18px !important;

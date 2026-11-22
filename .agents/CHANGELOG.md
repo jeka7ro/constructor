@@ -1,5 +1,43 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-22 18:14 — Claritate Text Retina & Fundal Opac pe Dynamic Island și Modale (`bg-[#F2F4F8]` / `bg-white`), plus Fallback Automat MET Norway (`api.met.no`) pentru Vremea Locală din Header și Calendar
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Claritate Maximă (Retina Crisp) & Fundal Opac pe Dynamic Island și toate Modalele (`HeaderDynamicIsland.jsx` & 37 componente):**
+    - Înlocuit clasele invalide Tailwind v3 `bg-[#F2F4F8]/98`, `bg-white/98`, `dark:bg-slate-900/96` cu fundaluri solide opace `bg-[#F2F4F8]`, `bg-white`, `dark:bg-slate-900`, eliminând transparența prin care se vedea bara albastră și cardurile din spate.
+    - Eliminat `scale3d(1,1,1)` și `will-change: transform` în starea deschisă a Dynamic Island pentru a preveni rasterizarea bitmap pe GPU care încețoșa textul, și crescut contrastul textelor la `text-slate-950 font-bold` și `text-slate-700 font-semibold`.
+  - **Fallback Automat MET Norway / ECMWF (`api.met.no`) + Cache `localStorage` pentru Vremea Locală din Header, Calendar, Hartă și Deviz (`AdminDashboard.jsx`, `WeatherWidget.jsx`, `liveWeatherCanvas.jsx`, `HourlyWeather.jsx`):**
+    - Adăugat fallback automat pe `api.met.no/weatherapi/locationforecast/2.0/compact` atunci când `api.open-meteo.com` returnează `HTTP 429 Too Many Requests`, plus cache în `localStorage`, astfel încât vremea locală de lângă ceas și temperaturile de pe cardurile din calendar să fie mereu vizibile.
+- **Fișiere:** `frontend/src/components/HeaderDynamicIsland.jsx`, `frontend/src/pages/admin/AdminDashboard.jsx`, `frontend/src/components/WeatherWidget.jsx`, `frontend/src/components/HourlyWeather.jsx`, `frontend/src/utils/liveWeatherCanvas.jsx` + 35 fișiere modale
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5)
+
+### 2026-11-22 18:04 — Instalare `karpathy-guidelines` (Skill & Always-On Rule) + Afișare Completă Nume Client & Suprafață pe Cardurile din Calendar (`ShortWorksCalendar.jsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Instalare Andrej Karpathy Coding Guidelines (`multica-ai/andrej-karpathy-skills`):**
+    - Instalat skill-ul în `.agents/skills/karpathy-guidelines/` (`SKILL.md`, `EXAMPLES.md`) și regula permanentă `always_on` în `.agents/rules/karpathy-guidelines.md`.
+  - **Carduri Calendar (`ShortWorksCalendar.jsx`) — Nume Client Complet + Suprafață `m²` în Antet + Eliminare Trunchiere `Chape`:**
+    - Compactat pastila de suprafață din dreapta-sus (`230m²`, `px-1 py-0.5 text-[10px]`) și permis numelui clientului să folosească `line-clamp-2 leading-[1.12] tracking-tight text-[10.5px]`, astfel încât să nu mai fie tăiat la o singură literă (`J...`, `C...`).
+    - Pe rândul 2, pentru comenzile cu o singură lucrare (unde `m²` este deja afișat sus în antet), afișat curat **`Chape • 7cm`** fără dublarea `230m²`, eliminând trunchierea cuvântului `Chape` în `C...`.
+- **Fișiere:** `frontend/src/components/ShortWorksCalendar.jsx`, `.agents/skills/karpathy-guidelines/SKILL.md`, `.agents/skills/karpathy-guidelines/EXAMPLES.md`, `.agents/rules/karpathy-guidelines.md`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5)
+
+### 2026-11-22 17:55 — Upgrade Complet Apple HIG (`apple-design`) pe Toate Ferestrele Modale (Create, Edit, Confirm, Detail, Preview, Toast), Animație Meteo Live 100% Real-Data pe Hartă & Ciclu Animație Logo la 30 Secunde
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Upgrade Complet Apple HIG (`apple-design`) pe toate ferestrele modale de Creare, Editare, Confirmare, Detalii și Previzualizare din întreaga platformă:**
+    - Toate modalele folosesc acum `createPortal(..., document.body)` cu `z-[99999]` (acoperind integral Header-ul albastru conform Regulii 5 din `AGENTS.md`), contur exterior Apple Liquid Glass / System Sheet (`rounded-[24px] bg-white/98 dark:bg-slate-900/96 backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)]`), antet `#F2F4F8` cu badge circular pentru iconiță și buton circular `w-8 h-8 rounded-full`, carduri interioare `Inset Grouped` (`rounded-[16px]`) pentru alertele de confirmare și texte 100% în limba franceză (fără nicio modificare a logicii de business sau a câmpurilor formularelor).
+    - Eliminat apelurile native `alert(...)` și `window.confirm(...)` rămase în `WorkOrders.jsx`, `SandStationsPage.jsx` și `BasesPage.jsx`, înlocuindu-le cu `showToast` și `ConfirmModal`.
+  - **Animație Meteo Live 100% bazată pe date reale pe harta `SUIVI EN DIRECT` (`liveWeatherCanvas.jsx` & `index.css`):**
+    - Eliminat complet pata gri artificială (`CLOUD_LOBES`) care acoperea Belgia și camioanele.
+    - Implementat linii de curent de vânt stilizate HiDPI Retina (Apple Weather / Windy.com) interpolate bilinear/IDW din direcția și viteza reală a vântului raportate de cele 24 stații Open-Meteo, picături de ploaie înclinate + unde de impact (`precipMm >= 0.05`) și fulgi de zăpadă (`snowCm > 0`) strict în zonele cu precipitații reale, plus radar Doppler RainViewer animat multi-frame fără cusături albe între tile-uri (`maxNativeZoom: 6`).
+  - **Animație Logo `davide_logo.svg` la 30 Secunde (`davide_logo.svg` & `AdminDashboard.jsx`):**
+    - Rărit ciclul animației logo-ului la `dur="30s"` (animația rulează ~3 secunde și stă liniștită ~27 secunde).
+  - **Apple HIG pe `/confirm/{token}` (`WorkOrderConfirm.jsx`):**
+    - Eliminat `(Vlaams)` din selectorul de limbă (rămânând `FR | NL | EN` cu segmente egale), eliminat textul duplicat „Davide Chape” din header și aliniat cardul de status/dată cu harta în stil Apple Inset Grouped Cards (`rounded-[22px]`).
+- **Fișiere:** `frontend/src/pages/public/WorkOrderConfirm.jsx`, `frontend/src/utils/liveWeatherCanvas.jsx`, `frontend/src/index.css`, `frontend/public/davide_logo.svg`, `frontend/src/pages/admin/AdminDashboard.jsx`, `frontend/src/components/ConfirmModal.jsx`, `frontend/src/components/ui/DialogOverlay.jsx`, `frontend/src/components/ui/ToastOverlay.jsx`, `frontend/src/App.jsx`, `frontend/src/components/ShortWorksCalendar.jsx`, `frontend/src/components/QuickAddWizard.jsx`, `frontend/src/components/GlobalSearch.jsx`, `frontend/src/components/PricingAuditModal.jsx`, `frontend/src/pages/admin/AdminOverview.jsx`, `frontend/src/pages/admin/AdminChats.jsx`, `frontend/src/pages/admin/PricingSettingsPage.jsx`, `frontend/src/pages/admin/ClientsManagement.jsx`, `frontend/src/pages/admin/WorkOrders.jsx`, `frontend/src/pages/admin/QuotesManagement.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `frontend/src/pages/admin/FleetManagement.jsx`, `frontend/src/pages/admin/TransportManagement.jsx`, `frontend/src/pages/admin/logistics/SandStationsPage.jsx`, `frontend/src/pages/admin/logistics/BasesPage.jsx`, `frontend/src/pages/admin/TeamsManagement.jsx`, `frontend/src/pages/admin/UsersManagement.jsx`, `frontend/src/pages/admin/PartnersManagement.jsx`, `frontend/src/pages/partner/PartnerWorkOrderModal.jsx`, `frontend/src/pages/admin/EmployeesManagement.jsx`, `frontend/src/pages/admin/AccommodationsManagement.jsx`, `frontend/src/pages/admin/WarehouseManagement.jsx`, `frontend/src/pages/admin/ExpensesManagement.jsx`, `frontend/src/pages/admin/ImportInvoiceModal.jsx`, `frontend/src/pages/admin/SitesManagement.jsx`, `frontend/src/pages/admin/ActivitiesManagement.jsx`, `frontend/src/pages/admin/AdminMaterialRequests.jsx`, `frontend/src/pages/admin/ComplaintsManagement.jsx`, `frontend/src/pages/admin/AdminEmergencies.jsx`, `frontend/src/pages/admin/EmailLogs.jsx`, `frontend/src/pages/admin/IsoflexHistory.jsx`, `frontend/src/pages/admin/PricingAnalytics.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5)
+
 ### 2026-11-22 16:04 — Separare Chape vs. Isolation în `/devisonline`, TVA Opțional + Căutare Oficială BCE/KBO Belgia, Protecție Tarife Preferențiale Online, Validare Automată Dată la Planificare, Dynamic Island Contur & Animație 120fps + Fix Navigare AdminChats
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

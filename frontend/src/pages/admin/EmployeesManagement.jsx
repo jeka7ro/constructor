@@ -677,12 +677,12 @@ export default function EmployeesManagement() {
                 )}
             </div>
 
-            {/* =================== ADD/EDIT USER MODAL =================== */}
+            {/* =================== ADD/EDIT USER MODAL — Apple HIG System Sheet =================== */}
             {showEditModal && createPortal(
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] max-w-2xl w-full max-h-[90vh] overflow-auto shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10" onClick={e => e.stopPropagation()}>
                         {/* Header */}
-                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-700 sticky top-0 z-10">
                             <div className="flex items-center gap-3">
                                 {/* Avatar */}
                                 <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatar-upload-input')?.click()}>
@@ -1052,39 +1052,44 @@ export default function EmployeesManagement() {
             , document.body)}
 
 
-            {/* =================== RESET PIN MODAL =================== */}
+            {/* =================== RESET PIN MODAL — Apple HIG System Sheet =================== */}
             {showPinModal && createPortal(
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-slate-900">{t('users_modal.reset_pin', 'Resetare PIN')}</h2>
-                            <button onClick={() => setShowPinModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                                <X className="w-5 h-5 text-slate-600" />
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 flex items-center justify-between">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                    <Key className="w-4 h-4" />
+                                </div>
+                                {t('users_modal.reset_pin', 'Réinitialiser le PIN')}
+                            </h2>
+                            <button onClick={() => setShowPinModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center transition-colors shadow-2xs">
+                                <X className="w-4 h-4 text-slate-500" />
                             </button>
                         </div>
                         <div className="p-6">
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">{t('users_modal.new_pin_label', 'PIN Nou (4-6 cifre)')}</label>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('users_modal.new_pin_label', 'Nouveau PIN (4-6 chiffres)')}</label>
                             <input
                                 type="password"
                                 value={newPin}
                                 onChange={e => setNewPin(e.target.value)}
-                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm text-center text-2xl tracking-widest"
+                                className="w-full px-4 h-11 text-sm rounded-[14px] border border-slate-200/90 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-2xs text-center text-2xl tracking-widest"
                                 placeholder="••••"
                                 maxLength={6}
                                 autoFocus
                             />
                         </div>
-                        <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
-                            <button onClick={() => setShowPinModal(false)} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors">
-                                {t('common.cancel', 'Anulează')}
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 flex items-center justify-end gap-3">
+                            <button onClick={() => setShowPinModal(false)} className="h-[42px] px-5 bg-white border border-slate-300/90 hover:bg-slate-50 text-slate-700 rounded-[13px] font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]">
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button
                                 onClick={handleSavePin}
                                 disabled={saving || newPin.length < 4}
-                                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
+                                className="h-[42px] px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-[13px] font-bold text-[14px] shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50"
                             >
-                                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Key className="w-5 h-5" />}
-                                {t('users_modal.reset_pin_button', 'Resetează PIN')}
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                                {t('users_modal.reset_pin_button', 'Réinitialiser le PIN')}
                             </button>
                         </div>
                     </div>
@@ -1103,51 +1108,53 @@ export default function EmployeesManagement() {
                         const resp = await api.post(`/admin/users/${editingUser.id}/upload-avatar`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
                         setEditingUser({ ...editingUser, avatar_path: resp.data.avatar_path })
                         fetchUsers()
-                        showToast(t('employees.avatar_updated', 'Avatar actualizat'), 'success')
-                    } catch (err) { console.error('Avatar upload error:', err); showToast(t('employees.avatar_update_error', 'Eroare la actualizare avatar'), 'error') }
+                        showToast(t('employees.avatar_updated', 'Avatar mis à jour'), 'success')
+                    } catch (err) { console.error('Avatar upload error:', err); showToast(t('employees.avatar_update_error', 'Erreur lors de la mise à jour de l\'avatar'), 'error') }
                     setAvatarCropImage(null)
                 }}
             />
 
-            {/* =================== ASSIGN SITE MODAL =================== */}
+            {/* =================== ASSIGN SITE MODAL — Apple HIG System Sheet =================== */}
             {showAssignSiteModal && createPortal(
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-orange-500" />
-                                {t('employees.attach_site', 'Atașează Șantier')}
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 flex items-center justify-between">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-orange-100/90 text-orange-600 border border-orange-200/80 flex items-center justify-center shadow-2xs">
+                                    <MapPin className="w-4 h-4" />
+                                </div>
+                                {t('employees.attach_site', 'Affecter au chantier')}
                             </h2>
-                            <button onClick={() => setShowAssignSiteModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                                <X className="w-5 h-5 text-slate-600" />
+                            <button onClick={() => setShowAssignSiteModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center transition-colors shadow-2xs">
+                                <X className="w-4 h-4 text-slate-500" />
                             </button>
                         </div>
                         <div className="p-6">
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">{t('employees.select_site', 'Selectează Șantierul')}</label>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('employees.select_site', 'Sélectionner le chantier')}</label>
                             <select
                                 value={assignSiteId}
                                 onChange={e => setAssignSiteId(e.target.value)}
-                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                className="w-full px-4 h-11 text-sm rounded-[13px] border border-slate-200/90 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-2xs"
                             >
-                                <option value="">{t('employees.no_site', 'Niciun șantier (Anulează atașarea)')}</option>
+                                <option value="">{t('employees.no_site', 'Aucun chantier (Annuler l\'affectation)')}</option>
                                 {sites.map(site => (
                                     <option key={site.id} value={site.id}>{site.name}</option>
                                 ))}
                             </select>
                             <p className="mt-3 text-xs text-slate-500">
-                                {t('employees.attach_site_hint', 'Angajatul va fi transferat direct pe acest șantier, ocolind necesitatea asocierii într-o Echipă dedicată.')}
+                                {t('employees.attach_site_hint', 'L\'employé sera affecté directement à ce chantier.')}
                             </p>
                         </div>
-                        <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
-                            <button onClick={() => setShowAssignSiteModal(false)} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors">
-                                {t('common.cancel', 'Anulează')}
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 flex items-center justify-end gap-3">
+                            <button onClick={() => setShowAssignSiteModal(false)} className="h-[42px] px-5 bg-white border border-slate-300/90 hover:bg-slate-50 text-slate-700 rounded-[13px] font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]">
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button
                                 onClick={handleSaveSiteAssignment}
                                 disabled={assigningSite}
-                                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-amber-700 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
+                                className="h-[42px] px-6 bg-amber-600 hover:bg-amber-700 text-white rounded-[13px] font-bold text-[14px] shadow-[0_8px_18px_-4px_rgba(217,119,6,0.45)] transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50"
                             >
-                                {assigningSite ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                {assigningSite ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 {t('common.save', 'Enregistrer')}
                             </button>
                         </div>
@@ -1155,48 +1162,54 @@ export default function EmployeesManagement() {
                 </div>
             , document.body)}
 
-            {/* =================== DELETE / ARCHIVE MODAL =================== */}
+            {/* =================== DELETE / ARCHIVE MODAL — Apple HIG System Sheet =================== */}
             {deleteModalData && createPortal(
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setDeleteModalData(null)}>
-                    <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-slate-200">
-                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
-                                <Trash2 className="w-6 h-6 text-red-500" />
-                                {t('employees.delete_employee', 'Supprimerre Angajat:')} {deleteModalData.last_name} {deleteModalData.first_name}
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4" onClick={() => setDeleteModalData(null)}>
+                    <div className="bg-[#F2F4F8] dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] max-w-lg w-full shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-200/85 flex items-center justify-between">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-red-100/90 text-red-600 border border-red-200/80 flex items-center justify-center shadow-2xs">
+                                    <Trash2 className="w-4 h-4" />
+                                </div>
+                                {t('employees.delete_employee', 'Supprimer l\'employé :')} {deleteModalData.last_name} {deleteModalData.first_name}
                             </h2>
+                            <button onClick={() => setDeleteModalData(null)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 shadow-2xs">
+                                <X className="w-4 h-4" />
+                            </button>
                         </div>
-                        <div className="p-6 space-y-4">
-                            <p className="text-slate-600">
-                                {t('employees.delete_employee_hint', 'Ai ales să elimini acest angajat din lista curentă. Te rugăm să alegi cum dorești să fie procesat:')}
+                        <div className="p-6 space-y-3.5 bg-white dark:bg-slate-900">
+                            <p className="text-[13.5px] font-medium text-slate-600 dark:text-slate-400">
+                                {t('employees.delete_employee_hint', 'Veuillez choisir comment traiter cet employé :')}
                             </p>
                             
-                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 cursor-pointer hover:bg-blue-100 transition-colors" onClick={() => executeDelete(false)}>
-                                <h3 className="font-bold text-blue-900 flex items-center gap-2 mb-1">
-                                    <UserX className="w-5 h-5 text-blue-700" />
-                                    {t('users.archive_recommended', 'Mută în Arhivă (Recomandat)')}
+                            <div className="bg-blue-50/80 border-[1.5px] border-blue-200/90 rounded-[16px] p-4 cursor-pointer hover:bg-blue-100/80 transition-colors shadow-2xs" onClick={() => executeDelete(false)}>
+                                <h3 className="font-black text-blue-900 text-[14.5px] flex items-center gap-2 mb-1">
+                                    <UserX className="w-4 h-4 text-blue-700" />
+                                    {t('users.archive_recommended', 'Archiver (Recommandé)')}
                                 </h3>
-                                <p className="text-sm text-blue-800/80">
-                                    {t('users.archive_hint', 'Păstrează tot istoricul și rapoartele de pontaj. Angajatul nu va mai avea acces, dar informațiile lui rămân în arhivă pentru statiscă.')}
+                                <p className="text-[13px] font-medium text-blue-800/80 leading-relaxed">
+                                    {t('users.archive_hint', 'Conserve tout l\'historique et les pointages. L\'employé n\'aura plus accès, mais ses données restent archivées.')}
                                 </p>
                             </div>
 
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-4 cursor-pointer hover:bg-red-100 transition-colors" onClick={() => executeDelete(true)}>
-                                <h3 className="font-bold text-red-900 flex items-center gap-2 mb-1">
-                                    <Trash2 className="w-5 h-5 text-red-700" />
-                                    {t('users.delete_permanent', 'Supprimer Definitiv')}
+                            <div className="bg-red-50/80 border-[1.5px] border-red-200/90 rounded-[16px] p-4 cursor-pointer hover:bg-red-100/80 transition-colors shadow-2xs" onClick={() => executeDelete(true)}>
+                                <h3 className="font-black text-red-900 text-[14.5px] flex items-center gap-2 mb-1">
+                                    <Trash2 className="w-4 h-4 text-red-700" />
+                                    {t('users.delete_permanent', 'Supprimer définitivement')}
                                 </h3>
-                                <p className="text-sm text-red-800/80">
-                                    <strong>{t('common.attention', 'Atenție!')}</strong> {t('users.delete_hint', 'Toate pontajele și rapoartele asociate acestui angajat vor fi distruse. Folosește această opțiune doar dacă angajatul a fost creat dintr-o greșeală.')}
+                                <p className="text-[13px] font-medium text-red-800/80 leading-relaxed">
+                                    <strong>{t('common.attention', 'Attention !')}</strong> {t('users.delete_hint', 'Tous les pointages et rapports associés à cet employé seront supprimés définitivement.')}
                                 </p>
                             </div>
                         </div>
-                        <div className="p-4 border-t border-slate-200 flex justify-end">
-                            <button onClick={() => setDeleteModalData(null)} className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors">
-                                {t('common.cancel', 'Anulează')}
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 flex justify-end">
+                            <button onClick={() => setDeleteModalData(null)} className="h-[42px] px-6 bg-white border border-slate-300/90 hover:bg-slate-50 text-slate-700 rounded-[13px] font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]">
+                                {t('common.cancel', 'Annuler')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )

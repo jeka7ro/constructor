@@ -545,21 +545,21 @@ export default function UsersManagement() {
                 }}
             />
 
-            {/* ADD/EDIT MODAL */}
+            {/* ADD/EDIT MODAL — Apple HIG System Sheet */}
             {showModal && createPortal(
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-[24px] max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] max-w-2xl w-full shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                         {/* Header */}
-                        <div className="flex flex-shrink-0 items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-700">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                        <div className="flex flex-shrink-0 items-center justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-700">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 bg-blue-100/90 dark:bg-blue-900/30 border border-blue-200/80 rounded-full flex items-center justify-center shadow-2xs">
                                     <UserCog className="w-4 h-4 text-blue-600" />
                                 </div>
-                                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                                    {editingUser ? t('users_modal.edit_title', 'Éditer Utilizator') : t('users_modal.add_title', 'Ajouter Utilizator')}
+                                <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">
+                                    {editingUser ? t('users_modal.edit_title', 'Modifier l\'utilisateur') : t('users_modal.add_title', 'Nouvel utilisateur')}
                                 </h2>
                             </div>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors">
+                            <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
@@ -735,18 +735,18 @@ export default function UsersManagement() {
                         </div>
 
                         {/* Footer */}
-                        <div className="flex flex-shrink-0 justify-end gap-2.5 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 rounded-b-[24px]">
-                            <button onClick={() => setShowModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-slate-300 rounded-full transition-colors">
-                                {t('common.cancel', 'Anulează')}
+                        <div className="flex flex-shrink-0 justify-end gap-3 px-6 py-4 border-t border-slate-200/85 dark:border-slate-700 bg-[#F2F4F8] dark:bg-slate-800/80">
+                            <button onClick={() => setShowModal(false)} className="h-[42px] px-5 text-[14px] font-bold bg-white border border-slate-300/90 text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 rounded-[13px] shadow-2xs transition-all active:scale-[0.98]">
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button 
                                 onClick={handleSave} 
                                 disabled={saving} 
-                                className="px-5 h-10 text-white rounded-full text-sm font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2 disabled:opacity-50 hover:brightness-110"
-                                style={{ backgroundColor: tenant?.primary_color || '#3b82f6' }}
+                                className="h-[42px] px-6 text-white rounded-[13px] text-[14px] font-bold shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 hover:brightness-110"
+                                style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                {editingUser ? t('users_modal.save', 'Enregistrer') : t('users_modal.create', 'Creează')}
+                                {editingUser ? t('users_modal.save', 'Enregistrer') : t('users_modal.create', 'Créer')}
                             </button>
                         </div>
                     </div>

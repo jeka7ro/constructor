@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { MessageSquareWarning, Search, X, ChevronLeft, ChevronRight, Loader2, CheckCircle, Clock, AlertCircle, XCircle, Send, User } from 'lucide-react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
@@ -280,25 +281,25 @@ export default function ComplaintsManagement() {
                 </div>
             </div>
 
-            {/* ─── DETAIL / RESPOND MODAL ─── */}
-            {detailComplaint && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDetailComplaint(null)}>
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* ─── DETAIL / RESPOND MODAL — Apple HIG System Sheet ─── */}
+            {detailComplaint && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4" onClick={() => setDetailComplaint(null)}>
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-lg shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden" onClick={e => e.stopPropagation()}>
                         {/* Modal header */}
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
-                                    <MessageSquareWarning className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                <div className="w-9 h-9 bg-orange-100/90 border border-orange-200/80 dark:bg-orange-900/30 rounded-full flex items-center justify-center shadow-2xs">
+                                    <MessageSquareWarning className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                                 </div>
                                 <div>
-                                    <h2 className="text-base font-bold text-slate-900 dark:text-white">{detailComplaint.title}</h2>
-                                    <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                                    <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">{detailComplaint.title}</h2>
+                                    <p className="text-xs font-medium text-slate-500 mt-0.5 flex items-center gap-1">
                                         <User className="w-3 h-3" /> {detailComplaint.user_name} · {new Date(detailComplaint.created_at).toLocaleString('fr-FR')}
                                     </p>
                                 </div>
                             </div>
-                            <button onClick={() => setDetailComplaint(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors">
-                                <X className="w-5 h-5" />
+                            <button onClick={() => setDetailComplaint(null)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -359,42 +360,44 @@ export default function ComplaintsManagement() {
                             )}
                         </div>
 
-                        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                            <button onClick={() => setDetailComplaint(null)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 dark:border-slate-800 flex justify-end gap-3">
+                            <button onClick={() => setDetailComplaint(null)} className="h-[42px] px-5 rounded-[13px] text-[14px] font-bold text-slate-700 dark:text-slate-300 bg-white border border-slate-300/90 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]">
                                 {t('common.cancel', 'Annuler')}
                             </button>
                             <button onClick={handleRespond} disabled={submitting || !responseText.trim()}
-                                className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                                className="flex items-center gap-2 h-[42px] px-5 rounded-[13px] text-[14px] font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
                                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 {t('complaints.send_response_btn', 'Envoyer la Réponse')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {/* CONFIRM MODAL */}
-            {confirmModal.isOpen && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                        <div className="p-6 text-center">
-                            <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-                                <X className="w-8 h-8 text-red-600 dark:text-red-500" />
+            {/* CONFIRM MODAL — Apple HIG Alert */}
+            {confirmModal.isOpen && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>
+                    <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden text-center" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 flex flex-col items-center">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/25 flex items-center justify-center mx-auto mb-3.5">
+                                <X className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{confirmModal.title}</h3>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">{confirmModal.message}</p>
-                            <div className="flex gap-3 justify-center">
-                                <button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-                                    {t('common.cancel', 'Annuler')}
-                                </button>
-                                <button onClick={() => { if (confirmModal.onConfirm) confirmModal.onConfirm(); setConfirmModal({ ...confirmModal, isOpen: false }) }}
-                                    className="px-5 h-10 rounded-full text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all">
-                                    {t('common.yes_delete', 'Oui, Supprimer')}
-                                </button>
-                            </div>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">{confirmModal.title}</h3>
+                            <p className="text-slate-500 dark:text-slate-400 text-[13.5px] mt-1.5 leading-relaxed">{confirmModal.message}</p>
+                        </div>
+                        <div className="flex gap-2.5 w-full mt-3">
+                            <button type="button" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="flex-1 h-10 px-4 rounded-[14px] text-[13.5px] font-semibold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300/90 dark:border-slate-600/80 transition-all cursor-pointer">
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button type="button" onClick={() => { if (confirmModal.onConfirm) confirmModal.onConfirm(); setConfirmModal({ ...confirmModal, isOpen: false }) }}
+                                className="flex-1 h-10 px-4 rounded-[14px] text-[13.5px] font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-600/20 transition-all cursor-pointer">
+                                {t('common.delete', 'Supprimer')}
+                            </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     )

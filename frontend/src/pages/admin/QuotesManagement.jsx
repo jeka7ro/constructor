@@ -1309,17 +1309,19 @@ export default function QuotesManagement() {
                 />
             </div>
 
-            {/* Edit Modal */}
-            {editingId && (
-                <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh]">
-                        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-xl">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <Pencil className="w-5 h-5 text-blue-600" />
+            {/* Edit Modal — Apple HIG System Sheet */}
+            {editingId && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 z-[99999] flex items-center justify-center p-4 backdrop-blur-md">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-200/85 flex items-center justify-between bg-[#F2F4F8] dark:bg-slate-800/80">
+                            <h3 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-xs">
+                                    <Pencil className="w-4 h-4" />
+                                </div>
                                 Modifier le Devis
                             </h3>
-                            <button onClick={handleCancelEdit} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-full transition-colors">
-                                <X className="w-5 h-5" />
+                            <button onClick={handleCancelEdit} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         
@@ -1553,34 +1555,36 @@ export default function QuotesManagement() {
                             </div>
                         </div>
 
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-xl flex justify-end gap-3">
+                        <div className="px-6 py-4 border-t border-slate-200/85 bg-[#F2F4F8] dark:bg-slate-800/80 flex justify-end gap-3">
                             <button 
                                 onClick={handleCancelEdit}
                                 disabled={isSaving}
-                                className="h-10 px-6 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-lg shadow-sm transition-colors"
+                                className="h-[42px] px-6 bg-white border border-slate-300/90 hover:bg-slate-50 text-slate-700 font-bold text-[14px] rounded-[13px] shadow-2xs transition-all active:scale-[0.98]"
                             >
                                 Annuler
                             </button>
                             <button 
                                 onClick={handleCreateQuote}
                                 disabled={isSaving}
-                                className="h-10 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                                className="h-[42px] px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[14px] rounded-[13px] shadow-[0_8px_18px_-4px_rgba(16,185,129,0.45)] disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                             >
                                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                 Enregistrer les modifications
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {toast && (
-                <div className="fixed top-20 right-4 z-[9999] animate-in slide-in-from-top-4">
-                    <div className={`px-4 py-2 rounded-full shadow-lg text-[11px] font-bold uppercase tracking-wide border 
-                        ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+            {toast && createPortal(
+                <div className="fixed top-20 right-4 z-[100000] animate-in slide-in-from-top-4">
+                    <div className={`px-4 py-2.5 rounded-full backdrop-blur-3xl saturate-150 shadow-[0_16px_36px_-8px_rgba(15,23,42,0.28),inset_0_1px_0_rgba(255,255,255,0.9)] text-[12px] font-bold tracking-tight border-[1.5px] 
+                        ${toast.type === 'success' ? 'bg-white/95 text-emerald-800 border-emerald-400/90' : 'bg-white/95 text-red-800 border-red-400/90'}`}>
                         {toast.msg}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             <ConfirmModal 
@@ -1594,16 +1598,16 @@ export default function QuotesManagement() {
             />
 
             {/* Planning Modal — date/time/team direct to calendar */}
-            {planningModal && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md">
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            {planningModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-200/85 dark:border-slate-800 bg-[#F2F4F8] dark:bg-slate-800/80 flex items-center justify-between">
                             <div>
-                                <div className="text-xs font-black uppercase tracking-widest text-emerald-600 mb-0.5">Planifier dans le calendrier</div>
-                                <div className="font-bold text-slate-800 dark:text-white text-sm truncate max-w-[280px]">{planningModal.client_name || planningModal.title}</div>
-                                <div className="text-xs text-slate-400 truncate">{planningModal.site_address}</div>
+                                <div className="text-[11px] font-black uppercase tracking-widest text-emerald-600 mb-0.5">Planifier dans le calendrier</div>
+                                <div className="font-black text-slate-900 dark:text-white text-[16px] tracking-tight truncate max-w-[280px]">{planningModal.client_name || planningModal.title}</div>
+                                <div className="text-xs font-medium text-slate-500 truncate">{planningModal.site_address}</div>
                             </div>
-                            <button onClick={() => setPlanningModal(null)} className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors">
+                            <button onClick={() => setPlanningModal(null)} className="w-8 h-8 rounded-full bg-white dark:bg-slate-700 hover:bg-slate-100 border border-slate-300/80 dark:border-slate-600 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
@@ -1614,7 +1618,7 @@ export default function QuotesManagement() {
                                     type="date"
                                     value={planningForm.date}
                                     onChange={e => setPlanningForm(p => ({ ...p, date: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    className="w-full px-3.5 py-2.5 border border-slate-200/90 dark:border-slate-700 rounded-[13px] text-sm font-medium text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
                                 />
                             </div>
                             <div>
@@ -1623,7 +1627,7 @@ export default function QuotesManagement() {
                                     type="time"
                                     value={planningForm.time}
                                     onChange={e => setPlanningForm(p => ({ ...p, time: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    className="w-full px-3.5 py-2.5 border border-slate-200/90 dark:border-slate-700 rounded-[13px] text-sm font-medium text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
                                 />
                             </div>
                             <div>
@@ -1631,7 +1635,7 @@ export default function QuotesManagement() {
                                 <select
                                     value={planningForm.teamId}
                                     onChange={e => setPlanningForm(p => ({ ...p, teamId: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    className="w-full px-3.5 py-2.5 border border-slate-200/90 dark:border-slate-700 rounded-[13px] text-sm font-medium text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
                                 >
                                     <option value="">— Sans équipe —</option>
                                     {teams.map(t => (
@@ -1640,53 +1644,54 @@ export default function QuotesManagement() {
                                 </select>
                             </div>
                         </div>
-                        <div className="px-6 pb-6 flex gap-3">
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 dark:border-slate-800 flex gap-3">
                             <button
                                 onClick={() => setPlanningModal(null)}
-                                className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                className="flex-1 h-[42px] px-4 bg-white dark:bg-slate-800 border border-slate-300/90 dark:border-slate-700 rounded-[13px] text-[14px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs transition-all active:scale-[0.98]"
                             >
                                 Annuler
                             </button>
                             <button
                                 onClick={handleSendToCalendar}
                                 disabled={isSendingPlanning || !planningForm.date}
-                                className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 transition-colors"
+                                className="flex-1 h-[42px] px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-[13px] text-[14px] font-bold text-white shadow-[0_8px_18px_-4px_rgba(16,185,129,0.45)] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                             >
                                 {isSendingPlanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarDays className="w-4 h-4" />}
                                 Planifier
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             
             {/* Inline PDF Preview Modal */}
             {previewPdfId && createPortal(
-                <div className="fixed inset-0 bg-slate-900/80 z-[99999] flex items-center justify-center p-2 sm:p-6 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-5xl h-[95vh] flex flex-col overflow-hidden relative shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 bg-slate-950/60 z-[99999] flex items-center justify-center p-2 sm:p-6 backdrop-blur-md">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 w-full max-w-5xl h-[95vh] flex flex-col overflow-hidden relative shadow-[0_28px_64px_-12px_rgba(15,23,42,0.45)] animate-in zoom-in-95 duration-200">
                         {/* Header */}
-                        <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center justify-between px-5 py-3.5 bg-[#F2F4F8] dark:bg-slate-800 border-b border-slate-200/85 dark:border-slate-700">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 border border-purple-200/80 flex items-center justify-center shadow-2xs">
                                     <FileText className="w-4 h-4" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-slate-700 dark:text-slate-200">Devis PDF</h3>
+                                    <h3 className="font-black text-slate-900 dark:text-slate-200 text-[16px] tracking-tight">Devis PDF</h3>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button 
                                     onClick={() => window.open(`/admin/quotes/${previewPdfId}/pdf`, '_blank')}
-                                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 rounded-xl transition-colors hidden sm:flex items-center gap-2 text-sm font-medium"
-                                    title="Deschide în tab nou"
+                                    className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-[11px] transition-colors hidden sm:flex items-center gap-2 text-xs font-bold shadow-2xs"
+                                    title="Ouvrir dans un nouvel onglet"
                                 >
-                                    <Link className="w-4 h-4" /> Tab
+                                    <Link className="w-3.5 h-3.5" /> Nouvel onglet
                                 </button>
                                 <button 
                                     onClick={() => setPreviewPdfId(null)}
-                                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 rounded-xl transition-colors"
+                                    className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 dark:bg-slate-700 text-slate-500 flex items-center justify-center transition-colors shadow-2xs"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>

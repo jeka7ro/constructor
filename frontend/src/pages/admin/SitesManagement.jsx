@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -890,20 +891,22 @@ export default function SitesManagement() {
         </div>
             )}
 
-            {/* Edit/Add Modal */}
-            {showEditModal && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-xl border border-slate-200 dark:border-slate-800 transform scale-100 opacity-100 transition-all" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Building2 className="w-5 h-5 text-slate-500" />
+            {/* Edit/Add Modal — Apple HIG System Sheet */}
+            {showEditModal && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 transform scale-100 opacity-100 transition-all" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between shrink-0">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                    <Building2 className="w-4 h-4" />
+                                </div>
                                 {editingSite
-                                    ? (editingSite.project_type === 'short_term' ? t('sites.edit_short_term', 'Éditer le travail') : t('sites.edit_site', 'Éditer le chantier'))
+                                    ? (editingSite.project_type === 'short_term' ? t('sites.edit_short_term', 'Modifier le travail') : t('sites.edit_site', 'Modifier le chantier'))
                                     : (formData.project_type === 'short_term' ? t('sites.add_short_term', 'Ajouter un travail court') : t('sites.add_site_new', 'Ajouter un nouveau chantier'))
                                 }
                             </h2>
-                            <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                <X className="w-5 h-5" />
+                            <button onClick={() => setShowEditModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -1190,17 +1193,17 @@ export default function SitesManagement() {
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-white dark:bg-slate-900">
+                        <div className="px-6 py-4 border-t border-slate-200/85 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-[#F2F4F8] dark:bg-slate-800/80">
                             <button
                                 onClick={() => setShowEditModal(false)}
-                                className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                className="h-[42px] px-5 rounded-[13px] text-[14px] font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300/90 dark:border-slate-700 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]"
                             >
                                 {t('common.cancel', 'Annuler')}
                             </button>
                             <button
                                 onClick={handleSaveSite}
                                 disabled={saving}
-                                className="px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="h-[42px] px-6 rounded-[13px] text-[14px] font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 {editingSite
@@ -1210,26 +1213,29 @@ export default function SitesManagement() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Photo Modal */}
-            {showPhotoModal && selectedSite && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 flex items-center justify-between text-white shrink-0">
+            {showPhotoModal && selectedSite && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-[0_28px_64px_-12px_rgba(15,23,42,0.42)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10" onClick={e => e.stopPropagation()}>
+                        <div className="bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 px-6 py-4 flex items-center justify-between shrink-0">
                             <div>
-                                <h2 className="text-xl font-bold flex items-center gap-2">
-                                    <Camera className="w-6 h-6" />
+                                <h2 className="text-[18px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                        <Camera className="w-4 h-4" />
+                                    </div>
                                     {selectedSite.name}
                                 </h2>
-                                <p className="text-white/80 mt-1 ml-8 text-sm">{t('sites.site_photos', 'Photos du chantier')}</p>
+                                <p className="text-slate-500 mt-0.5 ml-10 text-xs font-medium">{t('sites.site_photos', 'Photos du chantier')}</p>
                             </div>
                             <button
                                 onClick={() => setShowPhotoModal(false)}
-                                className="text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                                className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs"
                             >
-                                <X className="w-6 h-6" />
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -1251,29 +1257,31 @@ export default function SitesManagement() {
                             </div>
                         </div>
                     </div>
-                </div>
-
+                </div>,
+                document.body
             )}
             {/* Worker Assign Modal */}
-            {workerAssignModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <UserCheck className="w-5 h-5 text-blue-500" />
+            {workerAssignModal && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-lg shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden">
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                    <UserCheck className="w-4 h-4" />
+                                </div>
                                 {t('sites.assign_workers', 'Allocation de travailleurs')} — {workerAssignModal.name}
                             </h2>
-                            <button onClick={() => setWorkerAssignModal(null)} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center">
+                            <button onClick={() => setWorkerAssignModal(null)} className="w-8 h-8 rounded-full bg-white border border-slate-300/80 hover:bg-slate-100 flex items-center justify-center shadow-2xs">
                                 <X className="w-4 h-4 text-slate-500" />
                             </button>
                         </div>
-                        <div className="p-4 max-h-96 overflow-y-auto">
+                        <div className="p-5 max-h-96 overflow-y-auto">
                             <input
                                 type="text"
                                 placeholder={t('sites.search_worker', 'Rechercher un travailleur...')}
                                 value={workerSearch}
                                 onChange={e => setWorkerSearch(e.target.value)}
-                                className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm mb-3 outline-none focus:border-blue-500"
+                                className="w-full h-10 px-3.5 rounded-[13px] border border-slate-200/90 dark:border-slate-700 text-sm mb-3 outline-none focus:border-blue-500"
                             />
                             {allWorkers.filter(w => w.name?.toLowerCase().includes(workerSearch.toLowerCase()) || w.email?.toLowerCase().includes(workerSearch.toLowerCase())).map(w => {
                                 const checked = workerAssignModal.assigned_worker_ids?.includes(w.id) || false
@@ -1299,40 +1307,43 @@ export default function SitesManagement() {
                                 )
                             })}
                         </div>
-                        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
-                            <button onClick={() => setWorkerAssignModal(null)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">{t('common.cancel', 'Annuler')}</button>
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 dark:border-slate-800 flex justify-end gap-3">
+                            <button onClick={() => setWorkerAssignModal(null)} className="h-[42px] px-5 rounded-[13px] text-[14px] font-bold text-slate-700 bg-white border border-slate-300/90 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]">{t('common.cancel', 'Annuler')}</button>
                             <button
                                 onClick={() => handleAssignWorkers(workerAssignModal.assigned_worker_ids || [])}
                                 disabled={assigningSite}
-                                className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-all flex items-center gap-2 disabled:opacity-60"
+                                className="h-[42px] px-5 rounded-[13px] bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-bold shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-60"
                             >
                                 {assigningSite ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
                                 {t('sites.save_allocation', "Enregistrer l'allocation")}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Final Report Modal */}
-            {reportModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-slate-800 my-8">
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <ClipboardList className="w-5 h-5 text-blue-500" />
+            {reportModal && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-2xl shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 my-8 overflow-hidden">
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                    <ClipboardList className="w-4 h-4" />
+                                </div>
                                 {t('sites.final_report', 'Rapport final')} — {reportModal.site.name}
                             </h2>
                             <div className="flex items-center gap-2">
                                 {reportModal.data && (
                                     <button
                                         onClick={() => downloadFinalReport(reportModal.site)}
-                                        className="px-4 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5"
+                                        className="px-4 h-9 rounded-[11px] bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs"
                                     >
                                         <FileText className="w-3.5 h-3.5" /> {t('sites.export_excel', 'Exporter vers Excel')}
                                     </button>
                                 )}
-                                <button onClick={() => setReportModal(null)} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center">
+                                <button onClick={() => setReportModal(null)} className="w-8 h-8 rounded-full bg-white border border-slate-300/80 hover:bg-slate-100 flex items-center justify-center shadow-2xs">
                                     <X className="w-4 h-4 text-slate-500" />
                                 </button>
                             </div>
@@ -1412,25 +1423,26 @@ export default function SitesManagement() {
                             </div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             {/* ── New Client Modal ── */}
-            {showNewClientModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800" onClick={e => e.stopPropagation()}>
-                        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-                            <h2 className="text-sm font-bold text-slate-900 dark:text-white">{t('sites.add_client_quick', 'Ajouter un client rapide')}</h2>
-                            <button onClick={() => setShowNewClientModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            {showNewClientModal && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[100000] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-sm overflow-hidden shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between bg-[#F2F4F8] dark:bg-slate-800/80">
+                            <h2 className="text-[16px] font-black text-slate-900 dark:text-white tracking-tight">{t('sites.add_client_quick', 'Ajouter un client rapide')}</h2>
+                            <button onClick={() => setShowNewClientModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
-                        <form onSubmit={handleSaveNewClient} className="p-5 space-y-4">
+                        <form onSubmit={handleSaveNewClient} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.company_name', "Nom de l'entreprise *")}</label>
                                 <input
                                     type="text"
                                     required
-                                    className="w-full px-4 h-9 text-sm rounded-xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
+                                    className="w-full px-4 h-10 text-sm rounded-[13px] border border-slate-200/90 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
                                     value={newClientData.name}
                                     onChange={e => setNewClientData({...newClientData, name: e.target.value})}
                                 />
@@ -1439,7 +1451,7 @@ export default function SitesManagement() {
                                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.hq_address', 'Adresse du siège')}</label>
                                 <input
                                     type="text"
-                                    className="w-full px-4 h-9 text-sm rounded-xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
+                                    className="w-full px-4 h-10 text-sm rounded-[13px] border border-slate-200/90 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
                                     value={newClientData.address}
                                     onChange={e => setNewClientData({...newClientData, address: e.target.value})}
                                 />
@@ -1448,23 +1460,23 @@ export default function SitesManagement() {
                                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('common.phone', 'Téléphone')}</label>
                                 <input
                                     type="text"
-                                    className="w-full px-4 h-9 text-sm rounded-xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
+                                    className="w-full px-4 h-10 text-sm rounded-[13px] border border-slate-200/90 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
                                     value={newClientData.phone}
                                     onChange={e => setNewClientData({...newClientData, phone: e.target.value})}
                                 />
                             </div>
-                            <div className="pt-2 flex justify-end gap-2 mt-4">
+                            <div className="pt-3 border-t border-slate-200/85 flex justify-end gap-2.5 mt-4">
                                 <button
                                     type="button"
                                     onClick={() => setShowNewClientModal(false)}
-                                    className="px-4 h-9 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                    className="h-[40px] px-4 rounded-[12px] text-[13.5px] font-bold text-slate-700 dark:text-slate-300 bg-white border border-slate-300/90 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]"
                                 >
                                     {t('common.cancel', 'Annuler')}
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={savingClient}
-                                    className="px-4 h-9 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1.5 disabled:opacity-70"
+                                    className="h-[40px] px-5 rounded-[12px] text-[13.5px] font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98] flex items-center gap-1.5 disabled:opacity-70"
                                 >
                                     {savingClient ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                                     {t('common.save', 'Enregistrer')}
@@ -1472,7 +1484,8 @@ export default function SitesManagement() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )

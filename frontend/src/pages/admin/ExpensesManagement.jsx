@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { 
     Wallet, TrendingDown, DollarSign, Plus, Building2, User as UserIcon, Calendar, Upload, FileText, Trash2, X, FileEdit, Banknote, Search, CheckCircle, PackageSearch
 } from 'lucide-react'
@@ -285,17 +286,19 @@ export default function ExpensesManagement() {
                 </div>
             </div>
 
-            {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Banknote className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            {/* Modal — Apple HIG System Sheet */}
+            {showModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 rounded-[24px] shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="px-6 py-4 border-b border-slate-200/85 dark:border-slate-800 flex justify-between items-center bg-[#F2F4F8] dark:bg-slate-800/80">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                    <Banknote className="w-4 h-4" />
+                                </div>
                                 {t('expenses.register_expense', 'Enregistrer Dépense')}
                             </h2>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                                <X className="w-5 h-5" />
+                            <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         
@@ -377,16 +380,17 @@ export default function ExpensesManagement() {
                             </form>
                         </div>
                         
-                        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex gap-3">
-                            <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm">
+                        <div className="px-6 py-4 border-t border-slate-200/85 dark:border-slate-800 bg-[#F2F4F8] dark:bg-slate-800/80 flex gap-3">
+                            <button type="button" onClick={() => setShowModal(false)} className="flex-1 h-[42px] px-4 rounded-[13px] bg-white border border-slate-300/90 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-[14px] hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]">
                                 {t('expenses.cancel', 'Annuler')}
                             </button>
-                            <button type="submit" form="expense-form" disabled={isUploading} className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 shadow-sm disabled:opacity-50 transition-colors text-sm">
+                            <button type="submit" form="expense-form" disabled={isUploading} className="flex-1 h-[42px] px-4 rounded-[13px] bg-blue-600 text-white font-bold text-[14px] hover:bg-blue-700 shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] disabled:opacity-50 transition-all active:scale-[0.98]">
                                 {t('expenses.save', 'Enregistrer')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             {showImportModal && (
                 <ImportInvoiceModal 

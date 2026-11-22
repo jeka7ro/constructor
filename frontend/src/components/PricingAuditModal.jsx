@@ -101,25 +101,25 @@ export default function PricingAuditModal({ isOpen, onClose, wo, pricingSettings
     };
 
     const modalContent = (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md">
+            <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-4xl max-h-[90vh] flex flex-col border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden">
                 
-                <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                            <ShieldCheck className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-full bg-indigo-100/90 border border-indigo-200/80 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs">
+                            <ShieldCheck className="w-4 h-4" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                                {t('audit.title', 'Audit des Prix et Calcules')}
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">
+                                {t('audit.title', 'Audit des Prix et Calculs')}
                             </h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                                 {t('audit.subtitle', 'Transparence totale sur la source de chaque tarif')}
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                        <X className="w-5 h-5" />
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 

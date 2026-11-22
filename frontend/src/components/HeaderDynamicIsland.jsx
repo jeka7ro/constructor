@@ -405,7 +405,7 @@ export default function HeaderDynamicIsland() {
                 </div>
             </button>
 
-            {/* State 2: Incoming Notification Bubble — Pure 120fps GPU-composited spring emergence & smooth suction return into the Dynamic Island */}
+            {/* State 2: Incoming Notification Bubble — Crisp Retina text when open, smooth spring emergence & suction return */}
             <div
                 aria-hidden={!isAlertVisible}
                 onClick={() => {
@@ -414,20 +414,17 @@ export default function HeaderDynamicIsland() {
                     if (target) navigate(target)
                 }}
                 style={{
-                    willChange: 'transform, opacity, border-radius',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
                     transformOrigin: '50% 0%',
                     borderRadius: isAlertVisible ? '22px' : '44px',
                     transition: isAlertVisible
-                        ? 'transform 480ms cubic-bezier(0.22, 1.08, 0.36, 1), border-radius 480ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out'
-                        : 'transform 400ms cubic-bezier(0.32, 0, 0.15, 1), border-radius 360ms cubic-bezier(0.32, 0, 0.15, 1), opacity 230ms cubic-bezier(0.32, 0, 0.2, 1) 110ms',
+                        ? 'transform 460ms cubic-bezier(0.22, 1.08, 0.36, 1), border-radius 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out'
+                        : 'transform 380ms cubic-bezier(0.32, 0, 0.15, 1), border-radius 340ms cubic-bezier(0.32, 0, 0.15, 1), opacity 220ms cubic-bezier(0.32, 0, 0.2, 1) 100ms',
                     transform: isAlertVisible
-                        ? 'translate3d(-50%, 8px, 0) scale3d(1, 1, 1)'
+                        ? 'translateX(-50%) translateY(8px)'
                         : 'translate3d(-50%, -24px, 0) scale3d(0.30, 0.25, 1)',
                     opacity: isAlertVisible ? 1 : 0,
                 }}
-                className={`absolute top-full left-1/2 z-[9998] w-[390px] max-w-[92vw] bg-[#F2F4F8]/98 dark:bg-slate-900/96 text-slate-900 dark:text-white backdrop-blur-2xl border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_24px_54px_-12px_rgba(15,23,42,0.36),0_6px_18px_-4px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.95)] dark:shadow-[0_24px_54px_-12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.16)] p-2.5 cursor-pointer overflow-hidden ${isAlertVisible
+                className={`absolute top-full left-1/2 z-[9998] w-[390px] max-w-[92vw] bg-[#F2F4F8] dark:bg-slate-900 text-slate-950 dark:text-white border-[1.5px] border-slate-300 dark:border-slate-600 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_24px_54px_-12px_rgba(15,23,42,0.38),0_6px_18px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_24px_54px_-12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.16)] p-2.5 cursor-pointer overflow-hidden antialiased ${isAlertVisible
                     ? 'pointer-events-auto'
                     : 'pointer-events-none'
                     }`}
@@ -435,14 +432,13 @@ export default function HeaderDynamicIsland() {
                 <div
                     style={{
                         opacity: isAlertVisible ? 1 : 0,
-                        transform: isAlertVisible ? 'scale3d(1, 1, 1)' : 'scale3d(0.95, 0.95, 1)',
                         transition: isAlertVisible
-                            ? 'opacity 250ms ease-out 60ms, transform 380ms cubic-bezier(0.22, 1, 0.36, 1) 30ms'
-                            : 'opacity 160ms ease-out, transform 220ms ease-in',
+                            ? 'opacity 220ms ease-out 50ms'
+                            : 'opacity 150ms ease-out',
                     }}
-                    className="flex items-center gap-3 rounded-[15px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 px-3 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+                    className="flex items-center gap-3 rounded-[15px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2.5 shadow-2xs"
                 >
-                    <span className="w-9 h-9 rounded-full bg-sky-500/12 dark:bg-sky-400/15 border border-sky-500/25 flex items-center justify-center shrink-0">
+                    <span className="w-9 h-9 rounded-full bg-sky-50 dark:bg-sky-400/15 border border-sky-200 dark:border-sky-500/25 flex items-center justify-center shrink-0">
                         {displayedAlert?.type === 'quote' ? (
                             <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                         ) : (
@@ -452,16 +448,16 @@ export default function HeaderDynamicIsland() {
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate">
                                 {displayedAlert?.type === 'quote'
                                     ? t('dynamic_island.new_quote_title', 'Nouveau devis')
                                     : t('dynamic_island.new_message_alert', 'Nouveau message client')}
                             </span>
                         </div>
-                        <div className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">
+                        <div className="text-[13px] font-bold text-slate-950 dark:text-white truncate">
                             {displayedAlert?.title}
                         </div>
-                        <div className="text-[12px] text-slate-500 dark:text-slate-400 truncate">
+                        <div className="text-[12px] font-semibold text-slate-700 dark:text-slate-300 truncate">
                             {displayedAlert?.subtitle}
                         </div>
                     </div>
@@ -471,31 +467,28 @@ export default function HeaderDynamicIsland() {
                             e.stopPropagation()
                             closeAlert()
                         }}
-                        className="w-6 h-6 rounded-full hover:bg-slate-200/70 dark:hover:bg-white/15 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white shrink-0"
+                        className="w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-white/15 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white shrink-0"
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
             </div>
 
-            {/* State 3: Full Expanded Dynamic Island Live Activity Sheet — Pure 120fps GPU-composited spring emergence & smooth suction return */}
+            {/* State 3: Full Expanded Dynamic Island Live Activity Sheet — Crisp Retina text (no GPU scale3d bitmap blur when open, solid opaque background) */}
             <div
                 aria-hidden={!isOpen}
                 style={{
-                    willChange: 'transform, opacity, border-radius',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
                     transformOrigin: '50% 0%',
                     borderRadius: isOpen ? '24px' : '44px',
                     transition: isOpen
-                        ? 'transform 460ms cubic-bezier(0.22, 1.06, 0.36, 1), border-radius 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out'
-                        : 'transform 400ms cubic-bezier(0.32, 0, 0.15, 1), border-radius 360ms cubic-bezier(0.32, 0, 0.15, 1), opacity 230ms cubic-bezier(0.32, 0, 0.2, 1) 110ms',
+                        ? 'transform 440ms cubic-bezier(0.22, 1.06, 0.36, 1), border-radius 440ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out'
+                        : 'transform 380ms cubic-bezier(0.32, 0, 0.15, 1), border-radius 340ms cubic-bezier(0.32, 0, 0.15, 1), opacity 220ms cubic-bezier(0.32, 0, 0.2, 1) 100ms',
                     transform: isOpen
-                        ? 'translate3d(-50%, 8px, 0) scale3d(1, 1, 1)'
+                        ? 'translateX(-50%) translateY(8px)'
                         : 'translate3d(-50%, -24px, 0) scale3d(0.28, 0.20, 1)',
                     opacity: isOpen ? 1 : 0,
                 }}
-                className={`absolute top-full left-1/2 w-[420px] max-w-[94vw] bg-[#F2F4F8]/98 dark:bg-slate-900/96 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] dark:shadow-[0_28px_64px_-12px_rgba(0,0,0,0.9),0_8px_24px_-4px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.16)] p-3.5 z-[9999] overflow-hidden ${isOpen
+                className={`absolute top-full left-1/2 w-[420px] max-w-[94vw] bg-[#F2F4F8] dark:bg-slate-900 text-slate-950 dark:text-white border-[1.5px] border-slate-300 dark:border-slate-600 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.42),0_8px_24px_-4px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_28px_64px_-12px_rgba(0,0,0,0.9),0_8px_24px_-4px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.16)] p-3.5 z-[9999] overflow-hidden antialiased ${isOpen
                     ? 'pointer-events-auto'
                     : 'pointer-events-none'
                     }`}
@@ -503,25 +496,24 @@ export default function HeaderDynamicIsland() {
                 <div
                     style={{
                         opacity: isOpen ? 1 : 0,
-                        transform: isOpen ? 'scale3d(1, 1, 1)' : 'scale3d(0.96, 0.96, 1)',
                         transition: isOpen
-                            ? 'opacity 240ms ease-out 50ms, transform 360ms cubic-bezier(0.22, 1, 0.36, 1) 30ms'
-                            : 'opacity 160ms ease-out, transform 220ms ease-in',
+                            ? 'opacity 200ms ease-out 40ms'
+                            : 'opacity 140ms ease-out',
                     }}
                 >
-                {/* 1. Unified Apple Inset Grouped Summary Strip (Single neutral surface with hairline vertical dividers — no rainbow boxes, no 2-line wrapped titles) */}
-                <div className="grid grid-cols-3 divide-x divide-slate-200/95 dark:divide-slate-700/80 rounded-[14px] bg-white dark:bg-slate-800/90 border border-slate-300/90 dark:border-slate-700/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] mb-3.5 overflow-hidden">
+                {/* 1. Unified Apple Inset Grouped Summary Strip */}
+                <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700 rounded-[14px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.06)] mb-3.5 overflow-hidden">
                     <div
                         onClick={() => { closePopover(); navigate('/admin/planning') }}
                         className="px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                     >
-                        <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                        <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate">
                             {t('dynamic_island.today', "Aujourd'hui")}
                         </div>
-                        <div className="mt-0.5 text-[17px] font-bold tracking-tight text-slate-900 dark:text-white tabular-nums leading-tight">
-                            {summary.todayJobsCount} <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">{t('dynamic_island.jobs_short', 'chantiers')}</span>
+                        <div className="mt-0.5 text-[17px] font-black tracking-tight text-slate-950 dark:text-white tabular-nums leading-tight">
+                            {summary.todayJobsCount} <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300">{t('dynamic_island.jobs_short', 'chantiers')}</span>
                         </div>
-                        <div className="text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums truncate">
+                        <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 tabular-nums truncate">
                             {summary.todayTotalM2} m² {t('dynamic_island.planned_short', 'planifiés')}
                         </div>
                     </div>
@@ -530,14 +522,14 @@ export default function HeaderDynamicIsland() {
                         onClick={() => { closePopover(); navigate('/admin/tracking') }}
                         className="px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                     >
-                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                             <span className="truncate">{t('dynamic_island.fleet_gps', 'Flotte GPS')}</span>
                         </div>
-                        <div className="mt-0.5 text-[17px] font-bold tracking-tight text-slate-900 dark:text-white tabular-nums leading-tight">
-                            {summary.activeTrucks} <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">{t('dynamic_island.active_plural', 'actifs')}</span>
+                        <div className="mt-0.5 text-[17px] font-black tracking-tight text-slate-950 dark:text-white tabular-nums leading-tight">
+                            {summary.activeTrucks} <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300">{t('dynamic_island.active_plural', 'actifs')}</span>
                         </div>
-                        <div className="text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums truncate">
+                        <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 tabular-nums truncate">
                             {summary.totalKmToday} km · {summary.movingTrucks} {t('dynamic_island.moving_short', 'en route')}
                         </div>
                     </div>
@@ -546,13 +538,13 @@ export default function HeaderDynamicIsland() {
                         onClick={() => { closePopover(); navigate('/admin/quotes') }}
                         className="px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                     >
-                        <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                        <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate">
                             {t('dynamic_island.pending', 'En attente')}
                         </div>
-                        <div className="mt-0.5 text-[17px] font-bold tracking-tight text-slate-900 dark:text-white tabular-nums leading-tight">
-                            {summary.pendingQuotesTotal} <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">{t('dynamic_island.quotes_short', 'devis')}</span>
+                        <div className="mt-0.5 text-[17px] font-black tracking-tight text-slate-950 dark:text-white tabular-nums leading-tight">
+                            {summary.pendingQuotesTotal} <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300">{t('dynamic_island.quotes_short', 'devis')}</span>
                         </div>
-                        <div className="text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate">
+                        <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 truncate">
                             {t('dynamic_island.quotes_title', 'Nouveaux devis')}
                         </div>
                     </div>
@@ -561,7 +553,7 @@ export default function HeaderDynamicIsland() {
                 {/* 2. Unread Client Messages — Apple Inset Grouped Section */}
                 <div className="mb-3.5">
                     <div className="flex items-center justify-between px-1.5 mb-1.5">
-                        <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-400">
+                        <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
                             {t('dynamic_island.messages_clients', 'Messages clients')}
                             {summary.unreadMessagesCount > 0 ? ` (${summary.unreadMessagesCount})` : ''}
                         </span>
@@ -569,20 +561,20 @@ export default function HeaderDynamicIsland() {
                             <button
                                 type="button"
                                 onClick={handleMarkAllMessagesRead}
-                                className="text-[12px] font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 cursor-pointer"
+                                className="text-[12px] font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 cursor-pointer"
                             >
                                 {t('dynamic_island.mark_all_read', 'Tout marquer lu')}
                             </button>
                         )}
                     </div>
-                    <div className="rounded-[14px] bg-white dark:bg-slate-800/90 border border-slate-300/90 dark:border-slate-700/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] divide-y divide-slate-200/90 dark:divide-slate-700/80 overflow-hidden">
+                    <div className="rounded-[14px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.06)] divide-y divide-slate-200 dark:divide-slate-700 overflow-hidden">
                         {summary.unreadMessages.length === 0 ? (
                             <div
                                 onClick={() => { closePopover(); navigate('/admin/chats') }}
-                                className="px-3.5 py-2.5 text-[12.5px] text-slate-500 dark:text-slate-400 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
+                                className="px-3.5 py-2.5 text-[12.5px] font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                             >
                                 <span>{t('dynamic_island.no_unread_messages', 'Aucun message non lu')}</span>
-                                <ChevronRight className="w-4 h-4 text-slate-400" />
+                                <ChevronRight className="w-4 h-4 text-slate-500" />
                             </div>
                         ) : (
                             summary.unreadMessages.map(msg => (
@@ -597,41 +589,41 @@ export default function HeaderDynamicIsland() {
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
                                             <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
-                                            <span className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">
+                                            <span className="text-[13px] font-bold text-slate-950 dark:text-white truncate">
                                                 {msg.work_order_title || msg.sender_name || 'Client'}
                                             </span>
                                             {msg.count > 1 && (
-                                                <span className="px-1.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/10 text-slate-600 dark:text-slate-300 text-[10.5px] font-semibold tabular-nums leading-none">
+                                                <span className="px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-white/10 text-slate-800 dark:text-slate-200 text-[10.5px] font-bold tabular-nums leading-none">
                                                     {msg.count}
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5 pl-4">
+                                        <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-300 truncate mt-0.5 pl-4">
                                             {msg.message}
                                         </p>
                                     </div>
-                                    <ChevronRight className="w-4 h-4 text-slate-400/80 shrink-0" />
+                                    <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
                                 </div>
                             ))
                         )}
                     </div>
                 </div>
 
-                {/* 3. Latest Pending Quotes — True Apple iOS/macOS Inset Grouped List (single rounded container with hairline dividers & trailing disclosure chevrons) */}
+                {/* 3. Latest Pending Quotes — True Apple iOS/macOS Inset Grouped List */}
                 <div>
                     <div className="flex items-center justify-between px-1.5 mb-1.5">
-                        <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-400">
+                        <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
                             {t('dynamic_island.latest_pending_quotes', 'Derniers devis en attente')}
                         </span>
                         <button
                             type="button"
                             onClick={() => { closePopover(); navigate('/admin/quotes') }}
-                            className="text-[12px] font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 cursor-pointer"
+                            className="text-[12px] font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 cursor-pointer"
                         >
                             {t('dynamic_island.view_all', 'Voir tout')} ({summary.pendingQuotesTotal})
                         </button>
                     </div>
-                    <div className="rounded-[14px] bg-white dark:bg-slate-800/90 border border-slate-300/90 dark:border-slate-700/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] divide-y divide-slate-200/90 dark:divide-slate-700/80 overflow-hidden">
+                    <div className="rounded-[14px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.06)] divide-y divide-slate-200 dark:divide-slate-700 overflow-hidden">
                         {summary.recentPendingQuotes.map(q => {
                             const city = extractCityShort(q.site_address)
                             const vol = q.volumes?.[0] || {}
@@ -646,27 +638,27 @@ export default function HeaderDynamicIsland() {
                                     }}
                                     className="px-3.5 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.08] cursor-pointer transition-colors flex items-center justify-between gap-2.5"
                                 >
-                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
                                         <span
-                                            className={`w-2 h-2 rounded-full shrink-0 ${isWeR ? 'bg-amber-500' : isOnline ? 'bg-sky-500' : 'bg-slate-400'
+                                            className={`w-2 h-2 rounded-full shrink-0 ${isWeR ? 'bg-amber-500' : isOnline ? 'bg-sky-500' : 'bg-slate-500'
                                                 }`}
                                         />
-                                        <span className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">
+                                        <span className="text-[13px] font-bold text-slate-950 dark:text-white truncate">
                                             {q.client_name || q.title || 'Client'}
                                         </span>
                                         {city && (
-                                            <span className="text-[12px] text-slate-500 dark:text-slate-400 truncate">
+                                            <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-300 truncate">
                                                 · {city}
                                             </span>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1.5 shrink-0 tabular-nums">
                                         {vol.quantity && (
-                                            <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+                                            <span className="text-[12px] font-bold text-slate-700 dark:text-slate-200">
                                                 {vol.quantity} m²{vol.thickness ? ` · ${vol.thickness} cm` : ''}
                                             </span>
                                         )}
-                                        <ChevronRight className="w-4 h-4 text-slate-400/80" />
+                                        <ChevronRight className="w-4 h-4 text-slate-500" />
                                     </div>
                                 </div>
                             )
@@ -683,7 +675,7 @@ export default function HeaderDynamicIsland() {
                     const fmtDate = (dStr) =>
                         new Date(dStr + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
                     return (
-                        <div className="mt-3 rounded-[12px] bg-white dark:bg-slate-800/90 border border-slate-300/90 dark:border-slate-700/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] flex items-center justify-between px-3 py-2 text-[11.5px]">
+                        <div className="mt-3 rounded-[12px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.06)] flex items-center justify-between px-3 py-2 text-[11.5px]">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -693,16 +685,16 @@ export default function HeaderDynamicIsland() {
                                         window.dispatchEvent(new CustomEvent('jump-to-calendar-date', { detail: { date: nextH.date } }))
                                     }, 60)
                                 }}
-                                className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition-colors"
+                                className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white cursor-pointer transition-colors"
                             >
                                 <CalendarDays className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                <span className="font-medium">{t('planning.next_holiday_full', 'Prochain férié')} :</span>
-                                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                <span className="font-semibold">{t('planning.next_holiday_full', 'Prochain férié')} :</span>
+                                <span className="font-bold text-slate-950 dark:text-white">
                                     {t(`holidays.${nextH.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, nextH.name)} ({fmtDate(nextH.date)})
                                 </span>
                             </button>
                             {secondH && (
-                                <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[140px]">
+                                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[140px]">
                                     · {t(`holidays.${secondH.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, secondH.name)} ({fmtDate(secondH.date)})
                                 </span>
                             )}

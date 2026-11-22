@@ -1,0 +1,1525 @@
+import MobileAgenda from "./MobileAgenda";
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star, Search, X, Move } from 'lucide-react';
+import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
+import { ro, enUS, nl, fr, de } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useUIStore } from '../store/uiStore';
+import { useTenantStore } from '../store/tenantStore';
+import api from '../lib/api';
+import WeatherWidget from './WeatherWidget';
+
+const PUBLIC_HOLIDAYS_BE = [
+    { date: '2025-01-01', name: 'Nieuwjaar' },
+    { date: '2025-04-21', name: 'Paasmaandag' },
+    { date: '2025-05-01', name: 'Fête du Travail' },
+    { date: '2025-05-29', name: 'Ascension' },
+    { date: '2025-06-09', name: 'Lundi de Pentecôte' },
+    { date: '2025-07-21', name: 'Fête Nationale' },
+    { date: '2025-08-15', name: 'L\'Assomption' },
+    { date: '2025-11-01', name: 'Toussaint' },
+    { date: '2025-11-11', name: 'Armistice' },
+    { date: '2025-12-25', name: 'Noël' },
+    { date: '2026-01-01', name: 'Nieuwjaar' },
+    { date: '2026-04-06', name: 'Paasmaandag' },
+    { date: '2026-05-01', name: 'Fête du Travail' },
+    { date: '2026-05-14', name: 'Ascension' },
+    { date: '2026-05-25', name: 'Lundi de Pentecôte' },
+    { date: '2026-07-21', name: 'Fête Nationale' },
+    { date: '2026-08-15', name: 'L\'Assomption' },
+    { date: '2026-11-01', name: 'Toussaint' },
+    { date: '2026-11-11', name: 'Armistice' },
+    { date: '2026-12-25', name: 'Noël' },
+    { date: '2027-01-01', name: 'Nieuwjaar' },
+    { date: '2027-03-29', name: 'Paasmaandag' },
+    { date: '2027-05-01', name: 'Fête du Travail' },
+    { date: '2027-05-06', name: 'Ascension' },
+    { date: '2027-05-17', name: 'Lundi de Pentecôte' },
+    { date: '2027-07-21', name: 'Fête Nationale' },
+    { date: '2027-08-15', name: 'L\'Assomption' },
+    { date: '2027-11-01', name: 'Toussaint' },
+    { date: '2027-11-11', name: 'Armistice' },
+    { date: '2027-12-25', name: 'Noël' }
+];
+
+const getUpcomingHolidays = (count = 4) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const upcoming = [];
+    for (const holiday of PUBLIC_HOLIDAYS_BE) {
+        const hDate = new Date(holiday.date);
+        hDate.setHours(0, 0, 0, 0);
+        if (hDate > today) {
+            upcoming.push(holiday);
+            if (upcoming.length === count) break;
+        }
+    }
+    return upcoming;
+};
+
+const calculateOrderSand = (wo) => {
+    let autoSandKg = parseFloat(wo.route_sand_kg) || 0;
+    
+    if (autoSandKg === 0) {
+        if (wo.volumes && wo.volumes.length > 0) {
+            wo.volumes.forEach(vol => {
+                const surface = parseFloat(vol.quantity) || 0;
+                const thickness = parseFloat(vol.thickness) || 0;
+                autoSandKg += (surface * thickness * 16);
+            });
+        } else {
+            const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+            const fallbackThick = parseFloat(wo.thickness) || parseFloat(wo.thickness_cm) || 0;
+            autoSandKg = fallbackSurface * fallbackThick * 16;
+        }
+    }
+    
+    return autoSandKg / 1000;
+};
+
+export const formatAddressCityFirst = (address) => {
+    if (!address) return '';
+    const parts = address.split(',').map(p => p.trim());
+    // "doar localc" -> doar localitatea
+    // Dacă adresa e "Bruxelles, Belgia", returnăm "Bruxelles" (parts[0])
+    // Dacă e "Strada X, Oras, Tara", ideal ar fi orasul, dar returnam parts[0] sau parts[1]
+    if (parts.length >= 2) {
+        let cityWithZip = parts[1];
+        let city = cityWithZip.replace(/\d+/g, '').trim();
+        // Dacă e doar "Bruxelles, Belgia", Belgia e parts[1].
+        if (city.toLowerCase() === 'belgia' || city.toLowerCase() === 'belgium') {
+            return parts[0].replace(/\d+/g, '').trim();
+        }
+        return city || parts[0];
+    }
+    return address;
+};
+
+export default function ShortWorksCalendar({ 
+    isCalendarFull,
+    toggleCalendarFullscreen,
+    workOrders = [], 
+    teams = [],
+    clients = [],
+    onOrderRescheduled, 
+    onTeamDrop, 
+    onClientDrop,
+    onTeamDropOnEmpty,
+    onClientDropOnEmpty,
+    onEmptyCellClick,
+    onOrderClick,
+    onOrderEdit,
+    onOrderComplete
+}) {
+    const [currentDate, setCurrentDate] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        const dateParam = params.get('date');
+        if (dateParam) {
+            const parsed = new Date(dateParam + 'T00:00:00');
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return new Date();
+    });
+    const [syncing, setSyncing] = useState(false);
+    const [isScrollable, setIsScrollable] = useState(false);
+    const hasAutoScrolled = useRef(false); // prevent re-jumping on data refresh
+    const lastSwipeTime = useRef(0); // prevent accidental click after scroll
+    const [showScrollHint, setShowScrollHint] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [draggedOrder, setDraggedOrder] = useState(null);
+    const [hoveredOrder, setHoveredOrder] = useState(null);
+    const [hoveredDay, setHoveredDay] = useState(null);
+    const [orderToDelete, setOrderToDelete] = useState(null);
+    const [animatingOrder, setAnimatingOrder] = useState(null);
+    const [deletedIds, setDeletedIds] = useState(new Set()); // Optimistic UI for instant deletion
+    const [pendingReschedule, setPendingReschedule] = useState(null);
+    const [heldOrder, setHeldOrder] = useState(null); // the work order stored in the holding area
+    const [planningTime, setPlanningTime] = useState('08:00');
+    const [planningNotify, setPlanningNotify] = useState(false);
+    const [isSelectingForHolding, setIsSelectingForHolding] = useState(false);
+    const containerRef = useRef(null);
+    const { openDialog } = useUIStore();
+    const { tenant } = useTenantStore();
+    const navigate = useNavigate();
+    const { t, i18n } = useTranslation();
+    const [completing, setCompleting] = useState(null);
+
+    const handleComplete = async (wo, e) => {
+        e.stopPropagation();
+        if (completing) return;
+
+        const woDate = new Date(wo.start_date || wo.deadline_date);
+        woDate.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (woDate > today) {
+            toast.error(t('planning.cannot_complete_future', 'Vous ne pouvez pas terminer un travail dans le futur.'));
+            return;
+        }
+
+        setCompleting(wo.id);
+        try {
+            await api.put(`/admin/work-orders/${wo.id}`, { status: 'completed' });
+            if (onOrderComplete) onOrderComplete();
+            else if (onOrderRescheduled) onOrderRescheduled();
+            else window.location.reload();
+        } catch (err) {
+            console.error('Eroare finalizare:', err);
+        } finally {
+            setCompleting(null);
+        }
+    };
+    const handleCompleteDay = async (day, e) => {
+        e.stopPropagation();
+        
+        const dayObj = new Date(day);
+        dayObj.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (dayObj > today) {
+            toast.error(t('planning.cannot_complete_future_day', 'Vous ne pouvez pas terminer des travaux dans le futur.'));
+            return;
+        }
+
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const dayOrders = weeklyOrders.filter(wo => {
+            const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
+            return ds === dayStr && wo.status !== 'completed';
+        });
+        if (!dayOrders.length) return;
+        setSyncing(true);
+        try {
+            await Promise.all(dayOrders.map(wo =>
+                api.put(`/admin/work-orders/${wo.id}`, { status: 'completed' })
+            ));
+            if (onOrderComplete) onOrderComplete();
+            else if (onOrderRescheduled) onOrderRescheduled();
+            else window.location.reload();
+        } catch (err) {
+            console.error('Eroare finalizare zi:', err);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleUncomplete = async (wo, e) => {
+        e.stopPropagation();
+        try {
+            await api.put(`/admin/work-orders/${wo.id}`, { status: 'confirmed' });
+            if (onOrderComplete) onOrderComplete();
+            else if (onOrderRescheduled) onOrderRescheduled();
+            else window.location.reload();
+        } catch (err) {
+            console.error('Eroare revenire status:', err);
+        }
+    };
+
+    const handleUnCompleteDay = async (day, e) => {
+        e.stopPropagation();
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const dayOrders = weeklyOrders.filter(wo => {
+            const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
+            return ds === dayStr && wo.status === 'completed';
+        });
+        if (!dayOrders.length) return;
+        setSyncing(true);
+        try {
+            await Promise.all(dayOrders.map(wo =>
+                api.put(`/admin/work-orders/${wo.id}`, { status: 'confirmed' })
+            ));
+            if (onOrderComplete) onOrderComplete();
+            else if (onOrderRescheduled) onOrderRescheduled();
+            else window.location.reload();
+        } catch (err) {
+            console.error('Eroare revenire status zi:', err);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleDropHeldOrder = async (date, timeStr) => {
+        if (!heldOrder) return;
+        
+        // --- PREVENT DROPPING IN THE PAST ---
+        const dropDateObj = new Date(date);
+        dropDateObj.setHours(0, 0, 0, 0);
+        const todayObj = new Date();
+        todayObj.setHours(0, 0, 0, 0);
+        if (dropDateObj < todayObj) {
+            toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail dans le passé.'));
+            return;
+        }
+
+        const dateStr = format(date, 'yyyy-MM-dd');
+        setSyncing(true);
+        try {
+            const payload = {
+                start_date: dateStr,
+                deadline_date: dateStr,
+                start_time: timeStr || '08:00',
+                status: 'confirmed'
+            };
+            await api.put(`/admin/work-orders/${heldOrder.id}`, payload);
+            const droppedId = heldOrder.id;
+            setHeldOrder(null);
+            setIsSelectingForHolding(false);
+            if (onOrderRescheduled) onOrderRescheduled(droppedId, dateStr, timeStr || '08:00');
+            else window.location.reload();
+        } catch (error) {
+            console.error('Error dropping held order:', error);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+
+    const getLocale = () => {
+        if (i18n.language?.startsWith('ro')) return ro;
+        if (i18n.language?.startsWith('nl')) return nl;
+        if (i18n.language?.startsWith('fr')) return fr;
+        if (i18n.language?.startsWith('de')) return de;
+        return enUS;
+    };
+    const dateLocale = getLocale();
+
+    // Generate week days (Monday to Sunday) - MEMOIZED to prevent weeklyOrders recalculation loop
+    const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
+    const weekDays = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i)), [weekStart]);
+
+    const isCurrentWeek = isSameWeek(currentDate, new Date(), { weekStartsOn: 1 });
+    const weekEnd = addDays(weekStart, 6);
+    const weekLabel = isCurrentWeek 
+        ? t('admin_overview.current_week_short', 'Săpt. curentă') 
+        : `${format(weekStart, 'dd MMM', { locale: dateLocale })} - ${format(weekEnd, 'dd MMM', { locale: dateLocale })}`;
+
+    // Filter work orders that fall in this week
+    const weekDayStrings = useMemo(() => weekDays.map(d => format(d, 'yyyy-MM-dd')), [weekDays]);
+
+    // Filter work orders that fall in this week - highly optimized string matching + dedup
+    const weeklyOrders = useMemo(() => {
+        const seen = new Set();
+        return workOrders.filter(wo => {
+            if (seen.has(wo.id)) return false;
+            seen.add(wo.id);
+            const dateStr = wo.start_date || wo.deadline_date;
+            if (!dateStr) return false;
+            const ds = dateStr.split('T')[0];
+            return weekDayStrings.includes(ds);
+        });
+    }, [workOrders, weekDayStrings]);
+
+    // O(N) grouping by date to prevent O(N * 7) filtering during render
+    const ordersByDateStr = useMemo(() => {
+        const dict = {};
+        weeklyOrders.forEach(wo => {
+            const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
+            if (!ds) return;
+            if (!dict[ds]) dict[ds] = [];
+            dict[ds].push(wo);
+        });
+        return dict;
+    }, [weeklyOrders]);
+
+    // Pre-sort orders to prevent re-sorting on every render frame
+    const sortedWeeklyOrders = useMemo(() => {
+        return [...weeklyOrders].sort((a, b) => {
+            const tA = a.start_time ? String(a.start_time) : '07:00';
+            const tB = b.start_time ? String(b.start_time) : '07:00';
+            return tA.localeCompare(tB);
+        });
+    }, [weeklyOrders]);
+
+    // Calculate sequential index of orders for a team on a specific day
+    const teamDailyOrderIndices = useMemo(() => {
+        const counters = {}; // key: `${team_id}_${dateStr}`, value: counter
+        const indices = {};  // key: `wo.id`, value: index (0 = first)
+        
+        // We need a fully sorted array by Date THEN Time to process sequentially
+        const fullySorted = [...weeklyOrders].sort((a, b) => {
+            const dA = (a.start_date || a.deadline_date || '').split('T')[0];
+            const dB = (b.start_date || b.deadline_date || '').split('T')[0];
+            if (dA !== dB) return dA.localeCompare(dB);
+            
+            const tA = a.start_time ? String(a.start_time) : '07:00';
+            const tB = b.start_time ? String(b.start_time) : '07:00';
+            return tA.localeCompare(tB);
+        });
+        
+        fullySorted.forEach(wo => {
+            const dateStr = (wo.start_date || wo.deadline_date || '').split('T')[0];
+            const teamId = wo.assigned_team_id || 'unassigned';
+            const key = `${teamId}_${dateStr}`;
+            
+            if (counters[key] === undefined) counters[key] = 0;
+            indices[wo.id] = counters[key];
+            counters[key]++;
+        });
+        
+        return indices;
+    }, [weeklyOrders]);
+
+    const [bases, setBases] = useState([]);
+    const getDistanceTextForOrder = (wo) => {
+        // REGULĂ STRICTĂ: Totul se citește din baza de date
+        const rawDist = wo.route_distance_km || (wo.prices?.distance_km ? parseFloat(wo.prices.distance_km) * 2 : 0);
+        if (!rawDist || rawDist === 0) return null;
+        
+        const dist = Math.round(rawDist);
+        const orderIndex = teamDailyOrderIndices[wo.id] || 0;
+        
+        // Dacă e a doua (sau următoarea) lucrare pe ziua respectivă pentru această echipă, se adaugă '+'
+        const isLeg = orderIndex > 0; 
+        return isLeg ? `+ ${dist} km` : `${dist} km`;
+    };
+
+
+    const navigateWeek = (dir) => {
+        setCurrentDate(prev => addDays(prev, dir * 7));
+    };
+
+    const sandPerDay = useMemo(() => {
+        const sandMap = {};
+        weeklyOrders.forEach(wo => {
+            const dateStr = wo.start_date || wo.deadline_date;
+            if (!dateStr) return;
+            try {
+                const datePart = dateStr.split('T')[0];
+                sandMap[datePart] = (sandMap[datePart] || 0) + calculateOrderSand(wo);
+            } catch (e) {}
+        });
+        return sandMap;
+    }, [weeklyOrders]);
+
+    const dynamicStartHour = useMemo(() => {
+        let earliest = 24;
+        weeklyOrders.forEach(wo => {
+            if (wo.start_time) {
+                const h = parseInt(wo.start_time.split(':')[0], 10);
+                if (!isNaN(h) && h < earliest) earliest = h;
+            }
+        });
+        if (earliest === 24) return 7; // Dacă nu există comenzi, afișăm de la 07:00
+        if (earliest < 6) return earliest; // Dacă are comenzi la 05:00, afișăm de la 05:00!
+        if (earliest > 8) return 8; // Dacă prima e târziu (ex. 10:00), pornim de la 08:00
+        return earliest;
+    }, [weeklyOrders]);
+
+    const END_HOUR = 21; // Calendar ends at 21:00
+
+    const getGridRowFromTime = (timeStr) => {
+        if (!timeStr || typeof timeStr !== 'string') return 3;
+        const [hours] = timeStr.split(':').map(Number);
+        if (isNaN(hours)) return 3;
+        const row = hours - dynamicStartHour + 1;
+        const numRows = END_HOUR - dynamicStartHour;
+        const finalRow = Math.max(1, Math.min(numRows, row));
+        return isNaN(finalRow) ? 3 : finalRow;
+    };
+
+    // Auto-scroll to earliest event — only once per week change, not on every data refresh
+    useEffect(() => {
+        hasAutoScrolled.current = false; // reset when week changes
+    }, [currentDate]);
+
+    useEffect(() => {
+        if (containerRef.current && !hasAutoScrolled.current && weeklyOrders.length > 0) {
+            let earliestRow = END_HOUR - dynamicStartHour;
+            let latestRow = 1;
+            let hasEvents = false;
+            
+            weeklyOrders.forEach(wo => {
+                const dateStr = wo.start_date || wo.deadline_date;
+                if (!dateStr) return;
+                try {
+                    const datePart = dateStr.split('T')[0];
+                    const [year, month, day] = datePart.split('T')[0].split('-').map(Number);
+                    const woDate = new Date(year, month - 1, day, 12, 0, 0);
+                    if (weekDays.some(d => isSameDay(d, woDate))) {
+                        hasEvents = true;
+                        const row = getGridRowFromTime(wo.start_time);
+                        earliestRow = Math.min(earliestRow, row);
+                        latestRow = Math.max(latestRow, row);
+                    }
+                } catch (e) {}
+            });
+            
+            if (hasEvents) {
+                const targetRow = Math.max(1, earliestRow - 1);
+                const newScrollTop = (targetRow - 1) * 70;
+                containerRef.current.scrollTop = newScrollTop;
+                hasAutoScrolled.current = true;
+
+                const clientH = containerRef.current.clientHeight || 480;
+                const visibleBottom = newScrollTop + clientH;
+                const eventsBottom = latestRow * 70;
+                setShowScrollHint(eventsBottom > visibleBottom);
+            } else {
+                setShowScrollHint(false);
+            }
+        }
+    }, [weeklyOrders, currentDate]);
+
+    const [swipeDir, setSwipeDir] = useState(0);
+    const [swipePhase, setSwipePhase] = useState('idle');
+    const [showPreloader, setShowPreloader] = useState(false);
+    const [touchStart, setTouchStart] = useState({ x: null, y: null });
+    const [touchEnd, setTouchEnd] = useState({ x: null, y: null });
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isSwiping, setIsSwiping] = useState(false);
+    const preloaderTimerRef = useRef(null);
+
+    const onTouchStart = (e) => {
+        setTouchEnd({ x: null, y: null });
+        setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+    };
+
+    const onTouchMove = (e) => {
+        if (!touchStart.x) return;
+        const currentX = e.targetTouches[0].clientX;
+        const currentY = e.targetTouches[0].clientY;
+        const diffX = currentX - touchStart.x;
+        const diffY = currentY - touchStart.y;
+        
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+            // Block vertical page scroll during horizontal swipe
+            e.preventDefault();
+            setIsSwiping(true);
+            setDragOffset(diffX);
+        }
+        setTouchEnd({ x: currentX, y: currentY });
+    };
+
+    const onTouchEndEvent = () => {
+        if (!touchStart.x || !touchEnd.x) {
+            setIsSwiping(false);
+            setDragOffset(0);
+            return;
+        }
+        
+        const distanceX = touchStart.x - touchEnd.x;
+        const distanceY = touchStart.y - touchEnd.y;
+        
+        if (Math.abs(distanceX) > 10 || Math.abs(distanceY) > 10) {
+            lastSwipeTime.current = Date.now();
+        }
+
+        const minSwipeDistance = 60;
+        
+        if (Math.abs(distanceX) > Math.abs(distanceY) && Math.abs(distanceX) > minSwipeDistance) {
+            const direction = distanceX > 0 ? 1 : -1;
+            setIsSwiping(false);
+            setDragOffset(0);
+            // Show preloader for 3 seconds
+            if (preloaderTimerRef.current) clearTimeout(preloaderTimerRef.current);
+            setShowPreloader(true);
+            preloaderTimerRef.current = setTimeout(() => setShowPreloader(false), 1500);
+            // Phase 1: calendar slides out
+            setSwipeDir(direction);
+            setSwipePhase('exit');
+            setTimeout(() => {
+                navigateWeek(direction);
+                setSwipePhase('enter');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        setSwipePhase('idle');
+                        setSwipeDir(0);
+                    });
+                });
+            }, 220);
+        } else {
+            setIsSwiping(false);
+            setDragOffset(0);
+        }
+    };
+
+    const calendarSwipeRef = useRef(null);
+
+    // Attach non-passive touchmove so preventDefault() blocks page scroll
+    useEffect(() => {
+        const el = calendarSwipeRef.current;
+        if (!el) return;
+        const handler = (e) => onTouchMove(e);
+        el.addEventListener('touchmove', handler, { passive: false });
+        return () => el.removeEventListener('touchmove', handler);
+    });
+
+    return (
+        <>
+            {/* MOBILE VIEW - COMPLETELY UNRESTRICTED */}
+            <div className="block md:hidden w-full min-h-[calc(100vh-200px)] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <MobileAgenda 
+                    orders={weeklyOrders}
+                    onOrderClick={(wo) => {
+                        if (isSelectingForHolding) {
+                            const dateStr = wo.start_date || wo.deadline_date;
+                            const parsedDate = dateStr ? new Date(dateStr.split('T')[0]) : null;
+                            let isPast = false;
+                            if (parsedDate) {
+                                const dropDateObj = new Date(parsedDate);
+                                dropDateObj.setHours(0, 0, 0, 0);
+                                const todayObj = new Date();
+                                todayObj.setHours(0, 0, 0, 0);
+                                isPast = dropDateObj < todayObj;
+                            }
+                            if (isPast) {
+                                toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail depuis le passé.'));
+                                return;
+                            }
+                            setHeldOrder(wo);
+                            setIsSelectingForHolding(false);
+                            return;
+                        }
+                        if (onOrderClick) onOrderClick(wo);
+                        else navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
+                    }}
+                    currentDate={currentDate}
+                    setCurrentDate={setCurrentDate}
+                />
+            </div>
+            
+            <div 
+                ref={calendarSwipeRef}
+                className={`hidden md:flex bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-col relative ${isCalendarFull ? 'h-full' : 'h-[800px]'}`}
+                onTouchStart={onTouchStart}
+                onTouchEnd={onTouchEndEvent}
+            >
+                {/* Header */}
+            <div className="flex flex-col border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                <div className="px-4 h-[60px] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <CalendarIcon className="w-5 h-5 text-white/90" />
+                        <h2 className="text-lg font-bold text-white capitalize">
+                            {format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
+                        </h2>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {/* Next Holiday Box */}
+                        {(() => {
+                            const upcomingHolidays = getUpcomingHolidays(4);
+                            if (upcomingHolidays.length > 0) {
+                                const nextH = upcomingHolidays[0];
+                                const tooltipHolidays = upcomingHolidays.slice(1);
+                                
+                                return (
+                                    <div 
+                                        className="group relative hidden md:flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl text-white mr-2 cursor-pointer hover:bg-white/20 transition-colors" 
+                                        onClick={() => setCurrentDate(new Date(nextH.date))}
+                                    >
+                                        <div className="bg-white/20 rounded p-1">
+                                            <CalendarIcon className="w-3.5 h-3.5" />
+                                        </div>
+                                        <div className="flex flex-col text-left leading-tight">
+                                            <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">{t('planning.next_holiday_full', 'Férié')}</span>
+                                            <span className="text-xs font-bold">{t(`holidays.${nextH.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, nextH.name)} ({format(new Date(nextH.date), 'dd MMM', { locale: dateLocale })})</span>
+                                        </div>
+
+                                        {/* Custom Beautiful Tooltip */}
+                                        {tooltipHolidays.length > 0 && (
+                                            <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 text-white rounded-xl shadow-xl p-3 text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] border border-slate-700 pointer-events-none">
+                                                <div className="font-bold mb-2 pb-2 border-b border-slate-700 text-slate-300">
+                                                    {t('planning.next_holiday_full', 'Următoarele Sărbători')}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {tooltipHolidays.map((h, index) => (
+                                                        <div key={index} className="flex justify-between items-center">
+                                                            <span className="font-medium text-slate-100">
+                                                                {index + 2}. {t(`holidays.${h.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, h.name)}
+                                                            </span>
+                                                            <span className="text-xs text-slate-400">
+                                                                {format(new Date(h.date), 'dd MMM yyyy', { locale: dateLocale })}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+
+                        {/* Favorite Clients Box */}
+                        {(() => {
+                            const favoriteClients = clients.filter(c => c.is_favorite);
+                            if (favoriteClients.length > 0) {
+                                return (
+                                    <div className="group relative hidden md:flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl text-white mr-2 cursor-pointer hover:bg-white/20 transition-colors">
+                                        <div className="bg-white/20 rounded p-1">
+                                            <Star className="w-3.5 h-3.5" />
+                                        </div>
+                                        <div className="flex flex-col text-left leading-tight">
+                                            <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">{t('planning.favorites', 'Clients')}</span>
+                                            <span className="text-xs font-bold">{t('planning.favorite_clients', 'Favoris')}</span>
+                                        </div>
+
+                                        <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 text-white rounded-xl shadow-xl p-3 text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] border border-slate-700 pointer-events-auto">
+                                            <div className="font-bold mb-2 pb-2 border-b border-slate-700 text-slate-300">
+                                                {t('planning.drag_client', 'Glisser dans le calendrier')}
+                                            </div>
+                                            <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                                                {favoriteClients.map((c) => (
+                                                    <div 
+                                                        key={c.id} 
+                                                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-700 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-600 transition-colors"
+                                                        draggable
+                                                        onDragStart={(e) => {
+                                                            e.dataTransfer.setData("type", "client");
+                                                            e.dataTransfer.setData("id", c.id);
+                                                            e.dataTransfer.setData("name", c.name);
+                                                        }}
+                                                    >
+                                                        <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0">
+                                                            <span className="text-[10px] font-bold">{c.name.substring(0, 2).toUpperCase()}</span>
+                                                        </div>
+                                                        <span className="font-medium text-slate-100 truncate flex-1" title={c.name}>
+                                                            {c.name}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+
+                        {/* Holding Area (Moved to the right as requested) */}
+                        <div 
+                            className={`flex items-center justify-center ${heldOrder ? 'w-auto px-3' : 'w-10'} h-10 rounded-xl border-2 border-dashed ${isSelectingForHolding ? 'border-yellow-400 bg-yellow-400/20 shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse' : heldOrder ? 'border-white bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-white/40 hover:border-white/80 bg-white/10'} transition-all cursor-pointer relative`}
+                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const draggedWoId = e.dataTransfer.getData("text/plain");
+                                if (draggedWoId) {
+                                    const draggedWo = workOrders.find(o => String(o.id) === draggedWoId);
+                                    if (draggedWo) setHeldOrder(draggedWo);
+                                }
+                            }}
+                            draggable={!!heldOrder}
+                            onDragStart={(e) => {
+                                if (heldOrder) {
+                                    e.dataTransfer.setData("text/plain", String(heldOrder.id));
+                                    e.dataTransfer.setData("type", "workOrder");
+                                }
+                            }}
+                            onDragEnd={(e) => {
+                                if (e.dataTransfer.dropEffect !== "none") {
+                                    setTimeout(() => setHeldOrder(null), 500);
+                                }
+                            }}
+                            onClick={() => {
+                                if (heldOrder) {
+                                    // Do nothing on container click if already holding. Let the X button clear it.
+                                } else {
+                                    setIsSelectingForHolding(!isSelectingForHolding);
+                                }
+                            }}
+                            title={heldOrder ? t('planning.holding_area_active', 'Choisissez une date/heure dans le calendrier pour déplacer la commande') : t('planning.holding_area', 'Cliquez pour sélectionner une commande à déplacer vers une autre semaine, ou glissez-la ici')}
+                        >
+                            {isSelectingForHolding && !heldOrder && (
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                            )}
+                            {heldOrder ? (
+                                <div className="flex items-center gap-2 text-white text-xs font-bold pl-1 pr-2">
+                                    <Clock className="w-4 h-4 text-yellow-300" />
+                                    <div className="flex flex-col text-left">
+                                        <span className="truncate max-w-[120px]">{heldOrder.client_name || heldOrder.id.slice(0, 8)}</span>
+                                        <span className="text-[9px] font-medium text-white/70">
+                                            {heldOrder.start_date?.split('T')[0]} {heldOrder.start_time}
+                                        </span>
+                                    </div>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setHeldOrder(null);
+                                            setIsSelectingForHolding(false);
+                                        }}
+                                        className="ml-2 p-1 hover:bg-white/20 rounded-full transition-colors"
+                                        title={t('planning.holding_area_clear', 'Anulează')}
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <Move className="w-5 h-5 text-white/80" />
+                            )}
+                        </div>
+                        {toggleCalendarFullscreen && (
+                            <button 
+                                onClick={toggleCalendarFullscreen} 
+                                className="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center"
+                                title={isCalendarFull ? 'Ieși din fullscreen (ESC)' : 'Calendar Fullscreen'}
+                            >
+                                {isCalendarFull
+                                    ? <Minimize2 className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+                                    : <Maximize2 className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+                                }
+                            </button>
+                        )}
+                        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg p-1 border border-blue-500 dark:border-slate-700 shadow-sm">
+                        <button onClick={() => navigateWeek(-1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <span className="px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 min-w-[110px] text-center">{weekLabel}</span>
+                        <button onClick={() => navigateWeek(1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                        </div>
+                    </div>
+                </div>
+
+                {isCalendarFull && (
+                    <div className="px-4 pb-3 flex items-center gap-6 overflow-x-auto custom-scrollbar">
+                        {/* Echipe */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Truck className="w-3.5 h-3.5"/> {t('admin_overview.trucks_teams', 'Équipes')}</span>
+                            <div className="flex gap-2 items-center">
+                                {teams?.map(team => (
+                                    <div 
+                                        key={team.id}
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData("type", "team")
+                                            e.dataTransfer.setData("id", String(team.id))
+                                        }}
+                                        className="px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-1.5"
+                                        style={{ backgroundColor: team.color || '#3b82f6', color: 'white' }}
+                                    >
+                                        <Truck className="w-3 h-3 shrink-0" />
+                                        {team.name.replace(/^echipa\s*/i, '')}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Divizor */}
+                        <div className="w-px h-6 bg-white/20 shrink-0"></div>
+
+                        {/* Clienti */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Building2 className="w-3.5 h-3.5"/> {t('admin_overview.frequent_clients', 'Clients')}</span>
+                            <div className="flex gap-2 items-center">
+                                {clients?.filter(c => c.is_favorite).map(client => (
+                                    <div 
+                                        key={`fav-${client.id}`}
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData("type", "client")
+                                            e.dataTransfer.setData("id", String(client.id))
+                                            e.dataTransfer.setData("name", client.name)
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-1.5"
+                                        style={{ 
+                                            backgroundColor: tenant?.primary_color || '#2563eb',
+                                            color: 'white',
+                                            border: '2px solid white'
+                                        }}
+                                    >
+                                        <Star className="w-3 h-3 shrink-0 fill-white" />
+                                        {client.name}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Overlay Badge */}
+            {!isScrollable && showScrollHint && (
+                <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none hidden md:block">
+                    <div className="bg-slate-900/80 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
+                        <Hand className="w-3.5 h-3.5" />
+                        {t('admin_overview.click_to_scroll', 'Click pentru a derula')}
+                    </div>
+                </div>
+            )}
+
+            {/* Calendar Swipe Animation Wrapper */}
+            <div className="flex-1 relative overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-950">
+
+                {/* Swipe Preloader — card glassmorphism fără fundal întunecat */}
+                <div
+                    className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
+                    style={{
+                        opacity: showPreloader ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                    }}
+                >
+                    {/* Card glassmorphism simplu */}
+                    <div style={{
+                        backdropFilter: 'blur(30px)',
+                        WebkitBackdropFilter: 'blur(30px)',
+                        background: 'rgba(255,255,255,0.22)',
+                        border: '1.5px solid rgba(255,255,255,0.4)',
+                        borderRadius: '32px',
+                        padding: '24px',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.3)',
+                        transform: showPreloader ? 'scale(1)' : 'scale(0.6)',
+                        transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    }}>
+                        {tenant?.favicon_url ? (
+                            <img
+                                src={tenant.favicon_url.startsWith('http') ? tenant.favicon_url : `${typeof window !== 'undefined' ? window.location.origin : ''}${tenant.favicon_url}`}
+                                alt="favicon"
+                                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 14, display: 'block' }}
+                            />
+                        ) : tenant?.logo_url ? (
+                            <img
+                                src={tenant.logo_url.startsWith('http') ? tenant.logo_url : `${typeof window !== 'undefined' ? window.location.origin : ''}${tenant.logo_url}`}
+                                alt="logo"
+                                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 14, display: 'block' }}
+                            />
+                        ) : (
+                            <CalendarIcon style={{ width: 44, height: 44, color: tenant?.primary_color || '#3b82f6' }} />
+                        )}
+                    </div>
+                </div>
+
+                <div 
+                    className="flex-1 flex flex-col w-full h-full relative z-10" 
+                    style={{ 
+                        transform: isSwiping 
+                            ? `translateX(${dragOffset * 0.4}px)` 
+                            : swipePhase === 'exit' 
+                                ? `translateX(${swipeDir * -60}px)` 
+                                : swipePhase === 'enter' 
+                                    ? `translateX(${swipeDir * 60}px)` 
+                                    : 'translateX(0)',
+                        opacity: swipePhase === 'exit' || swipePhase === 'enter' ? 0 : 1,
+                        filter: swipePhase === 'exit' || swipePhase === 'enter' ? 'blur(2px)' : 'blur(0px)',
+                        transition: isSwiping 
+                            ? 'none' 
+                            : 'transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease, filter 0.22s ease',
+                    }}
+                >
+
+            {/* Calendar Grid Container (Desktop) */}
+            <div 
+                ref={containerRef}
+                className="flex-1 hidden md:flex relative overflow-auto"
+            >
+                {/* Time Gutter */}
+                <div className="w-10 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
+                    <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
+                    {Array.from({ length: END_HOUR - dynamicStartHour }).map((_, i) => (
+                        <div key={i} className="h-[70px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[11px] text-slate-500 font-bold pt-1.5 bg-slate-50/50 dark:bg-slate-900/50">
+                            {`${(i + dynamicStartHour).toString().padStart(2, '0')}:00`}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Days Columns */}
+                <div className="flex-1 min-w-[700px]">
+
+                    {/* Header: Days */}
+                    <div className="grid border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr' }}>
+                        {weekDays.map((day, i) => {
+                            const isToday = isSameDay(day, new Date());
+                            const dayStr = format(day, 'yyyy-MM-dd');
+                            const dailySand = sandPerDay[dayStr] || 0;
+                            const sandDisplay = dailySand > 0 ? `${dailySand.toFixed(1)}T` : '';
+                            const holidayInfo = PUBLIC_HOLIDAYS_BE.find(h => h.date === dayStr);
+
+                            return (
+                                <div
+                                    key={i}
+                                    className={`h-14 flex flex-col items-center justify-center border-r border-slate-200 dark:border-slate-800 relative ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : (holidayInfo ? 'bg-red-50/50 dark:bg-red-900/10' : '')}`}
+                                    onMouseEnter={() => setHoveredDay(i)}
+                                    onMouseLeave={() => setHoveredDay(null)}
+                                    onDoubleClick={(e) => handleUnCompleteDay(day, e)}
+                                    title={holidayInfo ? holidayInfo.name : ''}
+                                >
+                                    <span className={`text-[11px] uppercase font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : (holidayInfo ? 'text-red-500' : 'text-slate-500')}`}>
+                                        {format(day, 'EEE', { locale: dateLocale })}
+                                    </span>
+                                    <span className={`text-sm font-black leading-none mt-0.5 ${isToday ? 'text-blue-600 dark:text-blue-400' : (holidayInfo ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-200')}`}>
+                                        {format(day, 'd')}
+                                    </span>
+                                    {dailySand > 0 && !holidayInfo && (
+                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 mt-0.5" title={t('admin_overview.total_sand_day', 'Total nisip estimat pentru această zi')}>
+                                            {sandDisplay}
+                                        </span>
+                                    )}
+                                    {holidayInfo && (
+                                        <span className="text-[9px] font-bold text-red-500 uppercase tracking-tight mt-0.5 max-w-[90%] truncate">
+                                            {t(`holidays.${holidayInfo.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, holidayInfo.name)}
+                                        </span>
+                                    )}
+                                    {hoveredDay === i && (() => {
+                                        const dayOrders = ordersByDateStr[dayStr] || [];
+                                        const allDone = dayOrders.length > 0 && dayOrders.every(wo => wo.status === 'completed');
+                                        return (
+                                            <button
+                                                onClick={(e) => allDone ? handleUnCompleteDay(day, e) : handleCompleteDay(day, e)}
+                                                className={`absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full text-white shadow-sm transition-colors ${allDone ? 'bg-emerald-600 hover:bg-slate-500' : 'bg-emerald-500 hover:bg-emerald-600'}`}
+                                                title={allDone ? 'Anulează finalizare zi' : 'Finalizează toate comenzile din această zi'}
+                                            >
+                                                <CheckCircle2 className="w-3 h-3" />
+                                            </button>
+                                        );
+                                    })()}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Events Grid */}
+                    <div className="relative grid bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr', gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(70px, 70px))` }}>
+                        {weeklyOrders.length === 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                                <span className="text-slate-400 text-sm">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
+                            </div>
+                        )}
+                        
+                        {/* Grid Lines acting as Drop Zones */}
+                        {Array.from({ length: (END_HOUR - dynamicStartHour) * 7 }).map((_, i) => {
+                            const dayIndex = i % 7;
+                            const hourIndex = Math.floor(i / 7);
+                            const cellDayStr = format(weekDays[dayIndex], 'yyyy-MM-dd');
+                            const isHoliday = PUBLIC_HOLIDAYS_BE.some(h => h.date === cellDayStr);
+                            
+                            return (
+                                <div 
+                                    key={i} 
+                                    className={`group relative flex items-center justify-center border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer ${isHoliday ? 'bg-red-50 dark:bg-red-900/20' : ''} hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
+                                    onClick={() => {
+                                        if (Date.now() - lastSwipeTime.current < 400) return; // Prevent accidental click after scroll
+                                        if (heldOrder) {
+                                            handleDropHeldOrder(weekDays[dayIndex], `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`);
+                                            return;
+                                        }
+                                        if (!isDragging) {
+                                            const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
+                                            const targetTime = `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`;
+                                            if (onEmptyCellClick) {
+                                                onEmptyCellClick(targetDate, targetTime);
+                                            } else {
+                                                navigate(`/admin/work-orders/new?date=${targetDate}&time=${targetTime}`, { state: { from: '/admin/planning' } });
+                                            }
+                                        }
+                                    }}
+                                    onDragEnter={(e) => e.preventDefault()}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.dataTransfer.dropEffect = "move";
+                                    }}
+                                    onDrop={async (e) => {
+                                        e.preventDefault();
+                                        const type = e.dataTransfer.getData("type");
+                                        const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
+                                        const targetTime = `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`;
+                                        
+                                        // --- PREVENT DROPPING IN THE PAST FOR WORK ORDERS ---
+                                        if (type === "workOrder" || type === "quote") {
+                                            const dropDateObj = new Date(weekDays[dayIndex]);
+                                            dropDateObj.setHours(0, 0, 0, 0);
+                                            const todayObj = new Date();
+                                            todayObj.setHours(0, 0, 0, 0);
+                                            
+                                            if (dropDateObj < todayObj) {
+                                                toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail dans le passé.'));
+                                                return;
+                                            }
+                                        }
+
+                                        if (type === "team") {
+                                            const teamId = e.dataTransfer.getData("id");
+                                            if (teamId && typeof onTeamDropOnEmpty === 'function') {
+                                                onTeamDropOnEmpty(targetDate, targetTime, teamId);
+                                            }
+                                            return;
+                                        }
+
+                                        if (type === "client") {
+                                            const clientId = e.dataTransfer.getData("id");
+                                            const clientName = e.dataTransfer.getData("name");
+                                            if (clientId && typeof onClientDropOnEmpty === 'function') {
+                                                onClientDropOnEmpty(targetDate, targetTime, clientId, clientName);
+                                            }
+                                            return;
+                                        }
+
+                                        if (type === "quote") {
+                                            const quoteId = e.dataTransfer.getData("id");
+                                            if (!quoteId) return;
+                                            setPlanningTime(targetTime);
+                                            setPlanningNotify(false);
+                                            setPendingReschedule({
+                                                id: quoteId,
+                                                start_date: targetDate,
+                                                start_time: targetTime,
+                                                status: 'planning'
+                                            });
+                                            return;
+                                        }
+
+                                        const woId = e.dataTransfer.getData("text/plain");
+                                        if (!woId) return;
+
+                                        const wo = workOrders.find(o => o.id === woId);
+                                        if (wo && wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;
+
+                                        setPlanningTime(targetTime);
+                                        setPlanningNotify(false);
+                                        setPendingReschedule({
+                                            id: woId,
+                                            start_date: targetDate,
+                                            start_time: targetTime,
+                                            status: wo?.status === 'draft' ? 'planning' : undefined
+                                        });
+                                    }}
+                                >
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full flex items-center justify-center shadow-md pointer-events-none" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                                        <Plus className="w-5 h-5 text-white" />
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {/* Events overlay */}
+                        {(() => {
+                            const renderableOrders = [];
+                            const dayOccupancy = {};
+                            
+                            const sortedOrders = sortedWeeklyOrders;
+                            
+                            sortedOrders.forEach(wo => {
+                                const dateStr = wo.start_date || wo.deadline_date;
+                                if (!dateStr) return;
+                                try {
+                                    const datePart = dateStr.split('T')[0];
+                                    const [year, month, day] = datePart.split('-').map(Number);
+                                    const woDate = new Date(year, month - 1, day, 12, 0, 0);
+                                    
+                                    const dayIndex = weekDays.findIndex(d => isSameDay(d, woDate));
+                                    if (dayIndex === -1) return;
+                                    
+                                    let rowStart = getGridRowFromTime(wo.start_time);
+                                    
+                                    if (!dayOccupancy[dayIndex]) dayOccupancy[dayIndex] = new Set();
+                                    
+                                    while (dayOccupancy[dayIndex].has(rowStart)) {
+                                        rowStart++;
+                                    }
+                                    dayOccupancy[dayIndex].add(rowStart);
+                                    
+                                    if (!deletedIds.has(wo.id)) {
+                                        renderableOrders.push({ ...wo, dayIndex, rowStart });
+                                    }
+                                } catch (e) {}
+                            });
+                            
+                            return renderableOrders.map(wo => {
+                                const colorHex = wo.team?.color || wo.assigned_team_color || '#93c5fd';
+                                
+                                // Calculate offset to avoid overlap for custom grid
+                                const totalFr = 6.6;
+                                const colFr = wo.dayIndex === 6 ? 0.6 : 1;
+                                const leftPercent = (wo.dayIndex / totalFr) * 100;
+                                const widthValue = `calc(${(colFr / totalFr) * 100}% - 8px)`;
+                                const isThisDragged = draggedOrder === wo.id;
+                                const isCompleted = wo.status === 'completed';
+                                
+                                // --- PREVENT DRAGGING PAST ORDERS ---
+                                const woDateObj = new Date(wo.start_date || wo.deadline_date);
+                                woDateObj.setHours(0, 0, 0, 0);
+                                const todayObj = new Date();
+                                todayObj.setHours(0, 0, 0, 0);
+                                const isPast = woDateObj < todayObj;
+
+                                return (
+                                    <div 
+                                        key={wo.id}
+                                        draggable={!isPast}
+                                        onDragStart={(e) => {
+                                            if (isPast) {
+                                                e.preventDefault();
+                                                return;
+                                            }
+                                            e.stopPropagation();
+                                            e.dataTransfer.setData("text/plain", String(wo.id));
+                                            e.dataTransfer.setData("type", "workOrder");
+                                            e.dataTransfer.effectAllowed = "move";
+                                            setTimeout(() => {
+                                                setIsDragging(true);
+                                                setDraggedOrder(wo.id);
+                                            }, 0);
+                                        }}
+                                        onDragEnd={() => {
+                                            setIsDragging(false);
+                                            setDraggedOrder(null);
+                                        }}
+                                        className={`absolute p-1.5 overflow-hidden rounded-md shadow-sm transition-all ${isPast ? '' : 'cursor-move'} mx-1 
+                                            ${!wo.assigned_team_id ? 'bg-white dark:bg-slate-900 border-2 border-red-500 border-l-[6px] border-l-red-500' : 'border-l-4'}
+                                            ${isThisDragged ? 'opacity-50 ring-2 ring-blue-500' : ''} 
+                                            ${syncing ? 'opacity-70 pointer-events-none' : ''} 
+                                            ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}
+                                            ${wo.status === 'planning' && wo.client_notified === false ? 'ring-2 ring-red-500 ring-offset-1 dark:ring-offset-slate-900 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : ''}
+                                            ${animatingOrder === wo.id ? 'ring-4 ring-green-500 bg-green-100 dark:bg-green-900/50 scale-[1.02] z-[60]' : ''}
+                                            ${isSelectingForHolding && !isPast ? 'ring-2 ring-yellow-400 animate-pulse cursor-pointer' : ''}
+                                            ${heldOrder?.id === wo.id ? 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/50' : ''}`}
+                                        style={{
+                                            top: `${(wo.rowStart - 1) * 70 + 4}px`,
+                                            height: '60px',
+                                            left: `calc(${leftPercent}% + 5px)`,
+                                            width: `calc(${(colFr / totalFr) * 100}% - 10px)`,
+                                            backgroundColor: !wo.assigned_team_id ? undefined : `${colorHex}25`,
+                                            borderLeftColor: !wo.assigned_team_id ? undefined : colorHex,
+                                            borderColor: isCompleted ? '#22c55e' : (!wo.assigned_team_id ? undefined : `${colorHex}50`),
+                                            borderWidth: isCompleted ? '2px' : undefined,
+                                            borderStyle: isCompleted ? 'dashed' : undefined,
+                                            opacity: 1,
+                                            zIndex: isThisDragged ? 50 : (10 + (wo._layoutIndex || 0)),
+                                            pointerEvents: isDragging ? 'auto' : 'auto' // ensure it can receive drops!
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isSelectingForHolding) {
+                                                if (isPast) {
+                                                    toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail depuis le passé.'));
+                                                    return;
+                                                }
+                                                setHeldOrder(wo);
+                                                setIsSelectingForHolding(false);
+                                                return;
+                                            }
+                                            if (!isDragging) {
+                                                if (onOrderClick) onOrderClick(wo);
+                                                else navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
+                                            }
+                                        }}
+                                        onDoubleClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isCompleted) handleUncomplete(wo, e);
+                                        }}
+                                        onDragEnter={(e) => e.preventDefault()}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            e.dataTransfer.dropEffect = isCompleted ? 'none' : 'move';
+                                        }}
+                                        onDrop={async (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (isCompleted) {
+                                                openDialog({
+                                                    title: 'Lucrare finalizată',
+                                                    message: 'Această lucrare este marcată ca Finalizată. Schimbați statusul comenzii pentru a o putea modifica.',
+                                                    confirmLabel: 'OK',
+                                                    hideCancel: true,
+                                                });
+                                                return;
+                                            }
+                                            // Handle Team Drop
+                                            const type = e.dataTransfer.getData("type");
+                                            if (type === "team") {
+                                                const teamId = e.dataTransfer.getData("id");
+                                                if (teamId && onTeamDrop) {
+                                                    setAnimatingOrder(wo.id);
+                                                    setTimeout(() => setAnimatingOrder(null), 1000);
+                                                    onTeamDrop(wo.id, teamId);
+                                                }
+                                                return;
+                                            }
+
+                                            // Handle Client Drop
+                                            if (type === "client") {
+                                                const clientId = e.dataTransfer.getData("id");
+                                                if (clientId && onClientDrop) {
+                                                    setAnimatingOrder(wo.id);
+                                                    setTimeout(() => setAnimatingOrder(null), 1000);
+                                                    onClientDrop(wo.id, clientId);
+                                                }
+                                                return;
+                                            }
+                                            
+                                            // Handle Work Order Swap
+                                            const draggedWoId = e.dataTransfer.getData("text/plain");
+                                            if (!draggedWoId || draggedWoId === String(wo.id)) return;
+                                            
+                                            const draggedWo = workOrders.find(o => String(o.id) === draggedWoId);
+                                            if (!draggedWo) return;
+
+                                            const targetDate = wo.start_date || wo.deadline_date;
+                                            const targetTime = wo.start_time || '07:00';
+                                            
+                                            const sourceDate = draggedWo.start_date || draggedWo.deadline_date;
+                                            const sourceTime = draggedWo.start_time || '07:00';
+
+                                            setSyncing(true);
+                                            try {
+                                                // Update dragged order
+                                                await api.put(`/admin/work-orders/${draggedWo.id}`, {
+                                                    start_date: targetDate,
+                                                    start_time: targetTime
+                                                });
+                                                // Update target order to dragged order's original time
+                                                await api.put(`/admin/work-orders/${wo.id}`, {
+                                                    start_date: sourceDate,
+                                                    start_time: sourceTime
+                                                });
+                                                
+                                                if (onOrderRescheduled) {
+                                                    onOrderRescheduled();
+                                                } else {
+                                                    window.location.reload();
+                                                }
+                                            } catch (error) {
+                                                console.error("Eroare la schimbul de comenzi:", error);
+                                            } finally {
+                                                setSyncing(false);
+                                            }
+                                        }}
+                                        title={`${(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)} — trageți pentru a muta`}
+                                    >
+                                        {/* SURFATA - SUS DREAPTA */}
+                                        {(() => {
+                                            const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
+                                            const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
+                                            const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+                                            const finalSurf = sumVol > 0 ? sumVol : fallbackSurf;
+                                            const estSurf = parseFloat(wo.estimated_surface) || 0;
+                                            const isCompleted = wo.status === 'completed' || wo.status === 'invoiced';
+                                            const isReal = isCompleted && finalSurf > 0;
+                                            const displaySurf = isReal ? finalSurf : (estSurf > 0 ? estSurf : finalSurf);
+                                            
+                                            if (displaySurf > 0) {
+                                                return (
+                                                    <div className={`absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 text-[10px] font-bold ${isReal ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`} title={isReal ? "Surface Réelle" : "Surface Estimée"}>
+                                                        {displaySurf}m²
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+
+                                        {/* VREMEA - JOS DREAPTA */}
+                                        {!isCompleted && (
+                                            <div className={`absolute bottom-1 right-1 z-10 opacity-70`}>
+                                                <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} />
+                                            </div>
+                                        )}
+
+                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}>
+                                            {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalisée" />}
+                                            {wo.is_quote && <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 shadow-sm" title="Devis / Calculator" />}
+                                            <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
+                                        </div>
+                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none">
+                                            <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                            <span className="truncate">{formatAddressCityFirst((wo.site_name || wo.site_address) || t('common.no_location', 'Aucune adresse'))}</span>
+                                        </div>
+                                        {(() => {
+                                            const distText = getDistanceTextForOrder(wo);
+                                            const sandVal = calculateOrderSand(wo);
+                                            
+                                            const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
+                                            const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
+                                            const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+                                            const finalSurf = sumVol > 0 ? sumVol : fallbackSurf;
+                                            const estSurf = parseFloat(wo.estimated_surface) || 0;
+                                            const isCompleted = wo.status === 'completed' || wo.status === 'invoiced';
+                                            const displaySurf = isCompleted && finalSurf > 0 ? finalSurf : (estSurf > 0 ? estSurf : finalSurf);
+                                            const isReal = isCompleted && finalSurf > 0;
+                                            
+                                            if (!distText && !(displaySurf > 0) && !(sandVal > 0)) return null;
+
+                                            return (
+                                                <div className="mt-1 flex items-center gap-3 w-fit max-w-full overflow-hidden bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700/50">
+                                                    {distText && (
+                                                        <span className="text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-400 whitespace-nowrap" title="Distanță Rută (Planning)">
+                                                            {distText}
+                                                        </span>
+                                                    )}
+                                                    {/* Suprafata a fost mutata in dreapta sus */}
+                                                    {sandVal > 0 && (
+                                                        <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold whitespace-nowrap">
+                                                            {sandVal.toFixed(1)}T
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                );
+                            });
+                        })()}
+                    </div>
+                </div>
+            </div>
+            {/* Planning Modal */}
+            {pendingReschedule && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-5">
+                            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+                                <CalendarIcon className="w-6 h-6 text-blue-600 dark:text-blue-500" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">{t('planning.modal_title', 'Détails de Planification')}</h3>
+                            
+                            <div className="space-y-4 my-6">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('planning.arrival_date', 'Date d\'arrivée')}</label>
+                                        <input 
+                                            type="date" 
+                                            value={pendingReschedule.start_date || ''}
+                                            onChange={e => setPendingReschedule({...pendingReschedule, start_date: e.target.value})}
+                                            className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('planning.arrival_time', 'Heure (estimée)')}</label>
+                                        <input 
+                                            type="time" 
+                                            value={planningTime}
+                                            onChange={e => setPlanningTime(e.target.value)}
+                                            className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                </div>
+                                {(() => {
+                                    const holiday = PUBLIC_HOLIDAYS_BE.find(h => h.date === pendingReschedule.start_date);
+                                    if (holiday) {
+                                        return (
+                                            <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl mt-4">
+                                                <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-semibold text-red-900 dark:text-red-200">
+                                                        {t('planning.holiday_warning', 'Attention: Jour Férié')}
+                                                    </span>
+                                                    <span className="text-xs text-red-700 dark:text-red-300">
+                                                        {t(`holidays.${holiday.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, holiday.name)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+                                <div 
+                                    onClick={() => setPlanningNotify(!planningNotify)}
+                                    className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors border ${
+                                        planningNotify 
+                                            ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50' 
+                                            : 'bg-slate-50 border-transparent hover:border-slate-200 dark:bg-slate-800/50 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <div className="flex h-5 items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={planningNotify}
+                                            readOnly
+                                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 pointer-events-none"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className={`text-sm font-semibold leading-5 ${planningNotify ? 'text-blue-900 dark:text-blue-100' : 'text-slate-900 dark:text-white'}`}>{t('planning.send_notification', 'Envoyer une notification au client')}</span>
+                                        <span className={`text-xs ${planningNotify ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>{t('planning.notification_desc', 'Email et WhatsApp avec les détails du rendez-vous')}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => setPendingReschedule(null)}
+                                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-semibold transition-colors"
+                                >
+                                    {t('planning.cancel_btn', 'Annuler')}
+                                </button>
+                                <button 
+                                    onClick={async () => {
+                                        const { id, start_date, status } = pendingReschedule;
+                                        setSyncing(true);
+                                        setPendingReschedule(null); // Close modal
+                                        try {
+                                            const updatePayload = {
+                                                start_date,
+                                                start_time: planningTime,
+                                                send_notification: planningNotify,
+                                                ...(status ? { status } : {})
+                                            };
+                                            await api.put(`/admin/work-orders/${id}`, updatePayload);
+                                            if (onOrderRescheduled) {
+                                                onOrderRescheduled(id, start_date, planningTime);
+                                            } else {
+                                                window.location.reload();
+                                            }
+                                        } catch (error) {
+                                            console.error("Eroare la mutare/planificare comanda:", error);
+                                        } finally {
+                                            setSyncing(false);
+                                        }
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {t('planning.save_btn', 'Enregistrer')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Delete Confirmation Popup */}
+            {orderToDelete && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-5">
+                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-500" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">{t('admin_overview.delete_order', 'Ștergere Comandă')}</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+                                {t('admin_overview.delete_order_confirm', 'Ești sigur că vrei să ștergi lucrarea')} <span className="font-bold text-slate-700 dark:text-slate-300">"{orderToDelete.title}"</span>?
+                            </p>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => setOrderToDelete(null)}
+                                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-semibold transition-colors"
+                                >
+                                    {t('common.cancel', 'Anulează')}
+                                </button>
+                                <button 
+                                    onClick={async () => {
+                                        const idToDelete = orderToDelete.id;
+                                        setDeletedIds(prev => new Set(prev).add(idToDelete)); // Optimistic delete (instant)
+                                        setOrderToDelete(null); // Close popup instantly
+                                        try {
+                                            await api.delete(`/admin/work-orders/${idToDelete}`);
+                                            if (onOrderRescheduled) onOrderRescheduled();
+                                            else window.location.reload();
+                                        } catch (e) {
+                                            console.error("Eroare la stergere:", e);
+                                            // Revert optimistic delete on error
+                                            setDeletedIds(prev => {
+                                                const next = new Set(prev);
+                                                next.delete(idToDelete);
+                                                return next;
+                                            });
+                                        }
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {t('common.yes_delete', 'Da, șterge')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+        </div>
+        </div>
+        </div>
+        </>
+    );
+}

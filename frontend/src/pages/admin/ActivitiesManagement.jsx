@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
@@ -478,32 +479,32 @@ export default function ActivitiesManagement() {
                 />
             </div>
 
-            {/* Category Modal */}
-            {showCategoryModal && (
-                <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
-                            <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                                {editingCategory ? t('activities.edit_category', 'Editează Categorie') : t('activities.new_category', 'Categorie Nouă')}
+            {/* Category Modal — Apple HIG System Sheet */}
+            {showCategoryModal && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">
+                                {editingCategory ? t('activities.edit_category', 'Modifier la catégorie') : t('activities.new_category', 'Nouvelle catégorie')}
                             </h2>
-                            <button onClick={() => setShowCategoryModal(false)} className="text-slate-400 hover:text-slate-500 transition-colors">
-                                <X className="w-6 h-6" />
+                            <button onClick={() => setShowCategoryModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         <form onSubmit={handleSaveCategory} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('common.name', 'Nume')}</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('common.name', 'Nom')}</label>
                                 <input
                                     type="text"
                                     required
                                     value={categoryForm.name}
                                     onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                                    className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
-                                    placeholder={t('activities.category_name_placeholder', 'Ex: Finisaje')}
+                                    className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
+                                    placeholder={t('activities.category_name_placeholder', 'Ex: Finitions')}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('common.color', 'Culoare')}</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('common.color', 'Couleur')}</label>
                                 <div className="flex flex-wrap gap-2">
                                     {PRESET_COLORS.map(color => (
                                         <button
@@ -517,78 +518,79 @@ export default function ActivitiesManagement() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Sortare</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Ordre de tri</label>
                                 <input
                                     type="number"
                                     value={categoryForm.sort_order}
                                     onChange={(e) => setCategoryForm({ ...categoryForm, sort_order: parseInt(e.target.value) || 0 })}
-                                    className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
+                                    className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
                                 />
                             </div>
-                            <div className="flex gap-3 pt-4">
+                            <div className="flex gap-3 pt-4 border-t border-slate-200/85">
                                 <button
                                     type="button"
                                     onClick={() => setShowCategoryModal(false)}
-                                    className="flex-1 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors"
+                                    className="flex-1 h-[42px] bg-white border border-slate-300/90 hover:bg-slate-50 text-slate-700 rounded-[13px] font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]"
                                 >
-                                    {t('common.cancel', 'Anulează')}
+                                    {t('common.cancel', 'Annuler')}
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors shadow-sm"
+                                    className="flex-1 h-[42px] bg-blue-600 hover:bg-blue-700 text-white rounded-[13px] font-bold text-[14px] transition-all active:scale-[0.98] shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)]"
                                 >
-                                    {t('common.save', 'Salvează')}
+                                    {t('common.save', 'Enregistrer')}
                                 </button>
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {/* Activity Modal */}
-            {showActivityModal && (
-                <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-                            <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                                {editingActivity ? t('activities.edit_activity', 'Editează Activitate') : t('activities.new_activity', 'Activitate Nouă')}
+            {/* Activity Modal — Apple HIG System Sheet */}
+            {showActivityModal && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/85 dark:border-slate-800 bg-[#F2F4F8] dark:bg-slate-800/80">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">
+                                {editingActivity ? t('activities.edit_activity', 'Modifier l\'activité') : t('activities.new_activity', 'Nouvelle activité')}
                             </h2>
-                            <button onClick={() => setShowActivityModal(false)} className="text-slate-400 hover:text-slate-500 transition-colors">
-                                <X className="w-6 h-6" />
+                            <button onClick={() => setShowActivityModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         <form onSubmit={handleSaveActivity} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('common.name', 'Nume')}</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('common.name', 'Nom')}</label>
                                 <input
                                     type="text"
                                     required
                                     value={activityForm.name}
                                     onChange={(e) => setActivityForm({ ...activityForm, name: e.target.value })}
-                                    className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
+                                    className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
                                 />
                             </div>
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('activities.category', 'Categorie')}</label>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('activities.category', 'Catégorie')}</label>
                                     <select
                                         value={activityForm.category_id}
                                         onChange={(e) => setActivityForm({ ...activityForm, category_id: e.target.value })}
-                                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
+                                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
                                     >
-                                        <option value="">-- Fără Categorie --</option>
+                                        <option value="">-- Sans catégorie --</option>
                                         {categoryList.map(c => (
                                             <option key={c.id} value={c.id}>{c.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('activities.unit', 'Unitate')}</label>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{t('activities.unit', 'Unité')}</label>
                                     <select
                                         value={activityForm.unit_type}
                                         onChange={(e) => setActivityForm({ ...activityForm, unit_type: e.target.value })}
-                                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
+                                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-white"
                                     >
                                         <option value="m²">m²</option>
                                         <option value="m³">m³</option>
@@ -609,28 +611,29 @@ export default function ActivitiesManagement() {
                                         onChange={(e) => setActivityForm({ ...activityForm, is_active: e.target.checked })}
                                         className="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                                     />
-                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('common.active', 'Activ')}</span>
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('common.active', 'Actif')}</span>
                                 </label>
                             </div>
                             
-                            <div className="flex gap-3 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
+                            <div className="flex gap-3 pt-5 border-t border-slate-200/85 dark:border-slate-800 mt-5">
                                 <button
                                     type="button"
                                     onClick={() => setShowActivityModal(false)}
-                                    className="flex-1 h-11 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors"
+                                    className="flex-1 h-[42px] bg-white dark:bg-slate-800 border border-slate-300/90 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-300 rounded-[13px] font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]"
                                 >
-                                    {t('common.cancel', 'Anulează')}
+                                    {t('common.cancel', 'Annuler')}
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors shadow-sm"
+                                    className="flex-1 h-[42px] bg-blue-600 hover:bg-blue-700 text-white rounded-[13px] font-bold text-[14px] transition-all active:scale-[0.98] shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)]"
                                 >
-                                    {t('common.save', 'Salvează')}
+                                    {t('common.save', 'Enregistrer')}
                                 </button>
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )

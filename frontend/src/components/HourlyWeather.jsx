@@ -4,6 +4,45 @@ import { useTranslation } from 'react-i18next';
 
 const weatherCache = {};
 
+const mapMetSymbolToWmo = (sym = '') => {
+    const s = String(sym).toLowerCase();
+    if (s.includes('thunder')) return 95;
+    if (s.includes('snow') || s.includes('sleet')) return 73;
+    if (s.includes('heavyrain')) return 65;
+    if (s.includes('rain') || s.includes('drizzle')) return 61;
+    if (s.includes('fog')) return 45;
+    if (s.includes('partlycloudy') || s.includes('fair')) return 2;
+    if (s.includes('cloudy')) return 3;
+    return 0;
+};
+
+const convertMetNorwayToHourly = (metJson) => {
+    const tsList = metJson?.properties?.timeseries;
+    if (!Array.isArray(tsList) || tsList.length === 0) return null;
+    const time = [], temperature_2m = [], precipitation = [], weather_code = [], relative_humidity_2m = [], wind_speed_10m = [], apparent_temperature = [];
+    for (const entry of tsList) {
+        if (!entry?.time) continue;
+        const dObj = new Date(entry.time);
+        const yyyy = dObj.getFullYear();
+        const mm = String(dObj.getMonth() + 1).padStart(2, '0');
+        const dd = String(dObj.getDate()).padStart(2, '0');
+        const hh = String(dObj.getHours()).padStart(2, '0');
+        const det = entry.data?.instant?.details || {};
+        if (det.air_temperature == null) continue;
+        const next1 = entry.data?.next_1_hours || entry.data?.next_6_hours || {};
+        const sym = next1?.summary?.symbol_code || '';
+        const precip = Number(next1?.details?.precipitation_amount) || 0;
+        time.push(`${yyyy}-${mm}-${dd}T${hh}:00`);
+        temperature_2m.push(det.air_temperature);
+        apparent_temperature.push(det.air_temperature);
+        precipitation.push(precip);
+        weather_code.push(mapMetSymbolToWmo(sym));
+        relative_humidity_2m.push(det.relative_humidity ?? 75);
+        wind_speed_10m.push((Number(det.wind_speed) || 0) * 3.6);
+    }
+    return { time, temperature_2m, precipitation, weather_code, relative_humidity_2m, wind_speed_10m, apparent_temperature };
+};
+
 export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, compact, inline, tiny }) {
     const { t } = useTranslation();
     const [hourlyData, setHourlyData] = useState(null);
@@ -93,17 +132,29 @@ export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, c
         
         const promise = fetch(url)
             .then(res => res.json())
-            .then(resData => {
-                if (resData.error || !resData.hourly) {
-                    const errObj = { _error: true, _ts: Date.now() };
-                    weatherCache[cacheKey] = errObj;
-                    return errObj;
+            .then(async resData => {
+                if (resData && !resData.error && resData.hourly) {
+                    const h = resData.hourly;
+                    weatherCache[cacheKey] = h;
+                    return h;
                 }
-                const h = resData.hourly;
-                weatherCache[cacheKey] = h;
-                return h;
+                const metRes = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${roundedLat}&lon=${roundedLon}`).then(r => r.json()).catch(() => null);
+                const converted = convertMetNorwayToHourly(metRes);
+                if (converted) {
+                    weatherCache[cacheKey] = converted;
+                    return converted;
+                }
+                const errObj = { _error: true, _ts: Date.now() };
+                weatherCache[cacheKey] = errObj;
+                return errObj;
             })
-            .catch(() => {
+            .catch(async () => {
+                const metRes = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${roundedLat}&lon=${roundedLon}`).then(r => r.json()).catch(() => null);
+                const converted = convertMetNorwayToHourly(metRes);
+                if (converted) {
+                    weatherCache[cacheKey] = converted;
+                    return converted;
+                }
                 const errObj = { _error: true, _ts: Date.now() };
                 weatherCache[cacheKey] = errObj;
                 return errObj;

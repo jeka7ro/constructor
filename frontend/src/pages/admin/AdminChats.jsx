@@ -899,30 +899,33 @@ export default function AdminChats() {
                 </div>
                 
             </div>
-            {/* Delete Confirmation Modal */}
+            {/* Delete Confirmation Modal — Apple HIG Alert */}
             {messageToDelete && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setMessageToDelete(null)}></div>
-                    <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden p-6 text-center border border-slate-200 dark:border-slate-800">
-                        <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 text-red-500 mx-auto flex items-center justify-center mb-5">
-                            <Trash2 className="w-7 h-7" />
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setMessageToDelete(null)}>
+                    <div className="relative w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden text-center" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 flex flex-col items-center">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/25 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center mb-3.5">
+                                <Trash2 className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
+                                {t('admin.confirm_delete_message', 'Voulez-vous vraiment supprimer ce message ?')}
+                            </h3>
+                            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                                {t('admin.action_cannot_be_undone', 'Cette action ne peut pas être annulée.')}
+                            </p>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                            {t('admin.confirm_delete_message', 'Voulez-vous vraiment supprimer ce message ?')}
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 px-2">
-                            {t('admin.action_cannot_be_undone', 'Cette action ne peut pas être annulée.')}
-                        </p>
-                        <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center gap-2.5 w-full mt-3">
                             <button
+                                type="button"
                                 onClick={() => setMessageToDelete(null)}
-                                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-medium transition-colors"
+                                className="flex-1 h-10 px-4 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/90 dark:border-slate-600/80 rounded-[14px] text-[13.5px] font-semibold transition-all cursor-pointer"
                             >
                                 {t('common.cancel', 'Annuler')}
                             </button>
                             <button
+                                type="button"
                                 onClick={executeDeleteMessage}
-                                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors shadow-sm shadow-red-500/20"
+                                className="flex-1 h-10 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-[14px] text-[13.5px] font-semibold transition-all shadow-sm shadow-rose-600/20 cursor-pointer"
                             >
                                 {t('common.delete', 'Supprimer')}
                             </button>
@@ -932,32 +935,35 @@ export default function AdminChats() {
                 document.body
             )}
 
-            {/* Toggle Chat Status Confirmation Modal */}
+            {/* Toggle Chat Status Confirmation Modal — Apple HIG Alert */}
             {chatToToggle && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setChatToToggle(null)}></div>
-                    <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden p-6 text-center border border-slate-200 dark:border-slate-800">
-                        <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-500 mx-auto flex items-center justify-center mb-5">
-                            <Clock className="w-7 h-7" />
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setChatToToggle(null)}>
+                    <div className="relative w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden text-center" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 flex flex-col items-center">
+                            <div className="w-12 h-12 rounded-full bg-amber-500/12 dark:bg-amber-500/20 border border-amber-500/25 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center mb-3.5">
+                                <Clock className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
+                                {chatToToggle.isClosed ? t('admin.confirm_reopen_chat', 'Rouvrir ce chat ?') : t('admin.confirm_close_chat', 'Fermer ce chat ?')}
+                            </h3>
+                            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                                {chatToToggle.isClosed 
+                                    ? t('admin.reopen_chat_desc', 'Le client pourra à nouveau envoyer des messages.')
+                                    : t('admin.close_chat_desc', 'Le client ne pourra plus envoyer de messages.')}
+                            </p>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                            {chatToToggle.isClosed ? t('admin.confirm_reopen_chat', 'Rouvrir ce chat ?') : t('admin.confirm_close_chat', 'Fermer ce chat ?')}
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 px-2">
-                            {chatToToggle.isClosed 
-                                ? t('admin.reopen_chat_desc', 'Le client pourra à nouveau envoyer des messages.')
-                                : t('admin.close_chat_desc', 'Le client ne pourra plus envoyer de messages.')}
-                        </p>
-                        <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center gap-2.5 w-full mt-3">
                             <button
+                                type="button"
                                 onClick={() => setChatToToggle(null)}
-                                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-medium transition-colors"
+                                className="flex-1 h-10 px-4 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/90 dark:border-slate-600/80 rounded-[14px] text-[13.5px] font-semibold transition-all cursor-pointer"
                             >
                                 {t('common.cancel', 'Annuler')}
                             </button>
                             <button
+                                type="button"
                                 onClick={executeToggleChatStatus}
-                                className="flex-1 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors shadow-sm shadow-amber-500/20"
+                                className="flex-1 h-10 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-[14px] text-[13.5px] font-semibold transition-all shadow-sm shadow-amber-500/20 cursor-pointer"
                             >
                                 {t('common.confirm', 'Confirmer')}
                             </button>

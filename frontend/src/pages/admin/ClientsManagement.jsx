@@ -480,17 +480,19 @@ export default function ClientsManagement() {
                 </div>
             </div>
 
-            {/* Modal Add/Edit */}
+            {/* Modal Add/Edit — Apple HIG Sheet */}
             {showModal && createPortal(
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden transform scale-100 opacity-100 transition-all" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-5 bg-blue-600 dark:bg-slate-800 flex items-center justify-between shrink-0">
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Briefcase className="w-5 h-5 text-white" />
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={handleCloseModal}>
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] w-full max-w-lg backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] flex flex-col max-h-[90vh] overflow-hidden transform scale-100 opacity-100 transition-all" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800 flex items-center justify-between shrink-0">
+                            <h2 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+                                <span className="w-8 h-8 rounded-full bg-sky-500/12 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                                    <Briefcase className="w-4 h-4" />
+                                </span>
                                 {editingClient ? t('clients.modal_edit_title', 'Modifier Client') : t('clients.modal_add_title', 'Ajouter Nouveau Client')}
                             </h2>
-                            <button onClick={handleCloseModal} className="text-blue-100 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
-                                <X className="w-5 h-5" />
+                            <button type="button" onClick={handleCloseModal} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300/80 dark:border-slate-700 text-slate-500 flex items-center justify-center transition-colors cursor-pointer">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         
@@ -738,32 +740,34 @@ export default function ClientsManagement() {
                 </div>
             , document.body)}
 
-            {/* Modal Delete */}
+            {/* Modal Delete — Apple HIG Alert */}
             {deleteModal.show && createPortal(
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100000] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-100 opacity-100 transition-all">
-                        <div className="p-6 text-center">
-                            <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-                                <Trash2 className="w-8 h-8 text-red-600 dark:text-red-500" />
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[100000] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setDeleteModal({ show: false, id: null, name: '' })}>
+                    <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden text-center" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/25 flex items-center justify-center mx-auto mb-3.5">
+                                <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('clients.delete_title', 'Supprimer le Client')}</h3>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-                                {t('clients.delete_confirm', 'Êtes-vous sûr de vouloir supprimer le client')} <span className="font-bold text-slate-700 dark:text-slate-300">{deleteModal.name}</span>?
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">{t('clients.delete_title', 'Supprimer le Client')}</h3>
+                            <p className="text-slate-500 dark:text-slate-400 text-[13.5px] mt-1.5 leading-relaxed">
+                                {t('clients.delete_confirm', 'Êtes-vous sûr de vouloir supprimer le client')} <span className="font-semibold text-slate-800 dark:text-slate-200">{deleteModal.name}</span> ?
                             </p>
-                            <div className="flex gap-3 justify-center">
-                                <button
-                                    onClick={() => setDeleteModal({ show: false, id: null, name: '' })}
-                                    className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    {t('common.cancel', 'Annuler')}
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="px-5 h-10 rounded-full text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all"
-                                >
-                                    {t('common.delete', 'Supprimer')}
-                                </button>
-                            </div>
+                        </div>
+                        <div className="flex gap-2.5 mt-3">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteModal({ show: false, id: null, name: '' })}
+                                className="flex-1 h-10 px-4 rounded-[14px] text-[13.5px] font-semibold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300/90 dark:border-slate-600/80 transition-all cursor-pointer"
+                            >
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDelete}
+                                className="flex-1 h-10 px-4 rounded-[14px] text-[13.5px] font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-600/20 transition-all cursor-pointer"
+                            >
+                                {t('common.delete', 'Supprimer')}
+                            </button>
                         </div>
                     </div>
                 </div>

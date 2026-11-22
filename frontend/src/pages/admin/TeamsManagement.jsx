@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useAdminStore } from '../../store/adminStore'
 import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
@@ -281,18 +282,23 @@ export default function TeamsManagement() {
                 <DataTable columns={columns} data={filteredTeams} loading={loading} />
             </div>
 
-            {/* Create / Edit Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-slate-900">{editingTeamId ? t('teams.edit_team', 'Editare Echipă') : t('teams.new_team')}</h2>
-                            <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-100 rounded-full">
-                                <X className="w-5 h-5 text-slate-500" />
+            {/* Create / Edit Modal — Apple HIG System Sheet */}
+            {showModal && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] max-w-lg w-full shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 shrink-0">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                    <Users className="w-4 h-4" />
+                                </div>
+                                {editingTeamId ? t('teams.edit_team', 'Modifier l\'équipe') : t('teams.new_team', 'Nouvelle équipe')}
+                            </h2>
+                            <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="p-6 space-y-4 overflow-y-auto">
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1">{t('teams.team_name')}</label>
                                 <input
@@ -412,16 +418,17 @@ export default function TeamsManagement() {
                             </div>
                         </div>
 
-                        <div className="mt-8 flex justify-end gap-3 pt-5 border-t border-slate-100">
-                            <button onClick={() => setShowModal(false)} className="px-6 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-full transition-colors">
-                                {t('common.cancel')}
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 flex justify-end gap-3 shrink-0">
+                            <button onClick={() => setShowModal(false)} className="h-[42px] px-5 bg-white border border-slate-300/90 text-slate-700 font-bold text-[14px] hover:bg-slate-50 rounded-[13px] shadow-2xs transition-all active:scale-[0.98]">
+                                {t('common.cancel', 'Annuler')}
                             </button>
-                            <button onClick={handleSave} disabled={saving} className="px-8 py-3 bg-blue-600 text-white font-extrabold tracking-wide rounded-full shadow-md hover:bg-blue-700 hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center min-w-[140px]">
-                                {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (editingTeamId ? t('common.save', 'Enregistrer') : t('teams.create'))}
+                            <button onClick={handleSave} disabled={saving} className="h-[42px] px-7 bg-blue-600 text-white font-bold text-[14px] rounded-[13px] shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center min-w-[140px]">
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (editingTeamId ? t('common.save', 'Enregistrer') : t('teams.create', 'Créer'))}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )

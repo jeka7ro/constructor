@@ -120,19 +120,21 @@ class GlobalErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-                    <h2 className="text-xl font-bold text-slate-800 mb-2">A apărut o eroare de navigare.</h2>
-                    <p className="text-sm text-slate-500 mb-4">Te rugăm să reîncarci pagina.</p>
-                    {this.state.error && (
-                        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg max-w-lg overflow-auto text-xs tabular-nums">
-                            {this.state.error.message}
-                            <br/><br/>
-                            {this.state.error.stack}
+                <div className="min-h-screen flex flex-col items-center justify-center bg-[#F2F4F8] dark:bg-slate-950 p-4">
+                    <div className="w-full max-w-[380px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.34)] p-3.5 text-center">
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <h2 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white">Une erreur de navigation est survenue</h2>
+                            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1.5">Veuillez actualiser la page pour continuer.</p>
+                            {this.state.error && (
+                                <div className="mt-3 p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800/50 rounded-[12px] max-h-36 overflow-auto text-[11px] text-left tabular-nums">
+                                    {this.state.error.message}
+                                </div>
+                            )}
                         </div>
-                    )}
-                    <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-md transition-colors">
-                        Reîncarcă Pagina
-                    </button>
+                        <button onClick={() => window.location.reload()} className="w-full mt-3 h-10 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-[13.5px] rounded-[14px] shadow-sm shadow-sky-600/20 transition-all cursor-pointer">
+                            Actualiser la page
+                        </button>
+                    </div>
                 </div>
             )
         }
@@ -508,10 +510,14 @@ function SmartRedirect() {
 
     // Otherwise, show a generic 404 to avoid leaking employee interfaces
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center font-sans">
-            <h1 className="text-6xl font-black text-slate-300 mb-4">404</h1>
-            <p className="text-lg text-slate-600 mb-2 font-bold">Lien introuvable ou expiré</p>
-            <p className="text-sm text-slate-500 max-w-md mx-auto">Veuillez vérifier l'adresse web que vous avez saisie ou contactez-nous si vous pensez qu'il s'agit d'une erreur.</p>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-[#F2F4F8] dark:bg-slate-950 p-6 text-center font-sans">
+            <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 backdrop-blur-3xl border-[1.5px] border-slate-300/95 dark:border-slate-700/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.28)] p-3.5">
+                <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 p-6">
+                    <div className="text-4xl font-bold tracking-tight text-slate-400 dark:text-slate-500 mb-2 tabular-nums">404</div>
+                    <p className="text-[17px] text-slate-900 dark:text-white font-bold tracking-tight">Lien introuvable ou expiré</p>
+                    <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">Veuillez vérifier l'adresse web que vous avez saisie ou contactez-nous si vous pensez qu'il s'agit d'une erreur.</p>
+                </div>
+            </div>
         </div>
     )
 }

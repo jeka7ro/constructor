@@ -802,25 +802,25 @@ export default function FleetManagement() {
                 </div>
             )}
 
-            {/* Add / Edit Modal */}
+            {/* Add / Edit Modal — Apple HIG System Sheet */}
             {showModal && createPortal(
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-2xl shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] overflow-hidden border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10" onClick={e => e.stopPropagation()}>
                         {/* Modal Header */}
-                        <div className="px-6 py-5 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
+                        <div className="px-6 py-4 flex justify-between items-center border-b border-slate-200/85 dark:border-slate-800 bg-[#F2F4F8] dark:bg-slate-800/80">
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                                    <Car className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                <div className="w-8 h-8 bg-blue-100/90 dark:bg-blue-900/30 border border-blue-200/80 rounded-full flex items-center justify-center shadow-2xs">
+                                    <Car className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                 </div>
                                 <div>
-                                    <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                                        {editingVehicle ? t('fleet.edit_vehicle') : t('fleet.new_vehicle', 'Nouveau Véhicule')}
+                                    <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">
+                                        {editingVehicle ? t('fleet.edit_vehicle', 'Modifier le véhicule') : t('fleet.new_vehicle', 'Nouveau Véhicule')}
                                     </h2>
-                                    {editingVehicle && <p className="text-xs text-slate-400 mt-0.5">{editingVehicle.name} · {editingVehicle.plate_number}</p>}
+                                    {editingVehicle && <p className="text-xs font-medium text-slate-500 mt-0.5">{editingVehicle.name} · {editingVehicle.plate_number}</p>}
                                 </div>
                             </div>
-                            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-400 hover:text-slate-600">
-                                <X className="w-5 h-5" />
+                            <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 dark:bg-slate-700 border border-slate-300/80 dark:border-slate-600 flex items-center justify-center transition-colors text-slate-500 shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -1166,40 +1166,46 @@ export default function FleetManagement() {
                 </div>, document.body
             )}
 
-            {/* Delete Confirm Modal */}
-            {deleteTarget && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setDeleteTarget(null)}>
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 p-6" onClick={e => e.stopPropagation()}>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{t('common.delete_confirm')}</h2>
-                        <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
-                            {t('fleet.delete_confirm_msg')} <strong>{deleteTarget.name}</strong>? {t('common.cannot_be_undone')}
-                        </p>
-                        <div className="flex justify-end gap-3 flex-wrap">
-                            <button onClick={() => setDeleteTarget(null)} className="px-5 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                {t('common.cancel')}
+            {/* Delete Confirm Modal — Apple HIG Alert */}
+            {deleteTarget && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4" onClick={() => setDeleteTarget(null)}>
+                    <div className="bg-[#F2F4F8] dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] max-w-md w-full shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 p-5" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 p-5 shadow-xs mb-4">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight mb-2">{t('common.delete_confirm', 'Confirmer la suppression')}</h2>
+                            <p className="text-slate-600 dark:text-slate-400 text-[13.5px] font-medium leading-relaxed">
+                                {t('fleet.delete_confirm_msg', 'Voulez-vous vraiment supprimer')} <strong className="text-slate-900 dark:text-white">{deleteTarget.name}</strong> ? {t('common.cannot_be_undone', 'Cette action est irréversible.')}
+                            </p>
+                        </div>
+                        <div className="flex justify-end gap-2.5">
+                            <button onClick={() => setDeleteTarget(null)} className="flex-1 h-[44px] px-5 text-[14px] font-bold rounded-[13px] bg-white dark:bg-slate-800 border border-slate-300/90 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]">
+                                {t('common.cancel', 'Annuler')}
                             </button>
-                            <button onClick={() => handleDelete(deleteTarget.id)} className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
-                                {t('common.delete')}
+                            <button onClick={() => handleDelete(deleteTarget.id)} className="flex-1 h-[44px] px-5 bg-red-600 hover:bg-red-700 text-white text-[14px] font-bold rounded-[13px] transition-all shadow-[0_8px_18px_-4px_rgba(220,38,38,0.45)] active:scale-[0.98]">
+                                {t('common.delete', 'Supprimer')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Document Preview Modal */}
-            {previewDoc && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-8" onClick={() => setPreviewDoc(null)}>
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[85vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center p-4 px-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-                            <h3 className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-blue-500"/> {previewDoc.name}
+            {previewDoc && createPortal(
+                <div className="fixed inset-0 bg-slate-950/55 backdrop-blur-md z-[99999] flex items-center justify-center p-4 md:p-8" onClick={() => setPreviewDoc(null)}>
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 w-full max-w-5xl h-[85vh] rounded-[24px] flex flex-col shadow-[0_28px_64px_-12px_rgba(15,23,42,0.45)] overflow-hidden border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200/85 dark:border-slate-700 bg-[#F2F4F8] dark:bg-slate-800">
+                            <h3 className="font-black text-slate-900 dark:text-slate-100 text-[16px] tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                    <FileText className="w-4 h-4"/>
+                                </div>
+                                {previewDoc.name}
                             </h3>
                             <div className="flex items-center gap-2">
-                                <button onClick={() => window.open(previewDoc.url, '_blank')} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-full text-slate-500 hover:text-blue-600 transition-colors" title={t('common.open_new_tab', 'Ouvrir dans un nouvel onglet')}>
-                                    <ExternalLink className="w-5 h-5" />
+                                <button onClick={() => window.open(previewDoc.url, '_blank')} className="w-8 h-8 bg-white hover:bg-slate-100 dark:bg-slate-700 border border-slate-300/80 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors shadow-2xs" title={t('common.open_new_tab', 'Ouvrir dans un nouvel onglet')}>
+                                    <ExternalLink className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => setPreviewDoc(null)} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-full text-slate-500 hover:text-red-500 transition-colors" title={t('common.close', 'Fermer')}>
-                                    <X className="w-5 h-5" />
+                                <button onClick={() => setPreviewDoc(null)} className="w-8 h-8 bg-white hover:bg-slate-100 dark:bg-slate-700 border border-slate-300/80 rounded-full flex items-center justify-center text-slate-500 hover:text-red-500 transition-colors shadow-2xs" title={t('common.close', 'Fermer')}>
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
@@ -1207,25 +1213,31 @@ export default function FleetManagement() {
                             <iframe src={previewDoc.url} className="w-full h-full bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner block" title="Document Preview" />
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Daily Log Modal for Equipment */}
             {showLogModal && logEquipment && createPortal(
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 p-6" onClick={e => e.stopPropagation()}>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t('fleet.log_daily_equipment')}: {logEquipment.name}</h2>
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-md shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between">
+                            <h2 className="text-[16px] font-black text-slate-900 dark:text-white tracking-tight">{t('fleet.log_daily_equipment', 'Pointage équipement')}: {logEquipment.name}</h2>
+                            <button onClick={() => setShowLogModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 shadow-2xs">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
                         
-                        <div className="space-y-4 mb-6">
+                        <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('common.date')}</label>
-                                <input type="date" value={logForm.date} onChange={e => setLogForm(f => ({ ...f, date: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('common.date', 'Date')}</label>
+                                <input type="date" value={logForm.date} onChange={e => setLogForm(f => ({ ...f, date: e.target.value }))} className="w-full px-3.5 py-2 border border-slate-200/90 rounded-[13px] text-sm outline-none focus:border-blue-400" />
                             </div>
                             
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.project_site')}</label>
-                                <select value={logForm.site_id} onChange={e => setLogForm(f => ({ ...f, site_id: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400">
-                                    <option value="">-- {t('common.not_selected')} --</option>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.project_site', 'Chantier')}</label>
+                                <select value={logForm.site_id} onChange={e => setLogForm(f => ({ ...f, site_id: e.target.value }))} className="w-full px-3.5 py-2 border border-slate-200/90 rounded-[13px] text-sm outline-none focus:border-blue-400">
+                                    <option value="">-- {t('common.not_selected', 'Non sélectionné')} --</option>
                                     {sites.filter(s => (logEquipment.site_ids || []).includes(s.id)).map(s => (
                                         <option key={s.id} value={s.id}>{s.name}</option>
                                     ))}
@@ -1234,45 +1246,45 @@ export default function FleetManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.operator')}</label>
-                                <select value={logForm.operator_id} onChange={e => setLogForm(f => ({ ...f, operator_id: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400">
-                                    <option value="">-- {t('common.not_selected')} --</option>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.operator', 'Opérateur')}</label>
+                                <select value={logForm.operator_id} onChange={e => setLogForm(f => ({ ...f, operator_id: e.target.value }))} className="w-full px-3.5 py-2 border border-slate-200/90 rounded-[13px] text-sm outline-none focus:border-blue-400">
+                                    <option value="">-- {t('common.not_selected', 'Non sélectionné')} --</option>
                                     {users.filter(u => (logEquipment.user_ids || []).includes(u.id)).map(u => (
                                         <option key={u.id} value={u.id}>{u.last_name} {u.first_name}</option>
                                     ))}
                                 </select>
                             </div>
 
-                            <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+                            <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/90 rounded-[13px] cursor-pointer">
                                 <input type="checkbox" checked={logForm.is_used} onChange={e => setLogForm(f => ({ ...f, is_used: e.target.checked }))} className="w-5 h-5 text-blue-600 rounded" />
-                                <span className="text-sm font-semibold text-slate-800">{t('fleet.equipment_used')}</span>
+                                <span className="text-sm font-semibold text-slate-800">{t('fleet.equipment_used', 'Équipement utilisé')}</span>
                             </label>
 
-                            <div className="flex gap-4 p-3 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                            <div className="flex gap-4 p-3 bg-slate-50 border border-slate-200/90 rounded-[13px] overflow-hidden">
                                 <label className="flex items-center gap-3 cursor-pointer shrink-0">
                                     <input type="checkbox" checked={logForm.refueled} onChange={e => setLogForm(f => ({ ...f, refueled: e.target.checked }))} className="w-5 h-5 text-emerald-600 rounded" />
-                                    <span className="text-sm font-semibold text-slate-800">{t('fleet.refueled')}?</span>
+                                    <span className="text-sm font-semibold text-slate-800">{t('fleet.refueled', 'Ravitaillé')} ?</span>
                                 </label>
                                 {logForm.refueled && (
                                     <div className="flex-1 flex gap-2 items-center">
                                         <input type="number" min="0" step="0.1" value={logForm.refuel_liters} onChange={e => setLogForm(f => ({ ...f, refuel_liters: e.target.value }))} placeholder="0" className="w-full px-3 py-1.5 border border-slate-300 rounded-full text-sm" />
-                                        <span className="text-xs font-bold text-slate-500">{t('fleet.liters')}</span>
+                                        <span className="text-xs font-bold text-slate-500">{t('fleet.liters', 'L')}</span>
                                     </div>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('common.notes')}</label>
-                                <textarea value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} placeholder={t('common.notes_placeholder')} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 resize-none"></textarea>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('common.notes', 'Notes')}</label>
+                                <textarea value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} placeholder={t('common.notes_placeholder', 'Observations...')} rows={2} className="w-full px-3.5 py-2 border border-slate-200/90 rounded-[13px] text-sm outline-none focus:border-blue-400 resize-none"></textarea>
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-3">
-                            <button onClick={() => setShowLogModal(false)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
-                                {t('common.cancel')}
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 flex justify-end gap-3">
+                            <button onClick={() => setShowLogModal(false)} className="h-[42px] px-5 text-[14px] font-bold rounded-[13px] bg-white border border-slate-300/90 text-slate-700 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]">
+                                {t('common.cancel', 'Annuler')}
                             </button>
-                            <button onClick={handleSaveLog} className="px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                                {t('fleet.save_log')}
+                            <button onClick={handleSaveLog} className="h-[42px] px-5 text-[14px] font-bold rounded-[13px] bg-blue-600 hover:bg-blue-700 text-white shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98]">
+                                {t('fleet.save_log', 'Enregistrer')}
                             </button>
                         </div>
                     </div>
@@ -1281,17 +1293,17 @@ export default function FleetManagement() {
 
             {/* Document Upload Modal */}
             {showDocModal && createPortal(
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 p-6" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editingDocId ? t('fleet.edit_doc') : t('fleet.add_doc')}</h2>
-                            <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: '', expiry_date: '' }); }} className="p-1 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-md shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85">
+                            <h2 className="text-[16px] font-black text-slate-900 dark:text-white tracking-tight">{editingDocId ? t('fleet.edit_doc', 'Modifier le document') : t('fleet.add_doc', 'Ajouter un document')}</h2>
+                            <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: '', expiry_date: '' }); }} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 shadow-2xs"><X className="w-4 h-4" /></button>
                         </div>
                         
-                        <div className="space-y-4 mb-6">
+                        <div className="p-6 space-y-4">
                             {!editingDocId && (
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.choose_file')} *</label>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.choose_file', 'Choisir un fichier')} *</label>
                                     <div className="relative group cursor-pointer">
                                         <input 
                                             type="file" 
@@ -1299,37 +1311,37 @@ export default function FleetManagement() {
                                             onChange={(e) => setDocFile(e.target.files[0])} 
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                                         />
-                                        <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl transition-colors ${docFile ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 group-hover:bg-slate-100 dark:group-hover:bg-slate-700'}`}>
+                                        <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-[16px] transition-colors ${docFile ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 group-hover:bg-slate-100 dark:group-hover:bg-slate-700'}`}>
                                             <UploadCloud className={`w-8 h-8 mb-2 ${docFile ? 'text-blue-500' : 'text-slate-400'}`} />
                                             <p className={`text-sm font-semibold text-center ${docFile ? 'text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                {docFile ? docFile.name : t('fleet.choose_file_desc')}
+                                                {docFile ? docFile.name : t('fleet.choose_file_desc', 'Cliquez ou glissez un fichier ici')}
                                             </p>
-                                            {!docFile && <p className="text-xs text-slate-400 mt-1">{t('fleet.file_types_limit')}</p>}
+                                            {!docFile && <p className="text-xs text-slate-400 mt-1">{t('fleet.file_types_limit', 'PDF ou image')}</p>}
                                         </div>
                                     </div>
                                 </div>
                             )}
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.doc_name_optional')}</label>
-                                <input type="text" value={docForm.name} onChange={e => setDocForm(f => ({ ...f, name: e.target.value }))} placeholder={t('fleet.doc_name_placeholder')} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.doc_name_optional', 'Nom du document')}</label>
+                                <input type="text" value={docForm.name} onChange={e => setDocForm(f => ({ ...f, name: e.target.value }))} placeholder={t('fleet.doc_name_placeholder')} className="w-full px-3.5 py-2 border border-slate-200/90 rounded-[13px] text-sm outline-none focus:border-blue-400" />
                                 <p className="text-[11px] text-slate-400 mt-1">{t('fleet.doc_name_tip')}</p>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.expiry_date_optional')}</label>
-                                <input type="date" value={docForm.expiry_date} onChange={e => setDocForm(f => ({ ...f, expiry_date: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.expiry_date_optional', 'Date d\'expiration')}</label>
+                                <input type="date" value={docForm.expiry_date} onChange={e => setDocForm(f => ({ ...f, expiry_date: e.target.value }))} className="w-full px-3.5 py-2 border border-slate-200/90 rounded-[13px] text-sm outline-none focus:border-blue-400" />
                                 <p className="text-[11px] text-slate-400 mt-1">{t('fleet.expiry_alert_tip')}</p>
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-3">
-                            <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: '', expiry_date: '' }); }} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
-                                {t('common.cancel')}
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 flex justify-end gap-3">
+                            <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: '', expiry_date: '' }); }} className="h-[42px] px-5 text-[14px] font-bold rounded-[13px] bg-white border border-slate-300/90 text-slate-700 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]">
+                                {t('common.cancel', 'Annuler')}
                             </button>
-                            <button onClick={editingDocId ? handleSaveDocEdit : handleUploadDoc} disabled={uploadingDoc || (!editingDocId && !docFile)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
+                            <button onClick={editingDocId ? handleSaveDocEdit : handleUploadDoc} disabled={uploadingDoc || (!editingDocId && !docFile)} className="flex items-center gap-2 h-[42px] px-5 text-[14px] font-bold rounded-[13px] bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98]">
                                 {uploadingDoc && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {editingDocId ? t('common.save_changes') : t('common.save')}
+                                {editingDocId ? t('common.save_changes', 'Enregistrer') : t('common.save', 'Enregistrer')}
                             </button>
                         </div>
                     </div>
@@ -1338,30 +1350,30 @@ export default function FleetManagement() {
 
             {/* Category Add / Edit Modal */}
             {showCatModal && createPortal(
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-5 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editingCat ? t('fleet.edit_category') : t('fleet.add_category')}</h2>
-                            <button onClick={() => setShowCatModal(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-md shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] overflow-hidden border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 flex justify-between items-center border-b border-slate-200/85 dark:border-slate-800 bg-[#F2F4F8] dark:bg-slate-800/80">
+                            <h2 className="text-[16px] font-black text-slate-900 dark:text-white tracking-tight">{editingCat ? t('fleet.edit_category', 'Modifier la catégorie') : t('fleet.add_category', 'Nouvelle catégorie')}</h2>
+                            <button onClick={() => setShowCatModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 dark:bg-slate-700 border border-slate-300/80 flex items-center justify-center text-slate-500 shadow-2xs"><X className="w-4 h-4" /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.category_name', 'Nom de la catégorie')} <span className="text-red-500">*</span></label>
-                                <input value={catForm.name} onChange={e => setCatForm(f => ({...f, name: e.target.value}))} placeholder={t('fleet.category_name_placeholder', 'Ex: Grue')} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-400" />
+                                <input value={catForm.name} onChange={e => setCatForm(f => ({...f, name: e.target.value}))} placeholder={t('fleet.category_name_placeholder', 'Ex: Grue')} className="w-full px-3.5 py-2.5 border border-slate-200/90 dark:border-slate-600 rounded-[13px] bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-400" />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.group')}</label>
-                                <select value={catForm.group} onChange={e => setCatForm(f => ({...f, group: e.target.value}))} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-400">
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.group', 'Groupe')}</label>
+                                <select value={catForm.group} onChange={e => setCatForm(f => ({...f, group: e.target.value}))} className="w-full px-3.5 py-2.5 border border-slate-200/90 dark:border-slate-600 rounded-[13px] bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-400">
                                     <option value="equipment">{t('fleet.equipment', 'Équipement / Engin')}</option>
                                     <option value="car">{t('fleet.car', 'Voiture')}</option>
                                 </select>
                             </div>
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button onClick={() => setShowCatModal(false)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{t('common.cancel', 'Annuler')}</button>
-                                <button onClick={handleSaveCat} disabled={savingCat} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
-                                    {savingCat && <Loader2 className="w-4 h-4 animate-spin" />} {t('common.save', 'Enregistrer')}
-                                </button>
-                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 flex justify-end gap-3">
+                            <button onClick={() => setShowCatModal(false)} className="h-[42px] px-5 text-[14px] font-bold rounded-[13px] bg-white dark:bg-slate-800 border border-slate-300/90 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]">{t('common.cancel', 'Annuler')}</button>
+                            <button onClick={handleSaveCat} disabled={savingCat} className="flex items-center gap-2 h-[42px] px-5 text-[14px] font-bold rounded-[13px] bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98]">
+                                {savingCat && <Loader2 className="w-4 h-4 animate-spin" />} {t('common.save', 'Enregistrer')}
+                            </button>
                         </div>
                     </div>
                 </div>, document.body

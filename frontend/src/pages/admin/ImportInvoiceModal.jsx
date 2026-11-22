@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-
+import { createPortal } from 'react-dom'
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, X, ChevronRight, Save, Plus } from 'lucide-react'
 import { extractTextFromImageOrPdf } from '../../lib/pdfOcr'
 import api from '../../lib/api'
@@ -125,22 +125,22 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
         }))
     }
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="relative bg-white dark:bg-slate-900 w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6">
+            <div className="absolute inset-0 bg-slate-950/45 backdrop-blur-md" onClick={onClose}></div>
+            <div className="relative bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 w-full max-w-5xl max-h-[90vh] rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="px-6 py-4 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between bg-[#F2F4F8] dark:bg-slate-800/80">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center shadow-inner">
-                            <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <div className="w-9 h-9 bg-blue-100/90 border border-blue-200/80 dark:bg-blue-900/30 rounded-full flex items-center justify-center shadow-2xs">
+                            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{t('import.title', 'Importer une Facture de Matériaux')}</h2>
-                            <p className="text-xs text-slate-500">{t('import.subtitle', 'Extraction automatique des quantités vers la gestion')}</p>
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight leading-tight">{t('import.title', 'Importer une Facture de Matériaux')}</h2>
+                            <p className="text-xs font-medium text-slate-500">{t('import.subtitle', 'Extraction automatique des quantités vers la gestion')}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white transition-colors">
-                        <X className="w-5 h-5" />
+                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 text-slate-500 transition-colors shadow-2xs">
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
                 
@@ -395,6 +395,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
             
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

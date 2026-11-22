@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, Edit2, Trash2, MapPin, Loader2, Save, X, ArrowLeft, Beaker, Map as MapIcon, List } from 'lucide-react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { useUIStore } from '../../../store/uiStore'
+import ConfirmModal from '../../../components/ConfirmModal'
 
 const getSandStationIcon = (letter, bgColor) => new L.DivIcon({
     html: `<div style="background-color: ${bgColor}; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 13px;">${letter}</div>`,
@@ -29,10 +32,12 @@ function FlyToStation({ coords }) {
 }
 
 export default function SandStationsPage() {
+    const { showToast } = useUIStore()
     const [stations, setStations] = useState([])
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingStation, setEditingStation] = useState(null)
+    const [deleteConfirmId, setDeleteConfirmId] = useState(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedStationId, setSelectedStationId] = useState(null)
     const [formData, setFormData] = useState({ name: '', address: '', latitude: '', longitude: '', price_per_ton: '' })
@@ -51,7 +56,7 @@ export default function SandStationsPage() {
     const handleDetectGPS = () => {
         setDetecting(true)
         if (!navigator.geolocation) {
-            alert('Geolocația nu este suportată de acest browser.')
+            showToast('La géolocalisation n\'est pas supportée par ce navigateur.', 'error')
             setDetecting(false)
             return
         }
@@ -68,7 +73,7 @@ export default function SandStationsPage() {
                 }
             },
             (err) => {
-                alert('Eroare la obținerea locației: ' + err.message)
+                showToast('Erreur de géolocalisation : ' + err.message, 'error')
                 setDetecting(false)
             },
             { enableHighAccuracy: true, timeout: 10000 }
@@ -128,20 +133,25 @@ export default function SandStationsPage() {
             fetchStations()
         } catch (err) {
             console.error(err)
-            alert("Eroare la salvare")
+            showToast('Erreur lors de l\'enregistrement', 'error')
         } finally {
             setSaving(false)
         }
     }
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("Ești sigur că vrei să ștergi această stație?")) return
+    const handleDelete = (id) => {
+        setDeleteConfirmId(id)
+    }
+
+    const confirmDeleteStation = async () => {
+        if (!deleteConfirmId) return
         try {
-            await api.delete(`/admin/logistics/sand-stations/${id}`)
+            await api.delete(`/admin/logistics/sand-stations/${deleteConfirmId}`)
+            setDeleteConfirmId(null)
             fetchStations()
         } catch (err) {
             console.error(err)
-            alert("Eroare la ștergere")
+            showToast('Erreur lors de la suppression', 'error')
         }
     }
 
@@ -380,27 +390,32 @@ export default function SandStationsPage() {
                 )
             })()}
 
-            {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col">
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-blue-600 dark:bg-slate-800 rounded-t-2xl">
-                            <h2 className="text-lg font-bold text-white">{editingStation ? 'Éditer Stație' : 'Stație Nouă'}</h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-blue-100 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            {isModalOpen && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-lg shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden flex flex-col">
+                        <div className="px-6 py-4 border-b border-slate-200/85 dark:border-slate-800 flex justify-between items-center bg-[#F2F4F8] dark:bg-slate-800/80">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                    <MapPin className="w-4 h-4" />
+                                </div>
+                                {editingStation ? 'Modifier la sablière' : 'Nouvelle sablière'}
+                            </h2>
+                            <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs"><X className="w-4 h-4" /></button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Nume *</label>
-                                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Nom *</label>
+                                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/90 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Preț per Tonă (€)</label>
-                                    <input type="number" step="any" placeholder="ex: 25.5" value={formData.price_per_ton} onChange={e => setFormData({...formData, price_per_ton: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Prix par tonne (€)</label>
+                                    <input type="number" step="any" placeholder="ex: 25.5" value={formData.price_per_ton} onChange={e => setFormData({...formData, price_per_ton: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/90 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div>
                                 <div className="flex items-center justify-between mb-1">
-                                    <label className="block text-xs font-bold uppercase text-slate-500">Adresă / Căutare pe Hartă</label>
+                                    <label className="block text-xs font-bold uppercase text-slate-500">Adresse / Recherche sur carte</label>
                                     <button 
                                         type="button" 
                                         onClick={handleDetectGPS} 
@@ -408,7 +423,7 @@ export default function SandStationsPage() {
                                         className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:text-blue-700 disabled:opacity-50"
                                     >
                                         {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
-                                        Detectează
+                                        Détecter
                                     </button>
                                 </div>
                                 <AddressAutocomplete
@@ -421,10 +436,10 @@ export default function SandStationsPage() {
                                             longitude: lon !== null ? lon : prev.longitude
                                         }))
                                     }}
-                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/90 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none"
                                 />
                             </div>
-                            <div className="rounded-xl overflow-hidden shadow-inner border border-slate-200 bg-slate-100">
+                            <div className="rounded-[16px] overflow-hidden shadow-inner border border-slate-200/90 bg-slate-100">
                                 <MapView 
                                     address={formData.address}
                                     latitude={formData.latitude}
@@ -434,24 +449,36 @@ export default function SandStationsPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Latitudine GPS</label>
-                                    <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Latitude GPS</label>
+                                    <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/90 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Longitudine GPS</label>
-                                    <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Longitude GPS</label>
+                                    <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/90 rounded-[13px] focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-medium">Anulare</button>
-                                <button type="submit" disabled={saving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center gap-2">
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/85">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="h-[42px] px-5 rounded-[13px] bg-white border border-slate-300/90 text-slate-700 hover:bg-slate-50 font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]">Annuler</button>
+                                <button type="submit" disabled={saving} className="h-[42px] px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[14px] rounded-[13px] shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] flex items-center gap-2 transition-all active:scale-[0.98]">
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Enregistrer
                                 </button>
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
+
+            <ConfirmModal
+                isOpen={!!deleteConfirmId}
+                onClose={() => setDeleteConfirmId(null)}
+                onConfirm={confirmDeleteStation}
+                title="Supprimer la sablière"
+                message="Êtes-vous sûr de vouloir supprimer cette sablière ?"
+                confirmText="Supprimer"
+                cancelText="Annuler"
+                type="danger"
+            />
         </div>
     )
 }

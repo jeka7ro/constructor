@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Truck, MapPin, Clock, Gauge, Route, Calendar,
@@ -194,17 +195,19 @@ function TripDetail({ trip, onClose, onApprove }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-3xl shadow-2xl border border-slate-200 dark:border-slate-800 my-8">
+  return createPortal(
+    <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-3xl shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 my-8 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-200/85 dark:border-slate-800 bg-[#F2F4F8] dark:bg-slate-800/80 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Truck className="w-5 h-5 text-blue-500" />
+            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                <Truck className="w-4 h-4" />
+              </div>
               {trip.vehicle_name || '—'} — {trip.vehicle_plate || ''}
             </h2>
-            <p className="text-sm text-slate-500 mt-0.5">{fmtDate(trip.date)} · {trip.driver_name}</p>
+            <p className="text-xs font-medium text-slate-500 mt-1">{fmtDate(trip.date)} · {trip.driver_name}</p>
           </div>
           <div className="flex items-center gap-3">
             <StatusBadge status={trip.status} />
@@ -213,7 +216,7 @@ function TripDetail({ trip, onClose, onApprove }) {
                 <AlertTriangle className="w-3 h-3" /> {t('transport.out_of_schedule_badge', 'Hors programme')}
               </span>
             )}
-            <button onClick={onClose} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center transition-colors">
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white border border-slate-300/80 hover:bg-slate-100 flex items-center justify-center transition-colors shadow-2xs">
               <XCircle className="w-4 h-4 text-slate-500" />
             </button>
           </div>
@@ -342,7 +345,8 @@ function TripDetail({ trip, onClose, onApprove }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -390,14 +394,17 @@ function ScheduleModal({ onClose, onSaved }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Settings className="w-5 h-5 text-blue-500" /> {t('transport.schedule_settings', 'Programme de transport')}
+  return createPortal(
+    <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-md shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200/85 dark:border-slate-800 bg-[#F2F4F8] dark:bg-slate-800/80 flex items-center justify-between">
+          <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+              <Settings className="w-4 h-4" />
+            </div>
+            {t('transport.schedule_settings', 'Programme de transport')}
           </h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center">
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white border border-slate-300/80 hover:bg-slate-100 flex items-center justify-center shadow-2xs">
             <XCircle className="w-4 h-4 text-slate-500" />
           </button>
         </div>
@@ -484,7 +491,7 @@ function ScheduleModal({ onClose, onSaved }) {
             <button
               onClick={save}
               disabled={saving}
-              className="w-full px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+              className="w-full px-5 h-[42px] rounded-[13px] bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-bold shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
               {t('transport.save_schedule', 'Enregistrer le programme')}
@@ -492,7 +499,8 @@ function ScheduleModal({ onClose, onSaved }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -534,14 +542,17 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Play className="w-5 h-5 text-emerald-500" /> {t('transport.start_new_trip', 'Démarrer un nouveau trajet')}
+  return createPortal(
+    <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-lg shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200/85 dark:border-slate-800 bg-[#F2F4F8] dark:bg-slate-800/80 flex items-center justify-between">
+          <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-emerald-100/90 text-emerald-600 border border-emerald-200/80 flex items-center justify-center shadow-2xs">
+              <Play className="w-4 h-4" />
+            </div>
+            {t('transport.start_new_trip', 'Démarrer un nouveau trajet')}
           </h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center">
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white border border-slate-300/80 hover:bg-slate-100 flex items-center justify-center shadow-2xs">
             <XCircle className="w-4 h-4 text-slate-500" />
           </button>
         </div>
@@ -606,13 +617,14 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
             </div>
           )}
           <button onClick={submit} disabled={saving}
-            className="w-full px-5 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2">
+            className="w-full px-5 h-[42px] rounded-[13px] bg-emerald-600 hover:bg-emerald-700 text-white text-[14px] font-bold shadow-[0_8px_18px_-4px_rgba(16,185,129,0.45)] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             {t('transport.start_trip_button', 'Démarrer le trajet')}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

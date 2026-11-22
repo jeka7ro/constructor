@@ -1398,14 +1398,14 @@ export default function ShortWorksCalendar({
                                         )}
                                         <div className="flex flex-col flex-1 w-full relative z-10 justify-between">
                                             {/* TOP ROW: Name and Total Surface */}
-                                            <div className="flex items-center justify-between -mx-1.5 -mt-1.5 px-2 py-1 border-b rounded-t-xl" style={{ backgroundColor: borderLeftColorVal + '38', borderColor: borderLeftColorVal + '80' }}>
-                                                <div className="flex items-center gap-1.5 truncate pr-1.5 min-w-0 flex-1">
+                                            <div className="flex items-center justify-between gap-1 -mx-1.5 -mt-1.5 px-1.5 py-1 border-b rounded-t-xl" style={{ backgroundColor: borderLeftColorVal + '38', borderColor: borderLeftColorVal + '80' }}>
+                                                <div className="flex items-center gap-1 min-w-0 flex-1">
                                                     {isCompleted ? (
-                                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                                     ) : isExternalSource ? (
-                                                        <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: clientColorHex }} title="Sursă externă / Partener" />
+                                                        <div className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: clientColorHex }} title="Sursă externă / Partener" />
                                                     ) : null}
-                                                    <span className="text-[11.5px] font-extrabold text-slate-900 dark:text-white truncate leading-tight">
+                                                    <span className="text-[10.5px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-[1.12] line-clamp-2 break-words">
                                                         {(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}
                                                     </span>
                                                 </div>
@@ -1415,26 +1415,26 @@ export default function ShortWorksCalendar({
                                                     const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
                                                     const displaySurf = sumVol > 0 ? parseFloat(sumVol.toFixed(2)) : parseFloat(fallbackSurf.toFixed(2));
                                                     if (displaySurf > 0) {
-                                                        const isMultiple = finalVols.length > 1;
-                                                        return <span className="text-[10.5px] font-black text-slate-800 dark:text-white shrink-0 bg-white/90 dark:bg-slate-950/80 border border-black/5 dark:border-white/15 px-1.5 py-0.5 rounded-md shadow-2xs tabular-nums leading-none">{isMultiple ? 'Total: ' : ''}{displaySurf} m²</span>;
+                                                        return <span className="text-[10px] font-black text-slate-800 dark:text-white shrink-0 bg-white/95 dark:bg-slate-950/85 border border-black/5 dark:border-white/15 px-1 py-0.5 rounded shadow-2xs tabular-nums leading-none whitespace-nowrap">{displaySurf}m²</span>;
                                                     }
                                                     return null;
                                                 })()}
                                             </div>
 
-                                            {/* ROW 2: Volumes / Layers across FULL width so m² × cm is NEVER truncated */}
+                                            {/* ROW 2: Work Type & Thickness (avoids duplicating m² for single-volume orders so 'Chape' is never cut to 'C...') */}
                                             <div className="flex flex-col gap-0.5 mt-1 w-full">
                                                 {(() => {
                                                     const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
                                                     
                                                     if (finalVols.length > 0) {
+                                                        const isSingleVol = finalVols.length === 1;
                                                         return finalVols.slice(0, 2).map((vol, idx) => {
-                                                            let displayName = vol.name;
+                                                            let displayName = vol.name || vol.label;
                                                             if (!displayName || displayName.toLowerCase() === 'chape') {
-                                                                displayName = finalVols.length > 1 ? `Chape ${idx + 1}` : 'Chape';
+                                                                displayName = isSingleVol ? 'Chape' : `Chape ${idx + 1}`;
                                                             }
-                                                            const qtyPart = vol.quantity ? `${vol.quantity}m²` : '';
-                                                            const thickPart = vol.thickness ? `×${vol.thickness}cm` : '';
+                                                            const qtyPart = (!isSingleVol && vol.quantity) ? `${vol.quantity}m²` : '';
+                                                            const thickPart = vol.thickness ? (isSingleVol ? `• ${vol.thickness}cm` : `×${vol.thickness}cm`) : '';
                                                             return (
                                                                 <div key={idx} className="flex items-center text-[10px] text-slate-800 dark:text-slate-100 font-extrabold w-full leading-tight min-w-0">
                                                                     <Layers className="w-3 h-3 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
@@ -1455,9 +1455,11 @@ export default function ShortWorksCalendar({
                                                                 <div className="flex items-center text-[10px] text-slate-800 dark:text-slate-100 font-extrabold w-full leading-tight min-w-0">
                                                                     <Layers className="w-3 h-3 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
                                                                     <span className="truncate">Chape</span>
-                                                                    <span className="ml-1 shrink-0 tabular-nums font-black text-slate-900 dark:text-white">
-                                                                        {fallbackSurf}m²{fallbackThick > 0 ? `×${fallbackThick}cm` : ''}
-                                                                    </span>
+                                                                    {fallbackThick > 0 && (
+                                                                        <span className="ml-1 shrink-0 tabular-nums font-black text-slate-900 dark:text-white">
+                                                                            • {fallbackThick}cm
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             );
                                                         }
@@ -1527,34 +1529,34 @@ export default function ShortWorksCalendar({
                     </div>
                 </div>
             </div>
-            {/* Planning Modal */}
+            {/* Planning Modal — Apple HIG Sheet / Alert */}
             {pendingReschedule && !pendingReschedule.instantSave && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="p-5">
-                            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
-                                <CalendarIcon className="w-6 h-6 text-blue-600 dark:text-blue-500" />
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => setPendingReschedule(null)}>
+                    <div className="w-full max-w-[390px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <div className="w-12 h-12 rounded-full bg-sky-500/12 dark:bg-sky-500/20 border border-sky-500/25 flex items-center justify-center mx-auto mb-3.5">
+                                <CalendarIcon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">{t('planning.modal_title', 'Détails de Planification')}</h3>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white text-center mb-4">{t('planning.modal_title', 'Détails de Planification')}</h3>
                             
-                            <div className="space-y-4 my-6">
+                            <div className="space-y-3.5">
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('planning.arrival_date', 'Date d\'arrivée')}</label>
+                                        <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">{t('planning.arrival_date', 'Date d\'arrivée')}</label>
                                         <input 
                                             type="date" 
                                             value={pendingReschedule.start_date || ''}
                                             onChange={e => setPendingReschedule({...pendingReschedule, start_date: e.target.value})}
-                                            className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-300/90 dark:border-slate-700 rounded-[12px] text-sm font-medium outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('planning.arrival_time', 'Heure (estimée)')}</label>
+                                        <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">{t('planning.arrival_time', 'Heure (estimée)')}</label>
                                         <input 
                                             type="time" 
                                             value={planningTime}
                                             onChange={e => setPlanningTime(e.target.value)}
-                                            className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-300/90 dark:border-slate-700 rounded-[12px] text-sm font-medium outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500"
                                         />
                                     </div>
                                 </div>
@@ -1562,13 +1564,13 @@ export default function ShortWorksCalendar({
                                     const holiday = PUBLIC_HOLIDAYS_BE.find(h => h.date === pendingReschedule.start_date);
                                     if (holiday) {
                                         return (
-                                            <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl mt-4">
-                                                <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                                            <div className="flex items-start gap-2 p-3 bg-rose-500/10 border border-rose-500/25 rounded-[12px]">
+                                                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 mt-0.5 flex-shrink-0" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-semibold text-red-900 dark:text-red-200">
-                                                        {t('planning.holiday_warning', 'Attention: Jour Férié')}
+                                                    <span className="text-[13px] font-semibold text-rose-900 dark:text-rose-200">
+                                                        {t('planning.holiday_warning', 'Attention : Jour férié')}
                                                     </span>
-                                                    <span className="text-xs text-red-700 dark:text-red-300">
+                                                    <span className="text-xs text-rose-700 dark:text-rose-300">
                                                         {t(`holidays.${holiday.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, holiday.name)}
                                                     </span>
                                                 </div>
@@ -1579,10 +1581,10 @@ export default function ShortWorksCalendar({
                                 })()}
                                 <div 
                                     onClick={() => setPlanningNotify(!planningNotify)}
-                                    className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors border ${
+                                    className={`flex items-start gap-3 p-3 rounded-[12px] cursor-pointer transition-colors border ${
                                         planningNotify 
-                                            ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50' 
-                                            : 'bg-slate-50 border-transparent hover:border-slate-200 dark:bg-slate-800/50 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                            ? 'bg-sky-500/10 border-sky-500/25 dark:bg-sky-500/15 dark:border-sky-500/30' 
+                                            : 'bg-slate-50 border-slate-200/80 hover:border-slate-300 dark:bg-slate-900/50 dark:border-slate-700'
                                     }`}
                                 >
                                     <div className="flex h-5 items-center">
@@ -1590,114 +1592,117 @@ export default function ShortWorksCalendar({
                                             type="checkbox"
                                             checked={planningNotify}
                                             readOnly
-                                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 pointer-events-none"
+                                            className="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 pointer-events-none"
                                         />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className={`text-sm font-semibold leading-5 ${planningNotify ? 'text-blue-900 dark:text-blue-100' : 'text-slate-900 dark:text-white'}`}>
+                                        <span className={`text-[13px] font-semibold leading-5 ${planningNotify ? 'text-sky-900 dark:text-sky-100' : 'text-slate-900 dark:text-white'}`}>
                                             {isPartner ? 'Envoyer une notification à Davide Chape' : t('planning.send_notification', 'Envoyer une notification au client')}
                                         </span>
-                                        <span className={`text-xs ${planningNotify ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                                        <span className={`text-[11.5px] ${planningNotify ? 'text-sky-700 dark:text-sky-300' : 'text-slate-500 dark:text-slate-400'}`}>
                                             {isPartner ? 'Un email sera envoyé avec les détails de la modification' : t('planning.notification_desc', 'Email et WhatsApp avec les détails du rendez-vous')}
                                         </span>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={() => setPendingReschedule(null)}
-                                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-semibold transition-colors"
-                                >
-                                    {t('planning.cancel_btn', 'Annuler')}
-                                </button>
-                                <button 
-                                    onClick={async () => {
-                                        if (!pendingReschedule) return;
-                                        if (syncing) return;
-                                        
-                                        const { id, start_date, status } = pendingReschedule;
-                                        setSyncing(true);
-                                        
-                                        try {
-                                            const updatePayload = {
-                                                start_date,
-                                                start_time: planningTime,
-                                                send_notification: planningNotify,
-                                                ...(status ? { status } : {})
-                                            };
-                                            const res = await apiClient.put(`${apiBasePath}/${id}`, updatePayload);
-                                            if (onOrderRescheduled) {
-                                                onOrderRescheduled(id, start_date, planningTime, false, undefined, res.data);
-                                            } else {
-                                                window.location.reload();
-                                            }
-                                            setPendingReschedule(null); // Close modal only after success
-                                        } catch (error) {
-                                            console.error("Eroare la mutare/planificare comanda:", error);
-                                        } finally {
-                                            setSyncing(false);
+                        <div className="flex items-center gap-2.5 mt-3">
+                            <button 
+                                type="button"
+                                onClick={() => setPendingReschedule(null)}
+                                className="flex-1 h-10 px-4 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/90 dark:border-slate-600/80 rounded-[14px] text-[13.5px] font-semibold transition-all cursor-pointer"
+                            >
+                                {t('planning.cancel_btn', 'Annuler')}
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={async () => {
+                                    if (!pendingReschedule) return;
+                                    if (syncing) return;
+                                    
+                                    const { id, start_date, status } = pendingReschedule;
+                                    setSyncing(true);
+                                    
+                                    try {
+                                        const updatePayload = {
+                                            start_date,
+                                            start_time: planningTime,
+                                            send_notification: planningNotify,
+                                            ...(status ? { status } : {})
+                                        };
+                                        const res = await apiClient.put(`${apiBasePath}/${id}`, updatePayload);
+                                        if (onOrderRescheduled) {
+                                            onOrderRescheduled(id, start_date, planningTime, false, undefined, res.data);
+                                        } else {
+                                            window.location.reload();
                                         }
-                                    }}
-                                    disabled={syncing}
-                                    className={`flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${syncing ? 'opacity-70 cursor-wait' : ''}`}
-                                >
-                                    {syncing ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
-                                        t('planning.save_btn', 'Enregistrer')
-                                    )}
-                                </button>
-                            </div>
+                                        setPendingReschedule(null);
+                                    } catch (error) {
+                                        console.error("Eroare la mutare/planificare comanda:", error);
+                                    } finally {
+                                        setSyncing(false);
+                                    }
+                                }}
+                                disabled={syncing}
+                                className={`flex-1 h-10 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-[14px] text-[13.5px] font-semibold shadow-sm shadow-sky-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer ${syncing ? 'opacity-70 cursor-wait' : ''}`}
+                            >
+                                {syncing ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    t('planning.save_btn', 'Enregistrer')
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>,
                 document.body
             )}
 
-            {/* Delete Confirmation Popup */}
+            {/* Delete Confirmation Popup — Apple HIG Alert */}
             {orderToDelete && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="p-5">
-                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-                                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-500" />
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => setOrderToDelete(null)}>
+                    <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden animate-in zoom-in-95 duration-200 text-center" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/25 flex items-center justify-center mx-auto mb-3.5">
+                                <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">{t('admin_overview.delete_order', 'Ștergere Comandă')}</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
-                                {t('admin_overview.delete_order_confirm', 'Ești sigur că vrei să ștergi lucrarea')} <span className="font-bold text-slate-700 dark:text-slate-300">"{orderToDelete.title}"</span>?
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">{t('admin_overview.delete_order', 'Supprimer la commande')}</h3>
+                            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                                {t('admin_overview.delete_order_confirm', 'Êtes-vous sûr de vouloir supprimer la commande')} <span className="font-semibold text-slate-800 dark:text-slate-200">"{orderToDelete.title}"</span> ?
                             </p>
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={() => setOrderToDelete(null)}
-                                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-semibold transition-colors"
-                                >
-                                    {t('common.cancel', 'Anulează')}
-                                </button>
-                                <button 
-                                    onClick={async () => {
-                                        const idToDelete = orderToDelete.id;
-                                        setDeletedIds(prev => new Set(prev).add(idToDelete)); // Optimistic delete (instant)
-                                        setOrderToDelete(null); // Close popup instantly
-                                        try {
-                                            await apiClient.delete(`${apiBasePath}/${idToDelete}`);
-                                            if (onOrderRescheduled) onOrderRescheduled();
-                                            else window.location.reload();
-                                        } catch (e) {
-                                            console.error("Eroare la stergere:", e);
-                                            // Revert optimistic delete on error
-                                            setDeletedIds(prev => {
-                                                const next = new Set(prev);
-                                                next.delete(idToDelete);
-                                                return next;
-                                            });
-                                        }
-                                    }}
-                                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                                >
-                                    {t('common.yes_delete', 'Da, șterge')}
-                                </button>
-                            </div>
+                        </div>
+                        <div className="flex items-center gap-2.5 mt-3">
+                            <button 
+                                type="button"
+                                onClick={() => setOrderToDelete(null)}
+                                className="flex-1 h-10 px-4 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/90 dark:border-slate-600/80 rounded-[14px] text-[13.5px] font-semibold transition-all cursor-pointer"
+                            >
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={async () => {
+                                    const idToDelete = orderToDelete.id;
+                                    setDeletedIds(prev => new Set(prev).add(idToDelete));
+                                    setOrderToDelete(null);
+                                    try {
+                                        await apiClient.delete(`${apiBasePath}/${idToDelete}`);
+                                        if (onOrderRescheduled) onOrderRescheduled();
+                                        else window.location.reload();
+                                    } catch (e) {
+                                        console.error("Eroare la stergere:", e);
+                                        setDeletedIds(prev => {
+                                            const next = new Set(prev);
+                                            next.delete(idToDelete);
+                                            return next;
+                                        });
+                                    }
+                                }}
+                                className="flex-1 h-10 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-[14px] text-[13.5px] font-semibold shadow-sm shadow-rose-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                {t('common.yes_delete', 'Supprimer')}
+                            </button>
                         </div>
                     </div>
                 </div>,

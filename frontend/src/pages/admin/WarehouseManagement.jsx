@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, Package, Truck, Search, Loader2, ArrowUpRight, ArrowDownRight, Edit2, Trash2, FileText, Download, ChevronLeft, ChevronRight, Paperclip, History, X, FileSpreadsheet, Save, ChevronDown, MapPin } from 'lucide-react'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
@@ -1293,48 +1294,51 @@ export default function WarehouseManagement() {
         </div>
         )}
 
-        {/* CONFIRM MODAL */}
-            {confirmModal.isOpen && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-100 opacity-100 transition-all">
-                        <div className="p-6 text-center">
-                            <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-                                <Trash2 className="w-8 h-8 text-red-600 dark:text-red-500" />
+        {/* CONFIRM MODAL — Apple HIG Alert */}
+            {confirmModal.isOpen && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>
+                    <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden text-center" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 flex flex-col items-center">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/25 flex items-center justify-center mx-auto mb-3.5">
+                                <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{confirmModal.title}</h3>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">{confirmModal.message}</p>
-                            <div className="flex gap-3 justify-center">
-                                <button
-                                    onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                                    className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    {t('common.cancel', 'Anulează')}
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (confirmModal.onConfirm) confirmModal.onConfirm();
-                                        setConfirmModal({ ...confirmModal, isOpen: false });
-                                    }}
-                                    className="px-5 h-10 rounded-full text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm shadow-red-600/20 transition-all"
-                                >
-                                    {t('common.yes_delete', 'Da, Supprimer')}
-                                </button>
-                            </div>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">{confirmModal.title}</h3>
+                            <p className="text-slate-500 dark:text-slate-400 text-[13.5px] mt-1.5 leading-relaxed">{confirmModal.message}</p>
+                        </div>
+                        <div className="flex gap-2.5 w-full mt-3">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                                className="flex-1 h-10 px-4 rounded-[14px] text-[13.5px] font-semibold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300/90 dark:border-slate-600/80 transition-all cursor-pointer"
+                            >
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (confirmModal.onConfirm) confirmModal.onConfirm();
+                                    setConfirmModal({ ...confirmModal, isOpen: false });
+                                }}
+                                className="flex-1 h-10 px-4 rounded-[14px] text-[13.5px] font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-600/20 transition-all cursor-pointer"
+                            >
+                                {t('common.delete', 'Supprimer')}
+                            </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {/* TOOL CHECK-OUT MODAL */}
-            {toolModal.isOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 transform scale-100 opacity-100 transition-all flex flex-col">
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                {t('warehouse.assign_to_site', 'Repartizare pe Șantier')}
+            {/* TOOL CHECK-OUT MODAL — Apple HIG System Sheet */}
+            {toolModal.isOpen && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-sm shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 transform scale-100 opacity-100 transition-all flex flex-col overflow-hidden">
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                {t('warehouse.assign_to_site', 'Affecter au chantier')}
                             </h2>
-                            <button onClick={() => setToolModal({ ...toolModal, isOpen: false })} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                <X className="w-5 h-5" />
+                            <button onClick={() => setToolModal({ ...toolModal, isOpen: false })} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         <div className="p-6">
@@ -1371,39 +1375,42 @@ export default function WarehouseManagement() {
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.assign_date', 'Data Repartizare')}</label>
                                     <input type="date" required value={toolModal.date} onChange={e => setToolModal({ ...toolModal, date: e.target.value })} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                                 </div>
-                                <div className="flex gap-3 justify-end pt-4 mt-2">
+                                <div className="flex gap-3 justify-end pt-4 mt-2 border-t border-slate-200/85">
                                     <button
                                         type="button"
                                         onClick={() => setToolModal({ ...toolModal, isOpen: false })}
-                                        className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                                        className="h-[42px] px-5 rounded-[13px] text-[14px] font-bold text-slate-700 dark:text-slate-300 bg-white border border-slate-300/90 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]"
                                     >
-                                        {t('common.cancel', 'Anulează')}
+                                        {t('common.cancel', 'Annuler')}
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmittingTool}
-                                        className="px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition-all disabled:opacity-50"
+                                        className="h-[42px] px-5 rounded-[13px] text-[14px] font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98] disabled:opacity-50"
                                     >
-                                        {isSubmittingTool ? <Loader2 className="w-4 h-4 animate-spin" /> : t('warehouse.confirm_handover', 'Confirmă Predarea')}
+                                        {isSubmittingTool ? <Loader2 className="w-4 h-4 animate-spin" /> : t('warehouse.confirm_handover', 'Confirmer la remise')}
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {/* ITEM MODAL */}
-            {showItemModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col">
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Package className="w-5 h-5 text-slate-500" />
-                                {selectedItem ? t('warehouse.edit_item', 'Modifică articol') : t('warehouse.add_new_item')}
+            {/* ITEM MODAL — Apple HIG System Sheet */}
+            {showItemModal && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-md shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 flex flex-col overflow-hidden">
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100/90 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs">
+                                    <Package className="w-4 h-4" />
+                                </div>
+                                {selectedItem ? t('warehouse.edit_item', 'Modifier l\'article') : t('warehouse.add_new_item', 'Nouvel article')}
                             </h2>
-                            <button onClick={() => setShowItemModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                <X className="w-5 h-5" />
+                            <button onClick={() => setShowItemModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-2xl">
@@ -1453,9 +1460,9 @@ export default function WarehouseManagement() {
                                     </div>
                                 )}
                                 
-                                <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
-                                    <button type="button" onClick={() => setShowItemModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors bg-slate-100 dark:bg-slate-800/50">{t('common.cancel', 'Anulează')}</button>
-                                    <button type="submit" className="px-5 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-sm font-bold shadow-sm shadow-blue-500/20 transition-all flex items-center gap-2">
+                                <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-200/85 dark:border-slate-800">
+                                    <button type="button" onClick={() => setShowItemModal(false)} className="h-[42px] px-5 text-[14px] font-bold text-slate-700 dark:text-slate-300 bg-white border border-slate-300/90 hover:bg-slate-50 rounded-[13px] shadow-2xs transition-all active:scale-[0.98]">{t('common.cancel', 'Annuler')}</button>
+                                    <button type="submit" className="h-[42px] px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[13px] text-[14px] font-bold shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] transition-all active:scale-[0.98] flex items-center gap-2">
                                         <Save className="w-4 h-4" />
                                         {t('common.save', 'Enregistrer')}
                                     </button>
@@ -1463,22 +1470,25 @@ export default function WarehouseManagement() {
                             </form>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
-             {/* TRANSACTION MODAL */}
-            {showTxModal && selectedItem && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
-                        <div className={`px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between rounded-t-2xl shrink-0 ${txType === 'IN' ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'bg-orange-50/50 dark:bg-orange-900/10'}`}>
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                {txType === 'IN' ? <ArrowDownRight className="w-5 h-5 text-blue-600" /> : <ArrowUpRight className="w-5 h-5 text-orange-600" />}
-                                {editingTx ? t('warehouse.edit_transaction', 'Modifică Tranzacție') : (txType === 'IN' ? t('warehouse.stock_in', 'Intrare Stoc') : t('warehouse.stock_out', 'Ieșire Stoc'))}
-                                <span className="text-sm font-normal text-slate-500 ml-2 block truncate">
+             {/* TRANSACTION MODAL — Apple HIG System Sheet */}
+            {showTxModal && selectedItem && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-lg shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 flex flex-col max-h-[90vh] overflow-hidden">
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between shrink-0">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-2xs ${txType === 'IN' ? 'bg-blue-100/90 text-blue-600 border-blue-200/80' : 'bg-orange-100/90 text-orange-600 border-orange-200/80'}`}>
+                                    {txType === 'IN' ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                                </div>
+                                {editingTx ? t('warehouse.edit_transaction', 'Modifier la transaction') : (txType === 'IN' ? t('warehouse.stock_in', 'Entrée de stock') : t('warehouse.stock_out', 'Sortie de stock'))}
+                                <span className="text-sm font-medium text-slate-500 ml-1 block truncate">
                                     {selectedItem?.name}
                                 </span>
                             </h2>
-                            <button onClick={() => setShowTxModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                <X className="w-5 h-5" />
+                            <button onClick={() => setShowTxModal(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -1571,17 +1581,18 @@ export default function WarehouseManagement() {
                                     <textarea rows={2} value={txForm.notes} onChange={e => setTxForm({ ...txForm, notes: e.target.value })} className="w-full px-4 py-3 text-sm rounded-2xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm custom-scrollbar" />
                                 </div>
 
-                                <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
-                                    <button type="button" onClick={() => setShowTxModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors bg-slate-100 dark:bg-slate-800/50">{t('common.cancel', 'Anulează')}</button>
-                                    <button type="submit" className={`px-5 h-10 text-white rounded-full text-sm font-bold shadow-sm transition-all flex items-center gap-2 ${txType === 'IN' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20' : 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20'}`}>
+                                <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-200/85 dark:border-slate-800">
+                                    <button type="button" onClick={() => setShowTxModal(false)} className="h-[42px] px-5 text-[14px] font-bold text-slate-700 dark:text-slate-300 bg-white border border-slate-300/90 hover:bg-slate-50 rounded-[13px] shadow-2xs transition-all active:scale-[0.98]">{t('common.cancel', 'Annuler')}</button>
+                                    <button type="submit" className={`h-[42px] px-5 text-white rounded-[13px] text-[14px] font-bold transition-all active:scale-[0.98] flex items-center gap-2 ${txType === 'IN' ? 'bg-blue-600 hover:bg-blue-700 shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)]' : 'bg-orange-600 hover:bg-orange-700 shadow-[0_8px_18px_-4px_rgba(234,88,12,0.45)]'}`}>
                                         <Save className="w-4 h-4" />
-                                        {t('common.save', 'Enregistrer')} {txType === 'IN' ? t('warehouse.in', 'Intrarea') : t('warehouse.out', 'Ieșirea')}
+                                        {t('common.save', 'Enregistrer')} {txType === 'IN' ? t('warehouse.in', 'l\'entrée') : t('warehouse.out', 'la sortie')}
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     )

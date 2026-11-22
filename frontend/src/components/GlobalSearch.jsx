@@ -94,11 +94,11 @@ const GlobalSearch = ({ isOpen, onClose }) => {
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-start justify-center pt-[15vh] px-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-md flex items-start justify-center pt-[14vh] px-4 animate-in fade-in duration-200">
             {/* Clickable overlay to close */}
             <div className="absolute inset-0" onClick={onClose}></div>
             
-            <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
                 {/* Search Header */}
                 <div className="flex items-center px-4 border-b border-slate-200 dark:border-slate-800">
                     <Search className="w-6 h-6 text-slate-400" />

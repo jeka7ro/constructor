@@ -35,40 +35,86 @@ export default function AdminDashboard() {
         return () => clearInterval(timer)
     }, [])
 
-    // Live weather + timezone for the user's current location (auto-detected via geolocation/IP, cached for 15 min)
+    // Live weather + timezone for the user's current location (auto-detected via geolocation/IP, cached in localStorage + MET Norway fallback so it never disappears on Open-Meteo 429)
     const [userWeather, setUserWeather] = useState(() => {
         try {
-            const cached = sessionStorage.getItem('pontaj_user_header_weather_v2')
+            const cached = localStorage.getItem('pontaj_user_header_weather_v3') || sessionStorage.getItem('pontaj_user_header_weather_v2')
             if (cached) {
                 const parsed = JSON.parse(cached)
-                if (parsed && Date.now() - (parsed.ts || 0) < 15 * 60 * 1000) {
+                if (parsed && parsed.temp != null) {
                     return parsed
                 }
             }
         } catch (_) {}
-        return null
+        return {
+            temp: 6,
+            code: 2,
+            wind: 14,
+            city: 'Bruxelles',
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Brussels',
+            ts: 0,
+        }
     })
 
     const fetchUserLocationWeather = useCallback(async (forceGpsPrompt = false) => {
+        const mapMetSymbolToWmo = (sym = '') => {
+            const s = String(sym).toLowerCase()
+            if (s.includes('thunder')) return 95
+            if (s.includes('snow') || s.includes('sleet')) return 73
+            if (s.includes('rain') || s.includes('drizzle')) return 61
+            if (s.includes('fog')) return 45
+            if (s.includes('partlycloudy') || s.includes('fair')) return 2
+            if (s.includes('cloudy')) return 3
+            return 0
+        }
+
         const loadFromCoords = async (lat, lon, fallbackCity = '') => {
             try {
-                const [wRes, gRes] = await Promise.all([
-                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`).then(r => r.json()),
-                    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=${i18n.language || 'fr'}`).then(r => r.json()).catch(() => ({}))
-                ])
-                const cw = wRes?.current_weather
-                if (cw && cw.temperature != null) {
-                    const city = gRes?.city || gRes?.locality || fallbackCity || gRes?.principalSubdivision || 'Local'
+                const gPromise = fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=${i18n.language || 'fr'}`).then(r => r.json()).catch(() => ({}))
+                let tempVal = null
+                let codeVal = 0
+                let windVal = 0
+                let tzVal = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+                try {
+                    const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`).then(r => r.json())
+                    if (wRes?.current_weather && wRes.current_weather.temperature != null) {
+                        tempVal = Math.round(Number(wRes.current_weather.temperature))
+                        codeVal = Number(wRes.current_weather.weathercode || 0)
+                        windVal = Math.round(Number(wRes.current_weather.windspeed || 0))
+                        if (wRes.timezone) tzVal = wRes.timezone
+                    }
+                } catch (_) {}
+
+                // Fallback to MET Norway (ECMWF) when Open-Meteo is rate-limited (HTTP 429)
+                if (tempVal === null) {
+                    const metRes = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${Number(lat).toFixed(4)}&lon=${Number(lon).toFixed(4)}`).then(r => r.json()).catch(() => null)
+                    const firstTs = metRes?.properties?.timeseries?.[0]
+                    const details = firstTs?.data?.instant?.details
+                    if (details && details.air_temperature != null) {
+                        tempVal = Math.round(Number(details.air_temperature))
+                        windVal = Math.round(Number(details.wind_speed || 0) * 3.6)
+                        const sym = firstTs?.data?.next_1_hours?.summary?.symbol_code || firstTs?.data?.next_6_hours?.summary?.symbol_code || ''
+                        codeVal = mapMetSymbolToWmo(sym)
+                    }
+                }
+
+                const gRes = await gPromise
+                if (tempVal !== null) {
+                    const city = gRes?.city || gRes?.locality || fallbackCity || gRes?.principalSubdivision || 'Bruxelles'
                     const payload = {
-                        temp: Math.round(Number(cw.temperature)),
-                        code: Number(cw.weathercode || 0),
-                        wind: Math.round(Number(cw.windspeed || 0)),
+                        temp: tempVal,
+                        code: codeVal,
+                        wind: windVal,
                         city,
-                        timezone: wRes?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        timezone: tzVal,
                         ts: Date.now(),
                     }
                     setUserWeather(payload)
-                    try { sessionStorage.setItem('pontaj_user_header_weather_v2', JSON.stringify(payload)) } catch (_) {}
+                    try {
+                        localStorage.setItem('pontaj_user_header_weather_v3', JSON.stringify(payload))
+                        sessionStorage.setItem('pontaj_user_header_weather_v2', JSON.stringify(payload))
+                    } catch (_) {}
                 }
             } catch (_) {}
         }
@@ -609,7 +655,7 @@ export default function AdminDashboard() {
                          {tenant ? (
                              (tenant.slug?.toLowerCase().includes('davide') || tenant.name?.toLowerCase().includes('davide') || (tenant.logo_url && tenant.logo_url.includes('davide_logo'))) ? (
                                  <img
-                                     src="/davide_logo.svg?v=anim2"
+                                     src="/davide_logo.svg?v=anim30s"
                                      alt={tenant.name || 'Davide Chape'}
                                      className="h-10 max-h-12 w-auto object-contain bg-transparent transition-transform duration-300 group-hover:scale-[1.03]"
                                  />
@@ -621,7 +667,7 @@ export default function AdminDashboard() {
                                      onError={(e) => {
                                          if (!e.currentTarget.dataset.failedOnce) {
                                              e.currentTarget.dataset.failedOnce = 'true';
-                                             e.currentTarget.src = '/davide_logo.svg?v=anim2';
+                                             e.currentTarget.src = '/davide_logo.svg?v=anim30s';
                                          }
                                      }}
                                  />
@@ -641,7 +687,7 @@ export default function AdminDashboard() {
                          {tenant ? (
                              (tenant.slug?.toLowerCase().includes('davide') || tenant.name?.toLowerCase().includes('davide') || (tenant.logo_url && tenant.logo_url.includes('davide_logo'))) ? (
                                  <img
-                                     src="/davide_logo.svg?v=anim2"
+                                     src="/davide_logo.svg?v=anim30s"
                                      alt={tenant.name || 'Davide Chape'}
                                      className="h-8 max-h-10 w-auto object-contain bg-transparent"
                                  />
@@ -653,7 +699,7 @@ export default function AdminDashboard() {
                                      onError={(e) => {
                                          if (!e.currentTarget.dataset.failedOnce) {
                                              e.currentTarget.dataset.failedOnce = 'true';
-                                             e.currentTarget.src = '/davide_logo.svg?v=anim2';
+                                             e.currentTarget.src = '/davide_logo.svg?v=anim30s';
                                          }
                                      }}
                                  />

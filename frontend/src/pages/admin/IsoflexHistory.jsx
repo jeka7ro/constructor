@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import {
     RefreshCw, ExternalLink, ChevronLeft, ChevronRight,
@@ -38,27 +39,27 @@ const statusColor = (s) => {
 function DetailModal({ item, onClose }) {
     const { t } = useTranslation();
     if (!item) return null
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md" onClick={onClose}>
             <div
-                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+                className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-lg border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-start justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-start justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs tabular-nums text-slate-400 dark:text-slate-500">#{item.ext_id}</span>
+                            <span className="text-xs font-bold tabular-nums text-slate-500">#{item.ext_id}</span>
                             {item.in_db && (
-                                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800">
-                                    <CheckCircle2 size={10} /> {t('isoflex.in_system', 'În sistem')}
+                                <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800">
+                                    <CheckCircle2 size={10} /> {t('isoflex.in_system', 'Dans le système')}
                                 </span>
                             )}
                         </div>
-                        <h3 className="font-semibold text-slate-900 dark:text-white text-base leading-tight">{item.title || '—'}</h3>
+                        <h3 className="font-black text-slate-900 dark:text-white text-[17px] tracking-tight leading-tight">{item.title || '—'}</h3>
                     </div>
-                    <button onClick={onClose} className="ml-3 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                        <X size={18} />
+                    <button onClick={onClose} className="ml-3 w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs">
+                        <X size={16} />
                     </button>
                 </div>
 
@@ -109,7 +110,8 @@ function DetailModal({ item, onClose }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
 

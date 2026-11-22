@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { PackageSearch, Search, X, ChevronLeft, ChevronRight, Loader2, CheckCircle, Clock, XCircle, Send, User, MapPin, AlertCircle } from 'lucide-react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
@@ -269,13 +270,13 @@ export default function AdminMaterialRequests() {
                 </div>
             </div>
 
-            {/* DETAIL MODAL */}
-            {detailReq && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDetailReq(null)}>
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <h2 className="text-base font-bold text-slate-900 dark:text-white">{t('material_req.details_title', 'Détails de la Demande de Matériel')}</h2>
-                            <button onClick={() => setDetailReq(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"><X className="w-5 h-5" /></button>
+            {/* DETAIL MODAL — Apple HIG System Sheet */}
+            {detailReq && createPortal(
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4" onClick={() => setDetailReq(null)}>
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] w-full max-w-lg shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-800 flex items-center justify-between">
+                            <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">{t('material_req.details_title', 'Détails de la Demande de Matériel')}</h2>
+                            <button onClick={() => setDetailReq(null)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 shadow-2xs"><X className="w-4 h-4" /></button>
                         </div>
 
                         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
@@ -528,15 +529,16 @@ export default function AdminMaterialRequests() {
                             </div>
                         </div>
 
-                        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                            <button onClick={() => setDetailReq(null)} className="px-5 h-10 rounded-full text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">{t('common.cancel', 'Annuler')}</button>
-                            <button onClick={handleRespond} disabled={submitting} className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-orange-600 hover:bg-orange-700">
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-t border-slate-200/85 dark:border-slate-800 flex justify-end gap-3">
+                            <button onClick={() => setDetailReq(null)} className="h-[42px] px-5 rounded-[13px] text-[14px] font-bold bg-white border border-slate-300/90 hover:bg-slate-50 text-slate-700 shadow-2xs transition-all active:scale-[0.98]">{t('common.cancel', 'Annuler')}</button>
+                            <button onClick={handleRespond} disabled={submitting} className="flex items-center gap-2 h-[42px] px-5 rounded-[13px] text-[14px] font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-[0_8px_18px_-4px_rgba(234,88,12,0.45)] transition-all active:scale-[0.98]">
                                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 {t('common.save', 'Enregistrer')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             
             {/* REMOVED CONFIRM MODAL */}

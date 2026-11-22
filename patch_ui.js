@@ -4,7 +4,7 @@ const path = require('path');
 const FRONTEND_DIR = '/Users/eugeniucazmal/Downloads/dev_office/pontaj_digital/frontend/src';
 
 const emojisToRemove = [
-    '📋', '👋', '✏️', '📝', '🔔', '👥', '📦', '🕐', '☕', '🔴', '🔄', '✅', '💡', '📍', '⚠️', '📊', '🚚', '✍️', '⚙️', '📤', '📎', '📷'
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
 ];
 
 function processFile(filePath) {

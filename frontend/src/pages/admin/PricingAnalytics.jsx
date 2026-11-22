@@ -22,32 +22,32 @@ const CalculationModal = ({ wo, onClose }) => {
     return (
         <>
             {createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-white backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-200/85 flex items-center justify-between bg-[#F2F4F8]">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800">
+                                <h3 className="text-[17px] font-black text-slate-900 tracking-tight">
                                     {wo.client_name || wo.title || t('analytics.quote', 'Devis')}
                                 </h3>
-                                <p className="text-sm text-slate-500 mt-0.5">
+                                <p className="text-xs font-medium text-slate-500 mt-0.5">
                                     {wo.source_system === 'devis_online' ? 'Devis Online' : wo.source_system === 'we-r' ? 'We-R' : 'Manual'} · {wo.work_type === 'repair' ? t('analytics.renovation', 'Rénovation') : t('analytics.new_construction', 'Construction neuve')}
                                     {vatRate > 0 ? ` · ${t('analytics.vat', 'TVA')} ${vatRate}%` : ` · ${t('analytics.without_vat', 'Sans TVA')}`}
                                 </p>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2.5">
 
                                 <button
                                     onClick={() => setPdfUrl(pdfSource)}
-                                    className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-2 shadow-sm border border-slate-200"
+                                    className="px-3.5 py-1.5 bg-white text-slate-700 hover:bg-slate-50 rounded-[11px] transition-colors flex items-center gap-2 shadow-2xs border border-slate-300/85"
                                 >
-                                    <FileText className="w-4 h-4" />
+                                    <FileText className="w-4 h-4 text-blue-600" />
                                     <span className="text-[11px] font-black uppercase tracking-wider">PDF</span>
                                 </button>
                                 <button 
                                     onClick={onClose}
-                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
+                                    className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-500 transition-colors shadow-2xs"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>

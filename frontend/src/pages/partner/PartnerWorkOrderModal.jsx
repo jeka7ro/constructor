@@ -257,18 +257,18 @@ export default function PartnerWorkOrderModal({ order, lang, onClose, onSaved })
     }
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4" onClick={onClose}>
             <div
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+                className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] w-full max-w-lg max-h-[90vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-                    <h2 className="text-base font-bold text-slate-800 dark:text-white">
+                <div className="flex items-center justify-between px-6 py-4 bg-[#F2F4F8] dark:bg-slate-800/80 border-b border-slate-200/85 dark:border-slate-700 sticky top-0 z-10">
+                    <h2 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">
                         {isEdit ? t.edit_title : t.new_title}
                     </h2>
-                    <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                        <X className="w-4 h-4 text-slate-400" />
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 dark:bg-slate-700 border border-slate-300/80 flex items-center justify-center transition-colors shadow-2xs">
+                        <X className="w-4 h-4 text-slate-500" />
                     </button>
                 </div>
 

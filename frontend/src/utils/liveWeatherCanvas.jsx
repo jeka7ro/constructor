@@ -62,6 +62,7 @@ let cachedWeatherTimestamp = 0;
 let liveWeatherInFlight = null;
 
 let cachedRadarUrl = null;
+let cachedRadarFrames = null;
 let cachedRadarTimestamp = 0;
 
 /**
@@ -198,8 +199,21 @@ export function mapWmoCodeToWeather(wmoCode, precipMm, snowCm, cloudCover, isNig
 
 export async function fetchLiveEuropeanWeather(force = false) {
     const now = Date.now();
-    if (!force && cachedWeatherStations && now - cachedWeatherTimestamp < WEATHER_TTL_MS) {
+    if (!force && cachedWeatherStations && cachedWeatherStations.length > 0 && now - cachedWeatherTimestamp < WEATHER_TTL_MS) {
         return cachedWeatherStations;
+    }
+    if (!cachedWeatherStations) {
+        try {
+            const raw = localStorage.getItem('pontaj_live_eu_weather_v2');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed?.stations) && parsed.stations.length > 0 && now - (parsed.ts || 0) < 30 * 60 * 1000) {
+                    cachedWeatherStations = parsed.stations;
+                    cachedWeatherTimestamp = parsed.ts;
+                    if (!force) return cachedWeatherStations;
+                }
+            }
+        } catch (_) {}
     }
     if (liveWeatherInFlight) return liveWeatherInFlight;
 
@@ -207,9 +221,100 @@ export async function fetchLiveEuropeanWeather(force = false) {
     const lngs = WEATHER_STATIONS_24.map(s => s.lng.toFixed(4)).join(',');
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&current=temperature_2m,precipitation,rain,showers,snowfall,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh&timezone=auto`;
 
+    const fetchFromMetNorwayFallback = async () => {
+        // Sample 6 key reference stations across Belgium & surroundings from MET Norway (ECMWF) and interpolate the 24 stations
+        const anchors = [
+            WEATHER_STATIONS_24[0],  // Bruxelles
+            WEATHER_STATIONS_24[1],  // Antwerpen
+            WEATHER_STATIONS_24[2],  // Gent
+            WEATHER_STATIONS_24[4],  // Liège
+            WEATHER_STATIONS_24[9],  // Oostende
+            WEATHER_STATIONS_24[11], // Arlon
+        ];
+        const anchorResults = await Promise.all(
+            anchors.map(async (a) => {
+                try {
+                    const r = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${a.lat.toFixed(4)}&lon=${a.lng.toFixed(4)}`);
+                    const j = await r.json();
+                    const ts0 = j?.properties?.timeseries?.[0];
+                    const det = ts0?.data?.instant?.details || {};
+                    const next1 = ts0?.data?.next_1_hours || ts0?.data?.next_6_hours || {};
+                    const sym = String(next1?.summary?.symbol_code || '').toLowerCase();
+                    const precip = Number(next1?.details?.precipitation_amount) || 0;
+                    const isSnow = sym.includes('snow') || sym.includes('sleet');
+                    let wmo = 0;
+                    if (sym.includes('thunder')) wmo = 95;
+                    else if (isSnow) wmo = 73;
+                    else if (sym.includes('rain') || sym.includes('drizzle')) wmo = 61;
+                    else if (sym.includes('fog')) wmo = 45;
+                    else if (sym.includes('partlycloudy') || sym.includes('fair')) wmo = 2;
+                    else if (sym.includes('cloudy')) wmo = 3;
+                    return {
+                        lat: a.lat,
+                        lng: a.lng,
+                        temp: det.air_temperature != null ? Number(det.air_temperature) : 7,
+                        precipMm: precip,
+                        snowCm: isSnow ? precip : 0,
+                        cloudCover: Number(det.cloud_area_fraction) || 50,
+                        windSpeedKmh: det.wind_speed != null ? Number(det.wind_speed) * 3.6 : 15,
+                        windDirDeg: det.wind_from_direction != null ? Number(det.wind_from_direction) : 240,
+                        wmo,
+                    };
+                } catch (_) {
+                    return null;
+                }
+            })
+        );
+        const validAnchors = anchorResults.filter(Boolean);
+        if (validAnchors.length === 0) return cachedWeatherStations || [];
+
+        const enriched = WEATHER_STATIONS_24.map((st) => {
+            let wSum = 0, tempSum = 0, precipSum = 0, snowSum = 0, cloudSum = 0, windSpdSum = 0, sinSum = 0, cosSum = 0;
+            let nearest = validAnchors[0], minDist = Infinity;
+            for (const a of validAnchors) {
+                const d2 = (st.lat - a.lat) ** 2 + (st.lng - a.lng) ** 2;
+                if (d2 < minDist) { minDist = d2; nearest = a; }
+                const w = 1 / Math.max(0.0001, d2);
+                wSum += w;
+                tempSum += a.temp * w;
+                precipSum += a.precipMm * w;
+                snowSum += a.snowCm * w;
+                cloudSum += a.cloudCover * w;
+                windSpdSum += a.windSpeedKmh * w;
+                const rad = (a.windDirDeg * Math.PI) / 180;
+                sinSum += Math.sin(rad) * w;
+                cosSum += Math.cos(rad) * w;
+            }
+            const precip = Number((precipSum / wSum).toFixed(2));
+            const snow = Number((snowSum / wSum).toFixed(2));
+            const cloud = Math.round(cloudSum / wSum);
+            const night = isNightAtCoords(st.lat, st.lng);
+            const dirDeg = ((Math.atan2(sinSum / wSum, cosSum / wSum) * 180) / Math.PI + 360) % 360;
+            const wInfo = mapWmoCodeToWeather(nearest.wmo, precip, snow, cloud, night);
+            return {
+                ...st,
+                temp: Math.round(tempSum / wSum),
+                precipMm: precip,
+                snowCm: snow,
+                cloudCover: cloud,
+                windSpeedKmh: Math.round(windSpdSum / wSum),
+                windDirDeg: Math.round(dirDeg),
+                isNight: night,
+                ...wInfo,
+            };
+        });
+        cachedWeatherStations = enriched;
+        cachedWeatherTimestamp = Date.now();
+        try {
+            localStorage.setItem('pontaj_live_eu_weather_v2', JSON.stringify({ ts: cachedWeatherTimestamp, stations: enriched }));
+        } catch (_) {}
+        return enriched;
+    };
+
     liveWeatherInFlight = fetch(url)
         .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
         .then(payload => {
+            if (payload && payload.error) throw new Error(payload.reason || 'Open-Meteo error');
             const arr = Array.isArray(payload) ? payload : [payload];
             const enriched = WEATHER_STATIONS_24.map((st, idx) => {
                 const cur = arr[idx]?.current || {};
@@ -235,9 +340,12 @@ export async function fetchLiveEuropeanWeather(force = false) {
             });
             cachedWeatherStations = enriched;
             cachedWeatherTimestamp = Date.now();
+            try {
+                localStorage.setItem('pontaj_live_eu_weather_v2', JSON.stringify({ ts: cachedWeatherTimestamp, stations: enriched }));
+            } catch (_) {}
             return enriched;
         })
-        .catch(() => cachedWeatherStations || [])
+        .catch(() => fetchFromMetNorwayFallback())
         .finally(() => {
             liveWeatherInFlight = null;
         });
@@ -245,102 +353,141 @@ export async function fetchLiveEuropeanWeather(force = false) {
     return liveWeatherInFlight;
 }
 
-export async function fetchLatestRainViewerUrl() {
+export async function fetchRainViewerFrames() {
     const now = Date.now();
-    if (cachedRadarUrl && now - cachedRadarTimestamp < RADAR_TTL_MS) {
-        return cachedRadarUrl;
+    if (cachedRadarFrames && now - cachedRadarTimestamp < RADAR_TTL_MS) {
+        return cachedRadarFrames;
     }
     try {
         const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
-        if (!res.ok) return cachedRadarUrl;
+        if (!res.ok) return cachedRadarFrames || [];
         const data = await res.json();
         const past = data?.radar?.past || [];
-        if (past.length === 0) return cachedRadarUrl;
-        const latest = past[past.length - 1];
+        if (past.length === 0) return cachedRadarFrames || [];
         const host = data.host || 'https://tilecache.rainviewer.com';
-        cachedRadarUrl = `${host}${latest.path}/256/{z}/{x}/{y}/2/1_1.png`;
+        // Last 6 real Doppler radar frames (1 hour of real radar evolution)
+        const recent = past.slice(-6).map(frame => ({
+            time: frame.time,
+            url: `${host}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`,
+        }));
+        cachedRadarFrames = recent;
+        cachedRadarUrl = recent[recent.length - 1]?.url || null;
         cachedRadarTimestamp = now;
-        return cachedRadarUrl;
+        return recent;
     } catch {
-        return cachedRadarUrl;
+        return cachedRadarFrames || [];
     }
 }
 
+export async function fetchLatestRainViewerUrl() {
+    const frames = await fetchRainViewerFrames();
+    return frames.length > 0 ? frames[frames.length - 1].url : cachedRadarUrl;
+}
+
 /**
- * Inverse-Distance Weighting (IDW) wind interpolation from the 24 cached stations.
+ * Inverse-Distance Weighting (IDW) real meteorological field interpolation
+ * from the 24 live Open-Meteo stations (real wind vector, real wind speed km/h, real precipitation mm).
  */
-function sampleRealWindAt(lat, lng, stations) {
+function sampleRealMeteorologyAt(lat, lng, stations) {
     if (!stations || stations.length === 0) {
-        return { vx: 0.7, vy: -0.25, speedKmh: 12 };
+        return { vx: 0.85, vy: -0.32, speedKmh: 14, precipMm: 0, snowCm: 0, isStorm: false };
     }
     let sumVx = 0;
     let sumVy = 0;
     let sumSpeed = 0;
+    let sumPrecip = 0;
+    let sumSnow = 0;
     let sumW = 0;
+    let isStorm = false;
 
     for (let i = 0; i < stations.length; i++) {
         const s = stations[i];
         const dLat = lat - s.lat;
-        const dLng = (lng - s.lng) * 0.65;
-        const distSq = dLat * dLat + dLng * dLng + 0.03;
-        const w = 1 / distSq;
-        const moveRad = ((s.windDirDeg + 180) * Math.PI) / 180;
-        const speed = Math.max(5, s.windSpeedKmh || 12);
+        const dLng = (lng - s.lng) * 0.64;
+        const distSq = dLat * dLat + dLng * dLng + 0.018;
+        const w = 1 / (distSq * distSq);
+        const moveRad = (((Number(s.windDirDeg) || 240) + 180) * Math.PI) / 180;
+        const speed = Math.max(4, Number(s.windSpeedKmh) || 12);
         sumVx += Math.sin(moveRad) * speed * w;
         sumVy += -Math.cos(moveRad) * speed * w;
         sumSpeed += speed * w;
+        sumPrecip += (Number(s.precipMm) || 0) * w;
+        sumSnow += (Number(s.snowCm) || 0) * w;
+        if (s.kind === 'storm' && distSq < 0.25) isStorm = true;
         sumW += w;
     }
+
+    const avgSpeed = sumSpeed / sumW;
+    const rawVx = sumVx / sumW;
+    const rawVy = sumVy / sumW;
+    const mag = Math.hypot(rawVx, rawVy) || 1;
+    const pixelSpeed = Math.min(2.6, Math.max(0.55, avgSpeed * 0.068));
+
     return {
-        vx: (sumVx / sumW) * 0.16,
-        vy: (sumVy / sumW) * 0.16,
-        speedKmh: sumSpeed / sumW,
+        vx: (rawVx / mag) * pixelSpeed,
+        vy: (rawVy / mag) * pixelSpeed,
+        speedKmh: avgSpeed,
+        precipMm: sumPrecip / sumW,
+        snowCm: sumSnow / sumW,
+        isStorm,
     };
 }
 
 /**
- * Pro AccuWeather / Apple Weather Canvas Atmospheric Engine:
- * - ZERO flying wind arrows/sticks across dry land.
- * - Multi-blob organic meteorological clouds / radar cells (matching Apple Weather & AccuWeather radar).
- * - Fine precipitation streaks / snowflakes / lightning strictly inside active rain/snow/storm radar clouds.
- * - Soft volumetric drifting cloud layers for cloudy/partly cloudy zones and warm sunlight glow for clear zones.
+ * Pro Apple Weather / Windy.com Real-Data Atmospheric Streamline & Precipitation Engine:
+ * - ZERO fake circles or grey smudges over cities.
+ * - High-DPI Retina canvas (devicePixelRatio) rendered smoothly at 60fps.
+ * - Silky, tapered multi-point wind streamlines driven 100% by real Open-Meteo wind speed & direction (IDW field).
+ * - Stylized Apple Weather slanted rain streaks + micro-splash ripples & snowflakes ONLY where real precipitation > 0.05 mm is falling.
  */
 export function startProWeatherCanvasAnimation(map, canvas, getStationsRef) {
     if (!map || !canvas) return () => { };
     const ctx = canvas.getContext('2d');
     if (!ctx) return () => { };
 
-    const PRECIP_SLOTS = 90;
-
-    // Pre-generate organic sub-blobs so each weather station renders a realistic, irregular radar/cloud shape
-    const CLOUD_LOBES = [
-        { dx: 0, dy: 0, rScale: 1.0, alphaScale: 1.0, speed: 0.0005, phase: 0.0 },
-        { dx: -0.38, dy: 0.14, rScale: 0.78, alphaScale: 0.85, speed: 0.0006, phase: 1.3 },
-        { dx: 0.36, dy: -0.16, rScale: 0.82, alphaScale: 0.88, speed: 0.00045, phase: 2.6 },
-        { dx: 0.18, dy: 0.34, rScale: 0.70, alphaScale: 0.75, speed: 0.00055, phase: 3.9 },
-        { dx: -0.24, dy: -0.28, rScale: 0.68, alphaScale: 0.72, speed: 0.0005, phase: 5.1 },
-    ];
+    const STREAMLINE_COUNT = 115;
+    const TRAIL_LENGTH = 15;
+    const RAIN_DROP_COUNT = 95;
 
     let width = 0;
     let height = 0;
+    let dpr = 1;
     let animId = null;
     let isVisible = true;
-    let lastFrameTime = 0;
+    let isMapMoving = false;
+    let moveTimeout = null;
 
     const resizeCanvas = () => {
         const size = map.getSize();
         width = size.x || canvas.parentElement?.clientWidth || 800;
         height = size.y || canvas.parentElement?.clientHeight || 500;
-        canvas.width = width;
-        canvas.height = height;
+        dpr = Math.min(typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1, 2);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resizeCanvas();
 
-    const precipParticles = Array.from({ length: PRECIP_SLOTS }, (_, idx) => ({
-        angle: (idx * 137.5 * Math.PI) / 180,
-        radiusFactor: Math.sqrt((idx + 1) / PRECIP_SLOTS),
-        phase: Math.random() * 28,
-        speed: 0.75 + (idx % 7) * 0.14,
+    const createStreamline = (randomAge = true) => {
+        const x = Math.random() * (width || 800);
+        const y = Math.random() * (height || 500);
+        const maxAge = 85 + Math.floor(Math.random() * 75);
+        return {
+            x,
+            y,
+            trail: [{ x, y }],
+            age: randomAge ? Math.floor(Math.random() * maxAge) : 0,
+            maxAge,
+            speedKmh: 14,
+        };
+    };
+
+    const streamlines = Array.from({ length: STREAMLINE_COUNT }, () => createStreamline(true));
+
+    const rainDrops = Array.from({ length: RAIN_DROP_COUNT }, () => ({
+        x: Math.random() * (width || 800),
+        y: Math.random() * (height || 500),
+        z: 0.6 + Math.random() * 0.7,
     }));
 
     let io = null;
@@ -351,166 +498,186 @@ export function startProWeatherCanvasAnimation(map, canvas, getStationsRef) {
         io.observe(canvas);
     }
 
-    const renderOrganicRadarCell = (cx, cy, baseR, stops, ts, seed) => {
-        for (let l = 0; l < CLOUD_LOBES.length; l++) {
-            const lobe = CLOUD_LOBES[l];
-            const driftX = Math.sin(ts * lobe.speed + seed + lobe.phase) * (baseR * 0.08);
-            const driftY = Math.cos(ts * lobe.speed * 0.85 + seed + lobe.phase) * (baseR * 0.06);
-            const lx = cx + lobe.dx * baseR * 0.55 + driftX;
-            const ly = cy + lobe.dy * baseR * 0.45 + driftY;
-            const lr = baseR * lobe.rScale;
-
-            const grad = ctx.createRadialGradient(lx, ly, lr * 0.05, lx, ly, lr);
-            for (let s = 0; s < stops.length; s++) {
-                const [offset, r, g, b, a] = stops[s];
-                grad.addColorStop(offset, `rgba(${r}, ${g}, ${b}, ${(a * lobe.alphaScale).toFixed(3)})`);
-            }
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(lx, ly, lr, 0, Math.PI * 2);
-            ctx.fill();
-        }
+    const getWindColorRgb = (speedKmh) => {
+        if (speedKmh >= 32) return '245, 158, 11'; // Strong gusts: warm amber-gold
+        if (speedKmh >= 20) return '16, 185, 129'; // Moderate-fresh wind: aqua-emerald
+        return '14, 165, 233';                     // Gentle-moderate breeze: vivid sky-cyan
     };
 
-    const renderFrame = (ts) => {
+    const renderFrame = () => {
         animId = requestAnimationFrame(renderFrame);
         if (typeof document !== 'undefined' && document.hidden) return;
         if (!isVisible) return;
-        if (ts - lastFrameTime < 33) return;
-        lastFrameTime = ts;
 
         ctx.clearRect(0, 0, width, height);
+        if (isMapMoving || width <= 0 || height <= 0) return;
+
         const zoom = map.getZoom();
         if (zoom < 5) return;
 
         const stations = getStationsRef.current || [];
         if (stations.length === 0) return;
 
-        const zoneRadiusPx = Math.max(70, Math.min(210, Math.pow(1.30, zoom - 5) * 46));
+        // 1. Silky Real-Wind Streamlines across the viewport
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
 
-        for (let sIdx = 0; sIdx < stations.length; sIdx++) {
-            const st = stations[sIdx];
-            const pt = map.latLngToContainerPoint([st.lat, st.lng]);
-            if (pt.x < -zoneRadiusPx * 1.4 || pt.x > width + zoneRadiusPx * 1.4 || pt.y < -zoneRadiusPx * 1.4 || pt.y > height + zoneRadiusPx * 1.4) {
+        for (let i = 0; i < streamlines.length; i++) {
+            const p = streamlines[i];
+            p.age++;
+
+            if (p.age >= p.maxAge || p.x < -30 || p.x > width + 30 || p.y < -30 || p.y > height + 30) {
+                streamlines[i] = createStreamline(false);
                 continue;
             }
 
-            if (st.kind === 'rain' || st.kind === 'drizzle' || st.kind === 'storm') {
-                // Organic multi-layered Doppler radar precipitation cell (like AccuWeather / Stockholm screenshot)
-                const radarStops = st.kind === 'storm'
-                    ? [
-                        [0, 37, 99, 235, 0.28],
-                        [0.45, 14, 165, 233, 0.20],
-                        [0.75, 56, 189, 248, 0.10],
-                        [1, 56, 189, 248, 0],
-                    ]
-                    : [
-                        [0, 14, 165, 233, 0.22],
-                        [0.5, 56, 189, 248, 0.14],
-                        [0.8, 125, 211, 252, 0.06],
-                        [1, 125, 211, 252, 0],
-                    ];
-                renderOrganicRadarCell(pt.x, pt.y, zoneRadiusPx, radarStops, ts, sIdx * 1.7);
+            const latLng = map.containerPointToLatLng([p.x, p.y]);
+            const meteo = sampleRealMeteorologyAt(latLng.lat, latLng.lng, stations);
+            p.speedKmh = meteo.speedKmh;
 
-                // Subtle fine rain streaks ONLY inside the precipitation radar cloud (matching screenshot 2)
-                ctx.strokeStyle = 'rgba(14, 116, 144, 0.32)';
-                ctx.lineWidth = 1.05;
-                ctx.lineCap = 'round';
-                const count = st.kind === 'drizzle' ? 16 : 26;
-                for (let i = 0; i < count; i++) {
-                    const pp = precipParticles[(sIdx * 13 + i) % precipParticles.length];
-                    pp.phase = (pp.phase + pp.speed * 0.35) % 24;
-                    const r = pp.radiusFactor * (zoneRadiusPx * 0.68);
-                    const rx = pt.x + Math.cos(pp.angle) * r - pp.phase * 0.18;
-                    const ry = pt.y + Math.sin(pp.angle) * r + (pp.phase - 12);
+            const wave = Math.sin(p.age * 0.07 + i) * 0.14;
+            const nx = p.x + meteo.vx - meteo.vy * wave;
+            const ny = p.y + meteo.vy + meteo.vx * wave;
+
+            p.x = nx;
+            p.y = ny;
+            p.trail.push({ x: nx, y: ny });
+            if (p.trail.length > TRAIL_LENGTH) {
+                p.trail.shift();
+            }
+
+            const len = p.trail.length;
+            if (len < 3) continue;
+
+            const lifeRatio = p.age / p.maxAge;
+            const lifeAlpha = lifeRatio < 0.18
+                ? lifeRatio / 0.18
+                : lifeRatio > 0.80
+                    ? (1 - lifeRatio) / 0.20
+                    : 1;
+
+            const rgb = getWindColorRgb(p.speedKmh);
+            const headPt = p.trail[len - 1];
+            const tailPt = p.trail[0];
+
+            const grad = ctx.createLinearGradient(tailPt.x, tailPt.y, headPt.x, headPt.y);
+            grad.addColorStop(0, `rgba(${rgb}, 0)`);
+            grad.addColorStop(0.55, `rgba(${rgb}, ${(0.22 * lifeAlpha).toFixed(3)})`);
+            grad.addColorStop(1, `rgba(${rgb}, ${(0.62 * lifeAlpha).toFixed(3)})`);
+
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = p.speedKmh >= 22 ? 1.85 : 1.45;
+            ctx.beginPath();
+            ctx.moveTo(tailPt.x, tailPt.y);
+            for (let t = 1; t < len - 1; t++) {
+                const xc = (p.trail[t].x + p.trail[t + 1].x) * 0.5;
+                const yc = (p.trail[t].y + p.trail[t + 1].y) * 0.5;
+                ctx.quadraticCurveTo(p.trail[t].x, p.trail[t].y, xc, yc);
+            }
+            ctx.lineTo(headPt.x, headPt.y);
+            ctx.stroke();
+
+            ctx.fillStyle = `rgba(${rgb}, ${(0.72 * lifeAlpha).toFixed(3)})`;
+            ctx.beginPath();
+            ctx.arc(headPt.x, headPt.y, p.speedKmh >= 22 ? 1.6 : 1.25, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 2. Real-Time Stylized Precipitation (Slanted Rain Streaks + Splash Ripples / Snowflakes)
+        // ONLY where real Open-Meteo telemetry reports active precipitation!
+        const hasAnyRealPrecip = stations.some(s => (Number(s.precipMm) || 0) >= 0.05 || (Number(s.snowCm) || 0) > 0);
+        if (hasAnyRealPrecip) {
+            for (let i = 0; i < rainDrops.length; i++) {
+                const d = rainDrops[i];
+                const latLng = map.containerPointToLatLng([d.x, d.y]);
+                const meteo = sampleRealMeteorologyAt(latLng.lat, latLng.lng, stations);
+
+                if (meteo.precipMm < 0.05 && meteo.snowCm <= 0) {
+                    const rainyStations = stations.filter(s => (Number(s.precipMm) || 0) >= 0.05 || (Number(s.snowCm) || 0) > 0);
+                    if (rainyStations.length > 0) {
+                        const target = rainyStations[i % rainyStations.length];
+                        const pt = map.latLngToContainerPoint([target.lat, target.lng]);
+                        const spread = Math.max(65, Math.min(180, Math.pow(1.28, zoom - 5) * 42));
+                        d.x = pt.x + (Math.random() - 0.5) * spread * 1.8;
+                        d.y = pt.y + (Math.random() - 0.5) * spread * 1.8;
+                    }
+                    continue;
+                }
+
+                if (meteo.snowCm > 0) {
+                    d.x += meteo.vx * 0.45 + Math.sin(d.y * 0.05 + i) * 0.4;
+                    d.y += (1.1 + d.z * 0.8);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
                     ctx.beginPath();
-                    ctx.moveTo(rx, ry);
-                    ctx.lineTo(rx - 2.0, ry + 7.5);
+                    ctx.arc(d.x, d.y, 1.6 * d.z, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    const dropLen = (10 + Math.min(10, meteo.precipMm * 2.5)) * d.z;
+                    const windShiftX = meteo.vx * 2.2;
+                    const fallSpeedY = (6.5 + d.z * 4.5);
+
+                    const x2 = d.x + windShiftX;
+                    const y2 = d.y + dropLen;
+
+                    const rainGrad = ctx.createLinearGradient(d.x, d.y, x2, y2);
+                    rainGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+                    rainGrad.addColorStop(1, 'rgba(14, 165, 233, 0.68)');
+
+                    ctx.strokeStyle = rainGrad;
+                    ctx.lineWidth = 1.25 * d.z;
+                    ctx.beginPath();
+                    ctx.moveTo(d.x, d.y);
+                    ctx.lineTo(x2, y2);
                     ctx.stroke();
+
+                    d.x += windShiftX * 0.45;
+                    d.y += fallSpeedY;
+
+                    if (Math.random() < 0.08) {
+                        ctx.strokeStyle = 'rgba(56, 189, 248, 0.38)';
+                        ctx.lineWidth = 0.9;
+                        ctx.beginPath();
+                        ctx.ellipse(x2, y2, 3.2 * d.z, 1.3 * d.z, 0, 0, Math.PI * 2);
+                        ctx.stroke();
+                        d.y -= 75 + Math.random() * 55;
+                    }
                 }
 
-                // Soft internal lightning pulse for thunderstorm cells
-                if (st.kind === 'storm' && Math.sin(ts * 0.016 + sIdx) > 0.95) {
-                    const flash = ctx.createRadialGradient(pt.x, pt.y, 2, pt.x, pt.y, zoneRadiusPx * 0.75);
-                    flash.addColorStop(0, 'rgba(253, 224, 71, 0.45)');
-                    flash.addColorStop(1, 'rgba(253, 224, 71, 0)');
-                    ctx.fillStyle = flash;
-                    ctx.beginPath();
-                    ctx.arc(pt.x, pt.y, zoneRadiusPx * 0.75, 0, Math.PI * 2);
-                    ctx.fill();
+                if (d.y > height + 20 || d.x < -20 || d.x > width + 20) {
+                    d.x = Math.random() * width;
+                    d.y = -10;
                 }
-            } else if (st.kind === 'snow') {
-                // Organic icy-cyan snow radar cell + gentle snowflakes inside the cloud
-                renderOrganicRadarCell(
-                    pt.x,
-                    pt.y,
-                    zoneRadiusPx,
-                    [
-                        [0, 56, 189, 248, 0.20],
-                        [0.55, 186, 230, 253, 0.12],
-                        [1, 186, 230, 253, 0],
-                    ],
-                    ts,
-                    sIdx * 1.9
-                );
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-                for (let i = 0; i < 20; i++) {
-                    const pp = precipParticles[(sIdx * 11 + i) % precipParticles.length];
-                    pp.phase = (pp.phase + pp.speed * 0.2) % 24;
-                    const r = pp.radiusFactor * (zoneRadiusPx * 0.65);
-                    const sx = pt.x + Math.cos(pp.angle) * r + Math.sin(ts * 0.002 + i) * 4;
-                    const sy = pt.y + Math.sin(pp.angle) * r + (pp.phase - 12);
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, 1.8, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            } else if (st.kind === 'cloudy' || st.kind === 'partly' || st.kind === 'fog') {
-                // Soft volumetric satellite cloud cover drifting gently
-                const cloudAlpha = st.kind === 'partly' ? 0.12 : 0.18;
-                renderOrganicRadarCell(
-                    pt.x,
-                    pt.y,
-                    zoneRadiusPx * 0.9,
-                    [
-                        [0, 100, 116, 139, cloudAlpha],
-                        [0.55, 148, 163, 184, cloudAlpha * 0.55],
-                        [1, 148, 163, 184, 0],
-                    ],
-                    ts,
-                    sIdx * 2.1
-                );
-            } else if (st.kind === 'clear' && !st.isNight) {
-                // Soft warm ambient sunlight glow over clear/sunny zones
-                const pulse = 0.13 + Math.sin(ts * 0.0018 + sIdx) * 0.03;
-                renderOrganicRadarCell(
-                    pt.x,
-                    pt.y,
-                    zoneRadiusPx * 0.75,
-                    [
-                        [0, 251, 191, 36, pulse],
-                        [0.55, 253, 224, 71, pulse * 0.45],
-                        [1, 253, 224, 71, 0],
-                    ],
-                    ts,
-                    sIdx * 1.4
-                );
             }
         }
     };
 
-    const onMapMove = () => {
-        resizeCanvas();
+    const onMapMoveStart = () => {
+        isMapMoving = true;
+        if (moveTimeout) clearTimeout(moveTimeout);
     };
 
-    map.on('move zoom resize', onMapMove);
+    const onMapMoveEnd = () => {
+        resizeCanvas();
+        for (let i = 0; i < streamlines.length; i++) {
+            streamlines[i] = createStreamline(true);
+        }
+        if (moveTimeout) clearTimeout(moveTimeout);
+        moveTimeout = setTimeout(() => {
+            isMapMoving = false;
+        }, 60);
+    };
+
+    map.on('movestart zoomstart', onMapMoveStart);
+    map.on('moveend zoomend resize', onMapMoveEnd);
     animId = requestAnimationFrame(renderFrame);
 
     return () => {
         if (animId) cancelAnimationFrame(animId);
+        if (moveTimeout) clearTimeout(moveTimeout);
         if (io) io.disconnect();
         try {
-            map.off('move zoom resize', onMapMove);
+            map.off('movestart zoomstart', onMapMoveStart);
+            map.off('moveend zoomend resize', onMapMoveEnd);
         } catch (_) { }
     };
 }
@@ -686,42 +853,72 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
         };
     }, [map, updateHudList]);
 
-    // 2. RainViewer Doppler Radar Layer
+    // 2. RainViewer Multi-Frame Animated Doppler Radar Layer (maxNativeZoom: 6 prevents RainViewer free-tier placeholder grids at zoom >= 7!)
     useEffect(() => {
         if (!map) return;
         let active = true;
-        if (!showWeatherFx) {
-            if (radarLayerRef.current) {
-                try { map.removeLayer(radarLayerRef.current); } catch (_) { }
-                radarLayerRef.current = null;
-            }
-            return;
-        }
-        fetchLatestRainViewerUrl().then(tileUrl => {
-            if (!active || !tileUrl || !map) return;
-            if (radarLayerRef.current) {
-                try { map.removeLayer(radarLayerRef.current); } catch (_) { }
-            }
-            const layer = L.tileLayer(tileUrl, {
-                opacity: 0.52,
-                maxNativeZoom: 7,
-                maxZoom: 18,
-                zIndex: 320,
-                attribution: 'RainViewer Doppler',
+        let radarAnimTimer = null;
+        let layers = [];
+
+        const cleanupLayers = () => {
+            if (radarAnimTimer) clearInterval(radarAnimTimer);
+            layers.forEach(l => {
+                try { map.removeLayer(l); } catch (_) { }
             });
-            layer.addTo(map);
-            radarLayerRef.current = layer;
-        });
-        return () => {
-            active = false;
+            layers = [];
             if (radarLayerRef.current) {
                 try { map.removeLayer(radarLayerRef.current); } catch (_) { }
                 radarLayerRef.current = null;
             }
         };
+
+        if (!showWeatherFx) {
+            cleanupLayers();
+            return;
+        }
+
+        fetchRainViewerFrames().then(frames => {
+            if (!active || !frames || frames.length === 0 || !map) return;
+            cleanupLayers();
+
+            // Preload the latest 4 real Doppler radar frames and smoothly cycle through them like Apple Weather radar
+            const recentFrames = frames.slice(-4);
+            layers = recentFrames.map((frame, idx) => {
+                const isLast = idx === recentFrames.length - 1;
+                const layer = L.tileLayer(frame.url, {
+                    opacity: isLast ? 0.55 : 0,
+                    maxNativeZoom: 6,
+                    maxZoom: 18,
+                    zIndex: 240,
+                    className: 'tms-doppler-radar-tile',
+                    attribution: 'RainViewer Doppler',
+                });
+                layer.addTo(map);
+                return layer;
+            });
+            radarLayerRef.current = layers[layers.length - 1] || null;
+
+            if (layers.length > 1) {
+                let currentIdx = layers.length - 1;
+                radarAnimTimer = setInterval(() => {
+                    if (typeof document !== 'undefined' && document.hidden) return;
+                    currentIdx = (currentIdx + 1) % layers.length;
+                    layers.forEach((l, idx) => {
+                        try {
+                            l.setOpacity(idx === currentIdx ? 0.55 : 0);
+                        } catch (_) { }
+                    });
+                }, 1400);
+            }
+        });
+
+        return () => {
+            active = false;
+            cleanupLayers();
+        };
     }, [map, showWeatherFx]);
 
-    // 3. Subtle Pro Weather Canvas Animation
+    // 3. Subtle Pro Weather Canvas Animation (placed at z-[350] BELOW markers at z-[600] so trucks are always 100% crisp!)
     useEffect(() => {
         if (!map || !canvasRef.current || !showWeatherFx) return;
         return startProWeatherCanvasAnimation(map, canvasRef.current, stationsRef);

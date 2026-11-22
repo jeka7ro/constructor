@@ -6,8 +6,8 @@
       <stop offset="55%" stop-color="#FFFFFF" />
       <stop offset="65%" stop-color="#FFE885" />
       <stop offset="100%" stop-color="#F7CA31" />
-      <animate attributeName="x1" values="-100%;100%" dur="4.2s" repeatCount="indefinite" />
-      <animate attributeName="x2" values="100%;300%" dur="4.2s" repeatCount="indefinite" />
+      <animate attributeName="x1" values="-100%;100%;100%" keyTimes="0;0.11;1" dur="30s" repeatCount="indefinite" />
+      <animate attributeName="x2" values="100%;300%;300%" keyTimes="0;0.11;1" dur="30s" repeatCount="indefinite" />
     </linearGradient>
     <clipPath id="screedFloorClip">
       <rect x="39.5117" y="31.8225" width="91.033" height="4.17742" rx="1" />
@@ -16,35 +16,35 @@
   <style>
     .dc-monogram {
       transform-origin: 18px 18px;
-      animation: dcPulse 4.2s ease-in-out infinite;
+      animation: dcPulse 30s ease-in-out infinite;
     }
     .dc-screed-wave {
-      animation: screedFlow 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      animation: screedFlow 30s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
     .dc-roof {
       transform-origin: 147px 11px;
-      animation: roofFloat 4.2s ease-in-out infinite;
+      animation: roofFloat 30s ease-in-out infinite;
     }
-    .dc-win-1 { animation: winGlow 4.2s ease-in-out infinite 0.55s; }
-    .dc-win-2 { animation: winGlow 4.2s ease-in-out infinite 0.70s; }
-    .dc-win-3 { animation: winGlow 4.2s ease-in-out infinite 0.85s; }
-    .dc-win-4 { animation: winGlow 4.2s ease-in-out infinite 1.00s; }
+    .dc-win-1 { animation: winGlow 30s ease-in-out infinite 0.45s; }
+    .dc-win-2 { animation: winGlow 30s ease-in-out infinite 0.60s; }
+    .dc-win-3 { animation: winGlow 30s ease-in-out infinite 0.75s; }
+    .dc-win-4 { animation: winGlow 30s ease-in-out infinite 0.90s; }
 
     @keyframes dcPulse {
-      0%, 100% { filter: drop-shadow(0 0 0px rgba(247, 202, 49, 0)); transform: scale(1); }
-      35% { filter: drop-shadow(0 0 5px rgba(247, 202, 49, 0.55)); transform: scale(1.025); }
+      0%, 11%, 100% { filter: drop-shadow(0 0 0px rgba(247, 202, 49, 0)); transform: scale(1); }
+      4.5% { filter: drop-shadow(0 0 5px rgba(247, 202, 49, 0.55)); transform: scale(1.025); }
     }
     @keyframes screedFlow {
       0% { transform: translateX(-95px); opacity: 0.95; }
-      65%, 100% { transform: translateX(95px); opacity: 0.95; }
+      9%, 100% { transform: translateX(95px); opacity: 0.95; }
     }
     @keyframes roofFloat {
-      0%, 40%, 100% { transform: translateY(0px); }
-      58% { transform: translateY(-1.4px); }
+      0%, 5%, 12%, 100% { transform: translateY(0px); }
+      8% { transform: translateY(-1.4px); }
     }
     @keyframes winGlow {
-      0%, 35%, 90%, 100% { fill: #202020; }
-      52%, 72% { fill: #F7CA31; }
+      0%, 4.5%, 12%, 100% { fill: #202020; }
+      7%, 9.5% { fill: #F7CA31; }
     }
   </style>
 

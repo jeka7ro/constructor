@@ -929,52 +929,69 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const canConfirm = checkedTerms && (!!signature || acceptedOffer) && !confirming
 
     if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <div className="text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-                <p className="text-slate-600 font-medium">{t.loadingOrder}</p>
+        <div className="min-h-screen flex items-center justify-center bg-[#F2F4F8] p-4">
+            <div className="w-full max-w-[340px] rounded-[24px] bg-white/95 backdrop-blur-2xl border-[1.5px] border-slate-300/90 ring-1 ring-slate-900/[0.06] shadow-[0_24px_54px_-12px_rgba(15,23,42,0.16)] p-6 text-center">
+                <div className="w-12 h-12 rounded-full bg-sky-500/12 border border-sky-500/25 flex items-center justify-center mx-auto mb-3.5">
+                    <Loader2 className="w-6 h-6 animate-spin text-sky-600" />
+                </div>
+                <p className="text-[14px] text-slate-700 font-semibold">{t.loadingOrder}</p>
             </div>
         </div>
     )
 
     if (error && !order) return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-            <div className="text-center max-w-md">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertCircle className="w-8 h-8 text-red-500" />
+        <div className="min-h-screen flex items-center justify-center bg-[#F2F4F8] p-4">
+            <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] backdrop-blur-3xl border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.28)] p-3.5 text-center">
+                <div className="rounded-[16px] bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-6">
+                    <div className="w-12 h-12 bg-rose-500/12 border border-rose-500/25 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                        <AlertCircle className="w-6 h-6 text-rose-600" />
+                    </div>
+                    <h1 className="text-[17px] font-bold tracking-tight text-slate-900 leading-snug">
+                        {error === t.orderCancelled ? error : t.orderNotFound}
+                    </h1>
+                    {error !== t.orderCancelled && (
+                        <p className="text-[13.5px] text-slate-500 mt-1.5 leading-relaxed">
+                            {error}
+                        </p>
+                    )}
                 </div>
-                <h1 className="text-xl font-black text-slate-900 mb-2">
-                    {error === t.orderCancelled ? error : t.orderNotFound}
-                </h1>
-                <p className="text-slate-600">
-                    {error === t.orderCancelled ? '' : error}
-                </p>
             </div>
         </div>
     )
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
-            {/* Header branded */}
-            <div className="sticky top-0 z-30 w-full py-3 px-4 sm:py-4 sm:px-6 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="min-h-screen bg-[#F2F4F8]">
+            {/* Apple HIG Frosted Glass Navigation Bar */}
+            <div className="sticky top-0 z-30 w-full py-2.5 px-4 sm:py-3 sm:px-6 border-b border-slate-200/90 bg-white/88 backdrop-blur-2xl saturate-150 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.05)]">
                 <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5 sm:gap-3">
-                        {order?.org_logo ? (
-                            <img src={order.org_logo} alt={order.org_name} className="h-8 sm:h-10 object-contain" />
-                        ) : (
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white font-black text-sm sm:text-lg shadow-md"
-                                style={{ backgroundColor: primaryColor }}>
-                                {order?.org_name?.charAt(0) || 'C'}
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        {order?.org_logo || (order?.org_name || '').toLowerCase().includes('davide') ? (
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <img
+                                    src={(order?.org_name || '').toLowerCase().includes('davide') ? '/davide_logo.svg?v=anim30s' : order.org_logo}
+                                    alt={order?.org_name || 'Davide Chape'}
+                                    className="h-8 sm:h-9 w-auto object-contain shrink-0"
+                                />
+                                <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200/90 text-[11px] font-semibold text-slate-600 shrink-0">
+                                    {t.workOrder}
+                                </span>
                             </div>
+                        ) : (
+                            <>
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0"
+                                    style={{ backgroundColor: primaryColor }}>
+                                    {order?.org_name?.charAt(0) || 'C'}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="font-bold text-slate-900 text-sm sm:text-base leading-tight truncate">{order?.org_name}</p>
+                                    <p className="text-[11px] text-slate-500 font-medium">{t.workOrder}</p>
+                                </div>
+                            </>
                         )}
-                        <div>
-                            <p className="font-black text-slate-900 text-sm sm:text-lg leading-tight">{order?.org_name}</p>
-                            <p className="text-[10px] sm:text-xs text-slate-500 font-medium">{t.workOrder}</p>
-                        </div>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        {/* Language Selector */}
-                        <div className="flex gap-0.5 sm:gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-200/80">
+                    <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                        {/* Apple HIG Equal-Width Segmented Control (FR | NL | EN) — No (Vlaams) asymmetry */}
+                        <div className="inline-flex items-center gap-0.5 bg-[#767680]/[0.12] p-0.5 rounded-full border border-slate-300/60">
                             {[
                                 { code: 'fr', label: 'FR' },
                                 { code: 'nl', label: 'NL' },
@@ -982,36 +999,41 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             ].map(l => (
                                 <button
                                     key={l.code}
+                                    type="button"
                                     onClick={() => {
                                         setLang(l.code);
                                         setSearchParams(isSeller ? { lang: l.code, role: 'seller' } : { lang: l.code }, { replace: true });
                                     }}
-                                    className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-[11px] font-black transition-colors flex items-center gap-1 ${lang === l.code ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`min-w-[50px] sm:min-w-[54px] h-7 px-2.5 rounded-full text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        lang === l.code
+                                            ? 'bg-white text-slate-900 shadow-[0_2px_6px_rgba(15,23,42,0.12),0_0_0_0.5px_rgba(15,23,42,0.08)]'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    }`}
                                 >
-                                    <img src={`https://flagcdn.com/w20/${l.code === 'en' ? 'gb' : l.code}.png`} alt={l.label} className="w-3.5 h-[10px] sm:w-4 sm:h-[11px] object-cover rounded-sm opacity-80" />
+                                    <img src={`https://flagcdn.com/w20/${l.code === 'en' ? 'gb' : l.code}.png`} alt={l.label} className="w-3.5 h-[10px] object-cover rounded-[2px] opacity-90 shrink-0" />
                                     <span>{l.label}</span>
-                                    {l.code === 'nl' && <span className="hidden md:inline font-normal text-slate-400">(Vlaams)</span>}
                                 </button>
                             ))}
                         </div>
 
-                        {/* PDF Download */}
+                        {/* Uniform Apple HIG Circular Toolbar Buttons */}
                         <button 
+                            type="button"
                             onClick={() => window.print()}
-                            className="hidden sm:flex items-center justify-center w-8 h-8 bg-slate-100 text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+                            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/90 shadow-2xs transition-all cursor-pointer"
                             title={t.downloadPdf || 'PDF'}
                         >
                             <FileText className="w-4 h-4" />
                         </button>
                         
-                        {/* Top Notification Icon */}
                         <button 
+                            type="button"
                             onClick={handleOpenChat}
-                            className="relative flex items-center justify-center w-10 h-10 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
+                            className="relative flex items-center justify-center w-9 h-9 rounded-full bg-sky-500/12 hover:bg-sky-500/20 text-sky-600 border border-sky-500/25 shadow-2xs transition-all cursor-pointer"
                         >
-                            <MessageSquare className="w-5 h-5" />
+                            <MessageSquare className="w-4 h-4" />
                             {unreadClientCount > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full border-2 border-white tabular-nums">
                                     {unreadClientCount}
                                 </span>
                             )}
@@ -1022,117 +1044,119 @@ export default function WorkOrderConfirm({ hideMap = false }) {
 
             <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
                 {isSeller && (
-                    <div className="bg-emerald-700 text-white rounded-2xl p-3.5 shadow-md flex flex-wrap items-center justify-between gap-3 print:hidden">
+                    <div className="bg-emerald-700 text-white rounded-[20px] p-3.5 shadow-md border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 print:hidden">
                         <div className="flex items-center gap-2.5">
-                            <span className="w-3 h-3 rounded-full bg-emerald-300 animate-pulse shrink-0"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-pulse shrink-0"></span>
                             <div>
-                                <p className="text-xs sm:text-sm font-black uppercase tracking-wide">Link Davide Chape (Mode Vendeur)</p>
+                                <p className="text-xs sm:text-sm font-bold tracking-tight">Link Davide Chape (Mode Vendeur)</p>
                                 <p className="text-[11px] text-emerald-100">Vos messages dans le chat apparaissent en tant que Davide Chape et notifient le client par Email & WhatsApp.</p>
                             </div>
                         </div>
                         <button
                             type="button"
                             onClick={handleOpenChat}
-                            className="px-3 py-1.5 bg-white text-emerald-800 hover:bg-emerald-50 font-black text-xs rounded-xl shadow-sm transition-colors shrink-0"
+                            className="px-3.5 py-1.5 bg-white text-emerald-800 hover:bg-emerald-50 font-semibold text-xs rounded-full shadow-xs transition-colors shrink-0 cursor-pointer"
                         >
                             Ouvrir le Chat ↓
                         </button>
                     </div>
                 )}
 
-                {/* Grid Layout: Left = Confirmed & Date Cards, Right = Map */}
-                <div className={`grid gap-4 mb-6 ${(!hideMap && (order?.site_name || order?.site_address || order?.site_lat)) ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-2xl mx-auto'}`}>
-                    {/* Left Column: Single Container for Confirmations */}
-                    <div className="flex flex-col h-full">
-                        {/* Spacer matching map title to perfectly align the green box with the map */}
-                        {(!hideMap && (order?.site_name || order?.site_address || order?.site_lat)) && (
-                            <div className="px-1 py-2 mb-2 opacity-0 select-none pointer-events-none hidden lg:flex items-center gap-2">
-                                <MapPin className="w-4 h-4 shrink-0" />
-                                <div className="font-extrabold text-sm uppercase tracking-wide">Spacer</div>
-                            </div>
-                        )}
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex flex-col justify-center flex-1">
-                        
+                {/* Apple HIG Equal-Height Paired Cards: Left = Status & Date Inset Grouped Card, Right = Location Map Card */}
+                <div className={`grid gap-4 mb-5 items-stretch ${(!hideMap && (order?.site_name || order?.site_address || order?.site_lat)) ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-2xl mx-auto'}`}>
+                    {/* Left Column: Apple HIG Inset Grouped Confirmation & Date Card */}
+                    <div className="rounded-[22px] bg-white border-[1.5px] border-slate-200/95 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.08)] p-4 flex flex-col justify-between">
                         {/* 1. Order Confirmation Section */}
                         {confirmed && (
-                            <div className="mb-2">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                                    <span className="text-sm font-black text-emerald-800">{t.confirmed}</span>
-                                </div>
-                                {order?.confirmed_at && mode === 'quote' && (
-                                    <>
-                                        {t.confirmationFollowUpNote && !dateConfirmed && !(order?.start_date && (order?.assigned_team_id || ['planning', 'in_progress', 'completed'].includes(order?.status))) && (
-                                            <p className="text-emerald-900 text-xs font-medium ml-7 mt-1.5 mb-2 bg-emerald-100/70 p-2.5 rounded-lg border border-emerald-200/80 leading-relaxed shadow-sm">
-                                                {t.confirmationFollowUpNote}
+                            <div>
+                                <div className="flex items-start gap-3">
+                                    <span className="w-9 h-9 rounded-full bg-emerald-500/12 border border-emerald-500/25 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
+                                        <CheckCircle2 className="w-4.5 h-4.5" />
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-[14px] font-bold tracking-tight text-slate-900 leading-snug">{t.confirmed}</div>
+                                        {order?.confirmed_at && mode === 'quote' && (
+                                            <>
+                                                <p className="text-slate-500 text-[12px] mt-0.5 tabular-nums">
+                                                    {t.confirmedBy} <strong className="font-semibold text-slate-800">{order.confirmed_by_name}</strong> {t.onDate}{' '}
+                                                    {new Date(order.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                                </p>
+                                                {t.confirmationFollowUpNote && !dateConfirmed && !(order?.start_date && (order?.assigned_team_id || ['planning', 'in_progress', 'completed'].includes(order?.status))) && (
+                                                    <p className="text-slate-600 text-[12px] mt-2 bg-slate-50 p-2.5 rounded-[12px] border border-slate-200/80 leading-relaxed">
+                                                        {t.confirmationFollowUpNote}
+                                                    </p>
+                                                )}
+                                            </>
+                                        )}
+                                        {order?.final_confirmed_at && mode === 'final' && (
+                                            <p className="text-slate-500 text-[12px] mt-0.5 tabular-nums">
+                                                {t.confirmedBy} <strong className="font-semibold text-slate-800">{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
+                                                {new Date(order.final_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
                                             </p>
                                         )}
-                                        <p className="text-emerald-700/90 text-[11px] ml-7">
-                                            {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
-                                            {new Date(order.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                        </p>
-                                    </>
-                                )}
-                                {order?.final_confirmed_at && mode === 'final' && (
-                                    <p className="text-emerald-600 text-[11px] ml-7">
-                                        {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
-                                        {new Date(order.final_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                    </p>
-                                )}
+                                    </div>
+                                </div>
                             </div>
                         )}
 
-                        {/* Divider */}
+                        {/* Hairline Divider */}
                         {confirmed && order?.start_date && mode === 'quote' && (
-                            <hr className="border-emerald-200 my-2" />
+                            <div className="border-t border-slate-200/80 my-3" />
                         )}
 
                         {/* 2. Date Section */}
                         {order?.start_date && mode === 'quote' && (
-                            <div className="mt-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Calendar className={`w-5 h-5 flex-shrink-0 ${
-                                        order.reschedule_requested ? 'text-amber-500' :
-                                        dateConfirmed ? 'text-emerald-500' : 
-                                        'text-blue-500'
-                                    }`} />
-                                    <span className={`text-sm font-black ${
-                                        order.reschedule_requested ? 'text-amber-800' :
-                                        dateConfirmed ? 'text-emerald-800' : 
-                                        'text-blue-800'
-                                    }`}>
-                                        {order.reschedule_requested ? t.reschedulePending : dateConfirmed ? t.dateConfirmedMsg : t.proposedDate}
-                                    </span>
+                            <div className="flex items-start gap-3">
+                                <span className={`w-9 h-9 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                                    order.reschedule_requested
+                                        ? 'bg-amber-500/12 border-amber-500/25 text-amber-600'
+                                        : dateConfirmed
+                                            ? 'bg-emerald-500/12 border-emerald-500/25 text-emerald-600'
+                                            : 'bg-sky-500/12 border-sky-500/25 text-sky-600'
+                                }`}>
+                                    <Calendar className="w-4.5 h-4.5" />
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-[13px] font-semibold text-slate-500">
+                                            {order.reschedule_requested ? t.reschedulePending : dateConfirmed ? t.dateConfirmedMsg : t.proposedDate}
+                                        </span>
+                                        {dateConfirmed && !order.reschedule_requested && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/12 border border-emerald-500/25 text-emerald-700 text-[10.5px] font-semibold">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                Validée
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="text-[16px] font-bold tracking-tight text-slate-900 tabular-nums mt-0.5">
+                                        {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                        {order.start_time && ` • ${order.start_time}`}
+                                    </div>
+                                    {!dateConfirmed && !order.reschedule_requested && (
+                                        <p className="text-[11.5px] text-amber-800 bg-amber-500/10 border border-amber-500/20 rounded-[10px] px-2.5 py-1.5 mt-2 font-medium leading-snug">
+                                            ℹ️ {t.pendingValidationNotice}
+                                        </p>
+                                    )}
+                                    {dateConfirmed && order?.date_confirmed_at && !order.reschedule_requested && (
+                                        <p className="text-emerald-600 text-[11.5px] font-medium mt-1 flex items-center gap-1 tabular-nums">
+                                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                            {t.onDate} {new Date(order.date_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                        </p>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenChat}
+                                        className="text-slate-500 hover:text-sky-600 text-[11.5px] font-medium mt-2 flex items-center gap-1.5 text-left transition-colors cursor-pointer"
+                                    >
+                                        <MessageSquare className="w-3.5 h-3.5 shrink-0 text-sky-600" />
+                                        <span>{t.contactChatToReschedule}</span>
+                                    </button>
                                 </div>
-                                <p className={`${
-                                    order.reschedule_requested ? 'text-amber-700' :
-                                    dateConfirmed ? 'text-emerald-700' : 
-                                    'text-blue-700'
-                                } text-xs ml-7 font-bold mb-1`}>
-                                    {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                    {order.start_time && ` • ${order.start_time}`}
-                                </p>
-                                {!dateConfirmed && !order.reschedule_requested && (
-                                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/80 rounded-lg p-2 ml-7 mt-1.5 font-medium leading-normal">
-                                        ℹ️ {t.pendingValidationNotice}
-                                    </p>
-                                )}
-                                <p className="text-slate-500 text-[11px] ml-7 mt-2 flex items-center gap-1.5 cursor-pointer hover:text-blue-600 transition-colors" onClick={handleOpenChat}>
-                                    <MessageSquare className="w-3.5 h-3.5" />
-                                    {t.contactChatToReschedule}
-                                </p>
-                                {dateConfirmed && order?.date_confirmed_at && !order.reschedule_requested && (
-                                    <p className="text-emerald-600 text-[11px] ml-7 mt-1 flex items-center gap-1">
-                                        <CheckCircle2 className="w-3.5 h-3.5" />
-                                        {t.onDate} {new Date(order.date_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                    </p>
-                                )}
                             </div>
                         )}
                     </div>
-                    </div>
 
-                    {/* Right Column: Location Map */}
+                    {/* Right Column: Apple HIG Framed Location Map Card */}
                     {!hideMap && (order?.site_name || order?.site_address || order?.site_lat) && (
                         <div className="h-full flex">
                             {(() => {
@@ -1150,53 +1174,63 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 };
                                 const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
                                 return (
-                                    <div className="bg-transparent rounded-2xl border-0 overflow-hidden w-full flex flex-col print:hidden">
-                                        <div className="px-1 py-2 flex items-center gap-2 mb-2">
-                                            <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
-                                            {isEditingAddress ? (
-                                                <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 w-full z-50">
-                                                    <div className="flex-1 relative z-50">
-                                                        <AddressAutocomplete
-                                                            value={editAddressData.address}
-                                                            onChange={(val) => setEditAddressData(p => ({ ...p, address: val }))}
-                                                            onSelect={({ address, lat, lon }) => setEditAddressData({ address, lat, lon })}
-                                                            placeholder={translations[lang].location || 'Lieu'}
-                                                            className="!bg-transparent !border-none !text-xs !py-1 !px-2 !shadow-none !h-7 !min-h-0"
-                                                        />
+                                    <div className="rounded-[22px] bg-white border-[1.5px] border-slate-200/95 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.08)] p-3 w-full flex flex-col print:hidden">
+                                        <div className="px-1 pb-2.5 flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                <span className="w-7 h-7 rounded-full bg-sky-500/12 border border-sky-500/25 flex items-center justify-center text-sky-600 shrink-0">
+                                                    <MapPin className="w-3.5 h-3.5" />
+                                                </span>
+                                                {isEditingAddress ? (
+                                                    <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/90 w-full z-50">
+                                                        <div className="flex-1 relative z-50">
+                                                            <AddressAutocomplete
+                                                                value={editAddressData.address}
+                                                                onChange={(val) => setEditAddressData(p => ({ ...p, address: val }))}
+                                                                onSelect={({ address, lat, lon }) => setEditAddressData({ address, lat, lon })}
+                                                                placeholder={t.location || 'Lieu'}
+                                                                className="!bg-transparent !border-none !text-xs !py-1 !px-2 !shadow-none !h-7 !min-h-0"
+                                                            />
+                                                        </div>
+                                                        <div className="flex shrink-0 gap-1 pr-1">
+                                                            <button 
+                                                                type="button"
+                                                                onClick={handleSaveAddress}
+                                                                className="w-6 h-6 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 flex items-center justify-center transition-colors cursor-pointer"
+                                                                title="Enregistrer"
+                                                            >
+                                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => setIsEditingAddress(false)}
+                                                                className="w-6 h-6 rounded-full bg-slate-200/70 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                                                                title="Annuler"
+                                                            >
+                                                                <X className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex shrink-0 gap-1 pr-1">
-                                                        <button 
-                                                            onClick={handleSaveAddress}
-                                                            className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded transition-colors"
-                                                            title="Enregistrer"
-                                                        >
-                                                            <CheckCircle2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => setIsEditingAddress(false)}
-                                                            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 rounded transition-colors"
-                                                            title="Annuler"
-                                                        >
-                                                            <X className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate group flex items-center gap-2">
-                                                    {displayAddr}
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditAddressData({ address: order.site_address || order.site_name || '', lat: order.site_lat, lon: order.site_lon });
-                                                            setIsEditingAddress(true);
-                                                        }}
-                                                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all"
-                                                    >
-                                                        <Edit2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
+                                                ) : (
+                                                    <span className="font-bold text-slate-900 text-[13px] tracking-tight truncate">
+                                                        {displayAddr}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {!isEditingAddress && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditAddressData({ address: order.site_address || order.site_name || '', lat: order.site_lat, lon: order.site_lon });
+                                                        setIsEditingAddress(true);
+                                                    }}
+                                                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200/80 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                                                    title="Modifier l'adresse"
+                                                >
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
                                             )}
                                         </div>
-                                        <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner w-full flex-1 min-h-[220px]">
+                                        <div className="rounded-[15px] overflow-hidden border border-slate-200/90 w-full flex-1 min-h-[190px]">
                                             <MapView latitude={order.site_lat} longitude={order.site_lon} address={displayAddr} height="100%" zoom={15} markerType="pin" />
                                         </div>
                                     </div>
@@ -1396,23 +1430,28 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             </h3>
                         </div>
                         
-                        {/* Language Selector in Chat Header */}
-                        <div className="flex gap-1 bg-slate-200/60 p-1 rounded-lg">
+                        {/* Apple HIG Equal-Width Language Segmented Control in Chat Header (FR | NL | EN) */}
+                        <div className="inline-flex items-center gap-0.5 bg-[#767680]/[0.12] p-0.5 rounded-full border border-slate-300/60">
                             {[
                                 { code: 'fr', label: 'FR' },
-                                { code: 'nl', label: 'NL (Vlaams)' },
+                                { code: 'nl', label: 'NL' },
                                 { code: 'en', label: 'EN' }
                             ].map(l => (
                                 <button
                                     key={l.code}
+                                    type="button"
                                     onClick={() => {
                                         setLang(l.code);
                                         setSearchParams(isSeller ? { lang: l.code, role: 'seller' } : { lang: l.code }, { replace: true });
                                     }}
-                                    className={`px-3 py-1.5 rounded-md text-[11px] font-black transition-colors flex items-center gap-1.5 ${lang === l.code ? 'bg-white text-blue-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`min-w-[52px] h-7 px-2.5 rounded-full text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        lang === l.code
+                                            ? 'bg-white text-slate-900 shadow-[0_2px_6px_rgba(15,23,42,0.12),0_0_0_0.5px_rgba(15,23,42,0.08)]'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    }`}
                                 >
-                                    <img src={`https://flagcdn.com/w20/${l.code === 'en' ? 'gb' : l.code}.png`} alt={l.label} className="w-4 h-[11px] object-cover rounded-sm opacity-80" />
-                                    {l.label}
+                                    <img src={`https://flagcdn.com/w20/${l.code === 'en' ? 'gb' : l.code}.png`} alt={l.label} className="w-3.5 h-[10px] object-cover rounded-[2px] opacity-90 shrink-0" />
+                                    <span>{l.label}</span>
                                 </button>
                             ))}
                         </div>
@@ -1602,176 +1641,206 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                     </a>
                 </div>
             </div>
-            {toast && (
-                <div className="fixed top-20 right-4 z-[9999] animate-in slide-in-from-top-4">
-                    <div className={`px-4 py-2 rounded-full shadow-lg text-[11px] font-bold uppercase tracking-wide border 
-                        ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                        {toast.msg}
+            {toast && createPortal(
+                <div className="fixed top-5 right-0 left-0 sm:left-auto sm:right-6 mx-4 sm:mx-0 z-[999999] flex justify-center sm:justify-end pointer-events-none animate-in slide-in-from-top-4 fade-in duration-200">
+                    <div className="pointer-events-auto flex items-center gap-3 p-2 pr-3 rounded-full bg-[#F2F4F8] text-slate-900 backdrop-blur-2xl saturate-150 border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_22px_48px_-10px_rgba(15,23,42,0.34),0_6px_18px_-4px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.95)] max-w-sm">
+                        <span className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 ${
+                            toast.type === 'success'
+                                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600'
+                                : 'bg-rose-500/15 border-rose-500/30 text-rose-600'
+                        }`}>
+                            {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                        </span>
+                        <span className="text-[12.5px] font-semibold text-slate-900 leading-snug">
+                            {toast.msg}
+                        </span>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Floating Chat Icon */}
             <button 
                 onClick={handleOpenChat}
-                className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[9998] transition-transform hover:scale-110 active:scale-95"
+                className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[9998] transition-transform hover:scale-110 active:scale-95 cursor-pointer"
             >
                 <MessageSquare className="w-6 h-6" />
                 {unreadClientCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white tabular-nums">
                         {unreadClientCount}
                     </span>
                 )}
             </button>
-            {updateToast && (
-                <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-center" style={{ animation: 'slideDown 0.3s ease-out' }}>
-                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <span className="text-2xl"></span>
+            {updateToast && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] text-slate-900 backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 text-center overflow-hidden">
+                        <div className="rounded-[16px] bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <div className="w-12 h-12 bg-sky-500/12 border border-sky-500/25 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                                <AlertCircle className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold text-[17px] tracking-tight text-slate-900 leading-snug">
+                                {lang === 'ro' ? 'Actualizare Importantă' : lang === 'fr' ? 'Mise à jour importante' : lang === 'nl' ? 'Belangrijke Update' : 'Important Update'}
+                            </h3>
+                            <p className="text-slate-500 text-[13.5px] mt-1.5 leading-relaxed">
+                                {updateToast}
+                            </p>
                         </div>
-                        <h3 className="font-black text-lg text-slate-800 mb-2">
-                            {lang === 'ro' ? 'Actualizare Importantă' : lang === 'fr' ? 'Mise à jour importante' : lang === 'nl' ? 'Belangrijke Update' : 'Important Update'}
-                        </h3>
-                        <p className="text-slate-600 text-sm mb-6">
-                            {updateToast}
-                        </p>
                         <button 
+                            type="button"
                             onClick={() => { setUpdateToast(null); window.location.reload(); }} 
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm"
+                            className="w-full mt-3 h-10 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-[13.5px] rounded-[14px] transition-all shadow-sm shadow-sky-600/20 cursor-pointer"
                         >
                             {lang === 'ro' ? 'Am înțeles (Reîmprospătare)' : lang === 'fr' ? 'Compris (Actualiser)' : lang === 'nl' ? 'Begrepen (Vernieuwen)' : 'Understood (Refresh)'}
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {needsDateConfirmation && (
-                <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-center" style={{ animation: 'slideDown 0.3s ease-out' }}>
-                        <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Calendar className="w-6 h-6" />
+            {needsDateConfirmation && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] text-slate-900 backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 text-center overflow-hidden">
+                        <div className="rounded-[16px] bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <div className="w-12 h-12 bg-emerald-500/12 border border-emerald-500/25 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                                <Calendar className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold text-[17px] tracking-tight text-slate-900 leading-snug">
+                                {lang === 'ro' ? 'Dată Nouă Propusă' : lang === 'fr' ? 'Nouvelle date proposée' : lang === 'nl' ? 'Nieuwe Voorgestelde Datum' : 'New Proposed Date'}
+                            </h3>
+                            <p className="text-slate-500 text-[13.5px] mt-1.5 leading-relaxed">
+                                {lang === 'ro' ? 'Noua dată propusă este: ' : lang === 'fr' ? 'La nouvelle date proposée est : ' : lang === 'nl' ? 'De nieuwe voorgestelde datum is: ' : 'The new proposed date is: '}
+                                <br/>
+                                <strong className="text-emerald-700 text-[16px] font-bold tabular-nums inline-block mt-1">
+                                    {new Date(needsDateConfirmation).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </strong>
+                            </p>
                         </div>
-                        <h3 className="font-black text-lg text-slate-800 mb-2">
-                            {lang === 'ro' ? 'Dată Nouă Propusă' : lang === 'fr' ? 'Nouvelle date proposée' : lang === 'nl' ? 'Nieuwe Voorgestelde Datum' : 'New Proposed Date'}
-                        </h3>
-                        <p className="text-slate-600 text-sm mb-6">
-                            {lang === 'ro' ? 'Noua dată propusă este: ' : lang === 'fr' ? 'La nouvelle date proposée est: ' : lang === 'nl' ? 'De nieuwe voorgestelde datum is: ' : 'The new proposed date is: '}
-                            <br/><strong className="text-emerald-700 text-lg">{new Date(needsDateConfirmation).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
-                        </p>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2 mt-3">
                             <button 
+                                type="button"
                                 onClick={() => { setNeedsDateConfirmation(false); handleConfirmDate(); }} 
                                 disabled={confirmingDate}
-                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                                className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[13.5px] rounded-[14px] transition-all shadow-sm shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
                             >
                                 {confirmingDate ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                                 {lang === 'ro' ? 'Sunt de acord (Confirmă)' : lang === 'fr' ? 'Je suis d\'accord (Confirmer)' : lang === 'nl' ? 'Ik ga akkoord (Bevestigen)' : 'I agree (Confirm)'}
                             </button>
                             <button 
+                                type="button"
                                 onClick={() => { setNeedsDateConfirmation(false); setShowDateModal(true); }} 
-                                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-colors shadow-sm"
+                                className="w-full h-10 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300/90 font-semibold text-[13.5px] rounded-[14px] transition-all cursor-pointer"
                             >
                                 {lang === 'ro' ? 'Propune o altă dată' : lang === 'fr' ? 'Proposer une autre date' : lang === 'nl' ? 'Stel een andere datum voor' : 'Propose another date'}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             
             {/* Lightbox */}
-            {lightboxIndex !== null && order?.completion_photos && (
-                <div className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center">
+            {lightboxIndex !== null && order?.completion_photos && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-950/92 backdrop-blur-xl flex items-center justify-center">
                     <button 
+                        type="button"
                         onClick={() => setLightboxIndex(null)}
-                        className="absolute top-4 right-4 p-2 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors z-[10001]"
+                        className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center text-white/80 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-full transition-colors z-[100000] cursor-pointer"
                     >
-                        <X className="w-8 h-8" />
+                        <X className="w-5 h-5" />
                     </button>
                     
                     {lightboxIndex > 0 && (
                         <button 
+                            type="button"
                             onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => prev - 1) }}
-                            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors z-[10001]"
+                            className="absolute left-5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-white/80 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-full transition-colors z-[100000] cursor-pointer"
                         >
-                            <ChevronLeft className="w-8 h-8" />
+                            <ChevronLeft className="w-6 h-6" />
                         </button>
                     )}
                     
                     <img 
                         src={order.completion_photos[lightboxIndex]?.photo_url} 
                         alt="Lightbox" 
-                        className="max-w-full max-h-full object-contain p-4"
+                        className="max-w-full max-h-full object-contain p-4 rounded-2xl"
                         onClick={(e) => e.stopPropagation()}
                     />
                     
                     {lightboxIndex < order.completion_photos.length - 1 && (
                         <button 
+                            type="button"
                             onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => prev + 1) }}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors z-[10001]"
+                            className="absolute right-5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-white/80 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-full transition-colors z-[100000] cursor-pointer"
                         >
-                            <ChevronRight className="w-8 h-8" />
+                            <ChevronRight className="w-6 h-6" />
                         </button>
                     )}
-                </div>
+                </div>,
+                document.body
             )}
             
-            {/* Modal Confirmare Data */}
-            {showDateModal && (
-                <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-                        <button onClick={() => {setShowDateModal(false); setShowRescheduleForm(false); setRescheduleReason(''); setRescheduleDate('');}} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
-                            <X className="w-5 h-5" />
-                        </button>
-                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Calendar className="w-6 h-6" />
+            {/* Modal Confirmare Data — Apple HIG Sheet / Alert */}
+            {showDateModal && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setShowDateModal(false); setShowRescheduleForm(false); }}>
+                    <div className="w-full max-w-[380px] rounded-[24px] bg-[#F2F4F8] text-slate-900 backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 relative overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <button type="button" onClick={() => {setShowDateModal(false); setShowRescheduleForm(false); setRescheduleReason(''); setRescheduleDate('');}} className="absolute top-6 right-6 w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer">
+                                <X className="w-4 h-4" />
+                            </button>
+                            <div className="w-12 h-12 bg-sky-500/12 border border-sky-500/25 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                                <Calendar className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-center font-bold text-[17px] tracking-tight text-slate-900 leading-snug">
+                                {t.rescheduleTitle}
+                            </h3>
+                            <p className="text-center text-slate-500 text-[13px] mt-1.5 mb-4 leading-relaxed">
+                                {t.rescheduleDesc}
+                            </p>
+                            <div className="mb-3 text-left">
+                                <label className="block text-[12px] font-semibold text-slate-600 mb-1">
+                                    {lang === 'ro' ? 'Data dorită *' : lang === 'fr' ? 'Date souhaitée *' : lang === 'nl' ? 'Gewenste datum *' : 'Desired date *'}
+                                </label>
+                                <input 
+                                    type="date"
+                                    value={rescheduleDate}
+                                    onChange={(e) => setRescheduleDate(e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    className="w-full bg-slate-50 border border-slate-300/90 rounded-[12px] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500"
+                                />
+                            </div>
+                            <div className="text-left">
+                                <label className="block text-[12px] font-semibold text-slate-600 mb-1">
+                                    {lang === 'ro' ? 'Motiv / Observații (opțional)' : lang === 'fr' ? 'Raison / Remarques (facultatif)' : lang === 'nl' ? 'Reden / Opmerkingen (optioneel)' : 'Reason / Notes (optional)'}
+                                </label>
+                                <textarea
+                                    value={rescheduleReason}
+                                    onChange={(e) => setRescheduleReason(e.target.value)}
+                                    placeholder={t.reschedulePlaceholder}
+                                    className="w-full bg-slate-50 border border-slate-300/90 rounded-[12px] p-3 text-sm min-h-[76px] focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500"
+                                />
+                            </div>
                         </div>
-                        <h3 className="text-center font-black text-lg text-slate-800 mb-2">
-                            {t.rescheduleTitle}
-                        </h3>
-                        <p className="text-center text-slate-500 text-sm mb-4">
-                            {t.rescheduleDesc}
-                        </p>
-                        <div className="mb-4">
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
-                                {lang === 'ro' ? 'Data dorită *' : lang === 'fr' ? 'Date souhaitée *' : lang === 'nl' ? 'Gewenste datum *' : 'Desired date *'}
-                            </label>
-                            <input 
-                                type="date"
-                                value={rescheduleDate}
-                                onChange={(e) => setRescheduleDate(e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
-                                className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
-                                {lang === 'ro' ? 'Motiv / Observații (opțional)' : lang === 'fr' ? 'Raison / Remarques (facultatif)' : lang === 'nl' ? 'Reden / Opmerkingen (optioneel)' : 'Reason / Notes (optional)'}
-                            </label>
-                            <textarea
-                                value={rescheduleReason}
-                                onChange={(e) => setRescheduleReason(e.target.value)}
-                                placeholder={t.reschedulePlaceholder}
-                                className="w-full border border-slate-300 rounded-xl p-3 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2.5 mt-3">
                             <button
+                                type="button"
                                 onClick={() => { setShowDateModal(false); setShowRescheduleForm(false); }}
-                                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                                className="flex-1 h-10 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300/90 font-semibold text-[13.5px] rounded-[14px] transition-all cursor-pointer"
                             >
-                                {lang === 'ro' ? 'Anulează' : lang === 'fr' ? 'Annuler' : 'Cancel'}
+                                {lang === 'ro' ? 'Anulează' : lang === 'fr' ? 'Annuler' : lang === 'nl' ? 'Annuleren' : 'Cancel'}
                             </button>
                             <button
+                                type="button"
                                 onClick={handleReschedule}
                                 disabled={!rescheduleDate || submittingReschedule}
-                                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors flex justify-center items-center gap-2"
+                                className="flex-1 h-10 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-semibold text-[13.5px] rounded-[14px] transition-all shadow-sm shadow-sky-600/20 flex justify-center items-center gap-2 cursor-pointer"
                             >
                                 {submittingReschedule ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                 {t.rescheduleSubmit}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             

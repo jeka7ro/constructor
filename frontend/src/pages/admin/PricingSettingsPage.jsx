@@ -386,17 +386,19 @@ export default function PricingSettingsPage() {
                 </div>
             </div>
 
-            {/* Modal for Client Pricing */}
+            {/* Modal for Client Pricing — Apple HIG Sheet */}
             {modalOpen && createPortal(
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-5xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-5 bg-indigo-600 dark:bg-slate-800 flex items-center justify-between shrink-0">
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Users className="w-5 h-5 text-white" />
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setModalOpen(false)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] w-full max-w-5xl backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800 flex items-center justify-between shrink-0">
+                            <h2 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+                                <span className="w-8 h-8 rounded-full bg-sky-500/12 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                                    <Users className="w-4 h-4" />
+                                </span>
                                 {t('pricing_settings.client_pricing_title', 'Tarification Client')}
                             </h2>
-                            <button onClick={() => setModalOpen(false)} className="text-indigo-100 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
-                                <X className="w-5 h-5" />
+                            <button type="button" onClick={() => setModalOpen(false)} className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300/80 dark:border-slate-700 text-slate-500 flex items-center justify-center transition-colors cursor-pointer">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         
@@ -474,26 +476,30 @@ export default function PricingSettingsPage() {
                 </div>
             , document.body)}
 
-            {/* Confirm Reset Modal */}
+            {/* Confirm Reset Modal — Apple HIG Alert */}
             {confirmResetClientId && createPortal(
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-800 p-6" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                            {t('pricing_settings.confirm_reset_title', 'Réinitialiser la tarification')}
-                        </h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-                            {t('pricing_settings.confirm_reset', 'Êtes-vous sûr de vouloir réinitialiser les prix pour ce client ? Il utilisera à nouveau les tarifs globaux.')}
-                        </p>
-                        <div className="flex justify-end gap-3">
+                <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setConfirmResetClientId(null)}>
+                    <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 text-center overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
+                                {t('pricing_settings.confirm_reset_title', 'Réinitialiser la tarification')}
+                            </h3>
+                            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                                {t('pricing_settings.confirm_reset', 'Êtes-vous sûr de vouloir réinitialiser les prix pour ce client ? Il utilisera à nouveau les tarifs globaux.')}
+                            </p>
+                        </div>
+                        <div className="flex gap-2.5 mt-3">
                             <button
+                                type="button"
                                 onClick={() => setConfirmResetClientId(null)}
-                                className="px-4 py-2 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                                className="flex-1 h-10 px-4 rounded-[14px] text-[13.5px] font-semibold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300/90 dark:border-slate-600/80 transition-all cursor-pointer"
                             >
                                 {t('common.cancel', 'Annuler')}
                             </button>
                             <button
+                                type="button"
                                 onClick={confirmResetClient}
-                                className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-colors"
+                                className="flex-1 h-10 px-4 rounded-[14px] text-[13.5px] font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-600/20 transition-all cursor-pointer"
                             >
                                 {t('common.delete', 'Supprimer')}
                             </button>
