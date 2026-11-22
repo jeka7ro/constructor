@@ -89,7 +89,8 @@ export default function ProformaView({ workOrderData = null, config = null, work
                 // 2. Fetch Pricing Settings (using client_id for preferential tariffs)
                 let psData = currentWo.pricingSettings || null;
                 if (!psData) {
-                    const pricingQuery = currentWo.client_id ? `?client_id=${currentWo.client_id}` : '';
+                    const allowPref = !currentWo?.prices?.disable_preferential_pricing;
+                    const pricingQuery = (allowPref && currentWo.client_id) ? `?client_id=${currentWo.client_id}` : '';
                     const pricingRes = await api.get(`/admin/pricing-settings${pricingQuery}`).catch(err => {
                         console.error('Failed to load pricing settings:', err);
                         return { data: null };

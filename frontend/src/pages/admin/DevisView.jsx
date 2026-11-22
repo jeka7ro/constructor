@@ -112,7 +112,8 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 const woData = woRes.data;
                 let pricingPromise = Promise.resolve({ data: null });
                 if (!token) {
-                    pricingPromise = api.get(`/admin/pricing-settings${woData.client_id ? '?client_id=' + woData.client_id : ''}`).catch(err => {
+                    const allowPref = !woData?.prices?.disable_preferential_pricing;
+                    pricingPromise = api.get(`/admin/pricing-settings${(allowPref && woData.client_id) ? '?client_id=' + woData.client_id : ''}`).catch(err => {
                         console.error('Failed to load pricing settings:', err);
                         return { data: null };
                     });

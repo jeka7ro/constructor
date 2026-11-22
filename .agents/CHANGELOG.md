@@ -1,5 +1,26 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-22 16:04 — Separare Chape vs. Isolation în `/devisonline`, TVA Opțional + Căutare Oficială BCE/KBO Belgia, Protecție Tarife Preferențiale Online, Validare Automată Dată la Planificare, Dynamic Island Contur & Animație 120fps + Fix Navigare AdminChats
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Separare de la bun început: `Chape` vs. `Isolation (PUR / EPS)` în `/devisonline` (`DevisOnline.jsx` & `devis_online.py`):**
+    - Adăugat la Pasul 1 (`Détails`) un control segmentat Apple HIG (`Chape` | `Isolation (PUR / EPS)`), astfel încât clientul alege de la început prestația dorită și fiecare comandă generează propriul ei deviz individual (doar Șapă sau doar Izolație, fără rânduri 0 m² și fără amestecarea lor în același deviz, având zile de execuție diferite).
+  - **Număr de TVA Opțional + Căutare Oficială în BCE / KBO Belgia (`DevisOnline.jsx`, `devis_online.py`, `kbo_scraper.py`):**
+    - Eliminat `required` de pe câmpul `Numéro de TVA` la `Entreprise` și marcat ca `(optionnel)` (nu mai blochează formularul cu eroare roșie dacă nu este completat sau găsit).
+    - Conectat ruta `/api/public/devis_online/vies/{country}/{vat_number}` direct la scraper-ul oficial **BCE / KBO Belgia** (`fetch_kbo_data` — `kbopub.economie.fgov.be`), găsind instant numere precum `BE0785292895` (`DAVIDE CHAPE`) și curățând automat spațiile/tab-urile din adresă.
+  - **Protecție Absolută a Tarifelor Preferențiale pe `/devisonline` (`devis_online.py`, `public_work_orders.py`, `pdf_generator.py`, `admin_work_orders.py`, `WorkOrderDetail.jsx`, `DevisView.jsx`, `ProformaView.jsx`):**
+    - Pe `/devisonline`, toate calculele folosesc **exclusiv tariful standard din tabul Tarife (`PricingSetting.client_id == None`)**.
+    - Chiar dacă cineva introduce pe `/devisonline` numele sau CUI-ul unui client preferențial (ex. concurența), formularul public nu se leagă de și nu suprascrie clientul preferențial și marchează `disable_preferential_pricing: True` până când un Admin atribuie manual clientul din panoul de administrare.
+  - **Validare Automată a Datei pe Pagina Clientului `/confirm/{token}` după Planificarea în Calendar (`admin_work_orders.py`, `public_work_orders.py`, `WorkOrderConfirm.jsx`):**
+    - Când un admin (Iulik) pune comanda în calendar (`start_date`) și alege echipa (`assigned_team_id`) sau trece statusul pe `planning`, data este marcată automat ca validată (`date_confirmed_at`), astfel încât pe `/confirm/{token}` clientul vede direct **`Date confirmée : 27/11/2026 • 10:00`** (pe verde), fără alerta galbenă *„ℹ️ En attente de validation par l'équipe Davide Chape”*.
+  - **Dynamic Island: Sărbători mutate din Calendar, Contur Pronunțat & Animație Apple 120fps GPU + Fix Navigare din `AdminChats.jsx` (`HeaderDynamicIsland.jsx`, `ShortWorksCalendar.jsx`, `AdminChats.jsx`):**
+    - Mutat indicatorul *Prochain férié : Noël (25 déc.)* din bara calendarului în interiorul Dynamic Island.
+    - Pronunțat conturul exterior (`border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10`) și conturul cardurilor `Inset Grouped` interioare (`bg-white border-slate-300/90`).
+    - Reconstruit animația de întoarcere în Dynamic Island în 2 straturi 120fps pe GPU (fără `filter: blur`, cu rotunjire progresivă în capsulă `borderRadius: 22px -> 44px` și puls elastic de absorbție în capsula din Header).
+    - Eliminat `setSearchParams({ wo_id: activeWoId })` apelat asincron după `await Promise.all(...)` în `AdminChats.jsx`, care întorcea forțat utilizatorul înapoi pe `/admin/chats` când apăsa pe Dashboard / Planning.
+- **Fișiere:** `frontend/src/pages/DevisOnline.jsx`, `backend/app/api/devis_online.py`, `backend/app/services/kbo_scraper.py`, `backend/app/api/admin_work_orders.py`, `backend/app/api/public_work_orders.py`, `backend/app/services/pdf_generator.py`, `frontend/src/pages/public/WorkOrderConfirm.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `frontend/src/pages/admin/DevisView.jsx`, `frontend/src/pages/admin/ProformaView.jsx`, `frontend/src/components/HeaderDynamicIsland.jsx`, `frontend/src/components/ShortWorksCalendar.jsx`, `frontend/src/pages/admin/AdminChats.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5)
+
 ### 2026-11-22 12:22 — Apple Dynamic Island Centrat (Emergență & Întoarcere în Insulă), Dark Mode Midnight Navy, Siluete SF-Symbol în Camions (Équipes), Ceas/Meteo & WorkOrderDetail Apple HIG
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

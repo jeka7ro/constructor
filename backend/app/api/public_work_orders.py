@@ -180,10 +180,19 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "volumes": [v for v in (wo.volumes or []) if not any(x in str(v.get("label", "")).lower() for x in ["nisip", "sand", "zand", "sable"])],
         "actual_surface_m2": wo.actual_surface_m2,
         "status": wo.status,
+        "assigned_team_id": wo.assigned_team_id,
         "confirmed_at": wo.confirmed_at.isoformat() + "Z" if wo.confirmed_at else None,
         "confirmed_by_name": wo.confirmed_by_name,
         "client_signature": wo.client_signature,
-        "date_confirmed_at": wo.date_confirmed_at.isoformat() + "Z" if wo.date_confirmed_at else None,
+        "date_confirmed_at": (
+            wo.date_confirmed_at.isoformat() + "Z"
+            if wo.date_confirmed_at
+            else (
+                (wo.updated_at or wo.created_at or datetime.utcnow()).isoformat() + "Z"
+                if (wo.start_date and (wo.assigned_team_id or wo.status in ["planning", "in_progress", "completed"]))
+                else None
+            )
+        ),
         "reschedule_requested": getattr(wo, "reschedule_requested", False),
         "final_confirmed_at": wo.final_confirmed_at.isoformat() + "Z" if wo.final_confirmed_at else None,
         "final_confirmed_by_name": wo.final_confirmed_by_name,
@@ -231,11 +240,15 @@ def get_public_work_order(token: str, lang: Optional[str] = None, db: Session = 
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
     
     # Obținem setările de pricing pentru a asigura calculul corect al primului deviz în lipsa unui override manual
+    # REGULĂ SECURITATE: Pe comenzile venite din /devisonline (disable_preferential_pricing=True), NU se aplică niciodată tarife preferențiale automat
     from app.models import PricingSetting
-    pricing_setting = db.query(PricingSetting).filter(
-        PricingSetting.organization_id == wo.organization_id,
-        PricingSetting.client_id == wo.client_id
-    ).first()
+    allow_pref = not bool((wo.prices or {}).get("disable_preferential_pricing"))
+    pricing_setting = None
+    if allow_pref and wo.client_id:
+        pricing_setting = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == wo.organization_id,
+            PricingSetting.client_id == wo.client_id
+        ).first()
     
     if not pricing_setting:
         pricing_setting = db.query(PricingSetting).filter(
@@ -292,11 +305,15 @@ def get_public_proforma(token: str, db: Session = Depends(get_db)):
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
     
     # Obținem setările de pricing pentru a asigura calculul corect al primului deviz în lipsa unui override manual
+    # REGULĂ SECURITATE: Pe comenzile venite din /devisonline (disable_preferential_pricing=True), NU se aplică niciodată tarife preferențiale automat
     from app.models import PricingSetting
-    pricing_setting = db.query(PricingSetting).filter(
-        PricingSetting.organization_id == wo.organization_id,
-        PricingSetting.client_id == wo.client_id
-    ).first()
+    allow_pref = not bool((wo.prices or {}).get("disable_preferential_pricing"))
+    pricing_setting = None
+    if allow_pref and wo.client_id:
+        pricing_setting = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == wo.organization_id,
+            PricingSetting.client_id == wo.client_id
+        ).first()
     
     if not pricing_setting:
         pricing_setting = db.query(PricingSetting).filter(

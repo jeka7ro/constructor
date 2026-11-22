@@ -388,7 +388,16 @@ export default function ShortWorksCalendar({
         const updateMatch = () => setIsUltraWideViewport(mq.matches);
         updateMatch();
         mq.addEventListener('change', updateMatch);
-        return () => mq.removeEventListener('change', updateMatch);
+        const handleJumpDate = (e) => {
+            if (e?.detail?.date) {
+                setCurrentDate(new Date(e.detail.date));
+            }
+        };
+        window.addEventListener('jump-to-calendar-date', handleJumpDate);
+        return () => {
+            mq.removeEventListener('change', updateMatch);
+            window.removeEventListener('jump-to-calendar-date', handleJumpDate);
+        };
     }, []);
 
     useEffect(() => {
@@ -752,52 +761,6 @@ export default function ShortWorksCalendar({
                     </div>
                     
                     <div className="flex items-center gap-2.5">
-                        {/* Next Holiday Box */}
-                        {(() => {
-                            const upcomingHolidays = getUpcomingHolidays(4);
-                            if (upcomingHolidays.length > 0) {
-                                const nextH = upcomingHolidays[0];
-                                const tooltipHolidays = upcomingHolidays.slice(1);
-                                
-                                return (
-                                    <div 
-                                        className="group relative hidden md:flex items-center gap-2 h-9 bg-white/15 border border-white/25 px-3.5 rounded-full text-white cursor-pointer hover:bg-white/25 transition-colors shadow-xs" 
-                                        onClick={() => setCurrentDate(new Date(nextH.date))}
-                                    >
-                                        <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center shrink-0">
-                                            <CalendarIcon className="w-3.5 h-3.5" />
-                                        </div>
-                                        <div className="flex flex-col text-left leading-none justify-center">
-                                            <span className="text-[8.5px] font-bold opacity-85 uppercase tracking-wider leading-none">{t('planning.next_holiday_full', 'Férié')}</span>
-                                            <span className="text-[11px] font-extrabold leading-tight mt-0.5 whitespace-nowrap">{t(`holidays.${nextH.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, nextH.name)} ({format(new Date(nextH.date), 'dd MMM', { locale: dateLocale })})</span>
-                                        </div>
-
-                                        {/* Custom Beautiful Tooltip */}
-                                        {tooltipHolidays.length > 0 && (
-                                            <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 text-white rounded-2xl shadow-xl p-3 text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] border border-slate-700 pointer-events-none">
-                                                <div className="font-bold mb-2 pb-2 border-b border-slate-700 text-slate-300">
-                                                    {t('planning.next_holiday_full', 'Următoarele Sărbători')}
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {tooltipHolidays.map((h, index) => (
-                                                        <div key={index} className="flex justify-between items-center">
-                                                            <span className="font-medium text-slate-100">
-                                                                {index + 2}. {t(`holidays.${h.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, h.name)}
-                                                            </span>
-                                                            <span className="text-xs text-slate-400">
-                                                                {format(new Date(h.date), 'dd MMM yyyy', { locale: dateLocale })}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            }
-                            return null;
-                        })()}
-
                         {/* Holding Area (Moved to the right as requested) */}
                         <div 
                             className={`flex items-center justify-center ${heldOrder ? 'w-auto px-3.5' : 'w-9'} h-9 rounded-full border border-dashed ${isSelectingForHolding ? 'border-yellow-300 bg-yellow-400/25 shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse' : heldOrder ? 'border-white bg-white/25 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-white/40 hover:border-white/80 bg-white/15 hover:bg-white/25'} transition-all cursor-pointer relative shrink-0`}

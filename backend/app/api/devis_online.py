@@ -98,6 +98,8 @@ def get_calculator_config(domain: Optional[str] = None, slug: Optional[str] = No
             "base_price_sqm_large": pricing.base_price_sqm_large,
             "base_large_threshold_sqm": pricing.base_large_threshold_sqm,
             "extra_thickness_price_per_cm": pricing.extra_thickness_price_per_cm,
+            "extra_thickness_price_per_cm_large": pricing.extra_thickness_price_per_cm_large,
+            "extra_thickness_large_threshold_sqm": pricing.extra_thickness_large_threshold_sqm,
             "standard_thickness_cm": pricing.standard_thickness_cm,
             "plastic_foil_price_sqm": pricing.plastic_foil_price_sqm,
             "metal_mesh_price_sqm": pricing.metal_mesh_price_sqm,
@@ -209,13 +211,14 @@ def get_driving_distance_km(origin: str, destination: str) -> float:
     return 0.0
 
 def _build_volumes(payload: CalculatorSubmitRequest) -> list:
-    """Build volumes array: always Chape, optionally + Isolation PUR/EPS."""
+    """Build volumes array: Chape OR Isolation PUR/EPS (never dummy 0 m² rows)."""
     volumes = []
     
-    # 1. Use multiple surfaces if provided
-    if payload.surfaces and len(payload.surfaces) > 0:
-        has_multiple_chape = len(payload.surfaces) > 1
-        for idx, surf in enumerate(payload.surfaces):
+    # 1. Use multiple surfaces if provided (only when surface > 0)
+    valid_surfaces = [s for s in (payload.surfaces or []) if float(s.surface or 0) > 0]
+    if valid_surfaces:
+        has_multiple_chape = len(valid_surfaces) > 1
+        for idx, surf in enumerate(valid_surfaces):
             label = surf.label
             if not label or label in ["1", "2", "3", "4", "5", "Chape", "Șapă", "sapa"] or label.lower().startswith("chape") or label.lower().startswith("șapă") or label.lower().startswith("sapa"):
                 label = f"Chape {idx + 1}" if has_multiple_chape else "Chape"
@@ -228,8 +231,8 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
                 "has_mesh": surf.has_mesh,
                 "has_duramint": surf.has_duramint
             })
-    else:
-        # Fallback to single surface
+    elif payload.surface and float(payload.surface or 0) > 0:
+        # Fallback to single surface ONLY when > 0
         volumes.append({
             "label": "Chape",
             "quantity": payload.surface,
@@ -240,15 +243,16 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
             "has_duramint": payload.has_duramint
         })
     
-    # 2. Use multiple isolations if provided
-    if payload.isolations and len(payload.isolations) > 0:
-        pur_count = sum(1 for i in payload.isolations if i.type == "pur")
-        eps_count = sum(1 for i in payload.isolations if i.type == "eps")
-        total_iso = len(payload.isolations)
+    # 2. Use multiple isolations if provided (only when surface > 0)
+    valid_isolations = [i for i in (payload.isolations or []) if float(i.surface or 0) > 0]
+    if valid_isolations:
+        pur_count = sum(1 for i in valid_isolations if i.type == "pur")
+        eps_count = sum(1 for i in valid_isolations if i.type == "eps")
+        total_iso = len(valid_isolations)
         
         pur_idx = 0
         eps_idx = 0
-        for idx, iso in enumerate(payload.isolations):
+        for idx, iso in enumerate(valid_isolations):
             iso_vol = {
                 "quantity": iso.surface,
                 "thickness": iso.thickness or 3,
@@ -258,7 +262,6 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
                 lbl = f"Isolation PUR {pur_idx}" if pur_count > 1 else ("Isolation PUR 1" if total_iso > 1 else "Isolation PUR")
                 iso_vol["label"] = lbl
                 iso_vol["unit"] = "m²"
-                # Options are now inside IsolationItem
                 iso_vol["pur_aspiration"] = iso.isolation_pur_aspiration
                 iso_vol["pur_niveller"] = iso.isolation_pur_niveller
                 iso_vol["pur_poncage"] = iso.isolation_pur_poncage
@@ -274,7 +277,7 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
                 iso_vol["label"] = lbl
                 iso_vol["unit"] = "m²"
             volumes.append(iso_vol)
-    elif payload.needs_isolation and payload.isolation_type and payload.isolation_surface:
+    elif payload.needs_isolation and payload.isolation_type and payload.isolation_surface and float(payload.isolation_surface or 0) > 0:
         # Fallback to single isolation
         iso_vol = {
             "quantity": payload.isolation_surface,
@@ -290,7 +293,6 @@ def _build_volumes(payload: CalculatorSubmitRequest) -> list:
         elif payload.isolation_type == "eps":
             iso_vol["label"] = "Isolation EPS"
             iso_vol["unit"] = "m³"
-            # Volume = surface * thickness(cm) / 100
             iso_vol["volume_m3"] = round(payload.isolation_surface * (payload.isolation_thickness or 1) / 100, 2)
         volumes.append(iso_vol)
     
@@ -335,11 +337,20 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
 
     client = None
     if client_name:
-        client = db.query(Client).filter(
+        matched_client = db.query(Client).filter(
             Client.organization_id == org.id,
             Client.name == client_name
         ).first()
-        
+        if matched_client:
+            # SECURITY RULE: On public /devisonline, NEVER bind to or overwrite a preferential client
+            # (a client that has a custom PricingSetting row), so competitors cannot test preferential tariffs online.
+            has_preferential_tariff = db.query(PricingSetting.id).filter(
+                PricingSetting.organization_id == org.id,
+                PricingSetting.client_id == matched_client.id
+            ).first() is not None
+            if not has_preferential_tariff:
+                client = matched_client
+
     if not client:
         client = Client(
             organization_id=org.id,
@@ -354,7 +365,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         db.add(client)
         db.flush()
     else:
-        # Client found by name, update their details with the newest request
+        # Non-preferential client found by name, update their details with the newest request
         if payload.client_type:
             client.client_type = payload.client_type
         if payload.client_email:
@@ -368,19 +379,13 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
             client.address = payload.client_address
         db.add(client)
         db.flush()
-        
-    # 3. Calculate estimated price
-    pricing = None
-    if client and client.id:
-        pricing = db.query(PricingSetting).filter(
-            PricingSetting.organization_id == org.id,
-            PricingSetting.client_id == client.id
-        ).first()
-    if not pricing:
-        pricing = db.query(PricingSetting).filter(
-            PricingSetting.organization_id == org.id,
-            PricingSetting.client_id == None
-        ).first()
+
+    # 3. Calculate estimated price — STRICT RULE: /devisonline ALWAYS uses the global standard tariff (client_id == None).
+    # Preferential prices are NEVER exposed on /devisonline; they apply ONLY when manually assigned by an Admin.
+    pricing = db.query(PricingSetting).filter(
+        PricingSetting.organization_id == org.id,
+        PricingSetting.client_id == None
+    ).first()
 
     total_chape_surface = sum(float(s.surface or 0) for s in (payload.surfaces or []))
     if total_chape_surface <= 0 and payload.surface:
@@ -472,6 +477,8 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         "pur_opt_protection": getattr(pricing, 'pur_opt_protection', 1.50),
         # EPS tiers
         "eps_volume_thresholds": getattr(pricing, 'eps_volume_thresholds', []) if pricing else [],
+        # Security: /devisonline quotes never apply preferential client tariffs unless manually overridden by Admin
+        "disable_preferential_pricing": True,
     }
 
     # Resolve requested language
@@ -479,11 +486,14 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     if resolved_lang not in ["fr", "nl", "en"]:
         resolved_lang = "fr"
 
+    is_isolation_only = (total_chape_surface <= 0 and has_any_isolation)
+    quote_title_prefix = "Demande de devis Isolation" if is_isolation_only else "Demande de devis"
+
     # 4. Create WorkOrder
     wo = WorkOrder(
         organization_id=org.id,
         token=secrets.token_urlsafe(32),
-        title=f"Demande de devis - {client_name}",
+        title=f"{quote_title_prefix} - {client_name}",
         is_quote=True,
         status="draft",
         work_type=payload.work_type,
@@ -626,11 +636,29 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
 
 @router.get("/vies/{country}/{vat_number}")
 def public_vies_lookup(country: str, vat_number: str):
-    """Public proxy for VIES lookup to auto-fill company data in calculator"""
+    """Public lookup for Belgian BCE/KBO (kbopub.economie.fgov.be) + VIES fallback to auto-fill company data in /devisonline"""
     import requests
     try:
         vat_clean = ''.join(filter(str.isalnum, vat_number))
-        res = requests.get(f"https://api.vatcomply.com/vat?vat_number={country.upper()}{vat_clean}", timeout=5)
+        digits_only = ''.join(filter(str.isdigit, vat_number))
+        country_up = (country or "BE").upper()
+
+        # 1. Primary lookup for Belgian companies: official BCE / KBO public search (kbopub.economie.fgov.be)
+        if country_up == "BE" or (len(digits_only) in (9, 10) and digits_only.startswith(("0", "1"))):
+            try:
+                from app.services.kbo_scraper import fetch_kbo_data
+                kbo_res = fetch_kbo_data(digits_only)
+                if kbo_res and kbo_res.get("valid") and kbo_res.get("name"):
+                    return {
+                        "valid": True,
+                        "name": kbo_res.get("name"),
+                        "address": kbo_res.get("address") or ""
+                    }
+            except Exception as kbo_err:
+                print(f"Public KBO/BCE lookup warning: {kbo_err}")
+
+        # 2. Fallback to VIES / vatcomply for non-BE or if KBO was unreachable
+        res = requests.get(f"https://api.vatcomply.com/vat?vat_number={country_up}{vat_clean}", timeout=5)
         if res.status_code == 200:
             data = res.json()
             if data.get("valid"):
@@ -641,8 +669,8 @@ def public_vies_lookup(country: str, vat_number: str):
                 }
         return {"valid": False}
     except Exception as e:
-        print(f"Public VIES error: {e}")
-        raise HTTPException(status_code=503, detail="VIES unavailable")
+        print(f"Public VIES/BCE error: {e}")
+        return {"valid": False}
 
 def get_org_by_domain_or_slug(domain: str, slug: str, db: Session) -> Organization:
     if not domain and not slug:

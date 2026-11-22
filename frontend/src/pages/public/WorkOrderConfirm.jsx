@@ -1062,7 +1062,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 </div>
                                 {order?.confirmed_at && mode === 'quote' && (
                                     <>
-                                        {t.confirmationFollowUpNote && (
+                                        {t.confirmationFollowUpNote && !dateConfirmed && !(order?.start_date && (order?.assigned_team_id || ['planning', 'in_progress', 'completed'].includes(order?.status))) && (
                                             <p className="text-emerald-900 text-xs font-medium ml-7 mt-1.5 mb-2 bg-emerald-100/70 p-2.5 rounded-lg border border-emerald-200/80 leading-relaxed shadow-sm">
                                                 {t.confirmationFollowUpNote}
                                             </p>

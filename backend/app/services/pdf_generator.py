@@ -13,7 +13,9 @@ def _compute_pdf_data(work_order, client, is_invoice=False):
     pricing_settings = None
     client_id = getattr(work_order, 'client_id', None) or (getattr(client, 'id', None) if client else None)
     org_id = getattr(work_order, 'organization_id', None)
-    if client_id and org_id:
+    wo_prices = getattr(work_order, 'prices', None) or {}
+    allow_pref = not bool(wo_prices.get("disable_preferential_pricing"))
+    if allow_pref and client_id and org_id:
         pricing_settings = db.query(PricingSetting).filter(
             PricingSetting.organization_id == org_id,
             PricingSetting.client_id == client_id

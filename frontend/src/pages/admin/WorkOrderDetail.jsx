@@ -624,8 +624,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             }
             
             // Fetch pricing settings (tarife) pentru calcul transport/preturi
+            // Pe comenzile din /devisonline (disable_preferential_pricing=true), folosim exclusiv tariful standard din tabul Tarife
             if (woRes.status === 'fulfilled') {
-                const clientId = woRes.value.data.client_id;
+                const disablePref = Boolean(woRes.value.data?.prices?.disable_preferential_pricing);
+                const clientId = disablePref ? null : woRes.value.data.client_id;
                 const endpoint = clientId ? `/admin/pricing-settings?client_id=${clientId}` : '/admin/pricing-settings';
                 api.get(endpoint)
                     .then(res => {

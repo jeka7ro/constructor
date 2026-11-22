@@ -21,6 +21,7 @@ export default function DevisOnline() {
     const [step, setStep] = useState(1);
     const [photos, setPhotos] = useState([]);
     const [formData, setFormData] = useState({
+        service_category: 'chape', // 'chape' | 'isolation' — chosen from Step 1 so Chape and Isolation are separate quotes
         client_type: 'fizica',
         client_first_name: '',
         client_last_name: '',
@@ -35,7 +36,7 @@ export default function DevisOnline() {
         
         // ── Multiple Surfaces ──
         surfaces: [{ id: '1', label: 'Chape', surface: '', thickness: '', has_foil: false, has_mesh: false, has_duramint: true }],
-        isolations: [],
+        isolations: [{ id: 'iso-1', type: 'pur', surface: '', thickness: '', isolation_pur_aspiration: false, isolation_pur_niveller: false, isolation_pur_poncage: false, isolation_pur_protection: false }],
         
         // Legacy
         surface: '',
@@ -57,6 +58,7 @@ export default function DevisOnline() {
     });
 
     const [isSearchingVies, setIsSearchingVies] = useState(false);
+    const [viesLookupNotice, setViesLookupNotice] = useState('');
     const [calendarMonthOffset, setCalendarMonthOffset] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -100,11 +102,13 @@ export default function DevisOnline() {
 
     const handleViesSearch = async () => {
         const vatNum = formData.client_company_vat?.replace(/[^0-9A-Za-z]/g, '');
-        if (!vatNum) return;
+        if (!vatNum || vatNum.length < 8) return;
         setIsSearchingVies(true);
+        setViesLookupNotice('');
         try {
-            const country = vatNum.substring(0, 2).match(/[A-Za-z]{2}/) ? vatNum.substring(0, 2) : 'BE';
-            const cleanVat = vatNum.substring(0, 2).match(/[A-Za-z]{2}/) ? vatNum.substring(2) : vatNum;
+            const hasCountryPrefix = /^[A-Za-z]{2}/.test(vatNum);
+            const country = hasCountryPrefix ? vatNum.substring(0, 2).toUpperCase() : 'BE';
+            const cleanVat = hasCountryPrefix ? vatNum.substring(2) : vatNum;
             const res = await publicApi.get(`/vies/${country}/${cleanVat}`);
             if (res.data && res.data.valid) {
                 setFormData(p => ({
@@ -112,14 +116,17 @@ export default function DevisOnline() {
                     client_company_name: res.data.name || p.client_company_name,
                     client_address: res.data.address || p.client_address
                 }));
+                if (errorField === 'client_company_vat') {
+                    setErrorField('');
+                    setError('');
+                }
             } else {
-                setErrorField('client_company_vat');
-                setError(t('clients.vies_not_found', 'Entreprise non trouvée. Vérifiez le numéro de TVA.'));
+                // Non-blocking notice so client can still type company name manually
+                setViesLookupNotice(t('clients.vies_not_found_optional', "Numéro non trouvé dans la BCE — vous pouvez saisir le nom de l'entreprise manuellement."));
             }
         } catch (err) {
-            console.error('VIES Error:', err);
-            setErrorField('client_company_vat');
-            setError(t('clients.vies_error', 'Erreur lors de la recherche de l\'entreprise.'));
+            console.error('BCE/VIES Error:', err);
+            setViesLookupNotice(t('clients.vies_not_found_optional', "Recherche BCE indisponible — vous pouvez saisir le nom de l'entreprise manuellement."));
         } finally {
             setIsSearchingVies(false);
         }
@@ -129,8 +136,16 @@ export default function DevisOnline() {
         e.preventDefault();
         setError('');
         if (formData.honeypot) return;
-        const totalSurface = formData.surfaces?.reduce((sum, s) => sum + (parseFloat(s.surface) || 0), 0) || parseFloat(formData.surface) || 0;
-        if (totalSurface <= 0) {
+        const isIsolationOnly = formData.service_category === 'isolation';
+        const activeSurfaces = isIsolationOnly ? [] : (formData.surfaces || []);
+        const activeIsolations = isIsolationOnly ? (formData.isolations || []) : [];
+        const totalSurface = activeSurfaces.reduce((sum, s) => sum + (parseFloat(s.surface) || 0), 0);
+        const totalIsoSurface = activeIsolations.reduce((sum, i) => sum + (parseFloat(i.surface) || 0), 0);
+        if (!isIsolationOnly && totalSurface <= 0) {
+            setError(t('workorders.surface_required', 'La surface est obligatoire.'));
+            return;
+        }
+        if (isIsolationOnly && totalIsoSurface <= 0) {
             setError(t('workorders.surface_required', 'La surface est obligatoire.'));
             return;
         }
@@ -139,17 +154,17 @@ export default function DevisOnline() {
             const domain = window.location.hostname;
             const urlSource = new URLSearchParams(window.location.search).get('source');
             const chosenLang = i18n.language || formData.client_language || 'fr';
-            const labeledSurfaces = (formData.surfaces || []).map((s, idx) => ({
+            const labeledSurfaces = activeSurfaces.map((s, idx) => ({
                 ...s,
-                label: formData.surfaces.length > 1 ? `Chape ${idx + 1}` : 'Chape'
+                label: activeSurfaces.length > 1 ? `Chape ${idx + 1}` : 'Chape'
             }));
-            const labeledIsolations = (formData.isolations || []).map((iso, idx) => {
-                const sameType = (formData.isolations || []).filter(i => i.type === iso.type);
+            const labeledIsolations = activeIsolations.map((iso, idx) => {
+                const sameType = activeIsolations.filter(i => i.type === iso.type);
                 let lbl = iso.type === 'pur' ? 'Isolation PUR' : (iso.type === 'eps' ? 'Isolation EPS' : 'Isolation');
                 if (sameType.length > 1) {
-                    const typeIdx = (formData.isolations || []).filter((i, iIdx) => i.type === iso.type && iIdx <= idx).length;
+                    const typeIdx = activeIsolations.filter((i, iIdx) => i.type === iso.type && iIdx <= idx).length;
                     lbl = `${lbl} ${typeIdx}`;
-                } else if (formData.isolations.length > 1) {
+                } else if (activeIsolations.length > 1) {
                     lbl = `${lbl} ${idx + 1}`;
                 }
                 return { ...iso, label: lbl };
@@ -158,6 +173,9 @@ export default function DevisOnline() {
                 ...formData, 
                 surfaces: labeledSurfaces,
                 isolations: labeledIsolations,
+                surface: isIsolationOnly ? 0 : (parseFloat(labeledSurfaces[0]?.surface) || 0),
+                thickness: isIsolationOnly ? 0 : (parseFloat(labeledSurfaces[0]?.thickness) || 0),
+                needs_isolation: isIsolationOnly,
                 client_language: chosenLang,
                 language: chosenLang,
                 lang: chosenLang,
@@ -246,64 +264,96 @@ export default function DevisOnline() {
     };
 
     const calculateEstimatedPrice = () => {
-        if (!config?.pricing || (!formData.surfaces?.length && !formData.surface) || 
-            (formData.surfaces?.length > 0 && parseFloat(formData.surfaces[0].surface || 0) <= 0 && parseFloat(formData.surface || 0) <= 0)) {
-            return 0;
-        }
-        
+        if (!config?.pricing) return 0;
         const p = config.pricing;
-        const surfaces = formData.surfaces?.length > 0 ? formData.surfaces : [{
-            surface: formData.surface,
-            thickness: formData.thickness,
-            has_foil: formData.has_foil,
-            has_mesh: formData.has_mesh,
-            has_duramint: formData.has_duramint
-        }];
+        const isIsolationOnly = formData.service_category === 'isolation';
 
-        const totalSurface = surfaces.reduce((sum, s) => sum + parseFloat(s.surface || 0), 0);
-        
-        const baseLargeThresh = parseFloat(p.base_large_threshold_sqm || 200);
-        const baseRate = totalSurface > baseLargeThresh ? parseFloat(p.base_price_sqm_large || 12.5) : parseFloat(p.base_price_sqm || 12.5);
-        
-        const stdThick = parseFloat(p.standard_thickness_cm || 5);
-        const extraThresh = parseFloat(p.extra_thickness_large_threshold_sqm || 200);
-        const extraPrice = totalSurface > extraThresh ? parseFloat(p.extra_thickness_price_per_cm_large || 1.25) : parseFloat(p.extra_thickness_price_per_cm || 1.25);
-        
-        const fiberThresh = parseFloat(p.fiber_large_threshold_sqm || 200);
-        const fiberRate = totalSurface > fiberThresh ? parseFloat(p.fiber_price_sqm_large || 2.0) : parseFloat(p.fiber_price_sqm || 2.5);
+        let total = 0;
 
-        let baseCost = 0;
-        let extraCost = 0;
-        let foil = 0;
-        let mesh = 0;
-        let fiber = 0;
+        if (!isIsolationOnly) {
+            const surfaces = (formData.surfaces || []).filter(s => parseFloat(s.surface || 0) > 0);
+            const totalSurface = surfaces.reduce((sum, s) => sum + parseFloat(s.surface || 0), 0);
+            if (totalSurface <= 0) return 0;
 
-        surfaces.forEach(s => {
-            const sArea = parseFloat(s.surface || 0);
-            const sThick = parseFloat(s.thickness || 5);
-            
-            baseCost += baseRate * sArea;
-            extraCost += Math.max(0, sThick - stdThick) * extraPrice * sArea;
-            if (s.has_foil) foil += parseFloat(p.plastic_foil_price_sqm || 1.2) * sArea;
-            if (s.has_mesh) mesh += parseFloat(p.metal_mesh_price_sqm || 2.5) * sArea;
-            if (s.has_duramint !== false) fiber += fiberRate * sArea;
-        });
+            const baseLargeThresh = parseFloat(p.base_large_threshold_sqm || 250);
+            const baseRate = totalSurface > baseLargeThresh ? parseFloat(p.base_price_sqm_large || p.base_price_sqm || 12.5) : parseFloat(p.base_price_sqm || 12.5);
 
-        let hiddenExtra = 0;
-        if (p.surface_thresholds && totalSurface > 0) {
-            p.surface_thresholds.forEach(thresh => {
-                const minS = parseFloat(thresh.min_sqm || 0);
-                const maxS = parseFloat(thresh.max_sqm || 999999);
-                if (totalSurface >= minS && totalSurface <= maxS) hiddenExtra += parseFloat(thresh.extra_charge || 0);
+            const stdThick = parseFloat(p.standard_thickness_cm || 5);
+            const extraThresh = parseFloat(p.extra_thickness_large_threshold_sqm || baseLargeThresh);
+            const extraPrice = totalSurface > extraThresh ? parseFloat(p.extra_thickness_price_per_cm_large || p.extra_thickness_price_per_cm || 1.25) : parseFloat(p.extra_thickness_price_per_cm || 1.25);
+
+            const fiberThresh = parseFloat(p.fiber_large_threshold_sqm || 200);
+            const fiberRate = totalSurface > fiberThresh ? parseFloat(p.fiber_price_sqm_large || 2.0) : parseFloat(p.fiber_price_sqm || 2.5);
+
+            let baseCost = 0;
+            let extraCost = 0;
+            let foil = 0;
+            let mesh = 0;
+            let fiber = 0;
+
+            surfaces.forEach(s => {
+                const sArea = parseFloat(s.surface || 0);
+                const sThick = parseFloat(s.thickness || 5);
+
+                baseCost += baseRate * sArea;
+                extraCost += Math.max(0, sThick - stdThick) * extraPrice * sArea;
+                if (s.has_foil || formData.has_foil) foil += parseFloat(p.plastic_foil_price_sqm || 1.2) * sArea;
+                if (s.has_mesh || formData.has_mesh) mesh += parseFloat(p.metal_mesh_price_sqm || 2.5) * sArea;
+                if (s.has_duramint !== false) fiber += fiberRate * sArea;
+            });
+
+            let hiddenExtra = 0;
+            if (p.surface_thresholds && totalSurface > 0) {
+                p.surface_thresholds.forEach((thresh, idx) => {
+                    const minS = parseFloat(thresh.min_sqm || 0);
+                    const nextTier = p.surface_thresholds[idx + 1];
+                    const maxS = nextTier && parseFloat(nextTier.min_sqm) > parseFloat(thresh.max_sqm || 0)
+                        ? parseFloat(nextTier.min_sqm) - 0.0001
+                        : parseFloat(thresh.max_sqm || 999999);
+                    if (totalSurface >= minS && totalSurface <= maxS) hiddenExtra += parseFloat(thresh.extra_charge || 0);
+                });
+            }
+
+            total = baseCost + extraCost + foil + mesh + fiber + hiddenExtra;
+        } else {
+            const isolations = (formData.isolations || []).filter(i => parseFloat(i.surface || 0) > 0 && i.type);
+            if (isolations.length === 0) return 0;
+
+            isolations.forEach(iso => {
+                const iArea = parseFloat(iso.surface || 0);
+                const iThick = parseFloat(iso.thickness || 3);
+                if (iso.type === 'pur') {
+                    const base3cm = parseFloat(p.pur_base_price_3cm || 13.95);
+                    const stepTo10 = parseFloat(p.pur_step_price_up_to_10cm || 1.65);
+                    const stepOver10 = parseFloat(p.pur_extra_price_above_10cm || 2.10);
+                    const minExec = parseFloat(p.pur_minimum_execution_price || 1375.0);
+
+                    const cmTo10 = Math.max(0, Math.min(iThick, 10) - 3);
+                    const cmOver10 = Math.max(0, iThick - 10);
+                    const ratePerSqm = base3cm + cmTo10 * stepTo10 + cmOver10 * stepOver10;
+                    let isoCost = Math.max(minExec, ratePerSqm * iArea);
+
+                    if (iso.isolation_pur_aspiration || p.is_pur_aspiration_mandatory) isoCost += parseFloat(p.pur_opt_aspiration || 0) * iArea;
+                    if (iso.isolation_pur_niveller || p.is_pur_niveller_mandatory) isoCost += parseFloat(p.pur_opt_niveller || 0) * iArea;
+                    if (iso.isolation_pur_poncage || p.is_pur_poncage_mandatory) isoCost += parseFloat(p.pur_opt_poncage || 0) * iArea;
+                    if (iso.isolation_pur_protection || p.is_pur_protection_mandatory) isoCost += parseFloat(p.pur_opt_protection || 0) * iArea;
+                    total += isoCost;
+                } else if (iso.type === 'eps') {
+                    const volM3 = (iArea * iThick) / 100.0;
+                    let epsRate = 240.0;
+                    if (Array.isArray(p.eps_volume_thresholds) && p.eps_volume_thresholds.length > 0) {
+                        const matched = p.eps_volume_thresholds.find(t => volM3 >= parseFloat(t.min_m3 || 0) && volM3 <= parseFloat(t.max_m3 || 999999));
+                        if (matched && matched.price_per_m3) epsRate = parseFloat(matched.price_per_m3);
+                    }
+                    total += volM3 * epsRate;
+                }
             });
         }
-        
-        const total = baseCost + extraCost + foil + mesh + fiber + hiddenExtra;
-        
+
         let vatRate = 21;
-        if (formData.client_type === 'juridica') vatRate = p.vat_legal_entity;
-        else vatRate = formData.work_type === 'repair' ? p.vat_physical_repair : p.vat_physical_new;
-        
+        if (formData.client_type === 'juridica') vatRate = p.vat_legal_entity ?? 0;
+        else vatRate = formData.work_type === 'repair' ? (p.vat_physical_repair ?? 6) : (p.vat_physical_new ?? 21);
+
         return total * (1 + vatRate / 100);
     };
 
@@ -453,18 +503,69 @@ export default function DevisOnline() {
                         {/* honeypot */}
                         <input type="text" name="b_name" value={formData.b_name || ''} onChange={e => setFormData({ ...formData, b_name: e.target.value })} style={{ display: 'none' }} tabIndex="-1" autoComplete="off" />
 
-                        {/* ═══════════════════════════════════ */}
-                        {/* ÉTAPE 1 — DÉTAILS DU PROJET        */}
-                        {/* ═══════════════════════════════════ */}
+                        {/* ═════════════════════════════════════════════════════════════ */}
+                        {/* ÉTAPE 1 — CHOIX DU SERVICE : CHAPE OU ISOLATION (SÉPARÉS)     */}
+                        {/* ═════════════════════════════════════════════════════════════ */}
                         {step === 1 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
                                 <div>
                                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1 text-slate-900 tracking-tight">
-                                        {t('calculator.chape_title', 'Chape')}
+                                        {formData.service_category === 'isolation'
+                                            ? t('calculator.isolation_title', 'Isolation (PUR / EPS)')
+                                            : t('calculator.chape_title', 'Chape')}
                                     </h1>
                                     <p className="text-slate-500 text-sm sm:text-base">
-                                        {t('calculator.projectDetailsSub', 'Décrivez le chantier pour que nous puissions calculer les matériaux.')}
+                                        {t('calculator.choose_service_sub', 'La chape et l’isolation étant exécutées à des dates différentes, choisissez la prestation pour ce devis.')}
                                     </p>
+                                </div>
+
+                                {/* Apple HIG Segmented Control (segmented-controls.md: equal-width text segments, no redundant introductory label) */}
+                                <div
+                                    role="tablist"
+                                    aria-label={t('calculator.service_type_label', 'Prestation')}
+                                    className="grid grid-cols-2 p-1 bg-slate-200/75 rounded-full border border-slate-200/80 shadow-inner"
+                                >
+                                    <button
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={formData.service_category !== 'isolation'}
+                                        onClick={() => {
+                                            setError('');
+                                            setErrorField('');
+                                            setFormData(p => ({ ...p, service_category: 'chape', needs_isolation: false }));
+                                        }}
+                                        className={`py-2.5 px-4 rounded-full text-sm font-semibold transition-all ${
+                                            formData.service_category !== 'isolation'
+                                                ? 'bg-white text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.10)]'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        {t('calculator.chape_title', 'Chape')}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={formData.service_category === 'isolation'}
+                                        onClick={() => {
+                                            setError('');
+                                            setErrorField('');
+                                            setFormData(p => ({
+                                                ...p,
+                                                service_category: 'isolation',
+                                                needs_isolation: true,
+                                                isolations: p.isolations?.length > 0
+                                                    ? p.isolations
+                                                    : [{ id: Date.now().toString(), type: 'pur', surface: '', thickness: '', isolation_pur_aspiration: false, isolation_pur_niveller: false, isolation_pur_poncage: false, isolation_pur_protection: false }]
+                                            }));
+                                        }}
+                                        className={`py-2.5 px-4 rounded-full text-sm font-semibold transition-all ${
+                                            formData.service_category === 'isolation'
+                                                ? 'bg-white text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.10)]'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        {t('calculator.isolation_title', 'Isolation (PUR / EPS)')}
+                                    </button>
                                 </div>
 
                                 {/* Type de travail */}
@@ -494,168 +595,147 @@ export default function DevisOnline() {
                                     </div>
                                 </div>
 
-                                {/* Surfaces List */}
-                                <div className="space-y-4">
-                                    {(formData.surfaces || []).map((s, index) => (
-                                        <div key={s.id || index} className="p-3 border border-slate-200 rounded-xl bg-slate-50/50">
-                                            {formData.surfaces.length > 1 && (
-                                                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-200/60">
-                                                    <span className="text-[11px] font-extrabold uppercase tracking-wide text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-md">
-                                                        {t('calculator.chape_n', 'Chape {{n}}', { n: index + 1 })}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            <div className="flex items-end gap-3">
-                                                <div className="flex-1">
-                                                    <label className={`block text-[10px] font-bold mb-1 uppercase tracking-wider ${errorField === `surface_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
-                                                    <input type="number" required min="1" placeholder="120"
-                                                        value={s.surface} onChange={e => {
-                                                            const newSurfaces = [...formData.surfaces];
-                                                            newSurfaces[index].surface = e.target.value;
-                                                            setFormData({ ...formData, surfaces: newSurfaces });
-                                                            if (errorField === `surface_${index}`) { setErrorField(''); setError(''); }
-                                                        }}
-                                                        className={`w-full bg-white border-2 rounded-xl px-3 py-2 text-sm focus:outline-none focus:bg-white transition-all ${errorField === `surface_${index}` ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <label className={`block text-[10px] font-bold mb-1 uppercase tracking-wider ${errorField === `thickness_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
-                                                    <input type="number" required min="5" step="0.5" placeholder="5"
-                                                        value={s.thickness} onChange={e => {
-                                                            const newSurfaces = [...formData.surfaces];
-                                                            newSurfaces[index].thickness = e.target.value;
-                                                            setFormData({ ...formData, surfaces: newSurfaces });
-                                                            if (errorField === `thickness_${index}`) { setErrorField(''); setError(''); }
-                                                        }}
-                                                        className={`w-full bg-white border-2 rounded-xl px-3 py-2 text-sm focus:outline-none focus:bg-white transition-all ${errorField === `thickness_${index}` ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
-                                                </div>
-                                                {formData.surfaces.length > 1 && (
-                                                    <button type="button" onClick={() => {
-                                                        const newSurfaces = formData.surfaces.filter((_, i) => i !== index);
-                                                        setFormData({ ...formData, surfaces: newSurfaces });
-                                                    }} className="h-[40px] px-3 bg-red-50 text-red-500 hover:text-white hover:bg-red-500 rounded-xl transition-colors border border-red-100 flex items-center justify-center">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    
-                                    <button type="button" onClick={() => {
-                                        setFormData({
-                                            ...formData,
-                                            surfaces: [...formData.surfaces, { id: Date.now().toString(), label: '', surface: '', thickness: '', has_foil: false, has_mesh: false, has_duramint: true }]
-                                        });
-                                    }} className="w-full border-2 border-dashed border-slate-200 text-slate-500 hover:text-yellow-600 hover:border-yellow-400 hover:bg-yellow-50 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2">
-                                        + {t('calculator.add_surface', 'Ajouter une autre surface')}
-                                    </button>
-                                </div>
-
-                                {/* Global Options */}
-                                <div className="space-y-2 mt-4 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
-                                    <label className="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">{t('calculator.options', 'Options')}</label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_foil ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-white hover:border-yellow-200'}`}>
-                                        <div className="flex items-center gap-3">
-                                            <Layers className={`w-5 h-5 ${formData.has_foil ? 'text-yellow-600' : 'text-slate-400'}`} />
-                                            <span className="font-bold text-sm text-slate-900">{t('calculator.foil', 'Film plastique')}</span>
-                                        </div>
-                                        <input type="checkbox" checked={formData.has_foil} onChange={e => setFormData({ ...formData, has_foil: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
-                                    </label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_mesh ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-white hover:border-yellow-200'}`}>
-                                        <div className="flex items-center gap-3">
-                                            <Grid3x3 className={`w-5 h-5 ${formData.has_mesh ? 'text-yellow-600' : 'text-slate-400'}`} />
-                                            <span className="font-bold text-sm text-slate-900">{t('calculator.mesh', 'Treillis')}</span>
-                                        </div>
-                                        <input type="checkbox" checked={formData.has_mesh} onChange={e => setFormData({ ...formData, has_mesh: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
-                                    </label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all border-yellow-400 bg-yellow-50/50 opacity-80 cursor-not-allowed`} title={t('calculator.duramint_always_included', 'Toujours inclus')}>
-                                        <div className="flex items-center gap-3">
-                                            <Layers className={`w-5 h-5 text-yellow-600`} />
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-sm text-slate-900">{t('calculator.duramint', 'Fibre')}</span>
-                                                <span className="text-[10px] text-yellow-700">{t('calculator.always_included', 'Toujours inclus')}</span>
-                                            </div>
-                                        </div>
-                                        <input type="checkbox" checked={true} readOnly className="w-4 h-4 accent-yellow-400 cursor-not-allowed" />
-                                    </label>
-                                </div>
-
-
-                                <button type="button" onClick={() => {
-                                    let hasError = false;
-                                    for (let i = 0; i < formData.surfaces.length; i++) {
-                                        const s = formData.surfaces[i];
-                                        if (!s.surface || parseFloat(s.surface) <= 0) {
-                                            setErrorField(`surface_${i}`);
-                                            setError(t('errors.surface_required', 'La surface est obligatoire.'));
-                                            hasError = true;
-                                            break;
-                                        }
-                                        if (!s.thickness || parseFloat(s.thickness) < 5) {
-                                            setErrorField(`thickness_${i}`);
-                                            setError(t('errors.thickness_min', "L'épaisseur minimale est de 5 cm."));
-                                            hasError = true;
-                                            break;
-                                        }
-                                    }
-                                    if (hasError) return;
-                                    
-                                    // Make sure legacy payload fields also sync just in case
-                                    setFormData({
-                                        ...formData,
-                                        surface: formData.surfaces[0]?.surface,
-                                        thickness: formData.surfaces[0]?.thickness,
-                                        has_foil: formData.surfaces[0]?.has_foil,
-                                        has_mesh: formData.surfaces[0]?.has_mesh,
-                                        has_duramint: formData.surfaces[0]?.has_duramint
-                                    });
-                                    
-                                    setError(''); setStep(1.5);
-                                }} className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
-                                    {t('calculator.continue', 'Continuer')} <ChevronRight className="w-5 h-5" />
-                                </button>
-                            </div>
-                        )}
-
-                        {/* ═══════════════════════════════════ */}
-                        {/* ÉTAPE 1.5 — ISOLATION (PUR / EPS)   */}
-                        {/* ═══════════════════════════════════ */}
-                        {step === 1.5 && (
-                            <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5 flex-1 flex flex-col">
-                                <div>
-                                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                                        {t('calculator.isolation_title', 'Isolation')}
-                                    </h1>
-                                    <p className="text-slate-500 text-sm sm:text-base">
-                                        {t('calculator.isolation_sub', "Avez-vous besoin d'isolation pour ce chantier ?")}
-                                    </p>
-                                </div>
-
-                                {/* Yes / No buttons */}
-                                {!formData.needs_isolation && (
+                                {/* ── BRANCH A: CHAPE ONLY ── */}
+                                {formData.service_category !== 'isolation' && (
                                     <>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <button type="button" onClick={() => { setFormData(p => ({ ...p, needs_isolation: true, isolations: [{ id: Date.now().toString(), type: '', surface: '', thickness: '', isolation_pur_aspiration: false, isolation_pur_niveller: false, isolation_pur_poncage: false, isolation_pur_protection: false }] })); }}
-                                                className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-blue-400 hover:bg-blue-50 transition-all flex flex-col items-center gap-3">
-                                                <Sun className="w-8 h-8 text-amber-500" />
-                                                <span className="font-bold text-base text-slate-900">{t('common.yes', 'Oui')}</span>
-                                                <span className="text-xs text-slate-500 text-center">{t('calculator.isolation_yes_sub', "J'ai besoin d'isolation")}</span>
-                                            </button>
-                                            <button type="button" onClick={() => { setFormData(p => ({ ...p, needs_isolation: false, isolations: [] })); setStep(2); }}
-                                                className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-slate-300 transition-all flex flex-col items-center gap-3">
-                                                <ChevronRight className="w-8 h-8 text-slate-400" />
-                                                <span className="font-bold text-base text-slate-900">{t('common.no', 'Non')}</span>
-                                                <span className="text-xs text-slate-500 text-center">{t('calculator.isolation_no_sub', 'Passer à la suite')}</span>
+                                        {/* Surfaces List */}
+                                        <div className="space-y-4">
+                                            {(formData.surfaces || []).map((s, index) => (
+                                                <div key={s.id || index} className="p-3 border border-slate-200 rounded-xl bg-slate-50/50">
+                                                    {formData.surfaces.length > 1 && (
+                                                        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-200/60">
+                                                            <span className="text-[11px] font-extrabold uppercase tracking-wide text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-md">
+                                                                {t('calculator.chape_n', 'Chape {{n}}', { n: index + 1 })}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-end gap-3">
+                                                        <div className="flex-1">
+                                                            <label className={`block text-[10px] font-bold mb-1 uppercase tracking-wider ${errorField === `surface_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
+                                                            <input type="number" min="1" placeholder="120"
+                                                                value={s.surface} onChange={e => {
+                                                                    const newSurfaces = [...formData.surfaces];
+                                                                    newSurfaces[index].surface = e.target.value;
+                                                                    setFormData({ ...formData, surfaces: newSurfaces });
+                                                                    if (errorField === `surface_${index}`) { setErrorField(''); setError(''); }
+                                                                }}
+                                                                className={`w-full bg-white border-2 rounded-xl px-3 py-2 text-sm focus:outline-none focus:bg-white transition-all ${errorField === `surface_${index}` ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <label className={`block text-[10px] font-bold mb-1 uppercase tracking-wider ${errorField === `thickness_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
+                                                            <input type="number" min="5" step="0.5" placeholder="5"
+                                                                value={s.thickness} onChange={e => {
+                                                                    const newSurfaces = [...formData.surfaces];
+                                                                    newSurfaces[index].thickness = e.target.value;
+                                                                    setFormData({ ...formData, surfaces: newSurfaces });
+                                                                    if (errorField === `thickness_${index}`) { setErrorField(''); setError(''); }
+                                                                }}
+                                                                className={`w-full bg-white border-2 rounded-xl px-3 py-2 text-sm focus:outline-none focus:bg-white transition-all ${errorField === `thickness_${index}` ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
+                                                        </div>
+                                                        {formData.surfaces.length > 1 && (
+                                                            <button type="button" onClick={() => {
+                                                                const newSurfaces = formData.surfaces.filter((_, i) => i !== index);
+                                                                setFormData({ ...formData, surfaces: newSurfaces });
+                                                            }} className="h-[40px] px-3 bg-red-50 text-red-500 hover:text-white hover:bg-red-500 rounded-xl transition-colors border border-red-100 flex items-center justify-center">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            
+                                            <button type="button" onClick={() => {
+                                                setFormData({
+                                                    ...formData,
+                                                    surfaces: [...formData.surfaces, { id: Date.now().toString(), label: '', surface: '', thickness: '', has_foil: formData.has_foil, has_mesh: formData.has_mesh, has_duramint: true }]
+                                                });
+                                            }} className="w-full border-2 border-dashed border-slate-200 text-slate-500 hover:text-yellow-600 hover:border-yellow-400 hover:bg-yellow-50 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2">
+                                                + {t('calculator.add_surface', 'Ajouter une autre surface')}
                                             </button>
                                         </div>
-                                        <button type="button" onClick={() => setStep(1)}
-                                            className="mt-auto pt-4 text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1 w-fit">
-                                            <ChevronLeft className="w-4 h-4" /> {t('common.back', 'Retour')}
+
+                                        {/* Global Options */}
+                                        <div className="space-y-2 mt-4 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+                                            <label className="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">{t('calculator.options', 'Options')}</label>
+                                            <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_foil ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-white hover:border-yellow-200'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <Layers className={`w-5 h-5 ${formData.has_foil ? 'text-yellow-600' : 'text-slate-400'}`} />
+                                                    <span className="font-bold text-sm text-slate-900">{t('calculator.foil', 'Film plastique')}</span>
+                                                </div>
+                                                <input type="checkbox" checked={formData.has_foil} onChange={e => {
+                                                    const checked = e.target.checked;
+                                                    setFormData(p => ({
+                                                        ...p,
+                                                        has_foil: checked,
+                                                        surfaces: (p.surfaces || []).map(s => ({ ...s, has_foil: checked }))
+                                                    }));
+                                                }} className="w-4 h-4 accent-yellow-400" />
+                                            </label>
+                                            <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_mesh ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-white hover:border-yellow-200'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <Grid3x3 className={`w-5 h-5 ${formData.has_mesh ? 'text-yellow-600' : 'text-slate-400'}`} />
+                                                    <span className="font-bold text-sm text-slate-900">{t('calculator.mesh', 'Treillis')}</span>
+                                                </div>
+                                                <input type="checkbox" checked={formData.has_mesh} onChange={e => {
+                                                    const checked = e.target.checked;
+                                                    setFormData(p => ({
+                                                        ...p,
+                                                        has_mesh: checked,
+                                                        surfaces: (p.surfaces || []).map(s => ({ ...s, has_mesh: checked }))
+                                                    }));
+                                                }} className="w-4 h-4 accent-yellow-400" />
+                                            </label>
+                                            <label className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all border-yellow-400 bg-yellow-50/50 opacity-80 cursor-not-allowed`} title={t('calculator.duramint_always_included', 'Toujours inclus')}>
+                                                <div className="flex items-center gap-3">
+                                                    <Layers className={`w-5 h-5 text-yellow-600`} />
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-sm text-slate-900">{t('calculator.duramint', 'Fibre')}</span>
+                                                        <span className="text-[10px] text-yellow-700">{t('calculator.always_included', 'Toujours inclus')}</span>
+                                                    </div>
+                                                </div>
+                                                <input type="checkbox" checked={true} readOnly className="w-4 h-4 accent-yellow-400 cursor-not-allowed" />
+                                            </label>
+                                        </div>
+
+                                        <button type="button" onClick={() => {
+                                            let hasError = false;
+                                            for (let i = 0; i < formData.surfaces.length; i++) {
+                                                const s = formData.surfaces[i];
+                                                if (!s.surface || parseFloat(s.surface) <= 0) {
+                                                    setErrorField(`surface_${i}`);
+                                                    setError(t('errors.surface_required', 'La surface est obligatoire.'));
+                                                    hasError = true;
+                                                    break;
+                                                }
+                                                if (!s.thickness || parseFloat(s.thickness) < 5) {
+                                                    setErrorField(`thickness_${i}`);
+                                                    setError(t('errors.thickness_min', "L'épaisseur minimale est de 5 cm."));
+                                                    hasError = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (hasError) return;
+                                            
+                                            setFormData(p => ({
+                                                ...p,
+                                                needs_isolation: false,
+                                                surface: p.surfaces[0]?.surface,
+                                                thickness: p.surfaces[0]?.thickness,
+                                                has_foil: p.has_foil,
+                                                has_mesh: p.has_mesh,
+                                                has_duramint: true
+                                            }));
+                                            
+                                            setError(''); setStep(2);
+                                        }} className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                            {t('calculator.continue', 'Continuer')} <ChevronRight className="w-5 h-5" />
                                         </button>
                                     </>
                                 )}
 
-                                {formData.needs_isolation && (
-                                    <div className="space-y-4 flex-1 flex flex-col">
+                                {/* ── BRANCH B: ISOLATION ONLY (PUR / EPS) ── */}
+                                {formData.service_category === 'isolation' && (
+                                    <div className="space-y-4">
                                         {(formData.isolations || []).map((iso, index) => (
                                             <div key={iso.id || index} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-4 relative">
                                                 {formData.isolations.length > 1 && (
@@ -665,111 +745,99 @@ export default function DevisOnline() {
                                                         </span>
                                                     </div>
                                                 )}
-                                                <button type="button" onClick={() => {
-                                                    const newIsolations = formData.isolations.filter((_, i) => i !== index);
-                                                    if (newIsolations.length === 0) {
-                                                        setFormData({ ...formData, needs_isolation: false, isolations: [] });
-                                                    } else {
+                                                {formData.isolations.length > 1 && (
+                                                    <button type="button" onClick={() => {
+                                                        const newIsolations = formData.isolations.filter((_, i) => i !== index);
                                                         setFormData({ ...formData, isolations: newIsolations });
-                                                    }
-                                                }} className="absolute top-3 right-3 text-red-400 hover:text-red-600 p-1 bg-white rounded-md shadow-sm border border-red-100">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                    }} className="absolute top-3 right-3 text-red-400 hover:text-red-600 p-1 bg-white rounded-md shadow-sm border border-red-100">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
 
-                                                {!iso.type ? (
-                                                    <div className="space-y-3">
-                                                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('calculator.isolation_choose', "Type d'isolation")}</label>
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <button type="button" onClick={() => {
-                                                                const newIsolations = [...formData.isolations];
-                                                                newIsolations[index].type = 'pur';
-                                                                setFormData({ ...formData, isolations: newIsolations });
-                                                            }} className="p-4 rounded-xl border-2 border-slate-100 bg-white hover:border-indigo-400 hover:bg-indigo-50 transition-all flex flex-col items-center gap-2">
-                                                                <Wind className="w-6 h-6 text-indigo-500" />
-                                                                <span className="font-bold text-sm text-slate-900">PUR</span>
-                                                            </button>
-                                                            <button type="button" onClick={() => {
-                                                                const newIsolations = [...formData.isolations];
-                                                                newIsolations[index].type = 'eps';
-                                                                setFormData({ ...formData, isolations: newIsolations });
-                                                            }} className="p-4 rounded-xl border-2 border-slate-100 bg-white hover:border-emerald-400 hover:bg-emerald-50 transition-all flex flex-col items-center gap-2">
-                                                                <Thermometer className="w-6 h-6 text-emerald-500" />
-                                                                <span className="font-bold text-sm text-slate-900">EPS</span>
-                                                            </button>
-                                                        </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">{t('calculator.isolation_choose', "Type d'isolation")}</label>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <button type="button" onClick={() => {
+                                                            const newIsolations = [...formData.isolations];
+                                                            newIsolations[index].type = 'pur';
+                                                            setFormData({ ...formData, isolations: newIsolations });
+                                                        }} className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
+                                                            iso.type === 'pur'
+                                                                ? 'border-indigo-500 bg-indigo-50 text-indigo-900 shadow-sm'
+                                                                : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-300'
+                                                        }`}>
+                                                            <Wind className={`w-5 h-5 ${iso.type === 'pur' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                                                            <span className="font-bold text-sm">Isolation PUR</span>
+                                                        </button>
+                                                        <button type="button" onClick={() => {
+                                                            const newIsolations = [...formData.isolations];
+                                                            newIsolations[index].type = 'eps';
+                                                            setFormData({ ...formData, isolations: newIsolations });
+                                                        }} className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
+                                                            iso.type === 'eps'
+                                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm'
+                                                                : 'border-slate-200 bg-white text-slate-500 hover:border-emerald-300'
+                                                        }`}>
+                                                            <Thermometer className={`w-5 h-5 ${iso.type === 'eps' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                                            <span className="font-bold text-sm">Isolation EPS</span>
+                                                        </button>
                                                     </div>
-                                                ) : (
-                                                    <div className="space-y-4 animate-in fade-in duration-200">
-                                                        <div className={`flex items-center justify-between p-3 rounded-xl border ${iso.type === 'pur' ? 'bg-indigo-50 border-indigo-100' : 'bg-emerald-50 border-emerald-100'}`}>
-                                                            <div className="flex items-center gap-2">
-                                                                {iso.type === 'pur' ? <Wind className="w-5 h-5 text-indigo-600" /> : <Thermometer className="w-5 h-5 text-emerald-600" />}
-                                                                <span className={`font-bold text-sm ${iso.type === 'pur' ? 'text-indigo-900' : 'text-emerald-900'}`}>
-                                                                    {iso.type === 'pur' ? t('calculator.pur_selected', 'Isolation PUR') : t('calculator.eps_selected', 'Isolation EPS')}
-                                                                </span>
-                                                            </div>
-                                                            <button type="button" onClick={() => {
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === `iso_surface_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
+                                                        <input type="number" min="1" placeholder="120"
+                                                            value={iso.surface} onChange={e => {
                                                                 const newIsolations = [...formData.isolations];
-                                                                newIsolations[index].type = '';
+                                                                newIsolations[index].surface = e.target.value;
                                                                 setFormData({ ...formData, isolations: newIsolations });
-                                                            }} className="text-xs underline text-slate-500">Change</button>
-                                                        </div>
+                                                                if (errorField === `iso_surface_${index}`) { setErrorField(''); setError(''); }
+                                                            }}
+                                                            className={`w-full bg-white border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none transition-all ${errorField === `iso_surface_${index}` ? 'border-red-400 text-red-600' : iso.type === 'pur' ? 'border-slate-100 focus:border-indigo-400' : 'border-slate-100 focus:border-emerald-400'}`} />
+                                                    </div>
+                                                    <div>
+                                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === `iso_thickness_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
+                                                        <input type="number" min="1" step="0.5" placeholder="5"
+                                                            value={iso.thickness} onChange={e => {
+                                                                const newIsolations = [...formData.isolations];
+                                                                newIsolations[index].thickness = e.target.value;
+                                                                setFormData({ ...formData, isolations: newIsolations });
+                                                                if (errorField === `iso_thickness_${index}`) { setErrorField(''); setError(''); }
+                                                            }}
+                                                            className={`w-full bg-white border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none transition-all ${errorField === `iso_thickness_${index}` ? 'border-red-400 text-red-600' : iso.type === 'pur' ? 'border-slate-100 focus:border-indigo-400' : 'border-slate-100 focus:border-emerald-400'}`} />
+                                                    </div>
+                                                </div>
 
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div>
-                                                                <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === `iso_surface_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
-                                                                <input type="number" required min="1" placeholder="120"
-                                                                    value={iso.surface} onChange={e => {
-                                                                        const newIsolations = [...formData.isolations];
-                                                                        newIsolations[index].surface = e.target.value;
-                                                                        setFormData({ ...formData, isolations: newIsolations });
-                                                                        if (errorField === `iso_surface_${index}`) { setErrorField(''); setError(''); }
+                                                {iso.type === 'pur' && (
+                                                    <div className="space-y-2">
+                                                        <label className="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">{t('calculator.options', 'Options')}</label>
+                                                        {[
+                                                            { key: 'isolation_pur_aspiration', label: t('calculator.pur_aspiration', 'Aspiration'), icon: Wind, mandatory: config?.pricing?.is_pur_aspiration_mandatory },
+                                                            { key: 'isolation_pur_niveller', label: t('calculator.pur_niveller', 'Nivellement au laser'), icon: Ruler, mandatory: config?.pricing?.is_pur_niveller_mandatory },
+                                                            { key: 'isolation_pur_poncage', label: t('calculator.pur_poncage', 'Ponçage de la mousse'), sublabel: t('calculator.pur_poncage_sub', 'obligatoire pour chauffage au sol'), icon: Paintbrush, mandatory: config?.pricing?.is_pur_poncage_mandatory },
+                                                            { key: 'isolation_pur_protection', label: t('calculator.pur_protection', 'Protection au-dessus 1M'), icon: Shield, mandatory: config?.pricing?.is_pur_protection_mandatory },
+                                                        ].map(opt => (
+                                                            <label key={opt.key} className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${opt.mandatory ? 'border-indigo-400 bg-indigo-50/50 opacity-80 cursor-not-allowed' : iso[opt.key] ? 'border-indigo-400 bg-indigo-50/50 cursor-pointer' : 'border-slate-100 bg-white hover:border-indigo-200 cursor-pointer'}`}>
+                                                                <div className="flex items-center gap-3">
+                                                                    <opt.icon className={`w-5 h-5 ${(iso[opt.key] || opt.mandatory) ? 'text-indigo-600' : 'text-slate-400'}`} />
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-bold text-sm text-slate-900">{opt.label}</span>
+                                                                        {opt.sublabel && <span className="text-[10px] text-amber-600 italic">{opt.sublabel}</span>}
+                                                                        {opt.mandatory && <span className="text-[10px] text-indigo-700">{t('calculator.always_included', 'Toujours inclus')}</span>}
+                                                                    </div>
+                                                                </div>
+                                                                <input type="checkbox" checked={opt.mandatory || iso[opt.key]} disabled={opt.mandatory}
+                                                                    onChange={e => {
+                                                                        if (!opt.mandatory) {
+                                                                            const newIsolations = [...formData.isolations];
+                                                                            newIsolations[index][opt.key] = e.target.checked;
+                                                                            setFormData({ ...formData, isolations: newIsolations });
+                                                                        }
                                                                     }}
-                                                                    className={`w-full bg-white border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none transition-all ${errorField === `iso_surface_${index}` ? 'border-red-400 text-red-600' : iso.type === 'pur' ? 'border-slate-100 focus:border-indigo-400' : 'border-slate-100 focus:border-emerald-400'}`} />
-                                                            </div>
-                                                            <div>
-                                                                <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === `iso_thickness_${index}` ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
-                                                                <input type="number" required min="1" step="0.5" placeholder="5"
-                                                                    value={iso.thickness} onChange={e => {
-                                                                        const newIsolations = [...formData.isolations];
-                                                                        newIsolations[index].thickness = e.target.value;
-                                                                        setFormData({ ...formData, isolations: newIsolations });
-                                                                        if (errorField === `iso_thickness_${index}`) { setErrorField(''); setError(''); }
-                                                                    }}
-                                                                    className={`w-full bg-white border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none transition-all ${errorField === `iso_thickness_${index}` ? 'border-red-400 text-red-600' : iso.type === 'pur' ? 'border-slate-100 focus:border-indigo-400' : 'border-slate-100 focus:border-emerald-400'}`} />
-                                                            </div>
-                                                        </div>
-
-                                                        {iso.type === 'pur' && (
-                                                            <div className="space-y-2">
-                                                                <label className="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">{t('calculator.options', 'Options')}</label>
-                                                                {[
-                                                                    { key: 'isolation_pur_aspiration', label: t('calculator.pur_aspiration', 'Aspiration'), icon: Wind, mandatory: config?.pricing?.is_pur_aspiration_mandatory },
-                                                                    { key: 'isolation_pur_niveller', label: t('calculator.pur_niveller', 'Nivellement au laser'), icon: Ruler, mandatory: config?.pricing?.is_pur_niveller_mandatory },
-                                                                    { key: 'isolation_pur_poncage', label: t('calculator.pur_poncage', 'Ponçage de la mousse'), sublabel: t('calculator.pur_poncage_sub', 'obligatoire pour chauffage au sol'), icon: Paintbrush, mandatory: config?.pricing?.is_pur_poncage_mandatory },
-                                                                    { key: 'isolation_pur_protection', label: t('calculator.pur_protection', 'Protection au-dessus 1M'), icon: Shield, mandatory: config?.pricing?.is_pur_protection_mandatory },
-                                                                ].map(opt => (
-                                                                    <label key={opt.key} className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${opt.mandatory ? 'border-indigo-400 bg-indigo-50/50 opacity-80 cursor-not-allowed' : iso[opt.key] ? 'border-indigo-400 bg-indigo-50/50 cursor-pointer' : 'border-slate-100 bg-white hover:border-indigo-200 cursor-pointer'}`}>
-                                                                        <div className="flex items-center gap-3">
-                                                                            <opt.icon className={`w-5 h-5 ${(iso[opt.key] || opt.mandatory) ? 'text-indigo-600' : 'text-slate-400'}`} />
-                                                                            <div className="flex flex-col">
-                                                                                <span className="font-bold text-sm text-slate-900">{opt.label}</span>
-                                                                                {opt.sublabel && <span className="text-[10px] text-amber-600 italic">{opt.sublabel}</span>}
-                                                                                {opt.mandatory && <span className="text-[10px] text-indigo-700">{t('calculator.always_included', 'Toujours inclus')}</span>}
-                                                                            </div>
-                                                                        </div>
-                                                                        <input type="checkbox" checked={opt.mandatory || iso[opt.key]} disabled={opt.mandatory}
-                                                                            onChange={e => {
-                                                                                if (!opt.mandatory) {
-                                                                                    const newIsolations = [...formData.isolations];
-                                                                                    newIsolations[index][opt.key] = e.target.checked;
-                                                                                    setFormData({ ...formData, isolations: newIsolations });
-                                                                                }
-                                                                            }}
-                                                                            className="w-4 h-4 accent-indigo-500" />
-                                                                    </label>
-                                                                ))}
-                                                            </div>
-                                                        )}
+                                                                    className="w-4 h-4 accent-indigo-500" />
+                                                            </label>
+                                                        ))}
                                                     </div>
                                                 )}
                                             </div>
@@ -778,58 +846,52 @@ export default function DevisOnline() {
                                         <button type="button" onClick={() => {
                                             setFormData({
                                                 ...formData,
-                                                isolations: [...formData.isolations, { id: Date.now().toString(), type: '', surface: '', thickness: '', isolation_pur_aspiration: false, isolation_pur_niveller: false, isolation_pur_poncage: false, isolation_pur_protection: false }]
+                                                isolations: [...formData.isolations, { id: Date.now().toString(), type: 'pur', surface: '', thickness: '', isolation_pur_aspiration: false, isolation_pur_niveller: false, isolation_pur_poncage: false, isolation_pur_protection: false }]
                                             });
                                         }} className="w-full border-2 border-dashed border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2">
                                             + {t('calculator.add_isolation', 'Ajouter une autre isolation')}
                                         </button>
 
-                                        <div className="flex gap-3 mt-auto pt-4">
-                                            <button type="button" onClick={() => setStep(1)}
-                                                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
-                                                <ChevronLeft className="w-5 h-5" /> {t('common.back', 'Retour')}
-                                            </button>
-                                            <button type="button" onClick={() => {
-                                                let hasError = false;
-                                                for (let i = 0; i < formData.isolations.length; i++) {
-                                                    const iso = formData.isolations[i];
-                                                    if (!iso.type) {
-                                                        setError(t('errors.isolation_type_required', "Veuillez choisir un type d'isolation ou supprimer la ligne."));
-                                                        hasError = true;
-                                                        break;
-                                                    }
-                                                    if (!iso.surface || parseFloat(iso.surface) <= 0) {
-                                                        setErrorField(`iso_surface_${i}`);
-                                                        setError(t('errors.surface_required', 'La surface est obligatoire.'));
-                                                        hasError = true;
-                                                        break;
-                                                    }
-                                                    if (!iso.thickness || parseFloat(iso.thickness) <= 0) {
-                                                        setErrorField(`iso_thickness_${i}`);
-                                                        setError(t('errors.thickness_min', "L'épaisseur est obligatoire."));
-                                                        hasError = true;
-                                                        break;
-                                                    }
+                                        <button type="button" onClick={() => {
+                                            let hasError = false;
+                                            for (let i = 0; i < formData.isolations.length; i++) {
+                                                const iso = formData.isolations[i];
+                                                if (!iso.type) {
+                                                    setError(t('errors.isolation_type_required', "Veuillez choisir un type d'isolation."));
+                                                    hasError = true;
+                                                    break;
                                                 }
-                                                if (hasError) return;
-                                                
-                                                // Sync legacy
-                                                setFormData({
-                                                    ...formData,
-                                                    isolation_type: formData.isolations[0]?.type || '',
-                                                    isolation_surface: formData.isolations[0]?.surface || '',
-                                                    isolation_thickness: formData.isolations[0]?.thickness || '',
-                                                    isolation_pur_aspiration: formData.isolations[0]?.isolation_pur_aspiration || false,
-                                                    isolation_pur_niveller: formData.isolations[0]?.isolation_pur_niveller || false,
-                                                    isolation_pur_poncage: formData.isolations[0]?.isolation_pur_poncage || false,
-                                                    isolation_pur_protection: formData.isolations[0]?.isolation_pur_protection || false,
-                                                });
-                                                
-                                                setError(''); setStep(2);
-                                            }} className="flex-[2] bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
-                                                {t('calculator.continue', 'Continuer')} <ChevronRight className="w-5 h-5" />
-                                            </button>
-                                        </div>
+                                                if (!iso.surface || parseFloat(iso.surface) <= 0) {
+                                                    setErrorField(`iso_surface_${i}`);
+                                                    setError(t('errors.surface_required', 'La surface est obligatoire.'));
+                                                    hasError = true;
+                                                    break;
+                                                }
+                                                if (!iso.thickness || parseFloat(iso.thickness) <= 0) {
+                                                    setErrorField(`iso_thickness_${i}`);
+                                                    setError(t('errors.thickness_min', "L'épaisseur est obligatoire."));
+                                                    hasError = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (hasError) return;
+
+                                            setFormData(p => ({
+                                                ...p,
+                                                needs_isolation: true,
+                                                isolation_type: p.isolations[0]?.type || 'pur',
+                                                isolation_surface: p.isolations[0]?.surface || '',
+                                                isolation_thickness: p.isolations[0]?.thickness || '',
+                                                isolation_pur_aspiration: p.isolations[0]?.isolation_pur_aspiration || false,
+                                                isolation_pur_niveller: p.isolations[0]?.isolation_pur_niveller || false,
+                                                isolation_pur_poncage: p.isolations[0]?.isolation_pur_poncage || false,
+                                                isolation_pur_protection: p.isolations[0]?.isolation_pur_protection || false,
+                                            }));
+
+                                            setError(''); setStep(2);
+                                        }} className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                            {t('calculator.continue', 'Continuer')} <ChevronRight className="w-5 h-5" />
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -859,7 +921,7 @@ export default function DevisOnline() {
                                 />
 
                                 <div className="flex gap-3">
-                                    <button type="button" onClick={() => setStep(1.5)}
+                                    <button type="button" onClick={() => setStep(1)}
                                         className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition-colors">
                                         {t('calculator.back', 'Retour')}
                                     </button>
@@ -932,15 +994,15 @@ export default function DevisOnline() {
                                     </p>
                                 </div>
 
-                                {/* Toggle Particulier / Entreprise */}
-                                <div className="flex gap-2 bg-slate-100 p-1.5 rounded-xl">
-                                    <button type="button" onClick={() => setFormData({ ...formData, client_type: 'fizica' })}
-                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${formData.client_type === 'fizica' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                                        <User className="w-4 h-4" /> {t('clients.type_physical', 'Particulier')}
+                                {/* Apple HIG Segmented Control: Particulier / Entreprise */}
+                                <div role="tablist" className="grid grid-cols-2 p-1 bg-slate-200/75 rounded-full border border-slate-200/80 shadow-inner">
+                                    <button type="button" role="tab" aria-selected={formData.client_type === 'fizica'} onClick={() => setFormData({ ...formData, client_type: 'fizica' })}
+                                        className={`py-2.5 text-sm font-semibold rounded-full transition-all flex items-center justify-center gap-2 ${formData.client_type === 'fizica' ? 'bg-white text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.10)]' : 'text-slate-600 hover:text-slate-900'}`}>
+                                        {t('clients.type_physical', 'Particulier')}
                                     </button>
-                                    <button type="button" onClick={() => setFormData({ ...formData, client_type: 'juridica' })}
-                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${formData.client_type === 'juridica' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                                        <Building2 className="w-4 h-4" /> {t('clients.type_legal', 'Entreprise')}
+                                    <button type="button" role="tab" aria-selected={formData.client_type === 'juridica'} onClick={() => setFormData({ ...formData, client_type: 'juridica' })}
+                                        className={`py-2.5 text-sm font-semibold rounded-full transition-all flex items-center justify-center gap-2 ${formData.client_type === 'juridica' ? 'bg-white text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.10)]' : 'text-slate-600 hover:text-slate-900'}`}>
+                                        {t('clients.type_legal', 'Entreprise')}
                                     </button>
                                 </div>
 
@@ -948,22 +1010,30 @@ export default function DevisOnline() {
                                 {formData.client_type === 'juridica' && (
                                     <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
                                         <div>
-                                            <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.cui', 'Numéro de TVA')}</label>
+                                            <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
+                                                {t('clients.cui', 'Numéro de TVA')}{' '}
+                                                <span className="normal-case font-normal text-slate-400">({t('common.optional', 'optionnel')})</span>
+                                            </label>
                                             <div className="flex gap-2">
-                                                <input type="text" required value={formData.client_company_vat}
+                                                <input type="text" value={formData.client_company_vat}
                                                     onChange={e => {
                                                         setFormData({ ...formData, client_company_vat: e.target.value });
+                                                        setViesLookupNotice('');
                                                         if (errorField === 'client_company_vat') { setErrorField(''); setError(''); }
                                                     }}
                                                     onBlur={handleViesSearch}
                                                     placeholder="BE0123456789"
-                                                    className={`flex-1 bg-white border-2 rounded-xl px-3 py-2.5 text-base focus:bg-white outline-none transition-all ${errorField === 'client_company_vat' ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-200 focus:border-yellow-400'}`} />
+                                                    className="flex-1 bg-white border-2 border-slate-200 focus:border-yellow-400 rounded-xl px-3 py-2.5 text-base focus:bg-white outline-none transition-all" />
                                                 <button type="button" onClick={handleViesSearch} disabled={isSearchingVies}
                                                     className="bg-slate-800 text-white w-14 rounded-xl font-bold hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center">
                                                     {isSearchingVies ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                                                 </button>
                                             </div>
-                                            <p className="text-xs text-slate-400 mt-1">{t('clients.vies_hint', 'Entrez le numéro pour remplir automatiquement.')}</p>
+                                            {viesLookupNotice ? (
+                                                <p className="text-xs text-amber-600 font-medium mt-1">{viesLookupNotice}</p>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 mt-1">{t('clients.vies_hint', 'Entrez le numéro pour remplir automatiquement via la BCE.')}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.company_name', "Nom de l'entreprise")}</label>

@@ -3,6 +3,27 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-11-22 (Separare Chape vs. Isolation în `/devisonline`, TVA Opțional + Căutare Oficială BCE/KBO Belgia, Protecție Tarife Preferențiale Online, Validare Automată Dată la Planificare & Dynamic Island 120fps)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Plan și modificări verificate și aprobate explicit de Utilizator pentru push ("OK PUSH SI MSEK ACATRE CORINA SI IULIK").
+
+### Modificări Aplicate & Verificate:
+1. **Separare `Chape` vs. `Isolation (PUR / EPS)` de la Pasul 1 în `/devisonline` (`DevisOnline.jsx` & `devis_online.py`):**
+   - Adăugat control segmentat Apple HIG la Pasul 1 (`Chape` | `Isolation (PUR / EPS)`), astfel încât șapa și izolația se comandă în devize separate (având zile diferite de execuție).
+   - Eliminat Pasul 1.5 și corectat `_build_volumes` în `devis_online.py` pentru ca devizele de izolație să nu mai conțină un rând de șapă cu `0 m²`.
+2. **Număr de TVA Opțional + Căutare Oficială BCE / KBO Belgia (`DevisOnline.jsx`, `devis_online.py`, `kbo_scraper.py`):**
+   - Eliminat `required` de pe `Numéro de TVA` la `Entreprise` și marcat ca `(optionnel)`.
+   - Conectat `/api/public/devis_online/vies/{country}/{vat_number}` la scraper-ul oficial `kbopub.economie.fgov.be` (`fetch_kbo_data`), găsind instant numerele de TVA belgiene active (ex. `BE0785292895` — `DAVIDE CHAPE`) și curățând automat spațiile multiple/newline-urile din adresă.
+3. **Protecție Absolută a Tarifelor Preferențiale pe `/devisonline` (`devis_online.py`, `public_work_orders.py`, `pdf_generator.py`, `admin_work_orders.py`, `WorkOrderDetail.jsx`, `DevisView.jsx`, `ProformaView.jsx`):**
+   - Pe `/devisonline` se aplică exclusiv tariful standard din tabul Tarife (`PricingSetting.client_id == None`). Formularul public nu se leagă de clienți preferențiali și setează `disable_preferential_pricing: True` până când un Admin atribuie manual clientul din panoul de administrare.
+4. **Validare Automată a Datei pe `/confirm/{token}` după Planificarea în Calendar (`admin_work_orders.py`, `public_work_orders.py`, `WorkOrderConfirm.jsx`):**
+   - Când o comandă este pusă în calendar (`start_date`) și are echipă alocată (`assigned_team_id`) sau statusul `planning`, `date_confirmed_at` este populat automat, iar pe `/confirm/{token}` clientul vede direct **`Date confirmée : DD/MM/YYYY • HH:MM`** pe verde, fără mesajul *„En attente de validation par l'équipe Davide Chape”*.
+5. **Dynamic Island Contur Pronunțat, Sărbători Mutate din Calendar, Animație 120fps GPU & Fix Navigare `AdminChats.jsx` (`HeaderDynamicIsland.jsx`, `ShortWorksCalendar.jsx`, `AdminChats.jsx`):**
+   - Mutat *Prochain férié : Noël (25 déc.)* din bara calendarului în Dynamic Island.
+   - Întărit conturul exterior și conturul grupurilor interioare (`Inset Grouped`), refăcut animația de întoarcere în Dynamic Island în 2 straturi 120fps pe GPU cu puls elastic de absorbție și eliminat `setSearchParams` asincron din `AdminChats.jsx`.
+
+---
+
 ## 2026-11-22 (Apple HIG / Liquid Glass UI Upgrade: Apple Dynamic Island Centrat, Dark Mode Midnight Navy, Siluete SF-Symbol în Camions, Ceas/Meteo Live, Logo Animat & iPad Ergonomics)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Plan verificat local în mai multe iterații și aprobat explicit de Utilizator pentru push ("ok. hai sa socatem mesajele d etest si facem pusha, ar vezi la incpeut dca este safe").

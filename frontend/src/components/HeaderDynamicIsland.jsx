@@ -29,6 +29,44 @@ function extractCityShort(address) {
     return chosen.replace(/\d+/g, '').replace(/\s+/g, ' ').trim() || chosen
 }
 
+const PUBLIC_HOLIDAYS_BE = [
+    { date: '2025-12-25', name: 'Noël' },
+    { date: '2026-01-01', name: 'Nieuwjaar' },
+    { date: '2026-04-06', name: 'Paasmaandag' },
+    { date: '2026-05-01', name: 'Fête du Travail' },
+    { date: '2026-05-14', name: 'Ascension' },
+    { date: '2026-05-25', name: 'Lundi de Pentecôte' },
+    { date: '2026-07-21', name: 'Fête Nationale' },
+    { date: '2026-08-15', name: "L'Assomption" },
+    { date: '2026-11-01', name: 'Toussaint' },
+    { date: '2026-11-11', name: 'Armistice' },
+    { date: '2026-12-25', name: 'Noël' },
+    { date: '2027-01-01', name: 'Nieuwjaar' },
+    { date: '2027-03-29', name: 'Paasmaandag' },
+    { date: '2027-05-01', name: 'Fête du Travail' },
+    { date: '2027-05-06', name: 'Ascension' },
+    { date: '2027-05-17', name: 'Lundi de Pentecôte' },
+    { date: '2027-07-21', name: 'Fête Nationale' },
+    { date: '2027-08-15', name: "L'Assomption" },
+    { date: '2027-11-01', name: 'Toussaint' },
+    { date: '2027-11-11', name: 'Armistice' },
+    { date: '2027-12-25', name: 'Noël' },
+]
+
+function getUpcomingHolidays(count = 2) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const upcoming = []
+    for (const h of PUBLIC_HOLIDAYS_BE) {
+        const hDate = new Date(h.date)
+        if (hDate >= today) {
+            upcoming.push(h)
+            if (upcoming.length >= count) break
+        }
+    }
+    return upcoming
+}
+
 export default function HeaderDynamicIsland() {
     const { t } = useTranslation()
     const navigate = useNavigate()
@@ -38,11 +76,41 @@ export default function HeaderDynamicIsland() {
     // Keep displayedAlert data in state while isAlertVisible controls the emergence / return-to-island animation
     const [displayedAlert, setDisplayedAlert] = useState(null)
     const [isAlertVisible, setIsAlertVisible] = useState(false)
+    // isAbsorbing = true briefly when a notification bubble or popover retracts back into the capsule (Apple cushion bounce)
+    const [isAbsorbing, setIsAbsorbing] = useState(false)
     const islandRef = useRef(null)
     const alertTimeoutRef = useRef(null)
     const peekTimeoutRef = useRef(null)
+    const absorbDelayRef = useRef(null)
+    const absorbTimeoutRef = useRef(null)
     const isInitialFetchRef = useRef(true)
-    const prevCountsRef = useRef({ unreadMsgs: 0, pendingTotal: 0, movingTrucks: 0 })
+    const prevCountsRef = useRef({ unreadMsgs: 0, lastMsgId: null, pendingTotal: 0, lastQuoteId: null, movingTrucks: 0 })
+
+    const triggerAbsorbPulse = useCallback(() => {
+        if (absorbDelayRef.current) clearTimeout(absorbDelayRef.current)
+        if (absorbTimeoutRef.current) clearTimeout(absorbTimeoutRef.current)
+        // Trigger the capsule cushion pulse right as the retracting card reaches the capsule (~130ms into retraction)
+        absorbDelayRef.current = setTimeout(() => {
+            setIsAbsorbing(true)
+            absorbTimeoutRef.current = setTimeout(() => {
+                setIsAbsorbing(false)
+            }, 240)
+        }, 120)
+    }, [])
+
+    const closeAlert = useCallback(() => {
+        setIsAlertVisible(prev => {
+            if (prev) triggerAbsorbPulse()
+            return false
+        })
+    }, [triggerAbsorbPulse])
+
+    const closePopover = useCallback(() => {
+        setIsOpen(prev => {
+            if (prev) triggerAbsorbPulse()
+            return false
+        })
+    }, [triggerAbsorbPulse])
 
     const [summary, setSummary] = useState({
         activeTrucks: 0,
@@ -72,9 +140,9 @@ export default function HeaderDynamicIsland() {
         })
         if (alertTimeoutRef.current) clearTimeout(alertTimeoutRef.current)
         alertTimeoutRef.current = setTimeout(() => {
-            setIsAlertVisible(false)
+            closeAlert()
         }, 5500)
-    }, [])
+    }, [closeAlert])
 
     const fetchIslandData = useCallback(async () => {
         if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
@@ -116,7 +184,7 @@ export default function HeaderDynamicIsland() {
             let starredIds = []
             try {
                 starredIds = JSON.parse(localStorage.getItem('starred_quotes') || '[]')
-            } catch (_) {}
+            } catch (_) { }
             const pendingItems = rawPending
                 .filter(q => q.status !== 'cancelled' && q.status !== 'planning' && !q.start_date)
                 .sort((a, b) => (starredIds.includes(b.id) ? 1 : 0) - (starredIds.includes(a.id) ? 1 : 0))
@@ -140,8 +208,19 @@ export default function HeaderDynamicIsland() {
             )
 
             // Expand automatically ONLY when a new message or new pending quote arrives
+            const newestMsgId = unreadMessages[0]?.id || unreadMessages[0]?.created_at || null
+            const newestQuoteId = recentPendingQuotes[0]?.id || null
             if (!isInitialFetchRef.current) {
-                if (unreadMessagesCount > prevCountsRef.current.unreadMsgs && unreadMessages[0]) {
+                const hasNewMessage =
+                    unreadMessages[0] &&
+                    (unreadMessagesCount > prevCountsRef.current.unreadMsgs ||
+                        (newestMsgId && newestMsgId !== prevCountsRef.current.lastMsgId))
+                const hasNewQuote =
+                    recentPendingQuotes[0] &&
+                    (pendingQuotesTotal > prevCountsRef.current.pendingTotal ||
+                        (newestQuoteId && newestQuoteId !== prevCountsRef.current.lastQuoteId))
+
+                if (hasNewMessage) {
                     const newestMsg = unreadMessages[0]
                     triggerPeek(5000)
                     triggerLiveAlert({
@@ -150,7 +229,7 @@ export default function HeaderDynamicIsland() {
                         subtitle: newestMsg.message || t('dynamic_island.new_message_alert', 'Nouveau message client'),
                         link: `/admin/chats?wo_id=${newestMsg.work_order_id}`,
                     })
-                } else if (pendingQuotesTotal > prevCountsRef.current.pendingTotal && recentPendingQuotes[0]) {
+                } else if (hasNewQuote) {
                     const newestQuote = recentPendingQuotes[0]
                     const qSurf = newestQuote.volumes?.[0]?.quantity ? `${newestQuote.volumes[0].quantity}m²` : ''
                     const qCity = extractCityShort(newestQuote.site_address)
@@ -166,7 +245,9 @@ export default function HeaderDynamicIsland() {
 
             prevCountsRef.current = {
                 unreadMsgs: unreadMessagesCount,
+                lastMsgId: newestMsgId,
                 pendingTotal: pendingQuotesTotal,
+                lastQuoteId: newestQuoteId,
                 movingTrucks,
             }
             isInitialFetchRef.current = false
@@ -182,7 +263,7 @@ export default function HeaderDynamicIsland() {
                 unreadMessagesCount,
                 unreadMessages,
             })
-        } catch (_) {}
+        } catch (_) { }
     }, [t, triggerLiveAlert, triggerPeek])
 
     useEffect(() => {
@@ -191,7 +272,7 @@ export default function HeaderDynamicIsland() {
             if (typeof document === 'undefined' || document.visibilityState === 'visible') {
                 void fetchIslandData()
             }
-        }, 20000)
+        }, 8000)
 
         const handleRefresh = () => { void fetchIslandData() }
         window.addEventListener('refresh-notifications', handleRefresh)
@@ -201,6 +282,8 @@ export default function HeaderDynamicIsland() {
             clearInterval(timer)
             if (alertTimeoutRef.current) clearTimeout(alertTimeoutRef.current)
             if (peekTimeoutRef.current) clearTimeout(peekTimeoutRef.current)
+            if (absorbDelayRef.current) clearTimeout(absorbDelayRef.current)
+            if (absorbTimeoutRef.current) clearTimeout(absorbTimeoutRef.current)
             window.removeEventListener('refresh-notifications', handleRefresh)
             window.removeEventListener('focus', handleRefresh)
         }
@@ -209,12 +292,12 @@ export default function HeaderDynamicIsland() {
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (islandRef.current && !islandRef.current.contains(e.target)) {
-                setIsOpen(false)
+                closePopover()
             }
         }
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
+    }, [closePopover])
 
     const handleMarkAllMessagesRead = async (e) => {
         e.stopPropagation()
@@ -222,7 +305,7 @@ export default function HeaderDynamicIsland() {
             await api.post('/admin/work-orders/chat-notifications/mark-read')
             void fetchIslandData()
             window.dispatchEvent(new Event('refresh-notifications'))
-        } catch (_) {}
+        } catch (_) { }
     }
 
     const showExpandedText = isPeeking || isOpen
@@ -254,20 +337,31 @@ export default function HeaderDynamicIsland() {
             <button
                 type="button"
                 onClick={() => {
-                    if (isAlertVisible) setIsAlertVisible(false)
-                    setIsOpen(o => !o)
+                    if (isAlertVisible) closeAlert()
+                    if (isOpen) {
+                        closePopover()
+                    } else {
+                        setIsOpen(true)
+                    }
                 }}
-                title={t('dynamic_island.tooltip', 'Dynamic Island — Activité en direct, Messages & Devis')}
+                title={isOpen ? undefined : t('dynamic_island.tooltip', 'Dynamic Island — Activité en direct, Messages & Devis')}
                 style={{
-                    transition: 'all 680ms cubic-bezier(0.16, 1, 0.3, 1)',
+                    willChange: 'transform',
+                    transform: isAbsorbing
+                        ? 'scale3d(1.08, 0.93, 1)'
+                        : (isAlertVisible || isOpen)
+                            ? 'scale3d(1.03, 1.03, 1)'
+                            : 'scale3d(1, 1, 1)',
+                    transition: isAbsorbing
+                        ? 'transform 170ms cubic-bezier(0.22, 1, 0.36, 1), background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease'
+                        : 'transform 520ms cubic-bezier(0.22, 1.28, 0.36, 1), background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
                 }}
-                className={`relative z-20 rounded-full backdrop-blur-2xl border flex items-center justify-center cursor-pointer overflow-hidden ${
-                    isAlertVisible
-                        ? 'h-8 px-4 scale-[1.06] bg-white/28 dark:bg-slate-900/90 border-emerald-300/80 dark:border-emerald-400/60 text-white shadow-[0_0_24px_rgba(16,185,129,0.42),inset_0_1px_0_rgba(255,255,255,0.6)]'
-                        : isOpen
-                            ? 'h-8 px-4 scale-[1.04] bg-white/26 dark:bg-slate-900/90 border-white/55 dark:border-sky-400/40 text-white shadow-[0_10px_28px_-6px_rgba(8,47,73,0.45),inset_0_1px_0_rgba(255,255,255,0.55)]'
-                            : 'h-8 px-3.5 scale-100 bg-white/16 hover:bg-white/24 dark:bg-slate-900/75 border-white/30 hover:border-white/45 dark:border-white/15 text-white shadow-[0_6px_18px_-4px_rgba(8,47,73,0.25),inset_0_1px_0_rgba(255,255,255,0.38)]'
-                }`}
+                className={`relative z-20 rounded-full backdrop-blur-2xl border-[1.5px] flex items-center justify-center cursor-pointer overflow-hidden ${isAlertVisible
+                    ? 'h-8 px-4 bg-white/28 dark:bg-slate-900/90 border-emerald-300/90 dark:border-emerald-400/75 text-white shadow-[0_0_24px_rgba(16,185,129,0.42),inset_0_1px_0_rgba(255,255,255,0.65)]'
+                    : isOpen || isAbsorbing
+                        ? 'h-8 px-4 bg-white/28 dark:bg-slate-900/90 border-white/80 dark:border-sky-400/55 text-white shadow-[0_10px_28px_-6px_rgba(8,47,73,0.5),inset_0_1px_0_rgba(255,255,255,0.65)]'
+                        : 'h-8 px-3.5 bg-white/18 hover:bg-white/26 dark:bg-slate-900/80 border-white/45 hover:border-white/70 dark:border-white/25 text-white shadow-[0_6px_18px_-4px_rgba(8,47,73,0.3),inset_0_1px_0_rgba(255,255,255,0.45)]'
+                    }`}
             >
                 <div className="min-w-0 overflow-hidden flex items-center">
                     {/* 1. Trucks Icon */}
@@ -311,52 +405,63 @@ export default function HeaderDynamicIsland() {
                 </div>
             </button>
 
-            {/* State 2: Incoming Notification Bubble — Literally emerges DOWN from inside the Dynamic Island capsule above, floats just below it, and gets sucked BACK UP inside the capsule! */}
+            {/* State 2: Incoming Notification Bubble — Pure 120fps GPU-composited spring emergence & smooth suction return into the Dynamic Island */}
             <div
                 aria-hidden={!isAlertVisible}
                 onClick={() => {
                     const target = displayedAlert?.link
-                    setIsAlertVisible(false)
+                    closeAlert()
                     if (target) navigate(target)
                 }}
                 style={{
-                    transformOrigin: '50% -18px',
+                    willChange: 'transform, opacity, border-radius',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    transformOrigin: '50% 0%',
+                    borderRadius: isAlertVisible ? '22px' : '44px',
                     transition: isAlertVisible
-                        ? 'transform 780ms cubic-bezier(0.16, 1, 0.3, 1), opacity 480ms cubic-bezier(0.16, 1, 0.3, 1), filter 520ms cubic-bezier(0.16, 1, 0.3, 1)'
-                        : 'transform 680ms cubic-bezier(0.32, 0.72, 0, 1), opacity 460ms cubic-bezier(0.32, 0.72, 0, 1) 80ms, filter 480ms ease-in',
+                        ? 'transform 480ms cubic-bezier(0.22, 1.08, 0.36, 1), border-radius 480ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out'
+                        : 'transform 400ms cubic-bezier(0.32, 0, 0.15, 1), border-radius 360ms cubic-bezier(0.32, 0, 0.15, 1), opacity 230ms cubic-bezier(0.32, 0, 0.2, 1) 110ms',
                     transform: isAlertVisible
-                        ? 'translate3d(-50%, 6px, 0) scaleX(1) scaleY(1)'
-                        : 'translate3d(-50%, -34px, 0) scaleX(0.26) scaleY(0.38)',
+                        ? 'translate3d(-50%, 8px, 0) scale3d(1, 1, 1)'
+                        : 'translate3d(-50%, -24px, 0) scale3d(0.30, 0.25, 1)',
+                    opacity: isAlertVisible ? 1 : 0,
                 }}
-                className={`absolute top-full left-1/2 z-[9998] w-[390px] max-w-[92vw] rounded-2xl bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white backdrop-blur-2xl border border-emerald-400/70 dark:border-emerald-400/50 shadow-[0_20px_48px_-10px_rgba(15,23,42,0.32),0_0_0_1px_rgba(255,255,255,0.7)_inset] dark:shadow-[0_22px_50px_-10px_rgba(0,0,0,0.85),0_0_24px_-4px_rgba(16,185,129,0.35)] px-3.5 py-2.5 cursor-pointer ${
-                    isAlertVisible
-                        ? 'opacity-100 blur-0 pointer-events-auto'
-                        : 'opacity-0 blur-[5px] pointer-events-none'
-                }`}
+                className={`absolute top-full left-1/2 z-[9998] w-[390px] max-w-[92vw] bg-[#F2F4F8]/98 dark:bg-slate-900/96 text-slate-900 dark:text-white backdrop-blur-2xl border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_24px_54px_-12px_rgba(15,23,42,0.36),0_6px_18px_-4px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.95)] dark:shadow-[0_24px_54px_-12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.16)] p-2.5 cursor-pointer overflow-hidden ${isAlertVisible
+                    ? 'pointer-events-auto'
+                    : 'pointer-events-none'
+                    }`}
             >
-                {/* Small top connector notch pointing up to the Dynamic Island pill */}
-                <div className="w-7 h-1 rounded-full bg-emerald-400/60 dark:bg-emerald-400/50 mx-auto -mt-1 mb-1.5" />
-                <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
+                <div
+                    style={{
+                        opacity: isAlertVisible ? 1 : 0,
+                        transform: isAlertVisible ? 'scale3d(1, 1, 1)' : 'scale3d(0.95, 0.95, 1)',
+                        transition: isAlertVisible
+                            ? 'opacity 250ms ease-out 60ms, transform 380ms cubic-bezier(0.22, 1, 0.36, 1) 30ms'
+                            : 'opacity 160ms ease-out, transform 220ms ease-in',
+                    }}
+                    className="flex items-center gap-3 rounded-[15px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 px-3 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+                >
+                    <span className="w-9 h-9 rounded-full bg-sky-500/12 dark:bg-sky-400/15 border border-sky-500/25 flex items-center justify-center shrink-0">
                         {displayedAlert?.type === 'quote' ? (
                             <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                         ) : (
-                            <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            <MessageSquare className="w-4 h-4 text-sky-600 dark:text-sky-400" />
                         )}
                     </span>
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
                                 {displayedAlert?.type === 'quote'
                                     ? t('dynamic_island.new_quote_title', 'Nouveau devis')
                                     : t('dynamic_island.new_message_alert', 'Nouveau message client')}
                             </span>
                         </div>
-                        <div className="text-xs font-black text-slate-900 dark:text-white truncate mt-0.5">
+                        <div className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">
                             {displayedAlert?.title}
                         </div>
-                        <div className="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate">
+                        <div className="text-[12px] text-slate-500 dark:text-slate-400 truncate">
                             {displayedAlert?.subtitle}
                         </div>
                     </div>
@@ -364,7 +469,7 @@ export default function HeaderDynamicIsland() {
                         type="button"
                         onClick={(e) => {
                             e.stopPropagation()
-                            setIsAlertVisible(false)
+                            closeAlert()
                         }}
                         className="w-6 h-6 rounded-full hover:bg-slate-200/70 dark:hover:bg-white/15 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white shrink-0"
                     >
@@ -373,29 +478,42 @@ export default function HeaderDynamicIsland() {
                 </div>
             </div>
 
-            {/* State 3: Full Expanded Dynamic Island Live Activity Sheet — Strictly compliant with Apple HIG (liquid-glass.md, live-activities.md, lists-and-tables.md) */}
+            {/* State 3: Full Expanded Dynamic Island Live Activity Sheet — Pure 120fps GPU-composited spring emergence & smooth suction return */}
             <div
                 aria-hidden={!isOpen}
                 style={{
-                    transformOrigin: '50% -18px',
+                    willChange: 'transform, opacity, border-radius',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    transformOrigin: '50% 0%',
+                    borderRadius: isOpen ? '24px' : '44px',
                     transition: isOpen
-                        ? 'transform 720ms cubic-bezier(0.16, 1, 0.3, 1), opacity 440ms cubic-bezier(0.16, 1, 0.3, 1), filter 440ms cubic-bezier(0.16, 1, 0.3, 1)'
-                        : 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1) 60ms, filter 400ms ease-in',
+                        ? 'transform 460ms cubic-bezier(0.22, 1.06, 0.36, 1), border-radius 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out'
+                        : 'transform 400ms cubic-bezier(0.32, 0, 0.15, 1), border-radius 360ms cubic-bezier(0.32, 0, 0.15, 1), opacity 230ms cubic-bezier(0.32, 0, 0.2, 1) 110ms',
                     transform: isOpen
-                        ? 'translate3d(-50%, 6px, 0) scaleX(1) scaleY(1)'
-                        : 'translate3d(-50%, -34px, 0) scaleX(0.24) scaleY(0.22)',
+                        ? 'translate3d(-50%, 8px, 0) scale3d(1, 1, 1)'
+                        : 'translate3d(-50%, -24px, 0) scale3d(0.28, 0.20, 1)',
+                    opacity: isOpen ? 1 : 0,
                 }}
-                className={`absolute top-full left-1/2 w-[420px] max-w-[94vw] rounded-[24px] bg-white/92 dark:bg-slate-900/92 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border border-white/80 dark:border-white/15 shadow-[0_24px_60px_-12px_rgba(15,23,42,0.22),0_0_0_0.5px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.16)] p-3.5 z-[9999] ${
-                    isOpen
-                        ? 'opacity-100 blur-0 pointer-events-auto'
-                        : 'opacity-0 blur-[5px] pointer-events-none'
-                }`}
+                className={`absolute top-full left-1/2 w-[420px] max-w-[94vw] bg-[#F2F4F8]/98 dark:bg-slate-900/96 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] dark:shadow-[0_28px_64px_-12px_rgba(0,0,0,0.9),0_8px_24px_-4px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.16)] p-3.5 z-[9999] overflow-hidden ${isOpen
+                    ? 'pointer-events-auto'
+                    : 'pointer-events-none'
+                    }`}
             >
+                <div
+                    style={{
+                        opacity: isOpen ? 1 : 0,
+                        transform: isOpen ? 'scale3d(1, 1, 1)' : 'scale3d(0.96, 0.96, 1)',
+                        transition: isOpen
+                            ? 'opacity 240ms ease-out 50ms, transform 360ms cubic-bezier(0.22, 1, 0.36, 1) 30ms'
+                            : 'opacity 160ms ease-out, transform 220ms ease-in',
+                    }}
+                >
                 {/* 1. Unified Apple Inset Grouped Summary Strip (Single neutral surface with hairline vertical dividers — no rainbow boxes, no 2-line wrapped titles) */}
-                <div className="grid grid-cols-3 divide-x divide-slate-200/75 dark:divide-white/10 rounded-[14px] bg-slate-100/80 dark:bg-white/[0.06] border border-slate-200/50 dark:border-white/[0.06] mb-3.5 overflow-hidden">
+                <div className="grid grid-cols-3 divide-x divide-slate-200/95 dark:divide-slate-700/80 rounded-[14px] bg-white dark:bg-slate-800/90 border border-slate-300/90 dark:border-slate-700/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] mb-3.5 overflow-hidden">
                     <div
-                        onClick={() => { setIsOpen(false); navigate('/admin/planning') }}
-                        className="px-3 py-2.5 hover:bg-white/70 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
+                        onClick={() => { closePopover(); navigate('/admin/planning') }}
+                        className="px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                     >
                         <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
                             {t('dynamic_island.today', "Aujourd'hui")}
@@ -409,8 +527,8 @@ export default function HeaderDynamicIsland() {
                     </div>
 
                     <div
-                        onClick={() => { setIsOpen(false); navigate('/admin/tracking') }}
-                        className="px-3 py-2.5 hover:bg-white/70 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
+                        onClick={() => { closePopover(); navigate('/admin/tracking') }}
+                        className="px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                     >
                         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -425,8 +543,8 @@ export default function HeaderDynamicIsland() {
                     </div>
 
                     <div
-                        onClick={() => { setIsOpen(false); navigate('/admin/quotes') }}
-                        className="px-3 py-2.5 hover:bg-white/70 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
+                        onClick={() => { closePopover(); navigate('/admin/quotes') }}
+                        className="px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                     >
                         <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
                             {t('dynamic_island.pending', 'En attente')}
@@ -443,7 +561,7 @@ export default function HeaderDynamicIsland() {
                 {/* 2. Unread Client Messages — Apple Inset Grouped Section */}
                 <div className="mb-3.5">
                     <div className="flex items-center justify-between px-1.5 mb-1.5">
-                        <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+                        <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-400">
                             {t('dynamic_island.messages_clients', 'Messages clients')}
                             {summary.unreadMessagesCount > 0 ? ` (${summary.unreadMessagesCount})` : ''}
                         </span>
@@ -457,11 +575,11 @@ export default function HeaderDynamicIsland() {
                             </button>
                         )}
                     </div>
-                    <div className="rounded-[14px] bg-slate-100/80 dark:bg-white/[0.06] border border-slate-200/50 dark:border-white/[0.06] divide-y divide-slate-200/70 dark:divide-white/[0.07] overflow-hidden">
+                    <div className="rounded-[14px] bg-white dark:bg-slate-800/90 border border-slate-300/90 dark:border-slate-700/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] divide-y divide-slate-200/90 dark:divide-slate-700/80 overflow-hidden">
                         {summary.unreadMessages.length === 0 ? (
                             <div
-                                onClick={() => { setIsOpen(false); navigate('/admin/chats') }}
-                                className="px-3.5 py-2.5 text-[12.5px] text-slate-500 dark:text-slate-400 flex items-center justify-between hover:bg-white/70 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
+                                onClick={() => { closePopover(); navigate('/admin/chats') }}
+                                className="px-3.5 py-2.5 text-[12.5px] text-slate-500 dark:text-slate-400 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                             >
                                 <span>{t('dynamic_island.no_unread_messages', 'Aucun message non lu')}</span>
                                 <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -471,10 +589,10 @@ export default function HeaderDynamicIsland() {
                                 <div
                                     key={msg.id || msg.work_order_id}
                                     onClick={() => {
-                                        setIsOpen(false)
+                                        closePopover()
                                         navigate(`/admin/chats?wo_id=${msg.work_order_id}`)
                                     }}
-                                    className="px-3.5 py-2.5 hover:bg-white/80 dark:hover:bg-white/[0.08] cursor-pointer transition-colors flex items-center justify-between gap-2.5"
+                                    className="px-3.5 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.08] cursor-pointer transition-colors flex items-center justify-between gap-2.5"
                                 >
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
@@ -502,18 +620,18 @@ export default function HeaderDynamicIsland() {
                 {/* 3. Latest Pending Quotes — True Apple iOS/macOS Inset Grouped List (single rounded container with hairline dividers & trailing disclosure chevrons) */}
                 <div>
                     <div className="flex items-center justify-between px-1.5 mb-1.5">
-                        <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+                        <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-400">
                             {t('dynamic_island.latest_pending_quotes', 'Derniers devis en attente')}
                         </span>
                         <button
                             type="button"
-                            onClick={() => { setIsOpen(false); navigate('/admin/quotes') }}
+                            onClick={() => { closePopover(); navigate('/admin/quotes') }}
                             className="text-[12px] font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 cursor-pointer"
                         >
                             {t('dynamic_island.view_all', 'Voir tout')} ({summary.pendingQuotesTotal})
                         </button>
                     </div>
-                    <div className="rounded-[14px] bg-slate-100/80 dark:bg-white/[0.06] border border-slate-200/50 dark:border-white/[0.06] divide-y divide-slate-200/70 dark:divide-white/[0.07] overflow-hidden">
+                    <div className="rounded-[14px] bg-white dark:bg-slate-800/90 border border-slate-300/90 dark:border-slate-700/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] divide-y divide-slate-200/90 dark:divide-slate-700/80 overflow-hidden">
                         {summary.recentPendingQuotes.map(q => {
                             const city = extractCityShort(q.site_address)
                             const vol = q.volumes?.[0] || {}
@@ -523,16 +641,15 @@ export default function HeaderDynamicIsland() {
                                 <div
                                     key={q.id}
                                     onClick={() => {
-                                        setIsOpen(false)
+                                        closePopover()
                                         navigate(`/admin/work-orders/${q.id}`)
                                     }}
-                                    className="px-3.5 py-2.5 hover:bg-white/80 dark:hover:bg-white/[0.08] cursor-pointer transition-colors flex items-center justify-between gap-2.5"
+                                    className="px-3.5 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.08] cursor-pointer transition-colors flex items-center justify-between gap-2.5"
                                 >
                                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                         <span
-                                            className={`w-2 h-2 rounded-full shrink-0 ${
-                                                isWeR ? 'bg-amber-500' : isOnline ? 'bg-sky-500' : 'bg-slate-400'
-                                            }`}
+                                            className={`w-2 h-2 rounded-full shrink-0 ${isWeR ? 'bg-amber-500' : isOnline ? 'bg-sky-500' : 'bg-slate-400'
+                                                }`}
                                         />
                                         <span className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">
                                             {q.client_name || q.title || 'Client'}
@@ -555,6 +672,43 @@ export default function HeaderDynamicIsland() {
                             )
                         })}
                     </div>
+                </div>
+
+                {/* 4. Upcoming Belgian Public Holidays — Moved from Calendar Bar into Dynamic Island */}
+                {(() => {
+                    const upcomingHolidays = getUpcomingHolidays(2)
+                    if (upcomingHolidays.length === 0) return null
+                    const nextH = upcomingHolidays[0]
+                    const secondH = upcomingHolidays[1]
+                    const fmtDate = (dStr) =>
+                        new Date(dStr + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+                    return (
+                        <div className="mt-3 rounded-[12px] bg-white dark:bg-slate-800/90 border border-slate-300/90 dark:border-slate-700/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] flex items-center justify-between px-3 py-2 text-[11.5px]">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    closePopover()
+                                    navigate('/admin/planning')
+                                    setTimeout(() => {
+                                        window.dispatchEvent(new CustomEvent('jump-to-calendar-date', { detail: { date: nextH.date } }))
+                                    }, 60)
+                                }}
+                                className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition-colors"
+                            >
+                                <CalendarDays className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                <span className="font-medium">{t('planning.next_holiday_full', 'Prochain férié')} :</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                    {t(`holidays.${nextH.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, nextH.name)} ({fmtDate(nextH.date)})
+                                </span>
+                            </button>
+                            {secondH && (
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[140px]">
+                                    · {t(`holidays.${secondH.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, secondH.name)} ({fmtDate(secondH.date)})
+                                </span>
+                            )}
+                        </div>
+                    )
+                })()}
                 </div>
             </div>
         </div>

@@ -37,19 +37,22 @@ def fetch_kbo_data(vat_number: str) -> dict:
                     val = tds[1].get_text(separator=', ', strip=True)
                     
                     if 'name:' in key:
-                        lines = [line.strip() for line in tds[1].stripped_strings]
+                        lines = [re.sub(r'\s+', ' ', line).strip() for line in tds[1].stripped_strings]
+                        lines = [l for l in lines if l]
                         if lines:
                             name = lines[0]
                     
                     if 'registered seat' in key or "seat's address:" in key or "address of the seat:" in key:
-                        lines = [line.strip() for line in tds[1].stripped_strings]
+                        lines = [re.sub(r'\s+', ' ', line).strip() for line in tds[1].stripped_strings]
                         addr_parts = []
                         for line in lines:
+                            if not line:
+                                continue
                             if line.startswith("Since"):
                                 break
                             addr_parts.append(line)
                         if addr_parts:
-                            address = ", ".join(addr_parts)
+                            address = re.sub(r'\s+', ' ', ", ".join(addr_parts)).replace(" ,", ",").strip()
                             
                     if 'status:' in key:
                         status = val

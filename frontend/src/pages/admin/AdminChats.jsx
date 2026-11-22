@@ -28,7 +28,14 @@ export default function AdminChats() {
     const [searchTerm, setSearchTerm] = useState('')
     
     // Active chat state
-    const [activeWoId, setActiveWoId] = useState(searchParams.get('wo_id') || null)
+    const urlWoId = searchParams.get('wo_id')
+    const [activeWoId, setActiveWoId] = useState(urlWoId || null)
+
+    useEffect(() => {
+        if (urlWoId && urlWoId !== activeWoId) {
+            setActiveWoId(urlWoId)
+        }
+    }, [urlWoId])
     const [activeWo, setActiveWo] = useState(null)
     const [messages, setMessages] = useState([])
     const [chatMessage, setChatMessage] = useState('')
@@ -97,6 +104,7 @@ export default function AdminChats() {
     // Load specific chat messages
     useEffect(() => {
         if (!activeWoId) return
+        let isCancelled = false
         
         const loadChatDetails = async (isBackground = false) => {
             if (!isBackground) setLoadingMessages(true)
@@ -107,6 +115,7 @@ export default function AdminChats() {
                         api.get(`/admin/work-orders/${activeWoId}`),
                         api.get(`/admin/work-orders/${activeWoId}/messages`)
                     ])
+                    if (isCancelled) return
                     setActiveWo(woRes.data)
                     
                     let msgs = [];
@@ -118,12 +127,12 @@ export default function AdminChats() {
                         msgs = msgRes.data.messages;
                     }
                     setMessages(msgs)
-                    setSearchParams({ wo_id: activeWoId }, { replace: true })
                     window.dispatchEvent(new CustomEvent('refresh-notifications'))
                     loadChats(true)
                 } else {
                     // Background poll: fetch only messages to avoid heavy load
                     const msgRes = await api.get(`/admin/work-orders/${activeWoId}/messages`)
+                    if (isCancelled) return
                     let msgs = [];
                     if (Array.isArray(msgRes.data)) {
                         msgs = msgRes.data;
@@ -141,12 +150,12 @@ export default function AdminChats() {
                     })
                 }
             } catch (err) {
-                if (!isBackground) {
+                if (!isBackground && !isCancelled) {
                     console.error(err)
                     showToast(t('admin.error_loading_messages', 'Erreur lors du chargement des messages'), "error")
                 }
             } finally {
-                if (!isBackground) setLoadingMessages(false)
+                if (!isBackground && !isCancelled) setLoadingMessages(false)
             }
         }
         
@@ -154,13 +163,13 @@ export default function AdminChats() {
         
         // Auto-refresh chat every 2 seconds so incoming messages appear near-instantly
         const interval = setInterval(() => {
-            if (activeWoId) {
+            if (activeWoId && !isCancelled) {
                 loadChatDetails(true)
             }
         }, 2000)
 
         const handleFocusOrVisible = () => {
-            if (document.visibilityState === 'visible' && activeWoId) {
+            if (document.visibilityState === 'visible' && activeWoId && !isCancelled) {
                 loadChatDetails(true)
             }
         }
@@ -168,6 +177,7 @@ export default function AdminChats() {
         document.addEventListener('visibilitychange', handleFocusOrVisible)
         
         return () => {
+            isCancelled = true
             clearInterval(interval)
             window.removeEventListener('focus', handleFocusOrVisible)
             document.removeEventListener('visibilitychange', handleFocusOrVisible)
@@ -423,7 +433,12 @@ export default function AdminChats() {
                                 {filteredChats.map(chat => (
                                     <button
                                         key={chat.work_order_id}
-                                        onClick={() => setActiveWoId(chat.work_order_id)}
+                                        onClick={() => {
+                                            setActiveWoId(chat.work_order_id)
+                                            if (window.location.pathname === '/admin/chats') {
+                                                setSearchParams({ wo_id: chat.work_order_id }, { replace: true })
+                                            }
+                                        }}
                                         className={`w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative flex items-start gap-3 ${activeWoId === chat.work_order_id ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                                     >
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-medium shadow-sm ${getAvatarColor(chat.source_system)}`}>

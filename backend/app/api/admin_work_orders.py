@@ -1472,7 +1472,12 @@ def update_work_order(
     if "start_date" in update_data and str(update_data["start_date"]) != str(old_start_date):
         wo.reschedule_requested = False
         wo.reschedule_requested_date = None
-        wo.date_confirmed_at = None
+        # When an admin schedules the order in the calendar (status=planning/confirmed/in_progress or team assigned),
+        # mark the date as validated by Davide Chape so the client page shows "Date confirmée" instead of "En attente de validation"
+        if wo.start_date and (wo.assigned_team_id or wo.status in ("planning", "confirmed", "in_progress")):
+            wo.date_confirmed_at = datetime.utcnow()
+        else:
+            wo.date_confirmed_at = None
         
         hist = list(wo.date_history) if wo.date_history else []
         hist.append({
@@ -1499,6 +1504,15 @@ def update_work_order(
     new_materials = wo.materials or []
     if wo.status not in ("completed", "cancelled") and old_materials != new_materials:
         sync_work_order_reservations(db, current_admin.organization_id, old_materials, new_materials)
+
+    # Dacă s-a schimbat client_id manual din Admin, permitem tariful preferențial (dacă acel client are unul)
+    if "client_id" in update_data and update_data["client_id"]:
+        if isinstance(wo.prices, dict) and wo.prices.get("disable_preferential_pricing"):
+            pd_clean = dict(wo.prices)
+            pd_clean.pop("disable_preferential_pricing", None)
+            wo.prices = pd_clean
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(wo, "prices")
 
     # Dacă s-a schimbat client_id, actualizează datele
     if wo.client_id:
@@ -1609,7 +1623,10 @@ def update_work_order(
 
     wo.updated_at = datetime.utcnow()
     
-    if str(old_start_date) != (str(wo.start_date) if wo.start_date else ""):
+    if wo.start_date and (wo.assigned_team_id or wo.status in ("planning", "confirmed", "in_progress")):
+        if not wo.date_confirmed_at or str(old_start_date) != (str(wo.start_date) if wo.start_date else ""):
+            wo.date_confirmed_at = datetime.utcnow()
+    elif str(old_start_date) != (str(wo.start_date) if wo.start_date else ""):
         wo.date_confirmed_at = None
         
     db.commit()
