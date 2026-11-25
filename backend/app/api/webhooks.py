@@ -194,19 +194,34 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     db.commit()
                     logger.info(f"WhatsApp message from {sender} attached to WorkOrder {recent_wo.id}")
 
-                    # Auto-detect client date confirmation from WhatsApp reply (ONLY when a reminder was sent and awaiting confirmation; normal WhatsApp messages are NOT forwarded to the group)
+                    # Auto-detect client reminder response (OK / REPORT + date / ANNULER) from WhatsApp reply
                     if body and body.strip():
                         try:
-                            from app.services.translation_service import is_client_confirmation_message, mark_work_order_reminder_confirmed
-                            has_pending_reminder = bool(
-                                isinstance(recent_wo.prices, dict)
-                                and recent_wo.prices.get("reminder_sent_at")
-                                and not recent_wo.prices.get("reminder_confirmed_at")
+                            from app.services.translation_service import (
+                                parse_client_reminder_reply,
+                                mark_work_order_reminder_confirmed,
+                                mark_work_order_reminder_issue,
                             )
-                            if has_pending_reminder and is_client_confirmation_message(body):
-                                mark_work_order_reminder_confirmed(recent_wo, db, source="whatsapp", detail=body)
+                            has_pending_or_active_date = bool(
+                                recent_wo.start_date
+                                or (isinstance(recent_wo.prices, dict) and recent_wo.prices.get("reminder_sent_at"))
+                            )
+                            if has_pending_or_active_date:
+                                parsed = parse_client_reminder_reply(body, ref_date=recent_wo.start_date)
+                                if parsed["intent"] == "confirm":
+                                    mark_work_order_reminder_confirmed(recent_wo, db, source="whatsapp", detail=body)
+                                elif parsed["intent"] in ("reschedule", "cancel"):
+                                    mark_work_order_reminder_issue(
+                                        recent_wo,
+                                        db,
+                                        issue_type=parsed["intent"],
+                                        requested_date_iso=parsed.get("requested_date"),
+                                        requested_date_display=parsed.get("requested_date_display"),
+                                        client_message=body,
+                                        source="whatsapp"
+                                    )
                         except Exception as e:
-                            logger.warning(f"Failed auto-confirm detection on Meta WhatsApp message: {e}")
+                            logger.warning(f"Failed auto-confirm/issue detection on Meta WhatsApp message: {e}")
 
     return {"status": "success"}
 
@@ -302,18 +317,33 @@ async def ultramsg_webhook(request: Request, db: Session = Depends(get_db)):
     
     logger.info(f"WhatsApp message from {clean_phone} attached to WorkOrder {recent_wo.id}")
 
-    # Auto-detect client date confirmation from UltraMsg WhatsApp reply (ONLY when a reminder was sent and awaiting confirmation; normal WhatsApp messages are NOT forwarded to the group)
+    # Auto-detect client reminder response (OK / REPORT + date / ANNULER) from UltraMsg WhatsApp reply
     if body and body.strip():
         try:
-            from app.services.translation_service import is_client_confirmation_message, mark_work_order_reminder_confirmed
-            has_pending_reminder = bool(
-                isinstance(recent_wo.prices, dict)
-                and recent_wo.prices.get("reminder_sent_at")
-                and not recent_wo.prices.get("reminder_confirmed_at")
+            from app.services.translation_service import (
+                parse_client_reminder_reply,
+                mark_work_order_reminder_confirmed,
+                mark_work_order_reminder_issue,
             )
-            if has_pending_reminder and is_client_confirmation_message(body):
-                mark_work_order_reminder_confirmed(recent_wo, db, source="whatsapp", detail=body)
+            has_pending_or_active_date = bool(
+                recent_wo.start_date
+                or (isinstance(recent_wo.prices, dict) and recent_wo.prices.get("reminder_sent_at"))
+            )
+            if has_pending_or_active_date:
+                parsed = parse_client_reminder_reply(body, ref_date=recent_wo.start_date)
+                if parsed["intent"] == "confirm":
+                    mark_work_order_reminder_confirmed(recent_wo, db, source="whatsapp", detail=body)
+                elif parsed["intent"] in ("reschedule", "cancel"):
+                    mark_work_order_reminder_issue(
+                        recent_wo,
+                        db,
+                        issue_type=parsed["intent"],
+                        requested_date_iso=parsed.get("requested_date"),
+                        requested_date_display=parsed.get("requested_date_display"),
+                        client_message=body,
+                        source="whatsapp"
+                    )
         except Exception as e:
-            logger.warning(f"Failed auto-confirm detection on UltraMsg WhatsApp message: {e}")
+            logger.warning(f"Failed auto-confirm/issue detection on UltraMsg WhatsApp message: {e}")
 
     return {"status": "success"}

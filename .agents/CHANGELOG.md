@@ -1,5 +1,26 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-25 22:09 — Flux Complet Reminder WhatsApp cu 3 Opțiuni (`OK` / `REPORT + dată cu punct sau nov/dec/ian` / `ANNULER`), Răspuns Automat către Client și Alertă Roșie în Calendar & Grup
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **1. Șablon de Reminder WhatsApp în `FR / NL / EN` cu cele 3 opțiuni clare (`ShortWorksCalendar.jsx` & `WorkOrderDetail.jsx`):**
+    - `✅ OK` pentru confirmarea datei;
+    - `📅 REPORT / VERPLAATSEN / RESCHEDULE + data dorită` (ex: `REPORT 28.11` sau `2 dec`) sub rezerva confirmării echipei;
+    - `❌ ANNULER / ANNULEREN / CANCEL` pentru anulare.
+  - **2. Parser natural de dată și intenție (`extract_natural_date` & `parse_client_reminder_reply` în `translation_service.py`):**
+    - Recunoaște automat datele scrise cu punct (`28.11`, `28.11.2026`, `02.12`), bară (`28/11`), liniuță (`28-11-2026`) sau cu numele lunii prescurtat/întreg în `FR / NL / EN / RO` (`28 nov`, `28 novembre`, `2 dec`, `2 décembre`, `15 ian`, `15 jan`, `15 januari` etc., cu deducerea automată a anului `2026`/`2027`).
+  - **3. Răspuns automat către client pe WhatsApp + Alertă pe grupul firmei + A 4-a stare vizuală Roșie (`⚠️`) pe cardul din Calendar (`translation_service.py`, `whatsapp_service.py`, `webhooks.py`, `ShortWorksCalendar.jsx`):**
+    - Când clientul cere reprogramare cu o dată dorită sau anulare, primește automat pe WhatsApp confirmarea înregistrării cererii (cu mențiunea să aștepte confirmarea echipei), grupul firmei primește alerta `⚠️ CERERE DE REPROGRAMARE DE LA CLIENT! (Data actuală ➔ Data dorită)` sau `🚨 CERERE DE ANULARE LUCRARE DE LA CLIENT!`, iar butonul de pe cardul din Calendar devine **Roșu pulsant cu iconița `⚠️`**.
+- **Fișiere:** `backend/app/services/translation_service.py`, `backend/app/services/whatsapp_service.py`, `backend/app/api/webhooks.py`, `backend/app/api/admin_work_orders.py`, `backend/app/api/public_work_orders.py`, `frontend/src/components/ShortWorksCalendar.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `frontend/src/pages/public/WorkOrderConfirm.jsx`
+- **Build / Teste:** Test unitar parser dată naturală (`15/15 PASS`), `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
+### 2026-11-25 22:04 — Unificare Traduceri i18n (`RO`, `FR`, `NL`, `EN`) în Modalul de Reminder Client & Confirmare
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Adăugat toate cheile `planning.reminder_*` (`reminder_modal_title`, `reminder_language`, `send_reminder_btn`, `status_confirmed_banner`, `status_sent_banner`, `status_not_sent_banner`, `unmark_confirmed_btn`, `mark_confirmed_btn` etc.) în fișierele `ro.json`, `fr.json`, `nl.json` și `en.json`, astfel încât atunci când interfața este pe Română (`RO`), toate butoanele și titlurile din modal sunt în Română (*„Reminder Client & Cerere de Confirmare”*, *„Limba mesajului”*, *„Anulează”*, *„Trimite reminderul”*), iar pe Franceză (`FR`) toate sunt în Franceză (*„Rappel Client & Demande de Confirmation”*, *„Langue du message”*, *„Annuler”*, *„Envoyer le rappel”*).
+- **Fișiere:** `frontend/src/i18n/ro.json`, `frontend/src/i18n/fr.json`, `frontend/src/i18n/nl.json`, `frontend/src/i18n/en.json`, `frontend/src/components/ShortWorksCalendar.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
 ### 2026-11-25 21:44 — Oprire Redirecționare Mesaje Obișnuite de WhatsApp pe Grup și Notificare Clară „✅ DATA LUCRĂRII CONFIRMATĂ DE CLIENT!” (Păstrând Notificările de Devize Noi / Oferte)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

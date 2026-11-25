@@ -346,7 +346,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [sendingReminder, setSendingReminder] = useState(false)
     const [togglingConfirm, setTogglingConfirm] = useState(false)
 
-    const isReminderConfirmed = Boolean(
+    const reminderIssueType = wo?.prices?.reminder_issue_type || (wo?.reschedule_requested ? 'reschedule' : null)
+    const reminderRequestedDate = wo?.prices?.reminder_requested_date || wo?.reschedule_requested_date || null
+    const reminderIssueMessage = wo?.prices?.reminder_issue_message || wo?.reschedule_reason || null
+    const isReminderConfirmed = !reminderIssueType && Boolean(
         wo?.reminder_confirmed_at ||
         wo?.prices?.reminder_confirmed_at ||
         (Array.isArray(wo?.date_history) && wo.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
@@ -371,16 +374,16 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
         if (langCode === 'nl') {
             return dateFormatted
-                ? `Hallo ${clientName},\n\nWij herinneren u eraan dat uw chapewerken gepland staan op ${dateFormatted}.\n\nGelieve te bevestigen dat de werf klaar is via deze link :\n${confirmUrl}\n\nMet vriendelijke groet,\nHet Davide Chape Team`
+                ? `Hallo ${clientName},\n\nWij herinneren u eraan dat uw chapewerken gepland staan op ${dateFormatted}.\n\nU kunt rechtstreeks op dit WhatsApp-bericht antwoorden :\n✅ Antwoord OK om de datum te bevestigen\n📅 Antwoord VERPLAATSEN + gewenste datum (bv. VERPLAATSEN 28.11 of 2 dec) om een andere datum aan te vragen (onder voorbehoud van bevestiging door ons team)\n❌ Antwoord ANNULEREN om te annuleren\n\n🔗 Of beheer uw afspraak online :\n${confirmUrl}\n\nMet vriendelijke groet,\nHet Davide Chape Team`
                 : `Hallo ${clientName},\n\nGelieve uw offerte / werkzaamheden te bekijken en te bevestigen via deze link :\n${confirmUrl}\n\nMet vriendelijke groet,\nHet Davide Chape Team`
         }
         if (langCode === 'en') {
             return dateFormatted
-                ? `Hello ${clientName},\n\nWe remind you that your screed works are scheduled for ${dateFormatted}.\n\nPlease confirm that the site is ready by clicking this link :\n${confirmUrl}\n\nBest regards,\nThe Davide Chape Team`
+                ? `Hello ${clientName},\n\nWe remind you that your screed works are scheduled for ${dateFormatted}.\n\nYou can reply directly to this WhatsApp message :\n✅ Reply OK to confirm the date\n📅 Reply RESCHEDULE + preferred date (e.g. RESCHEDULE 28.11 or 2 dec) to request another date (subject to confirmation by our team)\n❌ Reply CANCEL to cancel the appointment\n\n🔗 Or manage your appointment online :\n${confirmUrl}\n\nBest regards,\nThe Davide Chape Team`
                 : `Hello ${clientName},\n\nPlease review and confirm your quote / works by clicking this link :\n${confirmUrl}\n\nBest regards,\nThe Davide Chape Team`
         }
         return dateFormatted
-            ? `Bonjour ${clientName},\n\nNous vous rappelons que vos travaux de chape sont planifiés pour le ${dateFormatted}.\n\nMerci de bien vouloir confirmer que le chantier est prêt en cliquant sur ce lien :\n${confirmUrl}\n\nCordialement,\nL'équipe Davide Chape`
+            ? `Bonjour ${clientName},\n\nNous vous rappelons que vos travaux de chape sont planifiés pour le ${dateFormatted}.\n\nVous pouvez répondre directement à ce message WhatsApp :\n✅ Répondez OK pour confirmer la date\n📅 Répondez REPORT + la date souhaitée (ex: REPORT 28.11 ou 2 déc) pour demander une autre date (sous réserve de confirmation par notre équipe)\n❌ Répondez ANNULER pour annuler l'intervention\n\n🔗 Ou gérez votre rendez-vous en ligne :\n${confirmUrl}\n\nCordialement,\nL'équipe Davide Chape`
             : `Bonjour ${clientName},\n\nMerci de bien vouloir consulter et confirmer votre devis / vos travaux en cliquant sur ce lien :\n${confirmUrl}\n\nCordialement,\nL'équipe Davide Chape`
     }
 
@@ -1879,10 +1882,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 }`}
                                 title={
                                     isReminderConfirmed
-                                        ? t('planning.reminder_status_confirmed', 'CONFIRMAT de client ✓✓')
+                                        ? t('planning.reminder_status_confirmed', 'CONFIRMÉ par le client ✓✓')
                                         : isReminderSent
-                                            ? t('planning.reminder_status_sent', 'Reminder TRIMIS ✈️✓ (în așteptarea confirmării clientului)')
-                                            : t('planning.send_whatsapp_reminder', 'Netrimis — Apasă pentru a trimite reminder WhatsApp & Email clientului')
+                                            ? t('planning.reminder_status_sent', 'Rappel ENVOYÉ ✈️✓ (en attente de confirmation du client)')
+                                            : t('planning.send_whatsapp_reminder', 'Non envoyé — Cliquez pour envoyer un rappel WhatsApp & Email au client')
                                 }
                             >
                                 {isReminderConfirmed ? (
@@ -2122,12 +2125,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 {isReminderConfirmed ? (
                                                                     <>
                                                                         <CheckCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.6]" />
-                                                                        <span>{t('planning.reminder_confirmed_short', 'Confirmat ✓✓')}</span>
+                                                                        <span>{t('planning.reminder_confirmed_short', 'Confirmé ✓✓')}</span>
                                                                     </>
                                                                 ) : isReminderSent ? (
                                                                     <>
                                                                         <Send className="w-3.5 h-3.5 shrink-0" />
-                                                                        <span>{t('planning.reminder_sent_short', 'Reminder Trimis ✓')}</span>
+                                                                        <span>{t('planning.reminder_sent_short', 'Rappel Envoyé ✓')}</span>
                                                                     </>
                                                                 ) : (
                                                                     <>
@@ -4793,10 +4796,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                     <span className="text-[11.5px] font-bold leading-snug">
                                         {isReminderConfirmed
-                                            ? t('planning.status_confirmed_banner', 'Confirmat de client ✓✓')
+                                            ? t('planning.status_confirmed_banner', 'Confirmé par le client ✓✓')
                                             : isReminderSent
-                                                ? t('planning.status_sent_banner', 'Reminder trimis — în așteptarea confirmării')
-                                                : t('planning.status_not_sent_banner', 'Reminder netrimis încă')}
+                                                ? t('planning.status_sent_banner', 'Rappel envoyé — en attente de confirmation')
+                                                : t('planning.status_not_sent_banner', 'Rappel non envoyé')}
                                     </span>
                                 </div>
                                 <button
@@ -4810,8 +4813,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     }`}
                                 >
                                     {isReminderConfirmed
-                                        ? t('planning.unmark_confirmed_btn', 'Anulează')
-                                        : t('planning.mark_confirmed_btn', '✓✓ Marchează Confirmat')}
+                                        ? t('planning.unmark_confirmed_btn', 'Annuler')
+                                        : t('planning.mark_confirmed_btn', '✓✓ Marquer confirmé')}
                                 </button>
                             </div>
 

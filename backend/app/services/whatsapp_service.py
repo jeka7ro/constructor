@@ -987,6 +987,96 @@ def send_admin_date_confirmed_whatsapp(
         logger.error(f"Failed to send date confirmed WhatsApp notification to {formatted_target}: {e}")
         return False
 
+
+def send_admin_reminder_issue_whatsapp(
+    wo,
+    issue_type: str = "reschedule",
+    requested_date_display: str = None,
+    client_reply_text: str = None,
+    source: str = "whatsapp"
+) -> bool:
+    """
+    Sends a clear alert to the company WhatsApp group when a client requests
+    a reschedule (with desired date) or cancellation in response to a reminder.
+    """
+    instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
+    api_token = os.getenv("ULTRAMSG_API_TOKEN")
+    target_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
+
+    if not instance_id or not api_token or not target_id or not wo:
+        return False
+
+    url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+    formatted_target = target_id.strip() if "@g.us" in target_id else target_id.replace("+", "").replace(" ", "").replace("-", "")
+
+    client_name = (getattr(wo, "client_name", None) or (wo.client.name if getattr(wo, "client", None) else None) or getattr(wo, "title", None) or "Client").strip()
+    quote_no = getattr(wo, "quote_number", None)
+    quote_suffix = f" · {quote_no}" if quote_no and len(str(quote_no)) <= 20 else ""
+
+    raw_date = getattr(wo, "start_date", None) or getattr(wo, "deadline_date", None)
+    if hasattr(raw_date, "strftime") and raw_date:
+        date_str = raw_date.strftime("%d/%m/%Y")
+    elif raw_date:
+        parts = str(raw_date).split("T")[0].split("-")
+        date_str = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else str(raw_date)
+    else:
+        date_str = "—"
+
+    site_addr = (getattr(wo, "site_address", None) or (wo.site.address if getattr(wo, "site", None) else None) or "").strip()
+
+    if issue_type == "cancel":
+        header = "🚨 *CERERE DE ANULARE LUCRARE DE LA CLIENT!*"
+    else:
+        header = "⚠️ *CERERE DE REPROGRAMARE DE LA CLIENT!*"
+
+    lines = [
+        header,
+        "",
+        f"👤 *Client:* {client_name}{quote_suffix}",
+    ]
+    if issue_type == "reschedule" and requested_date_display:
+        lines.append(f"📅 *Data actuală:* {date_str} ➔ *Data dorită de client:* *{requested_date_display}*")
+    else:
+        lines.append(f"📅 *Data programată:* {date_str}")
+
+    if site_addr:
+        lines.append(f"📍 *Șantier:* {site_addr}")
+
+    if client_reply_text and client_reply_text.strip():
+        lines.append(f"💬 *Mesaj client:* \"{client_reply_text.strip()}\"")
+        try:
+            from app.services.translation_service import translate_text
+            ro_tr = translate_text(client_reply_text.strip(), "ro")
+            if ro_tr and ro_tr.strip().lower() != client_reply_text.strip().lower():
+                lines.append(f"🇷🇴 *Traducere (RO):* \"{ro_tr.strip()}\"")
+        except Exception:
+            pass
+
+    confirm_key = getattr(wo, "token", None) or getattr(wo, "id", None)
+    if confirm_key:
+        client_lang = (getattr(wo, "client_language", None) or "fr").lower().split("-")[0].strip()
+        if client_lang not in ("fr", "nl", "en", "ro"):
+            client_lang = "fr"
+        confirm_url = f"https://davidechape.pontaj.app/confirm/{confirm_key}?lang={client_lang}"
+        seller_url = f"{confirm_url}&role=seller"
+        lines.append("")
+        lines.append(f"🛠️ *Link Davide Chape:*\n{seller_url}")
+
+    payload = {
+        "token": api_token,
+        "to": formatted_target,
+        "body": "\n".join(lines)
+    }
+
+    try:
+        response = httpx.post(url, data=payload, timeout=10.0)
+        response.raise_for_status()
+        logger.info(f"Reminder issue ({issue_type}) WhatsApp alert sent to group {formatted_target} for WO {wo.id}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send reminder issue WhatsApp alert to {formatted_target}: {e}")
+        return False
+
 def send_chat_text_whatsapp(phone_number: str, text: str):
     """
     Sends chat text strictly via UltraMsg (Official Company WhatsApp Number).

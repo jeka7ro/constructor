@@ -376,13 +376,13 @@ def _reconcile_pending_reminders(wos: list, db: Session):
     try:
         import re as _re
         from datetime import datetime, timedelta
-        from sqlalchemy.orm.attributes import flag_modified
-        from app.services.translation_service import is_client_confirmation_message
+        from app.services.translation_service import parse_client_reminder_reply
 
         pending = []
         for wo in wos:
             sent_at, confirmed_at = _extract_reminder_timestamps(wo)
-            if sent_at and not confirmed_at:
+            p_curr = wo.prices if isinstance(wo.prices, dict) else {}
+            if sent_at and not confirmed_at and not p_curr.get("reminder_issue_type"):
                 pending.append((wo, sent_at))
 
         if not pending:
@@ -416,13 +416,24 @@ def _reconcile_pending_reminders(wos: list, db: Session):
                 WorkOrderMessage.work_order_id.in_(same_phone_wo_ids),
                 WorkOrderMessage.sender == "client",
                 WorkOrderMessage.created_at >= sent_dt
-            ).order_by(WorkOrderMessage.created_at.asc()).all()
+            ).order_by(WorkOrderMessage.created_at.desc()).all()
 
             for cm in client_msgs:
-                if is_client_confirmation_message(cm.message):
+                parsed = parse_client_reminder_reply(cm.message, ref_date=wo.start_date)
+                if parsed["intent"] == "confirm":
                     conf_iso = cm.created_at.isoformat() + "Z" if cm.created_at else (datetime.utcnow().isoformat() + "Z")
                     p_dict = dict(wo.prices or {}) if isinstance(wo.prices, dict) else {}
                     p_dict["reminder_confirmed_at"] = conf_iso
+                    wo.prices = p_dict
+                    break
+                elif parsed["intent"] in ("reschedule", "cancel"):
+                    issue_iso = cm.created_at.isoformat() + "Z" if cm.created_at else (datetime.utcnow().isoformat() + "Z")
+                    p_dict = dict(wo.prices or {}) if isinstance(wo.prices, dict) else {}
+                    p_dict["reminder_issue_type"] = parsed["intent"]
+                    p_dict["reminder_issue_at"] = issue_iso
+                    p_dict["reminder_issue_message"] = (cm.message or "").strip()[:200]
+                    if parsed.get("requested_date_display"):
+                        p_dict["reminder_requested_date"] = parsed["requested_date_display"]
                     wo.prices = p_dict
                     break
     except Exception as e:
@@ -1825,12 +1836,13 @@ def update_work_order(
         try:
             from sqlalchemy.orm.attributes import flag_modified
             p_copy = dict(wo.prices or {})
-            if "reminder_sent_at" in p_copy or "reminder_confirmed_at" in p_copy:
-                p_copy.pop("reminder_sent_at", None)
-                p_copy.pop("reminder_confirmed_at", None)
-                wo.prices = p_copy
-                flag_modified(wo, "prices")
-                db.commit()
+            for k in ("reminder_sent_at", "reminder_confirmed_at", "reminder_issue_type", "reminder_issue_at", "reminder_issue_message", "reminder_requested_date"):
+                p_copy.pop(k, None)
+            wo.prices = p_copy
+            wo.reschedule_requested = False
+            wo.reschedule_reason = None
+            flag_modified(wo, "prices")
+            db.commit()
         except Exception:
             pass
     should_notify_client = (not only_time_changed_same_day) and (
@@ -3578,7 +3590,11 @@ def toggle_work_order_reminder_confirmation(
         p_dict["reminder_confirmed_at"] = now_iso
         if not p_dict.get("reminder_sent_at"):
             p_dict["reminder_sent_at"] = now_iso
+        for k in ("reminder_issue_type", "reminder_issue_at", "reminder_issue_message", "reminder_requested_date"):
+            p_dict.pop(k, None)
         wo.date_confirmed_at = datetime.utcnow()
+        wo.reschedule_requested = False
+        wo.reschedule_reason = None
         hist = list(wo.date_history) if isinstance(wo.date_history, list) else []
         hist.append({
             "action": "confirmed_manually",
@@ -3589,10 +3605,14 @@ def toggle_work_order_reminder_confirmation(
         flag_modified(wo, "date_history")
     else:
         p_dict.pop("reminder_confirmed_at", None)
+        for k in ("reminder_issue_type", "reminder_issue_at", "reminder_issue_message", "reminder_requested_date"):
+            p_dict.pop(k, None)
+        wo.reschedule_requested = False
+        wo.reschedule_reason = None
         if isinstance(wo.date_history, list):
             wo.date_history = [
                 h for h in wo.date_history
-                if not (isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually"))
+                if not (isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually", "reschedule_requested_by_client", "cancel_requested_by_client"))
             ]
             flag_modified(wo, "date_history")
 

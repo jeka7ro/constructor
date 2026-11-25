@@ -1163,27 +1163,41 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                             );
                                         }
                                         return (
-                                            <button
-                                                type="button"
-                                                disabled={confirmingDate}
-                                                onClick={handleConfirmDate}
-                                                className="mt-2.5 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
-                                            >
-                                                {confirmingDate ? (
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                ) : (
-                                                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                                                )}
-                                                <span>
-                                                    {lang === 'nl'
-                                                        ? 'Bevestigen dat de werf klaar is op deze datum'
-                                                        : lang === 'en'
-                                                            ? 'Confirm that the site is ready for this date'
-                                                            : 'Confirmer que le chantier est prêt pour cette date'}
-                                                </span>
-                                            </button>
+                                            <div className="mt-2.5 flex flex-col gap-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={confirmingDate}
+                                                    onClick={handleConfirmDate}
+                                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+                                                >
+                                                    {confirmingDate ? (
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    ) : (
+                                                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                                    )}
+                                                    <span>
+                                                        {lang === 'nl'
+                                                            ? 'Bevestigen dat de werf klaar is op deze datum'
+                                                            : lang === 'en'
+                                                                ? 'Confirm that the site is ready for this date'
+                                                                : 'Confirmer que le chantier est prêt pour cette date'}
+                                                    </span>
+                                                </button>
+                                            </div>
                                         );
                                     })()}
+                                    {!isSeller && order?.reschedule_requested && (
+                                        <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 text-xs font-bold">
+                                            <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                                            <span>
+                                                {lang === 'nl'
+                                                    ? 'Uw verzoek tot wijziging is ontvangen — in afwachting van bevestiging door ons team'
+                                                    : lang === 'en'
+                                                        ? 'Your change request was received — awaiting confirmation from our team'
+                                                        : 'Votre demande de modification a été reçue — en attente de confirmation par notre équipe'}
+                                            </span>
+                                        </div>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={handleOpenChat}

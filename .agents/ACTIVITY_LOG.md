@@ -3,6 +3,28 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-11-25 (Flux Complet Reminder WhatsApp cu 3 Opțiuni `OK` / `REPORT + dată naturală` / `ANNULER` + Răspuns Automat Client + Alertă Roșie `⚠️`)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Plan prezentat și aprobat explicit de Utilizator ("Ok. Hai si asa").
+
+### Modificări Aplicate & Verificate:
+1. **Șablon Reminder cu cele 3 opțiuni clare (`OK` / `REPORT + dată` / `ANNULER`) în `FR`, `NL`, `EN`.**
+2. **Parser natural de dată (`extract_natural_date` & `parse_client_reminder_reply` în `translation_service.py`):**
+   - Suport complet pentru `28.11`, `28.11.2026`, `28/11`, `28-11`, `28 nov`, `2 dec`, `2 décembre`, `15 ian`, `15 jan` etc.
+3. **Răspuns automat pe WhatsApp către client (să aștepte confirmarea echipei), alertă pe grupul firmei (`send_admin_reminder_issue_whatsapp`) și stare vizuală roșie `⚠️` pe cardurile din Calendar.**
+
+---
+
+## 2026-11-25 (Unificare Traduceri i18n `RO / FR / NL / EN` în Modalul de Reminder Client)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Cerut explicit de Utilizator ("de ce am 2 limbi aici la 2 butone").
+
+### Modificări Aplicate & Verificate:
+1. **Adăugat cheile `planning.reminder_*` în `ro.json`, `fr.json`, `nl.json` și `en.json`:**
+   - Rezolvat amestecul de limbi din modalul de Reminder (unde `common.cancel` venea din `ro.json` ca *„Anulează”*, iar `planning.send_reminder_btn` cădea pe fallback-ul *„Envoyer le rappel”*). Acum toate textele din modal respectă 100% limba selectată în aplicație (`RO` / `FR` / `NL` / `EN`).
+
+---
+
 ## 2026-11-25 (Oprire Redirecționare Mesaje Obișnuite de WhatsApp pe Grup + Notificare Clară „✅ DATA LUCRĂRII CONFIRMATĂ DE CLIENT!” pe Grup)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Plan prezentat și aprobat explicit de Utilizator ("A. da si cle cu devise noi sa ramana si ele.").

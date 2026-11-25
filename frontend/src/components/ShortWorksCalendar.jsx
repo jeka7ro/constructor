@@ -174,20 +174,25 @@ export default function ShortWorksCalendar({
     const [unconfirmedOrderIds, setUnconfirmedOrderIds] = useState(new Set());
 
     const getOrderReminderState = (wo) => {
-        if (!wo) return { isConfirmed: false, isSent: false };
+        if (!wo) return { isConfirmed: false, isSent: false, issueType: null, requestedDate: null, issueMessage: null };
+        const issueType = !unconfirmedOrderIds.has(wo.id) && !confirmedOrderIds.has(wo.id)
+            ? (wo.prices?.reminder_issue_type || (wo.reschedule_requested ? 'reschedule' : null))
+            : null;
+        const requestedDate = wo.prices?.reminder_requested_date || wo.reschedule_requested_date || null;
+        const issueMessage = wo.prices?.reminder_issue_message || wo.reschedule_reason || null;
         const hasDbConfirm = Boolean(
             wo.reminder_confirmed_at ||
             wo.prices?.reminder_confirmed_at ||
             (Array.isArray(wo.date_history) && wo.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
         );
-        const isConfirmed = !unconfirmedOrderIds.has(wo.id) && (confirmedOrderIds.has(wo.id) || hasDbConfirm);
+        const isConfirmed = !issueType && !unconfirmedOrderIds.has(wo.id) && (confirmedOrderIds.has(wo.id) || hasDbConfirm);
         const isSent = Boolean(
             remindedOrderIds.has(wo.id) ||
             wo.reminder_sent_at ||
             wo.prices?.reminder_sent_at ||
             (Array.isArray(wo.date_history) && wo.date_history.some(h => h && h.action === 'reminder_sent'))
         );
-        return { isConfirmed, isSent };
+        return { isConfirmed, isSent, issueType, requestedDate, issueMessage };
     };
 
     // Poll every 10s when there is any order in the calendar with a sent reminder awaiting client confirmation
@@ -239,12 +244,12 @@ export default function ShortWorksCalendar({
         const confirmUrl = `https://davidechape.pontaj.app/confirm/${confirmKey}?lang=${langCode}`;
 
         if (langCode === 'nl') {
-            return `Hallo ${clientName},\n\nWij herinneren u eraan dat uw chapewerken gepland staan op ${dateFormatted}.\n\nGelieve te bevestigen dat de werf klaar is via deze link :\n${confirmUrl}\n\nMet vriendelijke groet,\nHet Davide Chape Team`;
+            return `Hallo ${clientName},\n\nWij herinneren u eraan dat uw chapewerken gepland staan op ${dateFormatted}.\n\nU kunt rechtstreeks op dit WhatsApp-bericht antwoorden :\n✅ Antwoord OK om de datum te bevestigen\n📅 Antwoord VERPLAATSEN + gewenste datum (bv. VERPLAATSEN 28.11 of 2 dec) om een andere datum aan te vragen (onder voorbehoud van bevestiging door ons team)\n❌ Antwoord ANNULEREN om te annuleren\n\n🔗 Of beheer uw afspraak online :\n${confirmUrl}\n\nMet vriendelijke groet,\nHet Davide Chape Team`;
         }
         if (langCode === 'en') {
-            return `Hello ${clientName},\n\nWe remind you that your screed works are scheduled for ${dateFormatted}.\n\nPlease confirm that the site is ready by clicking this link :\n${confirmUrl}\n\nBest regards,\nThe Davide Chape Team`;
+            return `Hello ${clientName},\n\nWe remind you that your screed works are scheduled for ${dateFormatted}.\n\nYou can reply directly to this WhatsApp message :\n✅ Reply OK to confirm the date\n📅 Reply RESCHEDULE + preferred date (e.g. RESCHEDULE 28.11 or 2 dec) to request another date (subject to confirmation by our team)\n❌ Reply CANCEL to cancel the appointment\n\n🔗 Or manage your appointment online :\n${confirmUrl}\n\nBest regards,\nThe Davide Chape Team`;
         }
-        return `Bonjour ${clientName},\n\nNous vous rappelons que vos travaux de chape sont planifiés pour le ${dateFormatted}.\n\nMerci de bien vouloir confirmer que le chantier est prêt en cliquant sur ce lien :\n${confirmUrl}\n\nCordialement,\nL'équipe Davide Chape`;
+        return `Bonjour ${clientName},\n\nNous vous rappelons que vos travaux de chape sont planifiés pour le ${dateFormatted}.\n\nVous pouvez répondre directement à ce message WhatsApp :\n✅ Répondez OK pour confirmer la date\n📅 Répondez REPORT + la date souhaitée (ex: REPORT 28.11 ou 2 déc) pour demander une autre date (sous réserve de confirmation par notre équipe)\n❌ Répondez ANNULER pour annuler l'intervention\n\n🔗 Ou gérez votre rendez-vous en ligne :\n${confirmUrl}\n\nCordialement,\nL'équipe Davide Chape`;
     };
 
     const handleOpenReminderModal = (wo, e) => {
@@ -1593,30 +1598,38 @@ export default function ShortWorksCalendar({
                                                 })()}
                                             </div>
 
-                                            {/* WhatsApp Reminder Button (3 states: Netrimis / Trimis / Confirmat) — positioned directly under the m² badge on the right side */}
+                                            {/* WhatsApp Reminder Button (4 states: Netrimis / Trimis / Confirmat / Alertă Reprogramare sau Anulare) — positioned directly under the m² badge on the right side */}
                                             {!isPartner && !isCompleted && (() => {
-                                                const { isConfirmed, isSent } = getOrderReminderState(wo);
+                                                const { isConfirmed, isSent, issueType, requestedDate } = getOrderReminderState(wo);
                                                 return (
                                                     <button
                                                         type="button"
                                                         onMouseDown={(e) => e.stopPropagation()}
                                                         onClick={(e) => handleOpenReminderModal(wo, e)}
                                                         className={`absolute right-0 top-[28px] z-20 w-[26px] h-[26px] rounded-lg flex items-center justify-center transition-all shadow-sm cursor-pointer border ${
-                                                            isConfirmed
-                                                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 ring-1 ring-white/90 dark:ring-slate-900/90'
-                                                                : isSent
-                                                                    ? 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600 ring-1 ring-white/90 dark:ring-slate-900/90'
-                                                                    : 'bg-white/95 hover:bg-emerald-500 dark:bg-slate-900/90 dark:hover:bg-emerald-500 text-emerald-600 hover:text-white dark:text-emerald-400 dark:hover:text-white border-[1.5px] border-emerald-500/90'
+                                                            issueType
+                                                                ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700 ring-1 ring-white/90 animate-pulse'
+                                                                : isConfirmed
+                                                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 ring-1 ring-white/90 dark:ring-slate-900/90'
+                                                                    : isSent
+                                                                        ? 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600 ring-1 ring-white/90 dark:ring-slate-900/90'
+                                                                        : 'bg-white/95 hover:bg-emerald-500 dark:bg-slate-900/90 dark:hover:bg-emerald-500 text-emerald-600 hover:text-white dark:text-emerald-400 dark:hover:text-white border-[1.5px] border-emerald-500/90'
                                                         }`}
                                                         title={
-                                                            isConfirmed
-                                                                ? t('planning.reminder_status_confirmed', 'CONFIRMAT de client ✓✓ — Click pentru detalii / retrimitere')
-                                                                : isSent
-                                                                    ? t('planning.reminder_status_sent', 'Reminder TRIMIS ✈️✓ (în așteptarea confirmării clientului)')
-                                                                    : t('planning.send_whatsapp_reminder', 'Netrimis — Apasă pentru a trimite reminder WhatsApp & Email clientului')
+                                                            issueType === 'cancel'
+                                                                ? t('planning.reminder_status_cancel', 'ALERTĂ: Clientul a cerut ANULAREA lucrării!')
+                                                                : issueType === 'reschedule'
+                                                                    ? `${t('planning.reminder_status_reschedule', 'ALERTĂ: Clientul cere REPROGRAMARE')}${requestedDate ? ` (${requestedDate})` : ''}`
+                                                                    : isConfirmed
+                                                                        ? t('planning.reminder_status_confirmed', 'CONFIRMÉ par le client ✓✓ — Cliquez pour les détails / renvoyer')
+                                                                        : isSent
+                                                                            ? t('planning.reminder_status_sent', 'Rappel ENVOYÉ ✈️✓ (en attente de confirmation du client)')
+                                                                            : t('planning.send_whatsapp_reminder', 'Non envoyé — Cliquez pour envoyer un rappel WhatsApp & Email au client')
                                                         }
                                                     >
-                                                        {isConfirmed ? (
+                                                        {issueType ? (
+                                                            <AlertTriangle className="w-4 h-4 stroke-[2.6]" />
+                                                        ) : isConfirmed ? (
                                                             <CheckCheck className="w-4 h-4 stroke-[2.8]" />
                                                         ) : isSent ? (
                                                             <div className="relative flex items-center justify-center">
@@ -1958,45 +1971,60 @@ export default function ShortWorksCalendar({
 
                             {/* Live Status Banner + Manual Confirmation Toggle */}
                             {(() => {
-                                const { isConfirmed, isSent } = getOrderReminderState(reminderModalOrder);
+                                const { isConfirmed, isSent, issueType, requestedDate, issueMessage } = getOrderReminderState(reminderModalOrder);
                                 return (
-                                    <div className={`mt-3.5 p-2.5 rounded-[12px] border flex items-center justify-between gap-2 ${
-                                        isConfirmed
-                                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
-                                            : isSent
-                                                ? 'bg-sky-500/15 border-sky-500/30 text-sky-900 dark:text-sky-200'
-                                                : 'bg-slate-100 dark:bg-slate-900/70 border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                                    <div className={`mt-3.5 p-2.5 rounded-[12px] border flex flex-col gap-1.5 ${
+                                        issueType
+                                            ? 'bg-rose-500/15 border-rose-500/35 text-rose-900 dark:text-rose-200'
+                                            : isConfirmed
+                                                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
+                                                : isSent
+                                                    ? 'bg-sky-500/15 border-sky-500/30 text-sky-900 dark:text-sky-200'
+                                                    : 'bg-slate-100 dark:bg-slate-900/70 border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                                     }`}>
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            {isConfirmed ? (
-                                                <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.6]" />
-                                            ) : isSent ? (
-                                                <Send className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
-                                            ) : (
-                                                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                                            )}
-                                            <span className="text-[11.5px] font-bold leading-snug">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                {issueType ? (
+                                                    <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 stroke-[2.6]" />
+                                                ) : isConfirmed ? (
+                                                    <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.6]" />
+                                                ) : isSent ? (
+                                                    <Send className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                                                ) : (
+                                                    <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                                                )}
+                                                <span className="text-[11.5px] font-bold leading-snug">
+                                                    {issueType === 'cancel'
+                                                        ? t('planning.status_cancel_banner', '🚨 Clientul a cerut ANULAREA lucrării!')
+                                                        : issueType === 'reschedule'
+                                                            ? `${t('planning.status_reschedule_banner', '⚠️ Clientul cere REPROGRAMARE')}${requestedDate ? ` ➔ ${requestedDate}` : ''}`
+                                                            : isConfirmed
+                                                                ? t('planning.status_confirmed_banner', 'Confirmé par le client ✓✓')
+                                                                : isSent
+                                                                    ? t('planning.status_sent_banner', 'Rappel envoyé — en attente de confirmation')
+                                                                    : t('planning.status_not_sent_banner', 'Rappel non envoyé')}
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={togglingConfirm}
+                                                onClick={() => handleToggleReminderConfirm(reminderModalOrder, !isConfirmed)}
+                                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer border ${
+                                                    isConfirmed
+                                                        ? 'bg-white/90 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border-slate-300/80'
+                                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                                                }`}
+                                            >
                                                 {isConfirmed
-                                                    ? t('planning.status_confirmed_banner', 'Confirmat de client ✓✓')
-                                                    : isSent
-                                                        ? t('planning.status_sent_banner', 'Reminder trimis — în așteptarea confirmării')
-                                                        : t('planning.status_not_sent_banner', 'Reminder netrimis încă')}
-                                            </span>
+                                                    ? t('planning.unmark_confirmed_btn', 'Annuler')
+                                                    : t('planning.mark_confirmed_btn', '✓✓ Marquer confirmé')}
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            disabled={togglingConfirm}
-                                            onClick={() => handleToggleReminderConfirm(reminderModalOrder, !isConfirmed)}
-                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer border ${
-                                                isConfirmed
-                                                    ? 'bg-white/90 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border-slate-300/80'
-                                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 shadow-2xs'
-                                            }`}
-                                        >
-                                            {isConfirmed
-                                                ? t('planning.unmark_confirmed_btn', 'Anulează')
-                                                : t('planning.mark_confirmed_btn', '✓✓ Marchează Confirmat')}
-                                        </button>
+                                        {issueType && issueMessage && (
+                                            <div className="text-[11px] font-semibold text-rose-800 dark:text-rose-300 bg-white/70 dark:bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-rose-500/20">
+                                                💬 "{issueMessage}"
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })()}

@@ -881,18 +881,34 @@ def post_public_work_order_message(
     db.commit()
     db.refresh(msg)
 
-    # Auto-detect if client confirmed the scheduled date via chat message
-    confirmed_via_chat = False
+    # Auto-detect if client confirmed, rescheduled, or cancelled the scheduled date via chat message
+    handled_reminder_action = False
     try:
-        from app.services.translation_service import is_client_confirmation_message, mark_work_order_reminder_confirmed
+        from app.services.translation_service import (
+            parse_client_reminder_reply,
+            mark_work_order_reminder_confirmed,
+            mark_work_order_reminder_issue,
+        )
         has_date_or_reminder = bool(wo.start_date or (isinstance(wo.prices, dict) and wo.prices.get("reminder_sent_at")))
-        if has_date_or_reminder and is_client_confirmation_message(payload.message):
-            confirmed_via_chat = mark_work_order_reminder_confirmed(wo, db, source="message", detail=payload.message)
+        if has_date_or_reminder:
+            parsed = parse_client_reminder_reply(payload.message, ref_date=wo.start_date)
+            if parsed["intent"] == "confirm":
+                handled_reminder_action = mark_work_order_reminder_confirmed(wo, db, source="message", detail=payload.message)
+            elif parsed["intent"] in ("reschedule", "cancel"):
+                handled_reminder_action = mark_work_order_reminder_issue(
+                    wo,
+                    db,
+                    issue_type=parsed["intent"],
+                    requested_date_iso=parsed.get("requested_date"),
+                    requested_date_display=parsed.get("requested_date_display"),
+                    client_message=payload.message,
+                    source="chat"
+                )
     except Exception as e:
-        logger.warning(f"Auto-confirmation check on client chat message failed: {e}")
+        logger.warning(f"Auto-confirmation/issue check on client chat message failed: {e}")
     
-    # Forward notification to company WhatsApp group ONLY if it wasn't already handled as a date confirmation
-    if not confirmed_via_chat:
+    # Forward notification to company WhatsApp group ONLY if it wasn't already handled as a date confirmation or reschedule/cancel alert
+    if not handled_reminder_action:
         try:
             admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
             if admin_group_id:
