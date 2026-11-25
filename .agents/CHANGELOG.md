@@ -1,5 +1,122 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-25 21:44 — Oprire Redirecționare Mesaje Obișnuite de WhatsApp pe Grup și Notificare Clară „✅ DATA LUCRĂRII CONFIRMATĂ DE CLIENT!” (Păstrând Notificările de Devize Noi / Oferte)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **1. Oprit redirecționarea mesajelor obișnuite de WhatsApp pe grupul firmei (`backend/app/api/webhooks.py`):**
+    - Mesajele primite pe WhatsApp se salvează doar în Chat-ul din platformă (`/admin/chats`, `WorkOrderDetail`) fără a mai fi trimise ca `💬 Mesaj Nou de la Client!` pe grupul de WhatsApp al firmei.
+  - **2. Notificare clară pe grupul de WhatsApp când clientul confirmă data lucrării (`send_admin_date_confirmed_whatsapp` în `whatsapp_service.py`, `translation_service.py`, `public_work_orders.py`):**
+    - Când un client confirmă o lucrare cu reminder trimis (fie răspunzând *„Ok / Oui / Ja”* la reminder, fie apăsând pe butonul de confirmare a datei din link-ul `/confirm/{token}`), pe grupul de WhatsApp se trimite mesajul clar:
+      `✅ DATA LUCRĂRII CONFIRMATĂ DE CLIENT!` + `👤 Client` (cu numărul scurt de deviz `DEVxxxx`, fără UUID-uri) + `📅 Data confirmată: DD/MM/YYYY (m²)` + `📍 Șantier` + `💬 Răspuns client`.
+  - **3. Păstrate integral notificările pe grup pentru Devize Noi și Oferte Confirmate (`send_admin_new_quote_whatsapp` & `send_admin_quote_confirmed_whatsapp`).**
+- **Fișiere:** `backend/app/services/whatsapp_service.py`, `backend/app/services/translation_service.py`, `backend/app/api/webhooks.py`, `backend/app/api/public_work_orders.py`
+- **Build / Teste:** Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
+### 2026-11-25 21:39 — Mutare Harta „Urmărire Live” în Pagină Separată Fix Sub „Planificare” și Extindere Calendar pe Tot Ecranul (`100vh`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **1. Mutat „Urmărire Live” în meniul lateral chiar sub „Planificare” (`AdminDashboard.jsx` & `LiveTracking.jsx` & `MiniLiveTrackingMap.jsx`):**
+    - În meniul din stânga (categoria **GENERAL**), poziția a 2-a imediat sub **Planificare** este acum **Urmărire Live** (`/admin/tracking`), eliminând dublura de jos din *Logistică & Finanțe*.
+    - Pagina `/admin/tracking` (`LiveTracking.jsx`) randează acum pe întreg ecranul (`h-[calc(100vh-76px)]`) modulul complet `MiniLiveTrackingMap` (cu șantierele zilei numerotate, caseta *METEO*, *LEGENDĂ* cu lucrările alocate fiecărui camion, radarul meteo, stațiile de nisip și Street View), care își încarcă autonom lucrările și echipele.
+  - **2. Extins Calendarul de Planificare și Panoul din Dreapta pe toată înălțimea ecranului (`AdminOverview.jsx` & `ShortWorksCalendar.jsx`):**
+    - Eliminat harta de sub calendar din `/admin/planning` și extins înălțimea calendarului și a coloanei din dreapta (*Devize în așteptare* + *Camioane*) la `h-[calc(100vh-76px)] min-h-[780px]`, astfel încât toate orele zilei din planning încap pe un singur ecran fără scroll pe pagină.
+- **Fișiere:** `frontend/src/pages/admin/AdminDashboard.jsx`, `frontend/src/pages/admin/AdminOverview.jsx`, `frontend/src/pages/admin/LiveTracking.jsx`, `frontend/src/components/MiniLiveTrackingMap.jsx`, `frontend/src/components/ShortWorksCalendar.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
+### 2026-11-25 21:27 — Cele 3 Stări pe Butonul de Reminder (Netrimis / Semn de Trimis / Semn de Confirmat) + Detecție Automată Confirmare din Link, WhatsApp și Chat
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **1. Cele 3 semne vizuale distincte pe cardurile din Calendar (sub `m²`, `26×26px`) și în Detalii Deviz (`WorkOrderDetail.jsx`):**
+    - **Netrimis încă:** Buton alb cu contur verde și sigla **WhatsApp** verde.
+    - **Reminder Trimis (`Semn de Trimis`):** Buton albastru-cer (`sky-500`) cu iconița de **Trimis (avion `Send`) + bifa galbenă `✓`** în colț.
+    - **Confirmat de Client (`Semn de Confirmat`):** Buton verde plin (`emerald-600`) cu **Dublă Bifă (`CheckCheck` `✓✓`)**.
+  - **2. Cele 3 căi prin care lucrarea trece în starea „Confirmat ✓✓”:**
+    - **Prin Link (`/confirm/{token}`):** Adăugat butonul verde *„Confirmer que le chantier est prêt pour cette date”* (`FR` / `NL` / `EN`) în cardul cu data intervenției din `WorkOrderConfirm.jsx`.
+    - **Automat prin mesaj pe WhatsApp sau în Chat (`webhooks.py`, `public_work_orders.py`, `translation_service.py`):** Când clientul răspunde cu un mesaj afirmativ (*„Oui”*, *„Ok”*, *„D'accord”*, *„Je confirme”*, *„C'est bon”*, *„Parfait”*, *„Ja”*, *„In orde”*, *„Bevestigd”*, *„Yes”*, *„Confirmed”* sau reacție 👍 / ✅, fără negații sau `?`), lucrarea este marcată automat ca **Confirmată (`reminder_confirmed_at`)**.
+    - **Manual dintr-un click:** În fereastra Apple HIG de Reminder există butonul **„✓✓ Marchează Confirmat”** (pentru confirmările telefonice).
+- **Fișiere:** `frontend/src/components/ShortWorksCalendar.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `frontend/src/pages/public/WorkOrderConfirm.jsx`, `backend/app/api/admin_work_orders.py`, `backend/app/api/public_work_orders.py`, `backend/app/api/webhooks.py`, `backend/app/services/translation_service.py`, `backend/app/services/whatsapp_service.py`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
+### 2026-11-25 21:06 — Verificare și Corectare Sistem Chat & Traduceri Automate Bidirecționale (`RO ↔ FR / NL / EN`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **1. Corectare serviciu central de traducere (`backend/app/services/translation_service.py`):**
+    - Anterior, `detect_source_lang(text)` folosea o listă scurtă de ~30 cuvinte pe limbă și returna implicit `'ro'` ori de câte ori un mesaj de la client (în FR/NL/EN) nu conținea acele cuvinte sau diacritice (ex. `"Can we reschedule for Thursday?"`, `"Pas de souci"`, `"Tot morgen"`), iar `if src == tgt:` sărea complet peste traducerea în română pentru admin.
+    - Trecut la detecție automată nativă Google Translate GTX (`sl=auto`) pe sesiune HTTP persistentă (`requests.Session()`) cu fallback dublu pe MyMemory API și vocabular extins în `detect_source_lang(text, target_lang=tgt)` care nu mai returnează niciodată fals `'ro'` la traducerea mesajelor clientului către `'ro'`.
+  - **2. Traducere multi-limbă (`FR`, `NL`, `EN`) și reparare automată a mesajelor netraduse (`admin_work_orders.py`, `public_work_orders.py`, `webhooks.py`, `partner_work_orders.py`, `worker_orders.py`):**
+    - La trimiterea unui mesaj din Admin (`/admin/chats`, `WorkOrderDetail`) sau din modul Vendeur (`/confirm/{token}?role=seller`), mesajul se traduce simultan în `fr`, `nl` și `en` (păstrând `_target_lang` pentru WhatsApp/Email), astfel încât clientul vede traducerea corectă indiferent pe ce limbă (`FR | NL | EN`) comută în pagina de confirmare.
+    - La încărcarea istoricului de chat (`GET /messages`), mesajele mai vechi de la client care rămăseseră cu `translations.ro == message` sunt retraduse automat în română.
+    - Adăugat traducerea în română (`translate_text(body, 'ro')`) și pe webhook-ul UltraMsg (`webhooks.py`), și unificat `partner_work_orders.py` și `worker_orders.py` pe `translation_service.translate_text`.
+  - **3. Restaurare emoji-uri de reacție și afișare curată în UI (`AdminChats.jsx`, `WorkOrderDetail.jsx`, `WorkOrderConfirm.jsx`):**
+    - Restaurat lista de 6 emoji-uri `['👍', '❤️', '😂', '😮', '😢', '🙏']` din selectorul de reacții (care fuseseră golite la `['', '', '', '', '', '']`).
+    - În modul Vendeur (`WorkOrderConfirm.jsx`), afișat traducerea corespunzătoare limbii selectate (`FR | NL | EN`) în loc de dublarea tuturor limbilor în aceeași bulă.
+- **Fișiere:** `backend/app/services/translation_service.py`, `backend/app/api/admin_work_orders.py`, `backend/app/api/public_work_orders.py`, `backend/app/api/webhooks.py`, `backend/app/api/partner_work_orders.py`, `backend/app/api/worker_orders.py`, `frontend/src/pages/admin/AdminChats.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `frontend/src/pages/public/WorkOrderConfirm.jsx`
+- **Build / Teste:** 9/9 scenarii live de traducere `RO ↔ FR/NL/EN` verificate (1.1s total), `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
+### 2026-11-25 20:57 — Mărire Lizibilitate Fonturi în Calendar, Devize în Așteptare, Camioane și Harta Urmărire Live (Fără Modificarea Dimensiunii Casetelor)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Mărit dimensiunea și contrastul textelor din interiorul cardurilor fără a schimba dimensiunea exterioară a casetelor sau layout-ul paginii:
+    - **Calendar (`ShortWorksCalendar.jsx` & `WeatherWidget.jsx`):** Nume client `10.5px` → `12px`, suprafață `10px` → `11px`, șapă/grosime și oraș `10px` → `11.5px`, tonaj/km/temperatură `9.5px` → `11px`, ore și antet zile mărite cu `+1.5px..2px`.
+    - **Panou Dreapta (`AdminOverview.jsx` — *Devize în așteptare* & *Camioane*):** Nume client și echipă `11.5px` → `12.5px`, oraș `10px` → `11.5px`, suprafață/distanță `9.5px` → `11px`.
+    - **Harta Urmărire Live (`MiniLiveTrackingMap.jsx` & `liveWeatherCanvas.jsx` — *METEO* și *LEGENDĂ*):** Nume orașe și echipe `11px` → `12.5px`, temperaturi/km/status `10px` → `11.5px`.
+- **Fișiere:** `frontend/src/components/ShortWorksCalendar.jsx`, `frontend/src/components/WeatherWidget.jsx`, `frontend/src/pages/admin/AdminOverview.jsx`, `frontend/src/components/MiniLiveTrackingMap.jsx`, `frontend/src/utils/liveWeatherCanvas.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
+### 2026-11-25 20:41 — Optimizare Viteză Pagina Comenzi (`/admin/work-orders`): Eliminare `db.commit()` și Interogări `PricingSetting` N+1 din Bucla `_serialize` (25s → 0.2s)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - În `backend/app/api/admin_work_orders.py` (`list_work_orders` și `_serialize`):
+    - Pre-încărcat toate tarifele `PricingSetting` ale organizației într-un singur dicționar `pricing_map` înainte de bucla de serializare (1 interogare SQL în loc de 204 interogări în buclă).
+    - Adăugat `defer_commit=True` în `_serialize` atunci când este apelat din `list_work_orders`, cu un singur `db.commit()` la finalul listei. Anterior, primul `db.commit()` pe un snapshot din trecut expira întreaga sesiune SQLAlchemy (`expire_on_commit=True`), declanșând peste 900 de interogări lazy-load secvențiale către Supabase pentru restul comenzilor și ținând pagina `/admin/work-orders` pe „Se încarcă...” timp de 25–30 secunde.
+- **Fișiere:** `backend/app/api/admin_work_orders.py`
+- **Build / Teste:** Timp răspuns `/api/admin/work-orders` redus la ~0.2s, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
+### 2026-11-25 20:34 — Rezolvare Geocodare Orașe Scurte din Belgia (`Gent`, `Ath`, `Dour`, `Mol`, `Huy`, `Spa`) în Logistică și Comenzi
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - În `backend/app/api/admin_logistics.py` (`geocode_address`) și `backend/app/api/admin_work_orders.py` (`_geocode_address_cached`), redus pragul minim de lungime a adresei de la `5` caractere la `2` caractere (care bloca orașul `Gent` de pe devizul `DEV1075 — Champagne srl` deoarece are 4 litere), schimbat regiunea implicită din `ro` în `be` și adăugat fallback automat pe OpenStreetMap / Nominatim (`countrycodes=be,nl,fr,lu,de,ro`), plus fallback pe adresa din profilul clientului (`client.address`) când `site_address` lipsește.
+  - În `LogisticsDashboard.jsx`, adăugat în tooltip-ul etichetei `Coordonnées manquantes` lista exactă a lucrărilor/echipelor cărora le-ar lipsi vreodată adresa.
+- **Fișiere:** `backend/app/api/admin_logistics.py`, `backend/app/api/admin_work_orders.py`, `frontend/src/pages/admin/logistics/LogisticsDashboard.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
+### 2026-11-25 20:22 — Notificări Client (WhatsApp & Email) Strict la Schimbarea Zilei în Planning (Fără Notificări la Mutarea pe Altă Oră în Aceeași Zi & Fără Oră Internă Afișată Clientului)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **1. Mutare pe verticală în aceeași zi (doar schimbarea orei pentru ordonarea echipelor) = 0 Notificări către Client:**
+    - În `ShortWorksCalendar.jsx` (drag-and-drop pe celulă goală, drag-and-drop peste alt card și mutare pe mobil) și în `backend/app/api/admin_work_orders.py` (`update_work_order`), dacă `old_start_date == new_start_date` (aceeași zi, doar `start_time` modificat), lucrarea își schimbă ordinea silențios fără a trimite niciun mesaj pe WhatsApp, Email sau Chat către client.
+  - **2. Mutare de pe o zi pe alta (`old_start_date != new_start_date`) = Notificare Automată pe WhatsApp + Email + Chat:**
+    - Când o lucrare planificată este mutată dintr-o zi în altă zi în calendar, se trimite automat notificarea de reprogramare atât pe **WhatsApp** (`send_planning_update_whatsapp` cu normalizare număr internațional `normalize_phone_number`), cât și pe **Email** (`send_planning_update_email`) și în Chat.
+  - **3. Eliminarea orei interne (`07:00`, `08:00` etc.) din notificările și pagina clientului:**
+    - Eliminat `({wo.start_time})` din textul notificărilor WhatsApp, Email și Chat în `admin_work_orders.py` și eliminat `• ${order.start_time}` de pe pagina publică a clientului (`WorkOrderConfirm.jsx`), astfel încât clientul vede doar **data zilei** (`DD/MM/YYYY`).
+- **Fișiere:** `backend/app/api/admin_work_orders.py`, `backend/app/services/whatsapp_service.py`, `frontend/src/components/ShortWorksCalendar.jsx`, `frontend/src/pages/public/WorkOrderConfirm.jsx`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
+### 2026-11-25 20:17 — Verificare Completă & Aliniere 100% la `apple-design` (Apple HIG): Tokeni Tailwind v3 Valizi, Upgrade Modale Secundare & Angajați, Eliminare 100% Alerte Native Browser
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **1. Corecție 36 clase de opacitate invalide în Tailwind v3 (`/12` -> `/15`, `/28` -> `/30`, `/18` -> `/20`, `/26` -> `/25`, `/88` -> `/90`, `/92` -> `/95`):**
+    - Înlocuit toate clasele `bg-*-500/12` (care nu generau niciun CSS în Tailwind v3) cu `bg-*-500/15` în 14 fișiere (`ConfirmModal.jsx`, `DialogOverlay.jsx`, `QuickAddWizard.jsx`, `ShortWorksCalendar.jsx`, `AccommodationsManagement.jsx`, `AdminChats.jsx`, `AdminEmergencies.jsx`, `AdminOverview.jsx`, `ClientsManagement.jsx`, `ComplaintsManagement.jsx`, `PricingSettingsPage.jsx`, `WarehouseManagement.jsx`, `WorkOrders.jsx`, `WorkOrderConfirm.jsx`), astfel încât toate badge-urile circulare Apple HIG își randează acum fundalul pastelat corect.
+    - Înlocuit `bg-white/28`, `bg-white/18`, `bg-white/26` pe capsula `HeaderDynamicIsland.jsx` cu clasele valide `bg-white/30`, `bg-white/20`, `bg-white/25`.
+  - **2. Upgrade la standardul Apple HIG (`createPortal(..., document.body)`, `z-[99999]`, `rounded-[24px]`, `border-[1.5px] border-slate-300`, traduceri FR) pe toate modalele secundare și de angajat rămase:**
+    - Actualizat `AvatarCropModal.jsx`, `EmployeeDetailView.jsx` (preview document), `PhotoGallery.jsx`, `InvoicingManagement.jsx` (preview proforma), `AdminDashboard.jsx` (birthday popup), `SitePhotosPage.jsx` (lightbox), `TimesheetApprovalPage.jsx` (photo modal & worker drawer), plus toate modalele din zona de angajat (`ClockInPage.jsx`, `EmployeeInventory.jsx`, `EmployeeMaterialRequests.jsx`, `SiteManagerPanel.jsx`, `WorkerOrdersPage.jsx`).
+  - **3. Eliminare 100% a apelurilor native `alert(...)`, `confirm(...)`, `prompt(...)` rămase în întreaga aplicație (0 alerte native rămase):**
+    - Înlocuit cu `useUIStore().showToast` și `openDialog` (Apple HIG Alert Sheet) în `ClientsManagement.jsx`, `WorkOrders.jsx`, `ExpensesManagement.jsx`, `WorkOrderForm.jsx`, `EmployeeDetailView.jsx`, `PhotoGallery.jsx`, `OrganizationsManagement.jsx`, `AdminBackups.jsx`, `EmployeeMaterialRequests.jsx`, `SiteManagerPanel.jsx`, `TeamLeaderPanel.jsx` și `TimesheetForm.jsx`.
+- **Fișiere:** 28 fișiere în `frontend/src/components/` și `frontend/src/pages/`
+- **Build / Teste:** `npm run build` OK (0 warnings/errors CSS), Audit Gatekeeper 🟢 VERDE (5/5 PASS), 0 opacități invalide Tailwind v3, 0 alerte native browser
+
+### 2026-11-25 20:02 — Instalare Skill-uri Tehnice (`web-design-guidelines`, `webapp-testing`, `systematic-debugging`, `verification-before-completion`) cu Prioritate Vizuală Absolută pentru `apple-design`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Instalat în `.agents/skills/` cele 4 skill-uri tehnice oficiale:
+    1. `web-design-guidelines` (`vercel-labs/agent-skills` + `references/command.md`)
+    2. `webapp-testing` (`anthropics/skills` — verificare matematică Playwright/DOM)
+    3. `systematic-debugging` (`obra/superpowers` — investigarea cauzei rădăcină înainte de orice fix)
+    4. `verification-before-completion` (`obra/superpowers` — verificare rulată înainte de confirmare)
+  - Creat regula permanentă `always_on` în `.agents/rules/quality-and-design-hierarchy.md` care stabilește explicit că **`apple-design` (Apple HIG) rămâne prioritatea #1 pe partea vizuală**, susținut tehnic de cele 4 skill-uri și de `karpathy-guidelines`.
+- **Fișiere:** `.agents/rules/quality-and-design-hierarchy.md`, `.agents/skills/web-design-guidelines/`, `.agents/skills/webapp-testing/`, `.agents/skills/systematic-debugging/`, `.agents/skills/verification-before-completion/`
+- **Build / Teste:** Verificat structura `.agents/skills/` și `.agents/rules/`
+
 ### 2026-11-22 18:14 — Claritate Text Retina & Fundal Opac pe Dynamic Island și Modale (`bg-[#F2F4F8]` / `bg-white`), plus Fallback Automat MET Norway (`api.met.no`) pentru Vremea Locală din Header și Calendar
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

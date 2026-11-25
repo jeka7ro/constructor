@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import ImportInvoiceModal from './ImportInvoiceModal'
 import { useTenantStore } from '../../store/tenantStore'
+import { useUIStore } from '../../store/uiStore'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 
@@ -14,6 +15,7 @@ export default function ExpensesManagement() {
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const { tenant } = useTenantStore()
+    const { showToast, openDialog } = useUIStore()
     const { t } = useTranslation()
     const tenantFeatures = tenant?.features || []
     const hasSites = tenantFeatures.includes('sites') || tenant?.has_sites === true
@@ -89,7 +91,7 @@ export default function ExpensesManagement() {
             setFormData(prev => ({ ...prev, document_url: res.data.photo_url || res.data.url }))
         } catch (error) {
             console.error('Upload failed', error)
-            alert(t('expenses.error_upload_failed', 'Attention : le téléchargement du fichier a échoué. Le fichier doit être une image pour la route actuelle.'))
+            showToast(t('expenses.error_upload_failed', 'Attention : le téléchargement du fichier a échoué. Le fichier doit être une image pour la route actuelle.'), 'error')
         } finally {
             setIsUploading(false)
         }
@@ -110,18 +112,25 @@ export default function ExpensesManagement() {
             })
             loadData()
         } catch (e) {
-            alert(t('expenses.error_save_expense', 'Erreur lors de l\'enregistrement de la dépense.'))
+            showToast(t('expenses.error_save_expense', 'Erreur lors de l\'enregistrement de la dépense.'), 'error')
         }
     }
 
-    const handleDelete = async (id) => {
-        if (!window.confirm(t('expenses.confirm_delete', 'Êtes-vous sûr de vouloir supprimer cet enregistrement ?'))) return
-        try {
-            await api.delete(`/admin/expenses/${id}`)
-            loadData()
-        } catch (e) {
-            console.error(e)
-        }
+    const handleDelete = (id) => {
+        openDialog({
+            type: 'danger',
+            title: t('common.delete', 'Supprimer'),
+            message: t('expenses.confirm_delete', 'Êtes-vous sûr de vouloir supprimer cet enregistrement ?'),
+            confirmText: t('common.delete', 'Supprimer'),
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/expenses/${id}`)
+                    loadData()
+                } catch (e) {
+                    console.error(e)
+                }
+            }
+        })
     }
 
     const totalAmount = (Array.isArray(expenses) ? expenses : []).reduce((acc, curr) => acc + (curr.amount || 0), 0)

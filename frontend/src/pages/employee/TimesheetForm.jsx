@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
+import { useUIStore } from '../../store/uiStore'
 import { Calendar, Clock, Building2, Plus, Trash2, Save, Send, Loader2, X } from 'lucide-react'
 
 export default function TimesheetForm() {
     const { t } = useTranslation()
+    const { showToast } = useUIStore()
     const navigate = useNavigate()
     const { id } = useParams()
     const isEdit = !!id
@@ -128,7 +130,7 @@ export default function TimesheetForm() {
             navigate('/timesheets')
         } catch (error) {
             console.error('Error saving timesheet:', error)
-            alert(error.response?.data?.detail || 'Eroare la salvare')
+            showToast(error.response?.data?.detail || t('common.error', "Erreur lors de l'enregistrement"), 'error')
         } finally {
             setLoading(false)
         }

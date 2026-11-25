@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, MapPin, Phone, Mail, Calendar, Clock, Package, Car, Loader2, Award, Home, Activity, ShieldAlert, Zap, Thermometer, Wrench, CheckCircle2, BarChart3, Flame, FileText, Trash2, Upload, File, Download, X, Paperclip } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts'
 import api from '../lib/api'
+import { useUIStore } from '../store/uiStore'
 
 export default function EmployeeDetailView({ user, onBack, onExport }) {
+    const { t } = useTranslation()
+    const { showToast, openDialog } = useUIStore()
     const [activeTab, setActiveTab] = useState('analytics')
     const [analytics, setAnalytics] = useState(null)
     const [warehouseHistory, setWarehouseHistory] = useState([])
@@ -70,20 +75,28 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
             setDocFile(null)
         } catch (error) {
             console.error('Failed to upload document', error)
-            alert('A apărut o eroare la încărcarea documentului.')
+            showToast(t('employees.doc_upload_error', 'Erreur lors du téléchargement du document.'), 'error')
         } finally {
             setIsUploadingDoc(false)
         }
     }
 
     const handleDeleteDocument = async (docId) => {
-        if (!window.confirm('Ești sigur că vrei să ștergi acest document?')) return
-        try {
-            await api.delete(`/admin/users/${user.id}/documents/${docId}`)
-            setDocuments(documents.filter(d => d.id !== docId))
-        } catch (error) {
-            console.error('Failed to delete document', error)
-        }
+        openDialog({
+            type: 'danger',
+            title: t('employees.delete_doc_title', 'Supprimer le document'),
+            message: t('employees.delete_doc_confirm', 'Êtes-vous sûr de vouloir supprimer ce document ?'),
+            confirmText: t('common.delete', 'Supprimer'),
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/users/${user.id}/documents/${docId}`)
+                    setDocuments(documents.filter(d => d.id !== docId))
+                } catch (error) {
+                    console.error('Failed to delete document', error)
+                    showToast(t('common.error', 'Erreur lors de la suppression.'), 'error')
+                }
+            }
+        })
     }
 
     const fetchData = async () => {
@@ -739,44 +752,47 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
             </div>
 
             {/* Document Preview Modal */}
-            {previewDoc && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-blue-500" />
-                                Vizualizare Document
+            {previewDoc && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/55 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setPreviewDoc(null)}>
+                    <div className="bg-[#F2F4F8] dark:bg-slate-900 w-full max-w-5xl h-[90vh] rounded-[24px] border-[1.5px] border-slate-300 dark:border-slate-700 shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45),0_0_0_1px_rgba(15,23,42,0.08)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-950 dark:text-white flex items-center gap-2.5">
+                                <span className="w-8 h-8 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                                    <FileText className="w-4 h-4" />
+                                </span>
+                                {t('employees.preview_doc', 'Aperçu du document')}
                             </h3>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2.5">
                                 <a 
                                     href={previewDoc} 
                                     download 
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
+                                    className="px-4 h-10 bg-[#007AFF] hover:bg-[#0062CC] text-white text-sm font-semibold rounded-[12px] shadow-sm transition-colors flex items-center gap-2"
                                 >
                                     <Download className="w-4 h-4" />
-                                    Descarcă
+                                    {t('common.download', 'Télécharger')}
                                 </a>
                                 <button 
                                     onClick={() => setPreviewDoc(null)}
-                                    className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                    className="w-8 h-8 rounded-full bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X className="w-4 h-4 stroke-[2.5]" />
                                 </button>
                             </div>
                         </div>
-                        <div className="flex-1 bg-slate-100 dark:bg-slate-950 p-4 overflow-hidden relative">
+                        <div className="flex-1 bg-[#F2F4F8] dark:bg-slate-950 p-4 overflow-hidden relative">
                             {previewDoc.toLowerCase().endsWith('.pdf') ? (
-                                <iframe src={previewDoc} className="w-full h-full rounded-xl border-0" title="PDF Preview" />
+                                <iframe src={previewDoc} className="w-full h-full rounded-[16px] bg-white border border-slate-200 dark:border-slate-800" title="PDF Preview" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center overflow-auto rounded-xl">
+                                <div className="w-full h-full flex items-center justify-center overflow-auto rounded-[16px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                                     <img src={previewDoc} alt="Preview" className="max-w-full max-h-full object-contain" />
                                 </div>
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )

@@ -199,6 +199,16 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "final_client_signature": wo.final_client_signature,
         "estimated_price": wo.estimated_price,
         "prices": wo.prices,
+        "date_history": wo.date_history or [],
+        "reminder_sent_at": (wo.prices or {}).get("reminder_sent_at") if isinstance(wo.prices, dict) else None,
+        "reminder_confirmed_at": (
+            (wo.prices or {}).get("reminder_confirmed_at")
+            if isinstance(wo.prices, dict) and (wo.prices or {}).get("reminder_confirmed_at")
+            else next(
+                (h.get("timestamp") for h in reversed(wo.date_history or []) if isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually")),
+                None
+            )
+        ),
         "quote_number": wo.quote_number,
         "final_invoice_path": get_file_url(wo.final_invoice_path) if wo.final_invoice_path else None,
         "completion_photos": [
@@ -450,19 +460,26 @@ def confirm_work_order(
         if payload.client_signature:
             wo.final_client_signature = payload.client_signature
     elif payload.mode == "date":
-        if wo.date_confirmed_at:
-            raise HTTPException(status_code=400, detail="Data a fost deja confirmată.")
-        wo.date_confirmed_at = datetime.utcnow()
+        from sqlalchemy.orm.attributes import flag_modified
+        now_dt = datetime.utcnow()
+        now_iso = now_dt.isoformat() + "Z"
+        wo.date_confirmed_at = now_dt
         wo.date_confirmed_ip = client_ip
+
+        p_dict = dict(wo.prices or {}) if isinstance(wo.prices, dict) else {}
+        p_dict["reminder_confirmed_at"] = now_iso
+        wo.prices = p_dict
+        flag_modified(wo, "prices")
         
         hist = list(wo.date_history) if wo.date_history else []
         hist.append({
             "action": "confirmed_by_client",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": now_iso,
             "client_name": payload.confirmed_by_name or wo.client_name,
             "ip": client_ip
         })
         wo.date_history = hist
+        flag_modified(wo, "date_history")
         
         # Trimitem și un mesaj automat în chat pentru a notifica adminul
         sys_msg = WorkOrderMessage(
@@ -472,6 +489,17 @@ def confirm_work_order(
             is_read_by_admin=False
         )
         db.add(sys_msg)
+
+        try:
+            from app.services.whatsapp_service import send_admin_date_confirmed_whatsapp
+            background_tasks.add_task(
+                send_admin_date_confirmed_whatsapp,
+                wo=wo,
+                confirmation_source="link",
+                client_reply_text=None
+            )
+        except Exception as wa_err:
+            logger.warning(f"Failed to queue date confirmed WhatsApp notification: {wa_err}")
     else:
         # Mod "quote"
         if wo.status == "cancelled":
@@ -698,12 +726,22 @@ def get_public_work_order_messages(
         if m.sender == "system" or getattr(m, 'is_hidden', False):
             continue
         m_trans = dict(m.translations) if isinstance(m.translations, dict) else {}
-        if m.sender == "client" and m.message and "ro" not in m_trans:
+        if m.sender == "client" and m.message and ("ro" not in m_trans or str(m_trans.get("ro", "")).strip().lower() == m.message.strip().lower()):
             try:
                 from app.services.translation_service import translate_text
                 ro_val = translate_text(m.message, 'ro')
-                if ro_val:
+                if ro_val and ro_val.strip().lower() != m.message.strip().lower():
                     m_trans["ro"] = ro_val
+            except Exception:
+                pass
+        elif m.sender == "admin" and m.message and m_trans.get("_target_lang") != "none":
+            try:
+                from app.services.translation_service import translate_text
+                for pub_lang in ('fr', 'nl', 'en'):
+                    if pub_lang not in m_trans or not m_trans.get(pub_lang):
+                        tr_val = translate_text(m.message, pub_lang)
+                        if tr_val:
+                            m_trans[pub_lang] = tr_val
             except Exception:
                 pass
         db_messages.append({
@@ -747,11 +785,12 @@ def post_public_work_order_message(
             from app.services.translation_service import translate_text
             langs_to_translate = set()
             if target_l and target_l != 'none':
-                langs_to_translate.add(target_l)
+                langs_to_translate.update({'fr', 'nl', 'en', target_l})
                 translations["_target_lang"] = target_l
             elif target_l == 'none':
                 translations["_target_lang"] = 'none'
             else:
+                langs_to_translate.update({'fr', 'nl', 'en'})
                 if client_lang and client_lang != 'none':
                     langs_to_translate.add(client_lang)
                     translations["_target_lang"] = client_lang
@@ -841,26 +880,37 @@ def post_public_work_order_message(
     db.add(msg)
     db.commit()
     db.refresh(msg)
-    
-    # Forward notification to company WhatsApp group (Davide Chape APP)
+
+    # Auto-detect if client confirmed the scheduled date via chat message
+    confirmed_via_chat = False
     try:
-        admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
-        if admin_group_id:
-            from app.services.whatsapp_service import send_admin_client_message_whatsapp
-            client_phone = getattr(wo, 'client_phone', None) or (wo.client.phone if getattr(wo, 'client', None) else "")
-            client_lang = getattr(wo, 'client_language', None) or 'fr'
-            send_admin_client_message_whatsapp(
-                target_id=admin_group_id,
-                client_name=wo.client_name or (wo.client.name if getattr(wo, 'client', None) else "Client"),
-                client_phone=client_phone,
-                message_text=payload.message,
-                quote_number=getattr(wo, 'quote_number', None) or f"DEV-{wo.id[:4]}",
-                wo_id=wo.id,
-                token=wo.token,
-                client_language=client_lang
-            )
+        from app.services.translation_service import is_client_confirmation_message, mark_work_order_reminder_confirmed
+        has_date_or_reminder = bool(wo.start_date or (isinstance(wo.prices, dict) and wo.prices.get("reminder_sent_at")))
+        if has_date_or_reminder and is_client_confirmation_message(payload.message):
+            confirmed_via_chat = mark_work_order_reminder_confirmed(wo, db, source="message", detail=payload.message)
     except Exception as e:
-        logger.error(f"Failed to forward web client message to WhatsApp admin group: {e}")
+        logger.warning(f"Auto-confirmation check on client chat message failed: {e}")
+    
+    # Forward notification to company WhatsApp group ONLY if it wasn't already handled as a date confirmation
+    if not confirmed_via_chat:
+        try:
+            admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
+            if admin_group_id:
+                from app.services.whatsapp_service import send_admin_client_message_whatsapp
+                client_phone = getattr(wo, 'client_phone', None) or (wo.client.phone if getattr(wo, 'client', None) else "")
+                client_lang = getattr(wo, 'client_language', None) or 'fr'
+                send_admin_client_message_whatsapp(
+                    target_id=admin_group_id,
+                    client_name=wo.client_name or (wo.client.name if getattr(wo, 'client', None) else "Client"),
+                    client_phone=client_phone,
+                    message_text=payload.message,
+                    quote_number=getattr(wo, 'quote_number', None),
+                    wo_id=wo.id,
+                    token=wo.token,
+                    client_language=client_lang
+                )
+        except Exception as e:
+            logger.error(f"Failed to forward web client message to WhatsApp admin group: {e}")
 
     return {
         "id": msg.id,

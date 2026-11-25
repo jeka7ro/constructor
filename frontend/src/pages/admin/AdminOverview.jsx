@@ -1317,7 +1317,7 @@ export default function AdminOverview() {
                         </CalendarErrorBoundary>
                     </div>
                     {!isCalendarFull && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:flex-col gap-2.5 md:h-[420px] lg:h-[820px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:flex-col gap-2.5 md:h-[420px] lg:h-[calc(100vh-76px)] lg:min-h-[780px]">
                             {/* Panel DEVIS — draggable pe calendar si invers */}
                             <div 
                                 className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0 max-h-[360px] md:max-h-[420px] lg:max-h-none"
@@ -1565,7 +1565,7 @@ export default function AdminOverview() {
                                                                     />
                                                                 )}
                                                             </button>
-                                                            <span className="font-extrabold text-[11.5px] text-slate-900 dark:text-slate-100 truncate leading-tight">
+                                                            <span className="font-extrabold text-[12.5px] text-slate-950 dark:text-slate-100 truncate leading-tight">
                                                                 {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
                                                             </span>
                                                         </div>
@@ -1586,30 +1586,30 @@ export default function AdminOverview() {
                                                                     setPlanningModal(quote);
                                                                 }}
                                                                 title={t('overview.send_to_planning', 'Planifier dans le calendrier')}
-                                                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 dark:bg-rose-900/40 dark:hover:bg-rose-600 border border-rose-200/80 hover:border-rose-600 dark:border-rose-800/50 px-1.5 py-0.5 rounded-full text-[9.5px] font-extrabold text-rose-700 hover:text-white dark:text-rose-300 dark:hover:text-white shrink-0 tabular-nums leading-none cursor-pointer transition-all shadow-2xs"
+                                                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 dark:bg-rose-900/40 dark:hover:bg-rose-600 border border-rose-200/80 hover:border-rose-600 dark:border-rose-800/50 px-1.5 py-0.5 rounded-full text-[10.5px] font-extrabold text-rose-700 hover:text-white dark:text-rose-300 dark:hover:text-white shrink-0 tabular-nums leading-none cursor-pointer transition-all shadow-2xs"
                                                             >
-                                                                <CalendarDays className="w-2.5 h-2.5 shrink-0" />
+                                                                <CalendarDays className="w-3 h-3 shrink-0" />
                                                                 <span>{new Date(quote.approximate_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }).replace(/\//g, '.')}</span>
                                                             </button>
                                                         )}
                                                     </div>
                                                     
                                                     {/* ROW 2: Location + Surface × Thickness + Distance */}
-                                                    <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-1 flex items-center justify-between gap-1 leading-none">
+                                                    <div className="text-[11px] text-slate-700 dark:text-slate-300 mt-1 flex items-center justify-between gap-1 leading-none">
                                                         {quote.site_address ? (
-                                                            <span className="flex items-center gap-0.5 min-w-0 flex-1 text-rose-600 dark:text-rose-400 font-semibold">
-                                                                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                                            <span className="flex items-center gap-0.5 min-w-0 flex-1 text-rose-600 dark:text-rose-400 font-bold text-[11.5px]">
+                                                                <MapPin className="w-3 h-3 shrink-0" />
                                                                 <span className="truncate">{formatCityOnly(quote.site_address)}</span>
                                                             </span>
                                                         ) : <span className="flex-1" />}
                                                         <div className="flex items-center gap-1 shrink-0 tabular-nums">
                                                             {quote.volumes?.[0]?.quantity && (
-                                                                <span className="font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/80 px-1.5 py-0.5 rounded text-[9.5px] leading-none">
+                                                                <span className="font-extrabold text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-700/80 px-1.5 py-0.5 rounded text-[11px] leading-none">
                                                                     {quote.volumes[0].quantity}m²{quote.volumes[0].thickness ? `×${quote.volumes[0].thickness}cm` : ''}
                                                                 </span>
                                                             )}
                                                             {hasDist && (
-                                                                <span className={`font-extrabold text-[9.5px] min-w-[32px] text-right ${dist > 0 ? 'text-slate-500 dark:text-slate-400' : 'text-rose-600'}`}>
+                                                                <span className={`font-extrabold text-[11px] min-w-[34px] text-right ${dist > 0 ? 'text-slate-600 dark:text-slate-300' : 'text-rose-600'}`}>
                                                                     {dist.toFixed(0)}km
                                                                 </span>
                                                             )}
@@ -1690,14 +1690,14 @@ export default function AdminOverview() {
                                                     </svg>
                                                 )}
                                             </span>
-                                            <span className="font-extrabold text-[11.5px] text-slate-800 dark:text-slate-100 truncate leading-tight" title={team.name}>
+                                            <span className="font-extrabold text-[12.5px] text-slate-900 dark:text-slate-100 truncate leading-tight" title={team.name}>
                                                 {cleanTeamName}
                                             </span>
                                         </div>
                                         {team.plate_number && team.plate_number !== 'NN' ? (
                                             <EuroPlate number={team.plate_number} country="B" size="xs" />
                                         ) : (
-                                            <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 tabular-nums shrink-0">
+                                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums shrink-0">
                                                 {team.members?.length || 1} {((team.members?.length || 1) === 1) ? t('common.member_single', 'membre') : t('common.members_short', 'membres')}
                                             </span>
                                         )}
@@ -2452,13 +2452,6 @@ export default function AdminOverview() {
             )}
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
-            {/* Live Tracking Module full width under calendar */}
-            {isShortTerm && (
-                <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden h-[500px]">
-                    <MiniLiveTrackingMap workOrders={allWorkOrders} teams={teams} />
-                </div>
-            )}
-
             {/* Recent Work Orders */}
             {dashboardLayout.recent_work_orders?.visible && (
                 <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg flex flex-col overflow-hidden">
@@ -3943,7 +3936,7 @@ export default function AdminOverview() {
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 text-center">
-                            <div className="w-12 h-12 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/25 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3.5">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/25 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3.5">
                                 <Trash2 className="w-5 h-5" />
                             </div>
                             <h3 className="font-bold text-[17px] tracking-tight text-slate-900 dark:text-white leading-snug">

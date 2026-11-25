@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import api from '../../lib/api'
 import { Calendar, Clock, Users, Coffee, Building2, Activity, RefreshCw, CheckCircle, Loader2, Timer, Image, X, ChevronLeft, ChevronRight, Phone, Mail, MapPin, FileText, ArrowLeft, FileDown, FileSpreadsheet, Search } from 'lucide-react'
 import DataTable from '../../components/DataTable'
@@ -455,24 +456,25 @@ export default function TimesheetApprovalPage() {
             )}
 
             {/* Photo Modal */}
-            {showPhotoModal && selectedPhoto && (
-                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowPhotoModal(false)}>
+            {showPhotoModal && selectedPhoto && createPortal(
+                <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99999] flex items-center justify-center p-4" onClick={() => setShowPhotoModal(false)}>
                     <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
-                        <img src={`${API_BASE}${selectedPhoto.url}`} alt="" className="w-full rounded-2xl max-h-[80vh] object-contain bg-black" />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-2xl">
-                            <p className="text-white text-base font-medium">{selectedPhoto.uploaded_by_name}</p>
-                            <p className="text-white/70 text-sm">{selectedPhoto.site_name} • {new Date(selectedPhoto.uploaded_at).toLocaleString('fr-FR')}</p>
-                            {selectedPhoto.description && <p className="text-white/80 text-sm mt-1">{selectedPhoto.description}</p>}
+                        <img src={`${API_BASE}${selectedPhoto.url}`} alt="" className="w-full rounded-[24px] max-h-[80vh] object-contain bg-black border border-white/15 shadow-2xl" />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent p-6 rounded-b-[24px]">
+                            <p className="text-white text-base font-semibold">{selectedPhoto.uploaded_by_name}</p>
+                            <p className="text-white/75 text-sm">{selectedPhoto.site_name} • {new Date(selectedPhoto.uploaded_at).toLocaleString('fr-FR')}</p>
+                            {selectedPhoto.description && <p className="text-white/85 text-sm mt-1">{selectedPhoto.description}</p>}
                         </div>
-                        <button onClick={() => setShowPhotoModal(false)} className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full hover:bg-black/70"><X className="w-5 h-5" /></button>
+                        <button onClick={() => setShowPhotoModal(false)} className="absolute top-3 right-3 w-9 h-9 bg-black/60 text-white rounded-full hover:bg-black/80 flex items-center justify-center"><X className="w-4 h-4 stroke-[2.5]" /></button>
                         {photos.length > 1 && (<>
                             <button onClick={() => { const i = photos.findIndex(p => p.id === selectedPhoto.id); setSelectedPhoto(photos[(i - 1 + photos.length) % photos.length]) }}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70"><ChevronLeft className="w-5 h-5" /></button>
+                                className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 bg-black/60 text-white rounded-full hover:bg-black/80"><ChevronLeft className="w-5 h-5" /></button>
                             <button onClick={() => { const i = photos.findIndex(p => p.id === selectedPhoto.id); setSelectedPhoto(photos[(i + 1) % photos.length]) }}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70"><ChevronRight className="w-5 h-5" /></button>
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-black/60 text-white rounded-full hover:bg-black/80"><ChevronRight className="w-5 h-5" /></button>
                         </>)}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             
             {/* Search Filter & Summary */}
@@ -541,15 +543,15 @@ export default function TimesheetApprovalPage() {
             </div>
 
             {/* Worker Detail Drawer */}
-            {selectedWorker && (
-                <div className="fixed inset-0 z-50 flex">
-                    <div className="flex-1 bg-black/40" onClick={closeWorkerDetail} />
-                    <div className="w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto animate-slide-in-right">
-                        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between z-10">
-                            <button onClick={closeWorkerDetail} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 font-medium">
+            {selectedWorker && createPortal(
+                <div className="fixed inset-0 z-[99999] flex">
+                    <div className="flex-1 bg-slate-950/55 backdrop-blur-sm" onClick={closeWorkerDetail} />
+                    <div className="w-full max-w-lg bg-[#F2F4F8] dark:bg-slate-900 border-l-[1.5px] border-slate-300 dark:border-slate-700 shadow-2xl overflow-y-auto animate-slide-in-right">
+                        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 px-6 py-4 flex items-center justify-between z-10">
+                            <button onClick={closeWorkerDetail} className="flex items-center gap-2 text-sm text-[#007AFF] hover:text-[#0062CC] font-semibold">
                                 <ArrowLeft className="w-4 h-4" /> {t('common.back')}
                             </button>
-                            <button onClick={closeWorkerDetail} className="p-1.5 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5 text-slate-400" /></button>
+                            <button onClick={closeWorkerDetail} className="w-8 h-8 rounded-full bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center"><X className="w-4 h-4 text-slate-600 dark:text-slate-300 stroke-[2.5]" /></button>
                         </div>
 
                         {detailLoading ? (
@@ -664,7 +666,8 @@ export default function TimesheetApprovalPage() {
                             <div className="flex items-center justify-center py-20 text-slate-400"><p>{t('common.errors.load_failed')}</p></div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             <style>{`

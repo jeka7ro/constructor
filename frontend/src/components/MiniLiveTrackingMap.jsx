@@ -288,10 +288,14 @@ function extractShortCity(address) {
     return chosen.replace(/\d+/g, '').replace(/\s+/g, ' ').trim() || chosen;
 }
 
-export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
+export default function MiniLiveTrackingMap({ workOrders: propWorkOrders = [], teams: propTeams = [] }) {
     const { t } = useTranslation();
     const tenant = useTenantStore(s => s.tenant);
     const isDavideChape = !tenant || (tenant?.slug || '').toLowerCase().includes('davide') || (tenant?.name || '').toLowerCase().includes('davide');
+    const [fetchedWorkOrders, setFetchedWorkOrders] = useState([]);
+    const [fetchedTeams, setFetchedTeams] = useState([]);
+    const workOrders = (Array.isArray(propWorkOrders) && propWorkOrders.length > 0) ? propWorkOrders : fetchedWorkOrders;
+    const teams = (Array.isArray(propTeams) && propTeams.length > 0) ? propTeams : fetchedTeams;
     const [vehicles, setVehicles] = useState([]);
     const [mapZoom, setMapZoom] = useState(8);
     const [sandStations, setSandStations] = useState([]);
@@ -594,6 +598,31 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
             .catch(() => {});
     }, [isDavideChape]);
 
+    useEffect(() => {
+        if (Array.isArray(propWorkOrders) && propWorkOrders.length > 0 && Array.isArray(propTeams) && propTeams.length > 0) {
+            return;
+        }
+        let cancelled = false;
+        const loadPlanningContext = async () => {
+            try {
+                const [woRes, teamRes] = await Promise.all([
+                    api.get('/admin/work-orders?slim=true'),
+                    api.get('/admin/teams/')
+                ]);
+                if (!cancelled) {
+                    if (Array.isArray(woRes.data)) setFetchedWorkOrders(woRes.data);
+                    if (Array.isArray(teamRes.data)) setFetchedTeams(teamRes.data);
+                }
+            } catch (_) {}
+        };
+        loadPlanningContext();
+        const ctxTimer = setInterval(loadPlanningContext, 30000);
+        return () => {
+            cancelled = true;
+            clearInterval(ctxTimer);
+        };
+    }, [propWorkOrders, propTeams]);
+
     const fetchLive = useCallback(async () => {
         if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
         try {
@@ -784,9 +813,9 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                                   }
                         }
                     >
-                        <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 dark:text-white flex items-center justify-between gap-1.5 pb-0.5">
+                        <div className="text-[11.5px] font-extrabold uppercase tracking-wider text-slate-900 dark:text-white flex items-center justify-between gap-1.5 pb-0.5">
                             <div className="flex items-center gap-1.5">
-                                <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" /> {t('logistics.legend', 'Légende')} ({vehicles.length})
+                                <Truck className="w-4 h-4 text-blue-600 dark:text-sky-400" /> {t('logistics.legend', 'Légende')} ({vehicles.length})
                             </div>
                         </div>
 
@@ -813,24 +842,24 @@ export default function MiniLiveTrackingMap({ workOrders = [], teams = [] }) {
                                         <div className="flex items-center justify-between gap-1.5 min-w-0">
                                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                                 <div className="w-2.5 h-2.5 rounded-full shadow-xs shrink-0 border border-white/60" style={{ backgroundColor: v.team_color }}></div>
-                                                <span className="text-[11px] font-extrabold text-slate-900 dark:text-white shrink-0" title={v.name}>{v.name}</span>
+                                                <span className="text-[12.5px] font-extrabold text-slate-950 dark:text-white shrink-0" title={v.name}>{v.name}</span>
                                                 {v.plate_number && v.plate_number !== 'NN' && (
                                                     <EuroPlate number={v.plate_number} country="B" size="xs" />
                                                 )}
-                                                <span className="text-slate-300 dark:text-slate-600 text-[10px] shrink-0">·</span>
-                                                <span className={`text-[10px] font-semibold truncate ${isMoving ? 'text-sky-600 dark:text-sky-400' : 'text-slate-500 dark:text-slate-400 italic'}`}>
+                                                <span className="text-slate-300 dark:text-slate-600 text-[11px] shrink-0">·</span>
+                                                <span className={`text-[11px] font-semibold truncate ${isMoving ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-300 italic'}`}>
                                                     {statusLabel}
                                                 </span>
                                             </div>
                                             {v.distance_today != null && (
-                                                <span className="text-[10px] font-bold text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded tabular-nums shrink-0">
+                                                <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded tabular-nums shrink-0">
                                                     {v.distance_today}km
                                                 </span>
                                             )}
                                         </div>
                                         {syncedJob && (
                                             <div
-                                                className="flex items-center justify-between gap-1.5 bg-blue-50/80 dark:bg-slate-800/90 border border-blue-200/60 dark:border-slate-700 px-1.5 py-0.5 rounded-md text-[9.5px] leading-tight ml-4"
+                                                className="flex items-center justify-between gap-1.5 bg-blue-50/80 dark:bg-slate-800/90 border border-blue-200/60 dark:border-slate-700 px-1.5 py-0.5 rounded-md text-[11px] leading-tight ml-4"
                                                 title={`${syncedJob.start_time} · ${syncedJob.client_name}${syncedJob.site_address ? ` — ${syncedJob.site_address}` : ''}${syncedJob.surface_m2 ? ` (${syncedJob.surface_m2}m²)` : ''}`}
                                             >
                                                 <div className="flex items-center gap-1 min-w-0 flex-1 truncate">

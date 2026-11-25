@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
@@ -411,46 +412,47 @@ export default function SitePhotosPage() {
             </div>
 
             {/* Lightbox */}
-            {lightbox && (
-                <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-                    <button className="absolute top-4 right-4 p-2 text-white/80 hover:text-white" onClick={() => setLightbox(null)}>
-                        <X className="w-8 h-8" />
+            {lightbox && createPortal(
+                <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[99999] flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+                    <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-colors" onClick={() => setLightbox(null)}>
+                        <X className="w-5 h-5 stroke-[2.5]" />
                     </button>
                     {/* Navigation arrows */}
                     {photos.indexOf(lightbox) > 0 && (
                         <button
-                            className="absolute left-4 p-2 text-white/70 hover:text-white bg-white/10 rounded-full"
+                            className="absolute left-4 p-2.5 text-white/80 hover:text-white bg-white/15 hover:bg-white/25 rounded-full transition-colors"
                             onClick={(e) => { e.stopPropagation(); setLightbox(photos[photos.indexOf(lightbox) - 1]) }}
                         >
-                            <ChevronLeft className="w-8 h-8" />
+                            <ChevronLeft className="w-7 h-7" />
                         </button>
                     )}
                     {photos.indexOf(lightbox) < photos.length - 1 && (
                         <button
-                            className="absolute right-4 p-2 text-white/70 hover:text-white bg-white/10 rounded-full"
+                            className="absolute right-4 p-2.5 text-white/80 hover:text-white bg-white/15 hover:bg-white/25 rounded-full transition-colors"
                             onClick={(e) => { e.stopPropagation(); setLightbox(photos[photos.indexOf(lightbox) + 1]) }}
                         >
-                            <ChevronRight className="w-8 h-8" />
+                            <ChevronRight className="w-7 h-7" />
                         </button>
                     )}
                     <div className="max-w-4xl max-h-[90vh] relative" onClick={e => e.stopPropagation()}>
-                        <img src={getPhotoUrl(lightbox)} alt="" className="max-w-full max-h-[80vh] object-contain rounded-lg" />
-                        <div className="mt-3 flex items-center justify-between">
+                        <img src={getPhotoUrl(lightbox)} alt="" className="max-w-full max-h-[80vh] object-contain rounded-[16px] shadow-2xl" />
+                        <div className="mt-3 flex items-center justify-between gap-4">
                             <div>
-                                {lightbox.description && <p className="text-white text-lg font-medium">{lightbox.description}</p>}
-                                <p className="text-white/60 text-sm mt-1">
+                                {lightbox.description && <p className="text-white text-lg font-semibold">{lightbox.description}</p>}
+                                <p className="text-white/70 text-sm mt-1">
                                     {lightbox.site_name} • {lightbox.uploader_name} • {formatDate(lightbox.created_at)}
                                 </p>
                             </div>
                             <button
                                 onClick={() => handleDownload(lightbox)}
-                                className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+                                className="flex items-center gap-2 px-4 h-10 bg-[#007AFF] hover:bg-[#0062CC] text-white rounded-[12px] text-sm font-semibold transition-colors shadow-sm"
                             >
-                                <Download className="w-4 h-4" /> Descarcă
+                                <Download className="w-4 h-4" /> {t('common.download', 'Télécharger')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )

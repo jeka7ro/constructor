@@ -643,19 +643,10 @@ def post_partner_work_order_message(
     translations = {}
     
     try:
-        import time
-        from deep_translator import GoogleTranslator
-        for attempt in range(3):
-            try:
-                translated = GoogleTranslator(source='auto', target='ro').translate(payload.message)
-                if translated and ("Error 500" in translated or "That's an error" in translated or "Server Error" in translated):
-                    time.sleep(1)
-                    continue
-                translations['ro'] = translated
-                break
-            except Exception as retry_err:
-                if attempt < 2:
-                    time.sleep(1)
+        from app.services.translation_service import translate_text
+        translated = translate_text(payload.message, 'ro')
+        if translated:
+            translations['ro'] = translated
     except Exception as e:
         print(f"Auto-translation to RO failed: {e}")
 

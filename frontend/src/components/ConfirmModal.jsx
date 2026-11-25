@@ -35,7 +35,7 @@ export default function ConfirmModal({
                 onClick={e => e.stopPropagation()}
             >
                 <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 flex flex-col items-center text-center">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3.5 border ${isDanger ? 'bg-rose-500/12 dark:bg-rose-500/20 border-rose-500/25 text-rose-600 dark:text-rose-400' : 'bg-sky-500/12 dark:bg-sky-500/20 border-sky-500/25 text-sky-600 dark:text-sky-400'}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3.5 border ${isDanger ? 'bg-rose-500/15 dark:bg-rose-500/20 border-rose-500/25 text-rose-600 dark:text-rose-400' : 'bg-sky-500/15 dark:bg-sky-500/20 border-sky-500/25 text-sky-600 dark:text-sky-400'}`}>
                         <AlertCircle className="w-6 h-6" />
                     </div>
                     <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">{title}</h3>

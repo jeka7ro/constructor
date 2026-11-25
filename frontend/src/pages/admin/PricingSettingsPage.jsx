@@ -392,7 +392,7 @@ export default function PricingSettingsPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-[24px] w-full max-w-5xl backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="px-6 py-4 bg-[#F2F4F8] dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800 flex items-center justify-between shrink-0">
                             <h2 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-                                <span className="w-8 h-8 rounded-full bg-sky-500/12 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                                <span className="w-8 h-8 rounded-full bg-sky-500/15 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400">
                                     <Users className="w-4 h-4" />
                                 </span>
                                 {t('pricing_settings.client_pricing_title', 'Tarification Client')}

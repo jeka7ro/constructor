@@ -37,29 +37,51 @@ _global_geo_cache = {}
 _global_geo_lock = threading.Lock()
 
 def _geocode_address_cached(address: str):
-    if not address or len(address.strip()) < 5:
+    if not address or len(address.strip()) < 2:
         return None
-    key = address.strip().lower()
+    clean_addr = address.strip()
+    key = clean_addr.lower()
     with _global_geo_lock:
         if key in _global_geo_cache:
             return _global_geo_cache[key]
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-    if not api_key:
-        return None
+    if api_key:
+        try:
+            import requests
+            res = requests.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"address": clean_addr, "key": api_key, "region": "be"},
+                timeout=5
+            )
+            data = res.json()
+            if data.get("status") == "OK" and data.get("results"):
+                loc = data["results"][0]["geometry"]["location"]
+                result = (float(loc["lat"]), float(loc["lng"]))
+                with _global_geo_lock:
+                    _global_geo_cache[key] = result
+                return result
+        except Exception:
+            pass
     try:
         import requests
-        res = requests.get(
-            "https://maps.googleapis.com/maps/api/geocode/json",
-            params={"address": address, "key": api_key},
+        resp = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={
+                "q": clean_addr,
+                "format": "json",
+                "limit": 1,
+                "countrycodes": "be,nl,fr,lu,de,ro"
+            },
+            headers={"User-Agent": "DavideChapeWorkOrders/1.0"},
             timeout=5
         )
-        data = res.json()
-        if data.get("status") == "OK" and data.get("results"):
-            loc = data["results"][0]["geometry"]["location"]
-            result = (float(loc["lat"]), float(loc["lng"]))
-            with _global_geo_lock:
-                _global_geo_cache[key] = result
-            return result
+        if resp.status_code == 200:
+            items = resp.json()
+            if isinstance(items, list) and len(items) > 0:
+                result = (float(items[0]["lat"]), float(items[0]["lon"]))
+                with _global_geo_lock:
+                    _global_geo_cache[key] = result
+                return result
     except Exception:
         pass
     return None
@@ -328,11 +350,91 @@ def _serialize_audit_mode(wo) -> dict:
         "source_system": wo.source_system
     }
 
+def _extract_reminder_timestamps(wo: WorkOrder):
+    p = wo.prices if isinstance(wo.prices, dict) else {}
+    hist = wo.date_history if isinstance(wo.date_history, list) else []
+    sent_at = p.get("reminder_sent_at") or next(
+        (h.get("timestamp") for h in reversed(hist) if isinstance(h, dict) and h.get("action") == "reminder_sent"),
+        None
+    )
+    confirmed_at = p.get("reminder_confirmed_at") or next(
+        (h.get("timestamp") for h in reversed(hist) if isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually")),
+        None
+    )
+    return sent_at, confirmed_at
+
+
+def _reconcile_pending_reminders(wos: list, db: Session):
+    """
+    Checks work orders that have a sent reminder (reminder_sent_at) but are not yet marked confirmed.
+    If the client replied with an affirmative confirmation message (e.g. 'Ok', 'Oui', 'Ja') via WhatsApp/Chat
+    after reminder_sent_at (even if the production webhook attached the message to another WorkOrder sharing the same client phone),
+    automatically marks the reminder as confirmed.
+    """
+    if not wos or db is None:
+        return
+    try:
+        import re as _re
+        from datetime import datetime, timedelta
+        from sqlalchemy.orm.attributes import flag_modified
+        from app.services.translation_service import is_client_confirmation_message
+
+        pending = []
+        for wo in wos:
+            sent_at, confirmed_at = _extract_reminder_timestamps(wo)
+            if sent_at and not confirmed_at:
+                pending.append((wo, sent_at))
+
+        if not pending:
+            return
+
+        for wo, sent_at_str in pending:
+            try:
+                clean_ts = str(sent_at_str).replace("Z", "").split("+")[0]
+                sent_dt = datetime.fromisoformat(clean_ts) - timedelta(seconds=5)
+            except Exception:
+                continue
+
+            raw_phone = wo.client_phone or (wo.client.phone if getattr(wo, "client", None) else "") or ""
+            digits = _re.sub(r"\D", "", str(raw_phone))
+            phone_suffix = digits[-9:] if len(digits) >= 9 else None
+
+            if phone_suffix:
+                same_phone_wo_ids = [
+                    r[0] for r in db.query(WorkOrder.id).filter(
+                        WorkOrder.organization_id == wo.organization_id,
+                        WorkOrder.client_phone.ilike(f"%{phone_suffix}%"),
+                        WorkOrder.status != "deleted"
+                    ).all()
+                ]
+                if wo.id not in same_phone_wo_ids:
+                    same_phone_wo_ids.append(wo.id)
+            else:
+                same_phone_wo_ids = [wo.id]
+
+            client_msgs = db.query(WorkOrderMessage).filter(
+                WorkOrderMessage.work_order_id.in_(same_phone_wo_ids),
+                WorkOrderMessage.sender == "client",
+                WorkOrderMessage.created_at >= sent_dt
+            ).order_by(WorkOrderMessage.created_at.asc()).all()
+
+            for cm in client_msgs:
+                if is_client_confirmation_message(cm.message):
+                    conf_iso = cm.created_at.isoformat() + "Z" if cm.created_at else (datetime.utcnow().isoformat() + "Z")
+                    p_dict = dict(wo.prices or {}) if isinstance(wo.prices, dict) else {}
+                    p_dict["reminder_confirmed_at"] = conf_iso
+                    wo.prices = p_dict
+                    break
+    except Exception as e:
+        print(f"Reminder reconciliation warning: {e}")
+
+
 def _serialize_slim(wo: WorkOrder, partner_colors: dict = None) -> dict:
     partner_colors = partner_colors or {}
     """Versiune ultra-rapidă pentru planning — fără calcul preț, documente sau poze."""
     site_name = wo.site.name if wo.site else None
     client_display = wo.client_name or (wo.client.name if wo.client else None)
+    reminder_sent_at, reminder_confirmed_at = _extract_reminder_timestamps(wo)
     return {
         "id": wo.id,
         "token": wo.token,
@@ -352,10 +454,10 @@ def _serialize_slim(wo: WorkOrder, partner_colors: dict = None) -> dict:
         "site_longitude": float(wo.site.longitude) if wo.site and wo.site.longitude else wo.site_longitude,
         "client_id": wo.client_id,
         "client_name": client_display,
-        "client_email": wo.client_email,
-        "client_phone": wo.client_phone,
+        "client_email": wo.client_email or (wo.client.email if wo.client else None),
+        "client_phone": wo.client_phone or (wo.client.phone if wo.client else None),
         "client_type": wo.client.client_type if wo.client else "juridica",
-        "client_language": wo.client_language,
+        "client_language": wo.client_language or (getattr(wo.client, 'preferred_language', None) if wo.client else None) or "fr",
         "client_color": partner_colors.get(wo.id) if partner_colors else None,
         "volumes": wo.volumes or [],
         "assigned_team_id": wo.assigned_team_id,
@@ -376,6 +478,9 @@ def _serialize_slim(wo: WorkOrder, partner_colors: dict = None) -> dict:
         "photos": [],
         "proforma_data": wo.proforma_data,
         "prices": wo.prices or {},
+        "date_history": wo.date_history or [],
+        "reminder_sent_at": reminder_sent_at,
+        "reminder_confirmed_at": reminder_confirmed_at,
         "distance_km": (wo.prices or {}).get("distance_km") if isinstance(wo.prices, dict) else None,
         "route_distance_km": wo.route_distance_km,
         "created_at": str(wo.created_at) if wo.created_at else None,
@@ -442,7 +547,7 @@ def _serialize_invoice_mode(wo: WorkOrder, partner_colors: dict = None) -> dict:
     }
 
 
-def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, partner_colors: dict = None) -> dict:
+def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, partner_colors: dict = None, pricing_map: dict = None, defer_commit: bool = False) -> dict:
     """Serializează un WorkOrder pentru răspuns JSON."""
     partner_colors = partner_colors or {}
     # ── CACHE FAST-PATH: lucrările mai vechi decât azi se servesc din snapshot ──
@@ -455,9 +560,13 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, pa
         return cached
     # ─────────────────────────────────────────────────────────────────────────────
 
-    # Incarca pricing live din setari
+    # Incarca pricing live din setari (folosind pricing_map pre-încărcat în list_work_orders pentru 0 N+1 queries)
     wo_prices = dict(wo.prices or {})
-    if db is not None:
+    pricing = None
+    if pricing_map is not None:
+        client_key = wo.client_id if wo.client else None
+        pricing = pricing_map.get(client_key) or pricing_map.get(None)
+    elif db is not None:
         pricing = db.query(PricingSetting).filter(
             PricingSetting.organization_id == wo.organization_id,
             PricingSetting.client_id == (wo.client_id if wo.client else None)
@@ -468,7 +577,7 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, pa
                 PricingSetting.client_id == None
             ).first()
             
-        if pricing:
+    if pricing:
             # Daca comanda NU este facturata si nu are pret fix (e adaugata manual, nu online)
             # folosim tarifele 'live' curente. (Comenzile online au deja 'base' salvat la creare).
             if not wo.is_invoiced:
@@ -690,10 +799,10 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, pa
         "geo_radius": float(wo.site.geo_radius) if wo.site and wo.site.geo_radius else None,
         "client_id": wo.client_id,
         "client_name": client_display,
-        "client_email": wo.client_email,
-        "client_phone": wo.client_phone,
+        "client_email": wo.client_email or (wo.client.email if wo.client else None),
+        "client_phone": wo.client_phone or (wo.client.phone if wo.client else None),
         "client_type": wo.client.client_type if wo.client else "juridica",
-        "client_language": wo.client_language,
+        "client_language": wo.client_language or (getattr(wo.client, 'preferred_language', None) if wo.client else None) or "fr",
         "client_color": partner_colors.get(wo.id) if partner_colors else None,
         "client_cui": wo.client.cui if wo.client else None,
         "client_reg_com": wo.client.reg_com if wo.client else None,
@@ -712,6 +821,14 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, pa
         "confirmed_by_name": wo.confirmed_by_name,
         "date_confirmed_at": wo.date_confirmed_at.isoformat() if getattr(wo, 'date_confirmed_at', None) else None,
         "date_confirmed_ip": getattr(wo, 'date_confirmed_ip', None),
+        "reminder_sent_at": (wo_prices or {}).get("reminder_sent_at") or next(
+            (h.get("timestamp") for h in reversed(wo.date_history or []) if isinstance(h, dict) and h.get("action") == "reminder_sent"),
+            None
+        ),
+        "reminder_confirmed_at": (wo_prices or {}).get("reminder_confirmed_at") or next(
+            (h.get("timestamp") for h in reversed(wo.date_history or []) if isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually")),
+            None
+        ),
         "reschedule_requested": getattr(wo, 'reschedule_requested', False),
         "reschedule_requested_date": str(wo.reschedule_requested_date) if getattr(wo, 'reschedule_requested_date', None) else None,
         "reschedule_reason": getattr(wo, 'reschedule_reason', None),
@@ -788,13 +905,18 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, pa
     }
 
     # ── CACHE SAVE: dacă lucrarea e din trecut și nu are snapshot, îl salvăm acum ──
+    # CRITIC: Când defer_commit=True (în list_work_orders), NU facem db.commit() în buclă!
+    # Un db.commit() în buclă expiră toate obiectele din sesiunea SQLAlchemy (expire_on_commit=True),
+    # provocând 900+ interogări lazy-load secvențiale pe restul comenzilor din listă!
     if _is_past and db is not None and not getattr(wo, 'cached_snapshot', None):
         try:
             wo.cached_snapshot = result
             db.add(wo)
-            db.commit()
+            if not defer_commit:
+                db.commit()
         except Exception:
-            db.rollback()  # silently ignore — nu oprim aplicația
+            if not defer_commit:
+                db.rollback()  # silently ignore — nu oprim aplicația
     # ─────────────────────────────────────────────────────────────────────────────
 
     return result
@@ -959,13 +1081,32 @@ def list_work_orders(
             partner_colors[wo.id] = partner_colors_by_client[wo.client_id]
 
     if slim:
+        _reconcile_pending_reminders(wos, db)
         return [_serialize_slim(wo, partner_colors) for wo in wos]
     if invoice_mode:
         return [_serialize_invoice_mode(wo, partner_colors) for wo in wos]
     if audit_mode:
         wos = [wo for wo in wos if wo.source_system != 'we-r']
         return [_serialize_audit_mode(wo) for wo in wos]
-    return [_serialize(wo, db, partner_colors=partner_colors) for wo in wos]
+
+    _reconcile_pending_reminders(wos, db)
+
+    # Pre-fetch all PricingSetting rows once for the organization (1 query instead of 200+ in loop)
+    all_pricings = db.query(PricingSetting).filter(
+        PricingSetting.organization_id == current_admin.organization_id
+    ).all()
+    pricing_map = {p.client_id: p for p in all_pricings}
+
+    serialized_list = [
+        _serialize(wo, db, partner_colors=partner_colors, pricing_map=pricing_map, defer_commit=True)
+        for wo in wos
+    ]
+    try:
+        if db.dirty:
+            db.commit()
+    except Exception:
+        db.rollback()
+    return serialized_list
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1299,6 +1440,8 @@ def get_work_order(
         ).first()
         if partner:
             partner_colors[wo.client_id] = partner.color
+
+    _reconcile_pending_reminders([wo], db)
             
     return _serialize(wo, db, partner_colors=partner_colors)
 
@@ -1442,7 +1585,9 @@ def update_work_order(
         except (ValueError, TypeError):
             return default
 
-    old_start_date = str(wo.start_date) if wo.start_date else ""
+    old_start_date = str(wo.start_date).split("T")[0] if wo.start_date else ""
+    old_start_time = str(wo.start_time) if wo.start_time else ""
+    old_status = str(wo.status) if wo.status else ""
     old_estimated_price = str(wo.estimated_price) if wo.estimated_price else ""
     old_prices_str = str(wo.prices) if wo.prices else ""
     old_volumes_str = str(wo.volumes) if wo.volumes else ""
@@ -1632,14 +1777,13 @@ def update_work_order(
     db.commit()
     db.refresh(wo)
 
-    # Trigger PDF generation and email if critical fields changed
-    new_start_date = str(wo.start_date) if wo.start_date else ""
+    # Trigger PDF generation and email if critical financial/volume fields changed
+    new_start_date = str(wo.start_date).split("T")[0] if wo.start_date else ""
     new_estimated_price = str(wo.estimated_price) if wo.estimated_price else ""
     new_prices_str = str(wo.prices) if wo.prices else ""
     new_volumes_str = str(wo.volumes) if wo.volumes else ""
     
-    if (old_start_date != new_start_date or
-        old_estimated_price != new_estimated_price or
+    if (old_estimated_price != new_estimated_price or
         old_prices_str != new_prices_str or
         old_volumes_str != new_volumes_str):
         
@@ -1661,8 +1805,39 @@ def update_work_order(
         if getattr(wo, 'is_quote', False) and wo.client_email:
             background_tasks.add_task(generate_and_send_updated_pdf)
 
-    # Handle manual explicit notifications from frontend modal
-    if getattr(payload, 'send_notification', False):
+    # REGULĂ CLIENT: Orele din planning sunt strict interne pentru ordonarea echipelor.
+    # 1. Dacă lucrarea se mută în ACEEAȘI ZI doar la altă oră (old_start_date == new_start_date și nu vine din draft),
+    #    NU se trimite nicio notificare clientului.
+    # 2. Dacă lucrarea se mută de pe o zi pe alta (old_start_date != new_start_date) sau se bifează explicit la planificare pe o zi nouă,
+    #    clientul este notificat pe WhatsApp și pe Email (doar cu DATA zilei, fără ora internă).
+    only_time_changed_same_day = bool(
+        old_start_date
+        and new_start_date == old_start_date
+        and old_status == str(wo.status)
+    )
+    day_changed_in_planning = bool(
+        old_start_date
+        and new_start_date
+        and old_start_date != new_start_date
+        and wo.status in ("planning", "confirmed", "in_progress")
+    )
+    if day_changed_in_planning:
+        try:
+            from sqlalchemy.orm.attributes import flag_modified
+            p_copy = dict(wo.prices or {})
+            if "reminder_sent_at" in p_copy or "reminder_confirmed_at" in p_copy:
+                p_copy.pop("reminder_sent_at", None)
+                p_copy.pop("reminder_confirmed_at", None)
+                wo.prices = p_copy
+                flag_modified(wo, "prices")
+                db.commit()
+        except Exception:
+            pass
+    should_notify_client = (not only_time_changed_same_day) and (
+        bool(getattr(payload, 'send_notification', False)) or day_changed_in_planning
+    )
+
+    if should_notify_client:
         if getattr(wo, 'token', None):
             wo.client_notified = True
             db.commit()
@@ -1671,13 +1846,17 @@ def update_work_order(
             
             client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
             proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}?lang={client_lang}"
-            formatted_date = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
-            if wo.start_time:
-                formatted_date += f" ({wo.start_time})"
+            if hasattr(wo.start_date, 'strftime'):
+                formatted_date = wo.start_date.strftime("%d/%m/%Y")
+            elif wo.start_date:
+                parts = str(wo.start_date).split("T")[0].split("-")
+                formatted_date = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else str(wo.start_date)
+            else:
+                formatted_date = "À déterminer"
 
             if wo.client_email:
                 try:
-                    send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
+                    send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date, org_id=wo.organization_id, wo_id=wo.id)
                 except Exception as e:
                     print(f"Failed to send planning update email: {e}")
             if wo.client_phone:
@@ -1686,7 +1865,7 @@ def update_work_order(
                 except Exception as e:
                     print(f"Failed to send planning update whatsapp: {e}")
             
-            # Adauga un mesaj in chat
+            # Adauga un mesaj in chat (fără ora internă din planning)
             try:
                 from app.models import WorkOrderMessage
                 chat_fr = f"✅ L'équipe Davide Chape vous a programmé pour le {formatted_date}."
@@ -1712,7 +1891,7 @@ def update_work_order(
         else:
             print(f"Skipped planning notification for WO {wo.id} because it lacks a token")
     else:
-        # Discount changed? Do NOT auto-notify. Frontend will ask admin if they want to notify.
+        # Same-day time reorder or notification not requested: do NOT notify client.
         pass
     
     # ── Invalidare cache logistic — NUMAI dacă s-a schimbat echipa sau adresa ──
@@ -2405,9 +2584,13 @@ async def approve_quote(
     frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
     signing_url = f"{frontend_url}/quote/{wo.token}"
     
-    date_str = wo.start_date or "À déterminer"
-    if wo.start_time:
-        date_str += f" ({wo.start_time})"
+    if hasattr(wo.start_date, 'strftime'):
+        date_str = wo.start_date.strftime("%d/%m/%Y")
+    elif wo.start_date:
+        parts = str(wo.start_date).split("T")[0].split("-")
+        date_str = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else str(wo.start_date)
+    else:
+        date_str = "À déterminer"
 
     from app.services.email_service import send_planning_update_email
     from app.services.whatsapp_service import send_planning_update_whatsapp
@@ -3075,7 +3258,7 @@ def get_work_order_messages(
         if m.message == '[reaction]':
             continue
         m_translations = dict(m.translations or {})
-        if m.sender == 'client' and m.message and 'ro' not in m_translations:
+        if m.sender in ('client', 'partner') and m.message and ('ro' not in m_translations or str(m_translations.get('ro', '')).strip().lower() == m.message.strip().lower()):
             try:
                 from app.services.translation_service import translate_text
                 ro_text = translate_text(m.message, 'ro')
@@ -3083,6 +3266,16 @@ def get_work_order_messages(
                     m_translations['ro'] = ro_text
             except Exception:
                 pass
+        elif m.sender == 'admin' and m.message and m_translations.get('_target_lang') != 'none':
+            target_l = m_translations.get('_target_lang') or (getattr(wo, 'client_language', 'fr') or 'fr').lower().split('-')[0].strip()
+            if target_l and target_l != 'none' and (target_l not in m_translations or not m_translations.get(target_l)):
+                try:
+                    from app.services.translation_service import translate_text
+                    tr_val = translate_text(m.message, target_l)
+                    if tr_val:
+                        m_translations[target_l] = tr_val
+                except Exception:
+                    pass
 
         db_messages.append({
             "id": m.id,
@@ -3107,6 +3300,7 @@ class MessageCreate(BaseModel):
     target_lang: Optional[str] = None
     translations: Optional[dict] = None
     attachments: Optional[list] = []
+    is_reminder: Optional[bool] = False
 
 class TranslateRequest(BaseModel):
     text: str
@@ -3200,10 +3394,15 @@ def post_work_order_message(
 
         langs_to_translate = set()
         if target_l and target_l != 'none':
-            langs_to_translate.add(target_l)
+            langs_to_translate.update({'fr', 'nl', 'en', target_l})
             translations["_target_lang"] = target_l
         elif target_l == 'none':
             translations["_target_lang"] = 'none'
+        else:
+            langs_to_translate.update({'fr', 'nl', 'en'})
+            if client_lang and client_lang != 'none':
+                langs_to_translate.add(client_lang)
+                translations["_target_lang"] = client_lang
 
         if target_l != 'none' and client_lang and client_lang != 'none':
             langs_to_translate.add(client_lang)
@@ -3316,6 +3515,24 @@ def post_work_order_message(
         attachments=payload.attachments or []
     )
     db.add(msg)
+
+    reminder_sent_at_val = None
+    if getattr(payload, 'is_reminder', False):
+        from sqlalchemy.orm.attributes import flag_modified
+        reminder_sent_at_val = datetime.utcnow().isoformat() + "Z"
+        p_dict = dict(wo.prices or {})
+        p_dict["reminder_sent_at"] = reminder_sent_at_val
+        wo.prices = p_dict
+        flag_modified(wo, "prices")
+        hist = list(wo.date_history) if isinstance(wo.date_history, list) else []
+        hist.append({
+            "action": "reminder_sent",
+            "timestamp": reminder_sent_at_val,
+            "by": current_admin.full_name or "Admin"
+        })
+        wo.date_history = hist
+        flag_modified(wo, "date_history")
+
     db.commit()
     db.refresh(msg)
     
@@ -3330,7 +3547,64 @@ def post_work_order_message(
         "attachments": msg.attachments,
         "delivery_channel": delivery_channel,
         "delivery_status": delivery_status,
-        "wamid": wamid
+        "wamid": wamid,
+        "reminder_sent_at": reminder_sent_at_val
+    }
+
+
+class ReminderConfirmToggle(BaseModel):
+    confirmed: bool
+
+
+@router.post("/work-orders/{wo_id}/reminder-confirm")
+def toggle_work_order_reminder_confirmation(
+    wo_id: str,
+    payload: ReminderConfirmToggle,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+
+    from sqlalchemy.orm.attributes import flag_modified
+    p_dict = dict(wo.prices or {})
+    now_iso = datetime.utcnow().isoformat() + "Z"
+
+    if payload.confirmed:
+        p_dict["reminder_confirmed_at"] = now_iso
+        if not p_dict.get("reminder_sent_at"):
+            p_dict["reminder_sent_at"] = now_iso
+        wo.date_confirmed_at = datetime.utcnow()
+        hist = list(wo.date_history) if isinstance(wo.date_history, list) else []
+        hist.append({
+            "action": "confirmed_manually",
+            "timestamp": now_iso,
+            "by": current_admin.full_name or "Admin"
+        })
+        wo.date_history = hist
+        flag_modified(wo, "date_history")
+    else:
+        p_dict.pop("reminder_confirmed_at", None)
+        if isinstance(wo.date_history, list):
+            wo.date_history = [
+                h for h in wo.date_history
+                if not (isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually"))
+            ]
+            flag_modified(wo, "date_history")
+
+    wo.prices = p_dict
+    flag_modified(wo, "prices")
+    db.commit()
+    db.refresh(wo)
+
+    return {
+        "id": wo.id,
+        "reminder_sent_at": p_dict.get("reminder_sent_at"),
+        "reminder_confirmed_at": p_dict.get("reminder_confirmed_at")
     }
 
 class ReactionToggle(BaseModel):

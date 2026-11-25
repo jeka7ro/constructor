@@ -973,7 +973,7 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
             {/* Left Weather Card — Ultra-Compact, No Scrollbar & Scales up in Full Screen alongside Zoom In/Out buttons */}
             {showHud && (
                 <div
-                    className="absolute z-[1000] w-56 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-2.5 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-700/90 pointer-events-auto flex flex-col gap-1 overflow-y-auto hide-scrollbar tabular-nums transition-transform duration-150"
+                    className="absolute z-[1000] w-64 bg-white dark:bg-slate-900 p-2.5 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-700/90 pointer-events-auto flex flex-col gap-1 overflow-y-auto hide-scrollbar tabular-nums transition-transform duration-150"
                     style={
                         isMapFull
                             ? {
@@ -995,10 +995,10 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
                     <button
                         type="button"
                         onClick={() => setIsCollapsed(c => !c)}
-                        className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 dark:text-white flex items-center justify-between gap-1.5 w-full cursor-pointer"
+                        className="text-[11.5px] font-extrabold uppercase tracking-wider text-slate-900 dark:text-white flex items-center justify-between gap-1.5 w-full cursor-pointer"
                     >
                         <div className="flex items-center gap-1.5">
-                            <CloudSun className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400 shrink-0" />
+                            <CloudSun className="w-4 h-4 text-blue-600 dark:text-sky-400 shrink-0" />
                             <span>{t('live.weather', 'Meteo')} ({hudStations.length})</span>
                         </div>
                         <span className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
@@ -1009,7 +1009,7 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
                     {!isCollapsed && (
                         <div className="flex flex-col gap-0.5">
                             {hudStations.length === 0 ? (
-                                <div className="text-[10px] text-slate-400 italic py-1 text-center">
+                                <div className="text-[11px] text-slate-400 italic py-1 text-center">
                                     {t('logistics.no_planned_works', 'Nicio lucrare planificată.')}
                                 </div>
                             ) : hudStations.map(st => {
@@ -1030,18 +1030,18 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
                                             }`}
                                     >
                                         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                            {renderAppleWeatherIcon(st.kind, st.isNight, 14)}
-                                            <span className="text-[11px] font-extrabold text-slate-900 dark:text-white truncate">
+                                            {renderAppleWeatherIcon(st.kind, st.isNight, 15)}
+                                            <span className="text-[12.5px] font-extrabold text-slate-950 dark:text-white truncate">
                                                 {st.name}
                                             </span>
                                             {st.clientName && (
-                                                <span className="text-[10px] font-medium text-slate-400 dark:text-slate-400 truncate">
+                                                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
                                                     · {st.clientName}
                                                 </span>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-1 shrink-0">
-                                            <span className="text-[10px] font-bold text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded tabular-nums">
+                                            <span className="text-[11.5px] font-extrabold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded tabular-nums">
                                                 {st.temp != null ? `${sign}${st.temp}°C` : '—'}
                                             </span>
                                         </div>

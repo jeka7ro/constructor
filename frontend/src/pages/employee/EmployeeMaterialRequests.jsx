@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { PackageSearch, Plus, ChevronLeft, Send, Loader2, CheckCircle, Clock, XCircle, Wrench } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
+import { useUIStore } from '../../store/uiStore'
 import EmployeeHeader from '../../components/layout/EmployeeHeader'
 
 const STATUS_CONFIG = {
@@ -17,6 +19,7 @@ const STATUS_CONFIG = {
 export default function EmployeeMaterialRequests() {
     const navigate = useNavigate()
     const { user } = useAuthStore()
+    const { showToast } = useUIStore()
     const [requests, setRequests] = useState([])
     const [inventory, setInventory] = useState([])
     const [sites, setSites] = useState([])
@@ -168,14 +171,19 @@ export default function EmployeeMaterialRequests() {
     const siteItems = inventory.filter(i => i.site_stock > 0)
     const availableItems = inventory.filter(i => i.central_stock > 0)
 
+    const [rejectReasonInput, setRejectReasonInput] = useState('')
+    const [showRejectInput, setShowRejectInput] = useState(false)
+
     const handleConfirm = async (id, action, reason = null) => {
         try {
             await api.put(`/user/material-requests/${id}/confirm`, { action, reason })
             setSuccessMsg(action === 'confirm' ? 'Preluare semnată cu succes!' : 'Refuz trimis adminului.')
             setTimeout(() => setSuccessMsg(''), 4000)
+            setShowRejectInput(false)
+            setRejectReasonInput('')
             fetchData()
         } catch {
-            alert('A apărut o eroare la confirmare.')
+            showToast('A apărut o eroare la confirmare.', 'error')
         }
     }
 
@@ -337,41 +345,63 @@ export default function EmployeeMaterialRequests() {
                 {/* List */}
                 {!showForm && (
                     <>
-                        {unconfirmedReq && (
-                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                                <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <PackageSearch className="w-8 h-8" />
+                        {unconfirmedReq && createPortal(
+                            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/55 backdrop-blur-md">
+                                <div className="bg-white dark:bg-slate-900 rounded-[24px] border-[1.5px] border-slate-300 dark:border-slate-700 p-6 w-full max-w-sm shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45),0_0_0_1px_rgba(15,23,42,0.08)] animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="w-12 h-12 bg-emerald-500/15 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                                        <PackageSearch className="w-6 h-6" />
                                     </div>
-                                    <h2 className="text-xl font-black text-slate-800 text-center mb-2">Semnează Primirea</h2>
-                                    <p className="text-sm text-slate-500 text-center mb-6">
+                                    <h2 className="text-[17px] font-bold tracking-tight text-slate-950 dark:text-white text-center mb-1.5">Semnează Primirea</h2>
+                                    <p className="text-[13px] font-medium text-slate-600 dark:text-slate-300 text-center mb-5">
                                         Administratorul a predat următoarea solicitare către șantier. Te rugăm să confirmi că ai intrat în posesia ei.
                                     </p>
-                                    <div className="bg-slate-50 p-4 rounded-2xl mb-6">
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Materiale Vizate</p>
-                                        <p className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{unconfirmedReq.items_text}</p>
+                                    <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 p-4 rounded-[16px] mb-5">
+                                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Materiale Vizate</p>
+                                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100 whitespace-pre-wrap">{unconfirmedReq.items_text}</p>
                                     </div>
-                                    <div className="space-y-3">
-                                        <button 
-                                            onClick={() => handleConfirm(unconfirmedReq.id, 'confirm')}
-                                            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-[0.98]"
-                                        >
-                                            Confirm Primirea
-                                        </button>
-                                        <button 
-                                            onClick={() => {
-                                                const reason = prompt('Motivul refuzului (opțional, ex. lipsă produse):');
-                                                if (reason !== null) {
-                                                    handleConfirm(unconfirmedReq.id, 'reject', reason);
-                                                }
-                                            }}
-                                            className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all active:scale-[0.98]"
-                                        >
-                                            Refuz (Nu am primit)
-                                        </button>
-                                    </div>
+                                    {showRejectInput ? (
+                                        <div className="space-y-3">
+                                            <input
+                                                type="text"
+                                                value={rejectReasonInput}
+                                                onChange={(e) => setRejectReasonInput(e.target.value)}
+                                                placeholder="Motivul refuzului (opțional)..."
+                                                className="w-full px-3.5 h-11 rounded-[12px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
+                                            />
+                                            <div className="flex gap-2.5">
+                                                <button
+                                                    onClick={() => setShowRejectInput(false)}
+                                                    className="flex-1 h-11 bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 font-semibold text-[15px] rounded-[13px]"
+                                                >
+                                                    Anulează
+                                                </button>
+                                                <button
+                                                    onClick={() => handleConfirm(unconfirmedReq.id, 'reject', rejectReasonInput)}
+                                                    className="flex-1 h-11 bg-[#FF3B30] hover:bg-[#D70015] text-white font-semibold text-[15px] rounded-[13px]"
+                                                >
+                                                    Trimite Refuz
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2.5">
+                                            <button 
+                                                onClick={() => handleConfirm(unconfirmedReq.id, 'confirm')}
+                                                className="w-full h-11 bg-[#34C759] hover:bg-[#2DB14E] text-white font-semibold text-[15px] rounded-[13px] shadow-sm transition-all active:scale-[0.98]"
+                                            >
+                                                Confirm Primirea
+                                            </button>
+                                            <button 
+                                                onClick={() => setShowRejectInput(true)}
+                                                className="w-full h-11 bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-[15px] rounded-[13px] transition-all active:scale-[0.98]"
+                                            >
+                                                Refuz (Nu am primit)
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
+                            </div>,
+                            document.body
                         )}
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mt-4 px-1">Istoric Cereri</h3>
                         {loading ? (

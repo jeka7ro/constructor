@@ -340,6 +340,120 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         setTimeout(() => setToast({ message: null, type: 'success' }), 3000)
     }
     const [copiedLink, setCopiedLink] = useState(false)
+    const [showReminderModal, setShowReminderModal] = useState(false)
+    const [reminderLang, setReminderLang] = useState('fr')
+    const [reminderText, setReminderText] = useState('')
+    const [sendingReminder, setSendingReminder] = useState(false)
+    const [togglingConfirm, setTogglingConfirm] = useState(false)
+
+    const isReminderConfirmed = Boolean(
+        wo?.reminder_confirmed_at ||
+        wo?.prices?.reminder_confirmed_at ||
+        (Array.isArray(wo?.date_history) && wo.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
+    )
+    const isReminderSent = Boolean(
+        wo?.reminder_sent_at ||
+        wo?.prices?.reminder_sent_at ||
+        (Array.isArray(wo?.date_history) && wo.date_history.some(h => h && h.action === 'reminder_sent'))
+    )
+
+    const buildReminderMessage = (orderObj, langCode) => {
+        if (!orderObj) return ''
+        const clientName = (orderObj.client_name && orderObj.client_name !== 'None') ? orderObj.client_name : (orderObj.title || 'Client')
+        const rawDate = (orderObj.start_date || orderObj.deadline_date || orderObj.approximate_date || '').split('T')[0]
+        let dateFormatted = rawDate
+        if (rawDate && rawDate.includes('-')) {
+            const [y, m, d] = rawDate.split('-')
+            if (y && m && d) dateFormatted = `${d}/${m}/${y}`
+        }
+        const confirmKey = orderObj.token || orderObj.id
+        const confirmUrl = `https://davidechape.pontaj.app/confirm/${confirmKey}?lang=${langCode}`
+
+        if (langCode === 'nl') {
+            return dateFormatted
+                ? `Hallo ${clientName},\n\nWij herinneren u eraan dat uw chapewerken gepland staan op ${dateFormatted}.\n\nGelieve te bevestigen dat de werf klaar is via deze link :\n${confirmUrl}\n\nMet vriendelijke groet,\nHet Davide Chape Team`
+                : `Hallo ${clientName},\n\nGelieve uw offerte / werkzaamheden te bekijken en te bevestigen via deze link :\n${confirmUrl}\n\nMet vriendelijke groet,\nHet Davide Chape Team`
+        }
+        if (langCode === 'en') {
+            return dateFormatted
+                ? `Hello ${clientName},\n\nWe remind you that your screed works are scheduled for ${dateFormatted}.\n\nPlease confirm that the site is ready by clicking this link :\n${confirmUrl}\n\nBest regards,\nThe Davide Chape Team`
+                : `Hello ${clientName},\n\nPlease review and confirm your quote / works by clicking this link :\n${confirmUrl}\n\nBest regards,\nThe Davide Chape Team`
+        }
+        return dateFormatted
+            ? `Bonjour ${clientName},\n\nNous vous rappelons que vos travaux de chape sont planifiés pour le ${dateFormatted}.\n\nMerci de bien vouloir confirmer que le chantier est prêt en cliquant sur ce lien :\n${confirmUrl}\n\nCordialement,\nL'équipe Davide Chape`
+            : `Bonjour ${clientName},\n\nMerci de bien vouloir consulter et confirmer votre devis / vos travaux en cliquant sur ce lien :\n${confirmUrl}\n\nCordialement,\nL'équipe Davide Chape`
+    }
+
+    const handleOpenReminderModal = () => {
+        if (!wo) return
+        const rawLang = (wo.client_language || 'fr').toLowerCase().split('-')[0].trim()
+        const initLang = ['fr', 'nl', 'en'].includes(rawLang) ? rawLang : 'fr'
+        setReminderLang(initLang)
+        setReminderText(buildReminderMessage(wo, initLang))
+        setShowReminderModal(true)
+    }
+
+    const handleSendReminder = async () => {
+        if (!wo || !reminderText.trim() || sendingReminder) return
+        setSendingReminder(true)
+        try {
+            const res = await api.post(`/admin/work-orders/${wo.id}/messages`, {
+                message: reminderText.trim(),
+                target_lang: 'none',
+                is_reminder: true
+            })
+            if (res.data) {
+                setMessages(prev => [...prev, res.data])
+            }
+            const sentTs = res.data?.reminder_sent_at || new Date().toISOString()
+            setWo(prev => prev ? {
+                ...prev,
+                reminder_sent_at: sentTs,
+                prices: { ...(prev.prices || {}), reminder_sent_at: sentTs }
+            } : prev)
+            showToast(t('planning.reminder_sent_success', 'Rappel envoyé au client par WhatsApp et Email !'), 'success')
+            setShowReminderModal(false)
+        } catch (err) {
+            console.error('Failed to send reminder:', err)
+            showToast(err?.response?.data?.detail || t('planning.reminder_sent_error', "Erreur lors de l'envoi du rappel."), 'error')
+        } finally {
+            setSendingReminder(false)
+        }
+    }
+
+    const handleToggleReminderConfirm = async (targetConfirmed) => {
+        if (!wo || togglingConfirm) return
+        setTogglingConfirm(true)
+        try {
+            const res = await api.post(`/admin/work-orders/${wo.id}/reminder-confirm`, {
+                confirmed: targetConfirmed
+            })
+            setWo(prev => prev ? {
+                ...prev,
+                reminder_sent_at: res.data?.reminder_sent_at,
+                reminder_confirmed_at: res.data?.reminder_confirmed_at,
+                prices: {
+                    ...(prev.prices || {}),
+                    reminder_sent_at: res.data?.reminder_sent_at,
+                    reminder_confirmed_at: res.data?.reminder_confirmed_at
+                },
+                date_history: targetConfirmed
+                    ? [...(Array.isArray(prev.date_history) ? prev.date_history : []), { action: 'confirmed_manually', timestamp: res.data?.reminder_confirmed_at }]
+                    : (Array.isArray(prev.date_history) ? prev.date_history.filter(h => !['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h?.action)) : [])
+            } : prev)
+            showToast(
+                targetConfirmed
+                    ? t('planning.marked_confirmed_toast', 'Chantier marqué comme confirmé par le client !')
+                    : t('planning.unmarked_confirmed_toast', 'Confirmation annulée.'),
+                'success'
+            )
+        } catch (err) {
+            console.error('Failed to toggle confirmation:', err)
+            showToast(t('common.error', 'Erreur lors de la mise à jour.'), 'error')
+        } finally {
+            setTogglingConfirm(false)
+        }
+    }
 
     const handleSaveAddress = async () => {
         try {
@@ -1752,6 +1866,41 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                             </button>
                         )}
+                        {(wo.client_phone || wo.client_email) && (
+                            <button
+                                type="button"
+                                onClick={handleOpenReminderModal}
+                                className={`relative flex items-center justify-center w-8 h-8 rounded-full transition-colors shrink-0 shadow-2xs cursor-pointer border ${
+                                    isReminderConfirmed
+                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
+                                        : isReminderSent
+                                            ? 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600'
+                                            : 'bg-white dark:bg-slate-900 hover:bg-emerald-50 text-emerald-600 border-emerald-500/90'
+                                }`}
+                                title={
+                                    isReminderConfirmed
+                                        ? t('planning.reminder_status_confirmed', 'CONFIRMAT de client ✓✓')
+                                        : isReminderSent
+                                            ? t('planning.reminder_status_sent', 'Reminder TRIMIS ✈️✓ (în așteptarea confirmării clientului)')
+                                            : t('planning.send_whatsapp_reminder', 'Netrimis — Apasă pentru a trimite reminder WhatsApp & Email clientului')
+                                }
+                            >
+                                {isReminderConfirmed ? (
+                                    <CheckCheck className="w-4 h-4 stroke-[2.6]" />
+                                ) : isReminderSent ? (
+                                    <>
+                                        <Send className="w-3.5 h-3.5 stroke-[2.4] -ml-0.5" />
+                                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center border border-white">
+                                            <Check className="w-2.5 h-2.5 stroke-[3.2]" />
+                                        </span>
+                                    </>
+                                ) : (
+                                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.126.556 4.122 1.532 5.854l-1.532 5.596 5.736-1.505c1.694.922 3.633 1.447 5.698 1.447 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z"/>
+                                    </svg>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1955,7 +2104,42 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.phone', 'Téléphone')}</p>
-                                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_phone || '—'}</p>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 tabular-nums">{wo.client_phone || '—'}</p>
+                                                        {(wo.client_phone || wo.client_email) && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleOpenReminderModal}
+                                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer border ${
+                                                                    isReminderConfirmed
+                                                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
+                                                                        : isReminderSent
+                                                                            ? 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600'
+                                                                            : 'bg-white dark:bg-slate-800 hover:bg-emerald-50 text-emerald-600 border-emerald-500'
+                                                                }`}
+                                                                title={t('planning.send_whatsapp_reminder', 'Envoyer un rappel WhatsApp & Email au client (avec demande de confirmation)')}
+                                                            >
+                                                                {isReminderConfirmed ? (
+                                                                    <>
+                                                                        <CheckCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.6]" />
+                                                                        <span>{t('planning.reminder_confirmed_short', 'Confirmat ✓✓')}</span>
+                                                                    </>
+                                                                ) : isReminderSent ? (
+                                                                    <>
+                                                                        <Send className="w-3.5 h-3.5 shrink-0" />
+                                                                        <span>{t('planning.reminder_sent_short', 'Reminder Trimis ✓')}</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
+                                                                            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.126.556 4.122 1.532 5.854l-1.532 5.596 5.736-1.505c1.694.922 3.633 1.447 5.698 1.447 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z"/>
+                                                                        </svg>
+                                                                        <span>{t('planning.reminder_short_btn', 'Rappel WhatsApp')}</span>
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -2313,14 +2497,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     {/* Translation Display */}
                                                     {msg.translations && Object.keys(msg.translations).length > 0 && (
                                                         (() => {
-                                                            // If message is from client: show translation in Romanian (RO) under the original
-                                                            if (msg.sender === 'client') {
+                                                            // If message is from client or partner: show translation in Romanian (RO) under the original
+                                                            if (msg.sender === 'client' || msg.sender === 'partner') {
                                                                 const roText = msg.translations.ro;
                                                                 if (!roText || !roText.trim() || roText.includes('Error 500') || roText.includes('Eroare la traducere') || roText.includes("That's an error")) return null;
                                                                 if (roText.trim().toLowerCase() === (msg.message || '').trim().toLowerCase()) return null;
                                                                 return (
                                                                     <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/50 text-xs italic text-slate-500 dark:text-slate-400">
-                                                                        <span className="font-semibold block mb-0.5">{t('chat.translation', 'Traducere')} (RO):</span>
+                                                                        <span className="font-semibold block mb-0.5">{t('chat.translation', 'Traduction')} (RO):</span>
                                                                         {roText}
                                                                     </div>
                                                                 );
@@ -2371,7 +2555,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         {/* Reaction Picker Popover */}
                                         {showEmojiPickerFor === msg.id && (
                                             <div className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-1 z-20`}>
-                                                {['', '', '', '', '', ''].map(em => (
+                                                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(em => (
                                                     <button 
                                                         key={em} 
                                                         onClick={() => handleToggleReaction(msg.id, em)}
@@ -2399,7 +2583,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 <button
                                                     onClick={() => handleToggleVisibility(msg.id)}
                                                     className="p-1.5 rounded-full text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                                    title={msg.is_hidden ? t('admin.show_to_client', 'Afișează la client') : t('admin.hide_from_client', 'Ascunde de la client')}
+                                                    title={msg.is_hidden ? t('admin.show_to_client', 'Afficher au client') : t('admin.hide_from_client', 'Masquer au client')}
                                                 >
                                                     {msg.is_hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                                                 </button>
@@ -4555,6 +4739,148 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     total_net: autoNet
                 }}
             />
+
+            {/* Client Reminder & Confirmation Request Modal — Apple HIG Sheet / Alert */}
+            {showReminderModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => !sendingReminder && setShowReminderModal(false)}>
+                    <div className="w-full max-w-[440px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <div className="w-12 h-12 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/25 flex items-center justify-center mx-auto mb-3 text-emerald-600 dark:text-emerald-400">
+                                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.126.556 4.122 1.532 5.854l-1.532 5.596 5.736-1.505c1.694.922 3.633 1.447 5.698 1.447 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z"/>
+                                </svg>
+                            </div>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white text-center">
+                                {t('planning.reminder_modal_title', 'Rappel Client & Demande de Confirmation')}
+                            </h3>
+                            <p className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 text-center mt-0.5 truncate">
+                                {(wo.client_name && wo.client_name !== 'None') ? wo.client_name : wo.title}
+                                {wo.quote_number ? ` • ${wo.quote_number}` : ''}
+                            </p>
+
+                            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3">
+                                {wo.client_phone ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/25 tabular-nums">
+                                        WhatsApp: {wo.client_phone}
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25">
+                                        {t('planning.no_phone_on_order', 'Sans téléphone WhatsApp')}
+                                    </span>
+                                )}
+                                {wo.client_email && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-500/15 text-sky-800 dark:text-sky-300 border border-sky-500/25 truncate max-w-[210px]">
+                                        {wo.client_email}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Live Status Banner + Manual Confirmation Toggle */}
+                            <div className={`mt-3.5 p-2.5 rounded-[12px] border flex items-center justify-between gap-2 ${
+                                isReminderConfirmed
+                                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
+                                    : isReminderSent
+                                        ? 'bg-sky-500/15 border-sky-500/30 text-sky-900 dark:text-sky-200'
+                                        : 'bg-slate-100 dark:bg-slate-900/70 border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                            }`}>
+                                <div className="flex items-center gap-2 min-w-0">
+                                    {isReminderConfirmed ? (
+                                        <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.6]" />
+                                    ) : isReminderSent ? (
+                                        <Send className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                                    ) : (
+                                        <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                                    )}
+                                    <span className="text-[11.5px] font-bold leading-snug">
+                                        {isReminderConfirmed
+                                            ? t('planning.status_confirmed_banner', 'Confirmat de client ✓✓')
+                                            : isReminderSent
+                                                ? t('planning.status_sent_banner', 'Reminder trimis — în așteptarea confirmării')
+                                                : t('planning.status_not_sent_banner', 'Reminder netrimis încă')}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    disabled={togglingConfirm}
+                                    onClick={() => handleToggleReminderConfirm(!isReminderConfirmed)}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer border ${
+                                        isReminderConfirmed
+                                            ? 'bg-white/90 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border-slate-300/80'
+                                            : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                                    }`}
+                                >
+                                    {isReminderConfirmed
+                                        ? t('planning.unmark_confirmed_btn', 'Anulează')
+                                        : t('planning.mark_confirmed_btn', '✓✓ Marchează Confirmat')}
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-4 mb-2">
+                                <span className="text-[11.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                                    {t('planning.reminder_language', 'Langue du message')}
+                                </span>
+                                <div className="inline-flex items-center gap-0.5 bg-slate-100 dark:bg-slate-900 p-0.5 rounded-full border border-slate-200/90 dark:border-slate-700">
+                                    {[
+                                        { code: 'fr', label: 'FR' },
+                                        { code: 'nl', label: 'NL' },
+                                        { code: 'en', label: 'EN' }
+                                    ].map(l => (
+                                        <button
+                                            key={l.code}
+                                            type="button"
+                                            onClick={() => {
+                                                setReminderLang(l.code);
+                                                setReminderText(buildReminderMessage(wo, l.code));
+                                            }}
+                                            className={`min-w-[44px] h-6 px-2.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                                                reminderLang === l.code
+                                                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
+                                                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                                            }`}
+                                        >
+                                            {l.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <textarea
+                                rows={6}
+                                value={reminderText}
+                                onChange={(e) => setReminderText(e.target.value)}
+                                className="w-full p-3 rounded-[12px] bg-slate-50 dark:bg-slate-950 border border-slate-300/90 dark:border-slate-700 text-[12.5px] font-medium text-slate-800 dark:text-slate-100 leading-relaxed outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 resize-none"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2.5 mt-3">
+                            <button
+                                type="button"
+                                disabled={sendingReminder}
+                                onClick={() => setShowReminderModal(false)}
+                                className="flex-1 h-10 px-4 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/90 dark:border-slate-600/80 rounded-[14px] text-[13.5px] font-semibold transition-all cursor-pointer"
+                            >
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button
+                                type="button"
+                                disabled={sendingReminder || !reminderText.trim() || (!wo.client_phone && !wo.client_email)}
+                                onClick={handleSendReminder}
+                                className="flex-[1.35] h-10 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-[14px] text-[13.5px] font-semibold shadow-sm shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                {sendingReminder ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <>
+                                        <Send className="w-3.5 h-3.5" />
+                                        <span>{t('planning.send_reminder_btn', 'Envoyer le rappel')}</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
 
         </div>
     );

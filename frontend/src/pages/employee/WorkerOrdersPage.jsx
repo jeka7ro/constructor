@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
@@ -2153,33 +2154,34 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                 )}
             </div>
 
-            {confirmDialog && (
-                <div className="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4">
+            {confirmDialog && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-950/55 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setConfirmDialog(null)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] border-[1.5px] border-slate-300 dark:border-slate-700 p-6 w-full max-w-sm shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45),0_0_0_1px_rgba(15,23,42,0.08)] animate-in fade-in zoom-in-95 duration-200 text-center" onClick={e => e.stopPropagation()}>
+                        <div className="w-12 h-12 bg-amber-500/15 text-[#FF9500] rounded-full flex items-center justify-center mx-auto mb-3.5">
                             <AlertCircle className="w-6 h-6" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">{confirmDialog.title}</h3>
-                        <p className="text-slate-600 mb-6 whitespace-pre-line">{confirmDialog.message}</p>
+                        <h3 className="text-[17px] font-bold tracking-tight text-slate-950 dark:text-white mb-1.5">{confirmDialog.title}</h3>
+                        <p className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-5 whitespace-pre-line">{confirmDialog.message}</p>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setConfirmDialog(null)}
-                                className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                                className="flex-1 px-4 h-11 bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-[15px] rounded-[13px] transition-colors"
                             >
-                                Anulare
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button
                                 onClick={() => {
                                     confirmDialog.onConfirm();
                                     setConfirmDialog(null);
                                 }}
-                                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/30"
+                                className="flex-1 px-4 h-11 bg-[#007AFF] hover:bg-[#0062CC] text-white font-semibold text-[15px] rounded-[13px] transition-colors shadow-sm"
                             >
-                                Confirmă
+                                {t('common.confirm', 'Confirmer')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Buton principal fix jos — DOAR FINALIZEAZA */}

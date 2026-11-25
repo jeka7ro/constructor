@@ -52,31 +52,52 @@ def _normalize_address(address: str) -> str:
     return normalized.strip()
 
 def geocode_address(address: str):
-    """Geocode an address using Google Maps API. Returns (lat, lng) or None."""
-    if not address or len(address.strip()) < 5:
+    """Geocode an address using Google Maps API with OpenStreetMap/Nominatim fallback (prioritizing Belgium). Returns (lat, lng) or None."""
+    if not address or len(address.strip()) < 2:
         return None
-    key = address.strip().lower()
+    clean_addr = address.strip()
+    key = clean_addr.lower()
     if key in _geocode_cache:
         return _geocode_cache[key]
 
     import os
     import requests
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-    if not api_key:
-        return None
-        
+    if api_key:
+        try:
+            response = requests.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"address": clean_addr, "key": api_key, "region": "be"},
+                timeout=5
+            )
+            results = response.json()
+            if results.get("status") == "OK" and results.get("results"):
+                location = results["results"][0]["geometry"]["location"]
+                result = (float(location["lat"]), float(location["lng"]))
+                _geocode_cache[key] = result
+                return result
+        except Exception:
+            pass
+
+    # Fallback: OpenStreetMap Nominatim (prioritizing Belgium & neighboring countries)
     try:
-        response = requests.get(
-            "https://maps.googleapis.com/maps/api/geocode/json",
-            params={"address": address, "key": api_key, "region": "ro"},
+        resp = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={
+                "q": clean_addr,
+                "format": "json",
+                "limit": 1,
+                "countrycodes": "be,nl,fr,lu,de,ro"
+            },
+            headers={"User-Agent": "DavideChapeLogistics/1.0"},
             timeout=5
         )
-        results = response.json()
-        if results.get("status") == "OK" and results.get("results"):
-            location = results["results"][0]["geometry"]["location"]
-            result = (float(location["lat"]), float(location["lng"]))
-            _geocode_cache[key] = result
-            return result
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, list) and len(data) > 0:
+                result = (float(data[0]["lat"]), float(data[0]["lon"]))
+                _geocode_cache[key] = result
+                return result
     except Exception:
         pass
         
@@ -467,10 +488,15 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                         if s.name and s.name not in w_name:
                             w_name = f"{w_name} ({s.name})"
 
-                # Fallback: geocode site_address via Google Maps API
+                # Fallback: geocode site_address (or client.address if site_address is missing)
                 # Se încearcă MEREU dacă nu avem coordonate (nu doar prima dată)
-                if not (w_lat and w_lng) and w.site_address:
-                    geocoded = geocode_address(w.site_address)
+                effective_addr = w.site_address
+                if not effective_addr and w.client_id:
+                    c_obj = clients_dict.get(w.client_id)
+                    if c_obj and getattr(c_obj, "address", None):
+                        effective_addr = c_obj.address
+                if not (w_lat and w_lng) and effective_addr:
+                    geocoded = geocode_address(effective_addr)
                     if geocoded:
                         w_lat, w_lng = geocoded
                         # Persist coords so next load is instant

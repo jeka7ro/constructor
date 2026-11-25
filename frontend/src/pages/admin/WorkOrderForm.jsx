@@ -302,14 +302,14 @@ export default function WorkOrderForm() {
     const handleDetectGPS = () => {
         setDetecting(true)
         if (!navigator.geolocation) {
-            alert(t('work_order_form.gps_not_supported', "La géolocalisation n'est pas supportée par le navigateur."));
+            showToast(t('work_order_form.gps_not_supported', "La géolocalisation n'est pas supportée par le navigateur."), 'error');
             setDetecting(false);
             return;
         }
 
         const gpsTimeout = setTimeout(() => {
             setDetecting(false);
-            alert(t('work_order_form.gps_timeout', "Le délai a expiré. Vérifiez si le navigateur a la permission d'accéder à la localisation (GPS)."));
+            showToast(t('work_order_form.gps_timeout', "Le délai a expiré. Vérifiez si le navigateur a la permission d'accéder à la localisation (GPS)."), 'error');
         }, 8000);
 
         navigator.geolocation.getCurrentPosition(
@@ -330,7 +330,7 @@ export default function WorkOrderForm() {
             (err) => {
                 clearTimeout(gpsTimeout);
                 setDetecting(false);
-                alert(t('work_order_form.gps_error', 'Erreur de détection GPS : ') + err.message + t('work_order_form.gps_error_check', "\nVeuillez vérifier si vous avez autorisé l'accès à la localisation."));
+                showToast(t('work_order_form.gps_error', 'Erreur de détection GPS : ') + err.message + t('work_order_form.gps_error_check', " Veuillez vérifier si vous avez autorisé l'accès à la localisation."), 'error');
             },
             { enableHighAccuracy: true, timeout: 8000 }
         )
@@ -350,15 +350,22 @@ export default function WorkOrderForm() {
         })
     }
 
-    const deleteExistingPhoto = async (photoId) => {
-        if (!confirm(t('common.confirm_delete', 'Etes-vous sûr de vouloir supprimer cette photo ?'))) return
-        try {
-            await api.delete(`/admin/work-orders/${id}/photos/${photoId}`)
-            setExistingPhotos(p => p.filter(x => x.id !== photoId))
-            showToast(t('common.deleted', 'Photo supprimée'), 'success')
-        } catch {
-            showToast(t('common.error', 'Erreur lors de la suppression de la photo'), 'error')
-        }
+    const deleteExistingPhoto = (photoId) => {
+        useUIStore.getState().openDialog({
+            type: 'danger',
+            title: t('common.delete', 'Supprimer'),
+            message: t('common.confirm_delete', 'Êtes-vous sûr de vouloir supprimer cette photo ?'),
+            confirmText: t('common.delete', 'Supprimer'),
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/work-orders/${id}/photos/${photoId}`)
+                    setExistingPhotos(p => p.filter(x => x.id !== photoId))
+                    showToast(t('common.deleted', 'Photo supprimée'), 'success')
+                } catch {
+                    showToast(t('common.error', 'Erreur lors de la suppression de la photo'), 'error')
+                }
+            }
+        })
     }
 
     const buildPayload = () => {

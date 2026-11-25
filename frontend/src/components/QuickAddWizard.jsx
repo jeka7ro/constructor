@@ -271,7 +271,7 @@ export default function QuickAddWizard({ onClose, onSuccess, clients = [], showT
                 {/* Header */}
                 <div className="p-5 sm:px-6 border-b border-slate-200/80 dark:border-slate-800 bg-[#F2F4F8]/90 dark:bg-slate-900 flex items-center justify-between shrink-0">
                     <h3 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-sky-500/12 border border-sky-500/25 flex items-center justify-center text-sky-600">
+                        <div className="w-9 h-9 rounded-full bg-sky-500/15 border border-sky-500/25 flex items-center justify-center text-sky-600">
                             <Plus className="w-5 h-5" />
                         </div>
                         {t('quotes.quick_add_title', 'Ajout Rapide Devis')}

@@ -357,10 +357,10 @@ export default function HeaderDynamicIsland() {
                         : 'transform 520ms cubic-bezier(0.22, 1.28, 0.36, 1), background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
                 }}
                 className={`relative z-20 rounded-full backdrop-blur-2xl border-[1.5px] flex items-center justify-center cursor-pointer overflow-hidden ${isAlertVisible
-                    ? 'h-8 px-4 bg-white/28 dark:bg-slate-900/90 border-emerald-300/90 dark:border-emerald-400/75 text-white shadow-[0_0_24px_rgba(16,185,129,0.42),inset_0_1px_0_rgba(255,255,255,0.65)]'
+                    ? 'h-8 px-4 bg-white/30 dark:bg-slate-900/90 border-emerald-300/90 dark:border-emerald-400/75 text-white shadow-[0_0_24px_rgba(16,185,129,0.42),inset_0_1px_0_rgba(255,255,255,0.65)]'
                     : isOpen || isAbsorbing
-                        ? 'h-8 px-4 bg-white/28 dark:bg-slate-900/90 border-white/80 dark:border-sky-400/55 text-white shadow-[0_10px_28px_-6px_rgba(8,47,73,0.5),inset_0_1px_0_rgba(255,255,255,0.65)]'
-                        : 'h-8 px-3.5 bg-white/18 hover:bg-white/26 dark:bg-slate-900/80 border-white/45 hover:border-white/70 dark:border-white/25 text-white shadow-[0_6px_18px_-4px_rgba(8,47,73,0.3),inset_0_1px_0_rgba(255,255,255,0.45)]'
+                        ? 'h-8 px-4 bg-white/30 dark:bg-slate-900/90 border-white/80 dark:border-sky-400/55 text-white shadow-[0_10px_28px_-6px_rgba(8,47,73,0.5),inset_0_1px_0_rgba(255,255,255,0.65)]'
+                        : 'h-8 px-3.5 bg-white/20 hover:bg-white/25 dark:bg-slate-900/80 border-white/45 hover:border-white/70 dark:border-white/25 text-white shadow-[0_6px_18px_-4px_rgba(8,47,73,0.3),inset_0_1px_0_rgba(255,255,255,0.45)]'
                     }`}
             >
                 <div className="min-w-0 overflow-hidden flex items-center">

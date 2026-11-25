@@ -7,7 +7,7 @@ import { useUIStore } from '../../store/uiStore'
 
 export default function AdminBackups() {
     const { t } = useTranslation()
-    const { showToast } = useUIStore()
+    const { showToast, openDialog } = useUIStore()
     const [backups, setBackups] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -44,22 +44,16 @@ export default function AdminBackups() {
         }
     }
     
-    const handleRestore = async (filename) => {
-        const pin = prompt(
-            "AVERTISSEMENT CRITIQUE \n\n" + 
-            "La restauration d'une sauvegarde va EFFACER TOUTES LES DONNÉES ACTUELLES " + 
-            "et les remplacer par celles de la sauvegarde.\n\n" + 
-            "Pour confirmer cette action, veuillez taper le code PIN de sécurité : 1234"
-        );
-        
-        if (pin !== '1234') {
-            if (pin !== null) {
-                showToast("Code PIN incorrect. Opération annulée.", "error");
+    const handleRestore = (filename) => {
+        openDialog({
+            type: 'danger',
+            title: t('backups.restore_warning_title', 'Avertissement critique'),
+            message: t('backups.restore_warning_msg', "La restauration d'une sauvegarde va EFFACER TOUTES LES DONNÉES ACTUELLES et les remplacer par celles de la sauvegarde. Voulez-vous continuer ?"),
+            confirmText: t('backups.confirm_restore', 'Restaurer'),
+            onConfirm: () => {
+                showToast("Restauration initiée (simulation). Contactez le support pour activer cette fonctionnalité sur le serveur.", "info");
             }
-            return;
-        }
-        
-        showToast("Restauration initiée (simulation). Contactez le support pour activer cette fonctionnalité sur le serveur.", "info");
+        })
     }
 
     const columns = [

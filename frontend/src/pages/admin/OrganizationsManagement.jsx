@@ -4,6 +4,7 @@ import { Building2, Plus, Search, Edit2, Trash2, Globe, Check, Image as ImageIco
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 import { useAdminStore } from '../../store/adminStore'
+import { useUIStore } from '../../store/uiStore'
 import { useNavigate } from 'react-router-dom'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -11,6 +12,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 export default function OrganizationsManagement() {
     const { t } = useTranslation()
     const { admin } = useAdminStore()
+    const { showToast, openDialog } = useUIStore()
     const navigate = useNavigate()
     
     useEffect(() => {
@@ -135,7 +137,7 @@ export default function OrganizationsManagement() {
             })
             setFormData(prev => ({ ...prev, logo_url: res.data.logo_url }))
         } catch (err) {
-            alert(err.response?.data?.detail || 'Eroare la încărcarea logo-ului')
+            showToast(err.response?.data?.detail || 'Eroare la încărcarea logo-ului', 'error')
         } finally {
             setUploadingLogo(false)
         }
@@ -152,7 +154,7 @@ export default function OrganizationsManagement() {
             })
             setFormData(prev => ({ ...prev, favicon_url: res.data.logo_url }))
         } catch (err) {
-            alert(err.response?.data?.detail || 'Eroare la incarcarea favicon-ului')
+            showToast(err.response?.data?.detail || 'Eroare la incarcarea favicon-ului', 'error')
         }
     }
 
@@ -190,15 +192,21 @@ export default function OrganizationsManagement() {
         }
     }
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Ești sigur că vrei să ștergi această companie și toți utilizatorii ei?')) {
-            try {
-                await api.delete(`/admin/organizations/${id}`)
-                fetchOrgs()
-            } catch (err) {
-                alert('Eroare la ștergere.')
+    const handleDelete = (id) => {
+        openDialog({
+            type: 'danger',
+            title: t('common.delete', 'Supprimer'),
+            message: t('orgs.delete_confirm', 'Êtes-vous sûr de vouloir supprimer cette entreprise et tous ses utilisateurs ?'),
+            confirmText: t('common.delete', 'Supprimer'),
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/organizations/${id}`)
+                    fetchOrgs()
+                } catch (err) {
+                    showToast('Eroare la ștergere.', 'error')
+                }
             }
-        }
+        })
     }
 
     // ---- Admins Drawer ----
@@ -271,14 +279,21 @@ export default function OrganizationsManagement() {
         }
     }
 
-    const handleDeleteAdmin = async (adminId) => {
-        if (!window.confirm('Ștergi acest admin local?')) return
-        try {
-            await api.delete(`/admin/organizations/${adminsDrawerOrg.id}/admins/${adminId}`)
-            setOrgAdmins(prev => prev.filter(a => a.id !== adminId))
-        } catch {
-            alert('Eroare la ștergere.')
-        }
+    const handleDeleteAdmin = (adminId) => {
+        openDialog({
+            type: 'danger',
+            title: t('common.delete', 'Supprimer'),
+            message: t('orgs.delete_admin_confirm', 'Supprimer cet administrateur local ?'),
+            confirmText: t('common.delete', 'Supprimer'),
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/organizations/${adminsDrawerOrg.id}/admins/${adminId}`)
+                    setOrgAdmins(prev => prev.filter(a => a.id !== adminId))
+                } catch {
+                    showToast('Eroare la ștergere.', 'error')
+                }
+            }
+        })
     }
     
     const filteredOrgs = orgs.filter(o => o.name.toLowerCase().includes(search.toLowerCase()))

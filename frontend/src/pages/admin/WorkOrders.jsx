@@ -270,7 +270,7 @@ export default function WorkOrders() {
             const res = await api.get(`/admin/work-orders${q}`)
             const data = Array.isArray(res.data) ? res.data : (res.data?.items || [])
             setWorkOrders(data)
-        } catch (e) { alert(t('work_orders.api_error', 'Erreur API: ') + (e.response?.data?.detail || e.message)) }
+        } catch (e) { showToast(t('work_orders.api_error', 'Erreur API: ') + (e.response?.data?.detail || e.message), 'error') }
         finally { setLoading(false) }
     }
 
@@ -332,7 +332,7 @@ export default function WorkOrders() {
                 window.location.href = `mailto:${wo.client_email || ''}?subject=${encodeURIComponent(t('work_orders.email_subject', 'Devis / Proforma'))}&body=${encodeURIComponent(body)}`
             }
         } catch (e) {
-            alert(e.response?.data?.detail || t('work_orders.err_send', "Erreur d'envoi."))
+            showToast(e.response?.data?.detail || t('work_orders.err_send', "Erreur d'envoi."), 'error')
         } finally {
             setSendingId(null)
         }
@@ -347,7 +347,7 @@ export default function WorkOrders() {
             setWorkOrders(prev => prev.filter(w => w.id !== wo.id))
             setDeleteModal(null)
         } catch (e) {
-            alert(e.response?.data?.detail || t('work_orders.err_delete', 'Erreur de suppression.'))
+            showToast(e.response?.data?.detail || t('work_orders.err_delete', 'Erreur de suppression.'), 'error')
         } finally {
             setDeletingId(null)
         }
@@ -358,7 +358,7 @@ export default function WorkOrders() {
             await navigator.clipboard.writeText(url)
             setCopiedId(id)
             setTimeout(() => setCopiedId(null), 2000)
-        } catch(e) { alert('API Error: ' + (e.response?.data?.detail || e.message));}
+        } catch(e) { showToast('API Error: ' + (e.response?.data?.detail || e.message), 'error');}
     }
 
     const getLink = (wo) => {
@@ -441,7 +441,7 @@ export default function WorkOrders() {
                             try {
                                 const res = await api.get(`/admin/work-orders/${wo.id}/sessions`)
                                 setSessionsModal({ woId: wo.id, title: wo.title, data: res.data })
-                            } catch(e) { alert('API Error: ' + (e.response?.data?.detail || e.message)); setSessionsModal({ woId: wo.id, title: wo.title, data: { error: true } }) }
+                            } catch(e) { showToast('API Error: ' + (e.response?.data?.detail || e.message), 'error'); setSessionsModal({ woId: wo.id, title: wo.title, data: { error: true } }) }
                             finally { setSessionsLoading(false) }
                         }}
                         title={t('work_orders.worked_hours', 'Heures travaillées')}
@@ -827,7 +827,7 @@ export default function WorkOrders() {
                 <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => !deletingId && setDeleteModal(null)}>
                     <div className="w-full max-w-[380px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden text-center" onClick={e => e.stopPropagation()}>
                         <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
-                            <div className="w-12 h-12 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/25 flex items-center justify-center mx-auto mb-3.5">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/25 flex items-center justify-center mx-auto mb-3.5">
                                 <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                             </div>
                             <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">{t('work_orders.delete_order_title', 'Suppression de la commande')}</h3>

@@ -286,7 +286,7 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
 
     const textClass = isLarge 
         ? `text-sm font-bold leading-none text-slate-800 dark:text-white` 
-        : `text-[10px] font-bold leading-none ${style.text}`;
+        : `text-[11px] font-extrabold leading-none tabular-nums ${style.text}`;
 
     return (
         <div className={wrapperClass} title={`Max: ${data.maxTemp}°C / Min: ${data.minTemp}°C`}>

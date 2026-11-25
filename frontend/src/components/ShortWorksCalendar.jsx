@@ -1,7 +1,7 @@
 import MobileAgenda from "./MobileAgenda";
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Scan, Shrink, Truck, Building2, Star, Search, X, Move, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Scan, Shrink, Truck, Building2, Star, Search, X, Move, Layers, MessageCircle, Send, Check, CheckCheck } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro, enUS, nl, fr, de } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -164,6 +164,166 @@ export default function ShortWorksCalendar({
     const [planningNotify, setPlanningNotify] = useState(false);
     const [isSelectingForHolding, setIsSelectingForHolding] = useState(false);
     const [resizingOrder, setResizingOrder] = useState(null); // { id, duration }
+    const [reminderModalOrder, setReminderModalOrder] = useState(null);
+    const [reminderLang, setReminderLang] = useState('fr');
+    const [reminderText, setReminderText] = useState('');
+    const [sendingReminder, setSendingReminder] = useState(false);
+    const [togglingConfirm, setTogglingConfirm] = useState(false);
+    const [remindedOrderIds, setRemindedOrderIds] = useState(new Set());
+    const [confirmedOrderIds, setConfirmedOrderIds] = useState(new Set());
+    const [unconfirmedOrderIds, setUnconfirmedOrderIds] = useState(new Set());
+
+    const getOrderReminderState = (wo) => {
+        if (!wo) return { isConfirmed: false, isSent: false };
+        const hasDbConfirm = Boolean(
+            wo.reminder_confirmed_at ||
+            wo.prices?.reminder_confirmed_at ||
+            (Array.isArray(wo.date_history) && wo.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
+        );
+        const isConfirmed = !unconfirmedOrderIds.has(wo.id) && (confirmedOrderIds.has(wo.id) || hasDbConfirm);
+        const isSent = Boolean(
+            remindedOrderIds.has(wo.id) ||
+            wo.reminder_sent_at ||
+            wo.prices?.reminder_sent_at ||
+            (Array.isArray(wo.date_history) && wo.date_history.some(h => h && h.action === 'reminder_sent'))
+        );
+        return { isConfirmed, isSent };
+    };
+
+    // Poll every 10s when there is any order in the calendar with a sent reminder awaiting client confirmation
+    useEffect(() => {
+        if (isPartner) return;
+        const hasPendingReminder = (workOrders || []).some(wo => {
+            const { isConfirmed, isSent } = getOrderReminderState(wo);
+            return isSent && !isConfirmed;
+        });
+        if (!hasPendingReminder) return;
+
+        const timer = setInterval(async () => {
+            try {
+                const res = await apiClient.get(`${apiBasePath}?slim=true`);
+                const list = Array.isArray(res.data) ? res.data : [];
+                const newlyConfirmed = [];
+                list.forEach(item => {
+                    if (
+                        item.reminder_confirmed_at ||
+                        item.prices?.reminder_confirmed_at ||
+                        (Array.isArray(item.date_history) && item.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
+                    ) {
+                        newlyConfirmed.push(item.id);
+                    }
+                });
+                if (newlyConfirmed.length > 0) {
+                    setConfirmedOrderIds(prev => {
+                        const next = new Set(prev);
+                        newlyConfirmed.forEach(id => next.add(id));
+                        return next;
+                    });
+                }
+            } catch (e) {}
+        }, 10000);
+
+        return () => clearInterval(timer);
+    }, [workOrders, remindedOrderIds, confirmedOrderIds, unconfirmedOrderIds, isPartner, apiBasePath]);
+
+    const buildReminderMessage = (wo, langCode) => {
+        if (!wo) return '';
+        const clientName = (wo.client_name && wo.client_name !== 'None') ? wo.client_name : (wo.title || 'Client');
+        const rawDate = (wo.start_date || wo.deadline_date || '').split('T')[0];
+        let dateFormatted = rawDate;
+        if (rawDate && rawDate.includes('-')) {
+            const [y, m, d] = rawDate.split('-');
+            if (y && m && d) dateFormatted = `${d}/${m}/${y}`;
+        }
+        const confirmKey = wo.token || wo.id;
+        const confirmUrl = `https://davidechape.pontaj.app/confirm/${confirmKey}?lang=${langCode}`;
+
+        if (langCode === 'nl') {
+            return `Hallo ${clientName},\n\nWij herinneren u eraan dat uw chapewerken gepland staan op ${dateFormatted}.\n\nGelieve te bevestigen dat de werf klaar is via deze link :\n${confirmUrl}\n\nMet vriendelijke groet,\nHet Davide Chape Team`;
+        }
+        if (langCode === 'en') {
+            return `Hello ${clientName},\n\nWe remind you that your screed works are scheduled for ${dateFormatted}.\n\nPlease confirm that the site is ready by clicking this link :\n${confirmUrl}\n\nBest regards,\nThe Davide Chape Team`;
+        }
+        return `Bonjour ${clientName},\n\nNous vous rappelons que vos travaux de chape sont planifiés pour le ${dateFormatted}.\n\nMerci de bien vouloir confirmer que le chantier est prêt en cliquant sur ce lien :\n${confirmUrl}\n\nCordialement,\nL'équipe Davide Chape`;
+    };
+
+    const handleOpenReminderModal = (wo, e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const rawLang = (wo.client_language || 'fr').toLowerCase().split('-')[0].trim();
+        const initLang = ['fr', 'nl', 'en'].includes(rawLang) ? rawLang : 'fr';
+        setReminderLang(initLang);
+        setReminderText(buildReminderMessage(wo, initLang));
+        setReminderModalOrder(wo);
+    };
+
+    const handleSendReminder = async () => {
+        if (!reminderModalOrder || !reminderText.trim() || sendingReminder) return;
+        setSendingReminder(true);
+        try {
+            await apiClient.post(`/admin/work-orders/${reminderModalOrder.id}/messages`, {
+                message: reminderText.trim(),
+                target_lang: 'none',
+                is_reminder: true
+            });
+            setRemindedOrderIds(prev => new Set(prev).add(reminderModalOrder.id));
+            showToast(
+                t('planning.reminder_sent_success', 'Rappel envoyé au client par WhatsApp et Email !'),
+                'success'
+            );
+            setReminderModalOrder(null);
+        } catch (err) {
+            console.error('Failed to send reminder:', err);
+            showToast(
+                err?.response?.data?.detail || t('planning.reminder_sent_error', 'Erreur lors de l\'envoi du rappel.'),
+                'error'
+            );
+        } finally {
+            setSendingReminder(false);
+        }
+    };
+
+    const handleToggleReminderConfirm = async (wo, targetConfirmed) => {
+        if (!wo || togglingConfirm) return;
+        setTogglingConfirm(true);
+        try {
+            const res = await apiClient.post(`/admin/work-orders/${wo.id}/reminder-confirm`, {
+                confirmed: targetConfirmed
+            });
+            if (targetConfirmed) {
+                setConfirmedOrderIds(prev => new Set(prev).add(wo.id));
+                setUnconfirmedOrderIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(wo.id);
+                    return next;
+                });
+                setRemindedOrderIds(prev => new Set(prev).add(wo.id));
+            } else {
+                setConfirmedOrderIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(wo.id);
+                    return next;
+                });
+                setUnconfirmedOrderIds(prev => new Set(prev).add(wo.id));
+            }
+            setReminderModalOrder(prev => prev ? {
+                ...prev,
+                reminder_sent_at: res.data?.reminder_sent_at,
+                reminder_confirmed_at: res.data?.reminder_confirmed_at
+            } : null);
+            showToast(
+                targetConfirmed
+                    ? t('planning.marked_confirmed_toast', 'Chantier marqué comme confirmé par le client !')
+                    : t('planning.unmarked_confirmed_toast', 'Confirmation annulée.'),
+                'success'
+            );
+        } catch (err) {
+            console.error('Failed to toggle confirmation:', err);
+            showToast(t('common.error', 'Erreur lors de la mise à jour.'), 'error');
+        } finally {
+            setTogglingConfirm(false);
+        }
+    };
     
     const handleResizeStart = (e, wo) => {
         e.preventDefault();
@@ -339,13 +499,16 @@ export default function ShortWorksCalendar({
         }
 
         const dateStr = format(date, 'yyyy-MM-dd');
+        const oldDateStr = (heldOrder.start_date || heldOrder.deadline_date || '').split('T')[0];
+        const isDayChanged = Boolean(oldDateStr && oldDateStr !== dateStr);
         setSyncing(true);
         try {
             const payload = {
                 start_date: dateStr,
                 deadline_date: dateStr,
                 start_time: timeStr || '08:00',
-                status: 'confirmed'
+                status: 'confirmed',
+                send_notification: isDayChanged
             };
             await apiClient.put(`${apiBasePath}/${heldOrder.id}`, payload);
             const droppedId = heldOrder.id;
@@ -714,7 +877,7 @@ export default function ShortWorksCalendar({
             
             <div 
                 ref={calendarSwipeRef}
-                className={`hidden md:flex bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden flex-col relative ${isCalendarFull ? 'h-full' : 'h-[820px]'}`}
+                className={`hidden md:flex bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden flex-col relative ${isCalendarFull ? 'h-full' : 'h-[calc(100vh-76px)] min-h-[780px]'}`}
                 onTouchStart={onTouchStart}
                 onTouchEnd={onTouchEndEvent}
             >
@@ -950,10 +1113,10 @@ export default function ShortWorksCalendar({
                 className="flex-1 hidden md:flex relative overflow-auto custom-scrollbar"
             >
                 {/* Time Gutter */}
-                <div className="w-10 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
+                <div className="w-11 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
                     {Array.from({ length: END_HOUR - dynamicStartHour }).map((_, i) => (
-                        <div key={i} className="h-[120px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[11px] text-slate-500 font-bold pt-1.5 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div key={i} className="h-[120px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[12px] text-slate-700 dark:text-slate-300 font-extrabold pt-1.5 bg-slate-50/50 dark:bg-slate-900/50 tabular-nums">
                             {`${(i + dynamicStartHour).toString().padStart(2, '0')}:00`}
                         </div>
                     ))}
@@ -981,24 +1144,24 @@ export default function ShortWorksCalendar({
                                     onDoubleClick={(e) => handleUnCompleteDay(day, e)}
                                     title={holidayInfo ? holidayInfo.name : ''}
                                 >
-                                    <span className={`text-[11px] uppercase font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : (holidayInfo ? 'text-red-500' : 'text-slate-500')}`}>
+                                    <span className={`text-[12px] uppercase font-extrabold ${isToday ? 'text-blue-600 dark:text-blue-400' : (holidayInfo ? 'text-red-500' : 'text-slate-600 dark:text-slate-300')}`}>
                                         {format(day, 'EEE', { locale: dateLocale })}
                                     </span>
-                                    <span className={`text-sm font-black leading-none mt-0.5 ${isToday ? 'text-blue-600 dark:text-blue-400' : (holidayInfo ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-200')}`}>
+                                    <span className={`text-[16px] font-black leading-none mt-0.5 tabular-nums ${isToday ? 'text-blue-600 dark:text-blue-400' : (holidayInfo ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-slate-100')}`}>
                                         {format(day, 'd')}
                                     </span>
                                     {(dailyTotals.sand > 0 || dailyTotals.surface > 0) && !holidayInfo && (
-                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                        <div className="flex items-center gap-1.5 mt-0.5 tabular-nums">
                                             {dailyTotals.sand > 0 && (
-                                                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500" title={t('admin_overview.total_sand_day', 'Total nisip estimat pentru această zi')}>
+                                                <span className="text-[11.5px] font-extrabold text-amber-600 dark:text-amber-400" title={t('admin_overview.total_sand_day', 'Total nisip estimat pentru această zi')}>
                                                     {sandDisplay}
                                                 </span>
                                             )}
                                             {dailyTotals.sand > 0 && dailyTotals.surface > 0 && (
-                                                <span className="text-[9px] text-slate-300">|</span>
+                                                <span className="text-[10px] text-slate-300">|</span>
                                             )}
                                             {dailyTotals.surface > 0 && (
-                                                <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400" title={t('admin_overview.total_surf_day', 'Total suprafață (m²) pentru această zi')}>
+                                                <span className="text-[11.5px] font-extrabold text-indigo-600 dark:text-indigo-400" title={t('admin_overview.total_surf_day', 'Total suprafață (m²) pentru această zi')}>
                                                     {surfDisplay}
                                                 </span>
                                             )}
@@ -1124,7 +1287,10 @@ export default function ShortWorksCalendar({
                                         if (!wo) return;
                                         if (wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;
 
-                                        console.log(`[onDrop Empty] setting pendingReschedule for ${woId} to ${targetDate}`);
+                                        const oldDateStr = (wo.start_date || wo.deadline_date || '').split('T')[0];
+                                        const isDayChanged = Boolean(oldDateStr && oldDateStr !== targetDate);
+
+                                        console.log(`[onDrop Empty] setting pendingReschedule for ${woId} to ${targetDate} (isDayChanged=${isDayChanged})`);
                                         setPendingReschedule({
                                             id: woId,
                                             start_date: targetDate,
@@ -1137,6 +1303,7 @@ export default function ShortWorksCalendar({
                                             const res = await apiClient.put(`${apiBasePath}/${woId}`, {
                                                 start_date: targetDate,
                                                 start_time: targetTime,
+                                                send_notification: isDayChanged,
                                                 ...(wo?.status === 'draft' ? { status: 'planning' } : {})
                                             });
                                             if (onOrderRescheduled) {
@@ -1357,6 +1524,10 @@ export default function ShortWorksCalendar({
                                             // If same date and same time, nothing to do
                                             if (draggedWo.start_date?.startsWith(targetDate) && draggedWo.start_time === targetTime) return;
 
+                                            const oldDateStr = (draggedWo.start_date || draggedWo.deadline_date || '').split('T')[0];
+                                            const targetDateClean = (targetDate || '').split('T')[0];
+                                            const isDayChanged = Boolean(oldDateStr && oldDateStr !== targetDateClean);
+
                                             setPendingReschedule({
                                                 id: draggedWoId,
                                                 start_date: targetDate,
@@ -1369,6 +1540,7 @@ export default function ShortWorksCalendar({
                                                 const res = await apiClient.put(`${apiBasePath}/${draggedWoId}`, {
                                                     start_date: targetDate,
                                                     start_time: targetTime,
+                                                    send_notification: isDayChanged,
                                                     ...(draggedWo.status === 'draft' ? { status: 'planning' } : {})
                                                 });
                                                 if (onOrderRescheduled) {
@@ -1401,11 +1573,11 @@ export default function ShortWorksCalendar({
                                             <div className="flex items-center justify-between gap-1 -mx-1.5 -mt-1.5 px-1.5 py-1 border-b rounded-t-xl" style={{ backgroundColor: borderLeftColorVal + '38', borderColor: borderLeftColorVal + '80' }}>
                                                 <div className="flex items-center gap-1 min-w-0 flex-1">
                                                     {isCompleted ? (
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                                     ) : isExternalSource ? (
                                                         <div className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: clientColorHex }} title="Sursă externă / Partener" />
                                                     ) : null}
-                                                    <span className="text-[10.5px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-[1.12] line-clamp-2 break-words">
+                                                    <span className="text-[12px] font-extrabold text-slate-950 dark:text-white tracking-tight leading-[1.12] line-clamp-2 break-words">
                                                         {(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}
                                                     </span>
                                                 </div>
@@ -1415,11 +1587,52 @@ export default function ShortWorksCalendar({
                                                     const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
                                                     const displaySurf = sumVol > 0 ? parseFloat(sumVol.toFixed(2)) : parseFloat(fallbackSurf.toFixed(2));
                                                     if (displaySurf > 0) {
-                                                        return <span className="text-[10px] font-black text-slate-800 dark:text-white shrink-0 bg-white/95 dark:bg-slate-950/85 border border-black/5 dark:border-white/15 px-1 py-0.5 rounded shadow-2xs tabular-nums leading-none whitespace-nowrap">{displaySurf}m²</span>;
+                                                        return <span className="text-[11px] font-black text-slate-900 dark:text-white shrink-0 bg-white/95 dark:bg-slate-950/85 border border-black/10 dark:border-white/15 px-1.5 py-0.5 rounded shadow-2xs tabular-nums leading-none whitespace-nowrap">{displaySurf}m²</span>;
                                                     }
                                                     return null;
                                                 })()}
                                             </div>
+
+                                            {/* WhatsApp Reminder Button (3 states: Netrimis / Trimis / Confirmat) — positioned directly under the m² badge on the right side */}
+                                            {!isPartner && !isCompleted && (() => {
+                                                const { isConfirmed, isSent } = getOrderReminderState(wo);
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                        onClick={(e) => handleOpenReminderModal(wo, e)}
+                                                        className={`absolute right-0 top-[28px] z-20 w-[26px] h-[26px] rounded-lg flex items-center justify-center transition-all shadow-sm cursor-pointer border ${
+                                                            isConfirmed
+                                                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 ring-1 ring-white/90 dark:ring-slate-900/90'
+                                                                : isSent
+                                                                    ? 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600 ring-1 ring-white/90 dark:ring-slate-900/90'
+                                                                    : 'bg-white/95 hover:bg-emerald-500 dark:bg-slate-900/90 dark:hover:bg-emerald-500 text-emerald-600 hover:text-white dark:text-emerald-400 dark:hover:text-white border-[1.5px] border-emerald-500/90'
+                                                        }`}
+                                                        title={
+                                                            isConfirmed
+                                                                ? t('planning.reminder_status_confirmed', 'CONFIRMAT de client ✓✓ — Click pentru detalii / retrimitere')
+                                                                : isSent
+                                                                    ? t('planning.reminder_status_sent', 'Reminder TRIMIS ✈️✓ (în așteptarea confirmării clientului)')
+                                                                    : t('planning.send_whatsapp_reminder', 'Netrimis — Apasă pentru a trimite reminder WhatsApp & Email clientului')
+                                                        }
+                                                    >
+                                                        {isConfirmed ? (
+                                                            <CheckCheck className="w-4 h-4 stroke-[2.8]" />
+                                                        ) : isSent ? (
+                                                            <div className="relative flex items-center justify-center">
+                                                                <Send className="w-3.5 h-3.5 stroke-[2.5] -ml-0.5" />
+                                                                <span className="absolute -bottom-1.5 -right-1.5 w-3 h-3 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center border border-white">
+                                                                    <Check className="w-2 h-2 stroke-[3.5]" />
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                                                                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.126.556 4.122 1.532 5.854l-1.532 5.596 5.736-1.505c1.694.922 3.633 1.447 5.698 1.447 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z"/>
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })()}
 
                                             {/* ROW 2: Work Type & Thickness (avoids duplicating m² for single-volume orders so 'Chape' is never cut to 'C...') */}
                                             <div className="flex flex-col gap-0.5 mt-1 w-full">
@@ -1436,11 +1649,11 @@ export default function ShortWorksCalendar({
                                                             const qtyPart = (!isSingleVol && vol.quantity) ? `${vol.quantity}m²` : '';
                                                             const thickPart = vol.thickness ? (isSingleVol ? `• ${vol.thickness}cm` : `×${vol.thickness}cm`) : '';
                                                             return (
-                                                                <div key={idx} className="flex items-center text-[10px] text-slate-800 dark:text-slate-100 font-extrabold w-full leading-tight min-w-0">
-                                                                    <Layers className="w-3 h-3 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
+                                                                <div key={idx} className="flex items-center text-[11.5px] text-slate-900 dark:text-slate-100 font-extrabold w-full leading-tight min-w-0">
+                                                                    <Layers className="w-3.5 h-3.5 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
                                                                     <span className="truncate">{displayName}</span>
                                                                     {(qtyPart || thickPart) && (
-                                                                        <span className="ml-1 shrink-0 tabular-nums font-black text-slate-900 dark:text-white">
+                                                                        <span className="ml-1 shrink-0 tabular-nums font-black text-slate-950 dark:text-white">
                                                                             {qtyPart}{thickPart}
                                                                         </span>
                                                                     )}
@@ -1452,11 +1665,11 @@ export default function ShortWorksCalendar({
                                                         const fallbackThick = parseFloat(wo.thickness) || parseFloat(wo.thickness_cm) || 0;
                                                         if (fallbackSurf > 0) {
                                                             return (
-                                                                <div className="flex items-center text-[10px] text-slate-800 dark:text-slate-100 font-extrabold w-full leading-tight min-w-0">
-                                                                    <Layers className="w-3 h-3 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
+                                                                <div className="flex items-center text-[11.5px] text-slate-900 dark:text-slate-100 font-extrabold w-full leading-tight min-w-0">
+                                                                    <Layers className="w-3.5 h-3.5 text-slate-500 dark:text-sky-400 mr-1 shrink-0" />
                                                                     <span className="truncate">Chape</span>
                                                                     {fallbackThick > 0 && (
-                                                                        <span className="ml-1 shrink-0 tabular-nums font-black text-slate-900 dark:text-white">
+                                                                        <span className="ml-1 shrink-0 tabular-nums font-black text-slate-950 dark:text-white">
                                                                             • {fallbackThick}cm
                                                                         </span>
                                                                     )}
@@ -1470,10 +1683,10 @@ export default function ShortWorksCalendar({
 
                                             {/* ROW 3: Clean City / Locality Name across full card width */}
                                             <div
-                                                className="flex items-center gap-1 mt-0.5 text-[10.5px] text-slate-800 dark:text-slate-100 font-bold truncate leading-tight"
+                                                className="flex items-center gap-1 mt-0.5 text-[11.5px] text-slate-900 dark:text-slate-100 font-bold truncate leading-tight"
                                                 title={(wo.site_address || wo.site?.address || wo.address) || ''}
                                             >
-                                                <MapPin className="w-3 h-3 shrink-0 text-rose-500 dark:text-rose-400" />
+                                                <MapPin className="w-3.5 h-3.5 shrink-0 text-rose-500 dark:text-rose-400" />
                                                 <span className="truncate">
                                                     {formatAddressCityFirst(wo.site_address || wo.site?.address || wo.address) || t('common.no_location', 'Aucune adresse')}
                                                 </span>
@@ -1485,7 +1698,7 @@ export default function ShortWorksCalendar({
                                                     {(() => {
                                                         const sandVal = calculateOrderSand(wo);
                                                         return sandVal > 0 ? (
-                                                            <span className="text-[9.5px] text-amber-800 dark:text-amber-300 font-black bg-amber-50/95 dark:bg-amber-500/20 border border-amber-200/90 dark:border-amber-400/35 px-1 py-0.5 rounded shadow-2xs shrink-0 tabular-nums leading-none">
+                                                            <span className="text-[11px] text-amber-800 dark:text-amber-300 font-black bg-amber-50/95 dark:bg-amber-500/20 border border-amber-200/90 dark:border-amber-400/35 px-1.5 py-0.5 rounded shadow-2xs shrink-0 tabular-nums leading-none">
                                                                 {sandVal.toFixed(1)}T
                                                             </span>
                                                         ) : null;
@@ -1493,7 +1706,7 @@ export default function ShortWorksCalendar({
                                                     {(() => {
                                                         const distText = getDistanceTextForOrder(wo);
                                                         return distText ? (
-                                                            <span className="text-[9.5px] text-fuchsia-600 dark:text-fuchsia-300 font-extrabold bg-white/85 dark:bg-slate-900/80 px-1 py-0.5 rounded border border-fuchsia-200/60 dark:border-fuchsia-800/40 shadow-2xs tabular-nums leading-none whitespace-nowrap">
+                                                            <span className="text-[11px] text-fuchsia-700 dark:text-fuchsia-300 font-extrabold bg-white/90 dark:bg-slate-900/80 px-1.5 py-0.5 rounded border border-fuchsia-200/70 dark:border-fuchsia-800/40 shadow-2xs tabular-nums leading-none whitespace-nowrap">
                                                                 {distText}
                                                             </span>
                                                         ) : null;
@@ -1502,7 +1715,7 @@ export default function ShortWorksCalendar({
                                                 
                                                 <div className="flex items-center shrink-0">
                                                     {!isCompleted && (
-                                                        <span className="text-[9.5px] text-slate-800 dark:text-slate-200 font-extrabold bg-white/85 dark:bg-slate-900/80 px-1 py-0.5 rounded border border-slate-200/70 dark:border-slate-700/60 shadow-2xs leading-none">
+                                                        <span className="text-[11px] text-slate-900 dark:text-slate-100 font-extrabold bg-white/90 dark:bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-200/80 dark:border-slate-700/60 shadow-2xs leading-none">
                                                             <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} compact={true} />
                                                         </span>
                                                     )}
@@ -1534,7 +1747,7 @@ export default function ShortWorksCalendar({
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => setPendingReschedule(null)}>
                     <div className="w-full max-w-[390px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
-                            <div className="w-12 h-12 rounded-full bg-sky-500/12 dark:bg-sky-500/20 border border-sky-500/25 flex items-center justify-center mx-auto mb-3.5">
+                            <div className="w-12 h-12 rounded-full bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/25 flex items-center justify-center mx-auto mb-3.5">
                                 <CalendarIcon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
                             </div>
                             <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white text-center mb-4">{t('planning.modal_title', 'Détails de Planification')}</h3>
@@ -1664,7 +1877,7 @@ export default function ShortWorksCalendar({
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => setOrderToDelete(null)}>
                     <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden animate-in zoom-in-95 duration-200 text-center" onClick={e => e.stopPropagation()}>
                         <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
-                            <div className="w-12 h-12 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/25 flex items-center justify-center mx-auto mb-3.5">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/25 flex items-center justify-center mx-auto mb-3.5">
                                 <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                             </div>
                             <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">{t('admin_overview.delete_order', 'Supprimer la commande')}</h3>
@@ -1702,6 +1915,154 @@ export default function ShortWorksCalendar({
                                 className="flex-1 h-10 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-[14px] text-[13.5px] font-semibold shadow-sm shadow-rose-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
                             >
                                 {t('common.yes_delete', 'Supprimer')}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Client Reminder & Confirmation Request Modal — Apple HIG Sheet / Alert */}
+            {reminderModalOrder && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => !sendingReminder && setReminderModalOrder(null)}>
+                    <div className="w-full max-w-[440px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
+                            <div className="w-12 h-12 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/25 flex items-center justify-center mx-auto mb-3">
+                                <MessageCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white text-center">
+                                {t('planning.reminder_modal_title', 'Rappel Client & Demande de Confirmation')}
+                            </h3>
+                            <p className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 text-center mt-0.5 truncate">
+                                {(reminderModalOrder.client_name && reminderModalOrder.client_name !== 'None') ? reminderModalOrder.client_name : reminderModalOrder.title}
+                                {reminderModalOrder.quote_number ? ` • ${reminderModalOrder.quote_number}` : ''}
+                            </p>
+
+                            {/* Client Contact & Status Pills */}
+                            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3">
+                                {reminderModalOrder.client_phone ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/25 tabular-nums">
+                                        WhatsApp: {reminderModalOrder.client_phone}
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25">
+                                        {t('planning.no_phone_on_order', 'Sans téléphone WhatsApp')}
+                                    </span>
+                                )}
+                                {reminderModalOrder.client_email && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-500/15 text-sky-800 dark:text-sky-300 border border-sky-500/25 truncate max-w-[210px]">
+                                        {reminderModalOrder.client_email}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Live Status Banner + Manual Confirmation Toggle */}
+                            {(() => {
+                                const { isConfirmed, isSent } = getOrderReminderState(reminderModalOrder);
+                                return (
+                                    <div className={`mt-3.5 p-2.5 rounded-[12px] border flex items-center justify-between gap-2 ${
+                                        isConfirmed
+                                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
+                                            : isSent
+                                                ? 'bg-sky-500/15 border-sky-500/30 text-sky-900 dark:text-sky-200'
+                                                : 'bg-slate-100 dark:bg-slate-900/70 border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                                    }`}>
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            {isConfirmed ? (
+                                                <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.6]" />
+                                            ) : isSent ? (
+                                                <Send className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                                            ) : (
+                                                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                                            )}
+                                            <span className="text-[11.5px] font-bold leading-snug">
+                                                {isConfirmed
+                                                    ? t('planning.status_confirmed_banner', 'Confirmat de client ✓✓')
+                                                    : isSent
+                                                        ? t('planning.status_sent_banner', 'Reminder trimis — în așteptarea confirmării')
+                                                        : t('planning.status_not_sent_banner', 'Reminder netrimis încă')}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={togglingConfirm}
+                                            onClick={() => handleToggleReminderConfirm(reminderModalOrder, !isConfirmed)}
+                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer border ${
+                                                isConfirmed
+                                                    ? 'bg-white/90 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border-slate-300/80'
+                                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                                            }`}
+                                        >
+                                            {isConfirmed
+                                                ? t('planning.unmark_confirmed_btn', 'Anulează')
+                                                : t('planning.mark_confirmed_btn', '✓✓ Marchează Confirmat')}
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Language Switcher (FR | NL | EN) */}
+                            <div className="flex items-center justify-between mt-4 mb-2">
+                                <span className="text-[11.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                                    {t('planning.reminder_language', 'Langue du message')}
+                                </span>
+                                <div className="inline-flex items-center gap-0.5 bg-slate-100 dark:bg-slate-900 p-0.5 rounded-full border border-slate-200/90 dark:border-slate-700">
+                                    {[
+                                        { code: 'fr', label: 'FR' },
+                                        { code: 'nl', label: 'NL' },
+                                        { code: 'en', label: 'EN' }
+                                    ].map(l => (
+                                        <button
+                                            key={l.code}
+                                            type="button"
+                                            onClick={() => {
+                                                setReminderLang(l.code);
+                                                setReminderText(buildReminderMessage(reminderModalOrder, l.code));
+                                            }}
+                                            className={`min-w-[44px] h-6 px-2.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                                                reminderLang === l.code
+                                                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
+                                                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                                            }`}
+                                        >
+                                            {l.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Editable Message Textarea */}
+                            <textarea
+                                rows={6}
+                                value={reminderText}
+                                onChange={(e) => setReminderText(e.target.value)}
+                                className="w-full p-3 rounded-[12px] bg-slate-50 dark:bg-slate-950 border border-slate-300/90 dark:border-slate-700 text-[12.5px] font-medium text-slate-800 dark:text-slate-100 leading-relaxed outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 resize-none"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2.5 mt-3">
+                            <button
+                                type="button"
+                                disabled={sendingReminder}
+                                onClick={() => setReminderModalOrder(null)}
+                                className="flex-1 h-10 px-4 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/90 dark:border-slate-600/80 rounded-[14px] text-[13.5px] font-semibold transition-all cursor-pointer"
+                            >
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button
+                                type="button"
+                                disabled={sendingReminder || !reminderText.trim() || (!reminderModalOrder.client_phone && !reminderModalOrder.client_email)}
+                                onClick={handleSendReminder}
+                                className="flex-[1.35] h-10 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-[14px] text-[13.5px] font-semibold shadow-sm shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                {sendingReminder ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <>
+                                        <Send className="w-3.5 h-3.5" />
+                                        <span>{t('planning.send_reminder_btn', 'Envoyer le rappel')}</span>
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>

@@ -275,7 +275,7 @@ def send_planning_update_whatsapp(phone_number: str, client_name: str, client_la
         return False
 
     url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-    formatted_phone = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+    formatted_phone = normalize_phone_number(phone_number) or phone_number.replace("+", "").replace(" ", "").replace("-", "")
 
     body_text = f"Bonjour {client_name},\n\nLa date de votre intervention a été mise à jour par l'équipe Davide Chape : {new_date}.\n\nVous pouvez consulter les détails ici : {signing_url}\n\nCordialement,\nL'équipe Davide Chape"
     
@@ -894,6 +894,99 @@ def send_admin_client_message_whatsapp(
         logger.error(f"Failed to send client message notification to {formatted_target}: {e}")
         return False
 
+
+def send_admin_date_confirmed_whatsapp(
+    wo,
+    confirmation_source: str = "link",
+    client_reply_text: str = None
+) -> bool:
+    """
+    Sends a clear notification to the company WhatsApp group when a client confirms
+    the scheduled work date (either via the confirmation link or via an affirmative reply to a reminder).
+    Never uses UUID fallbacks.
+    """
+    instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
+    api_token = os.getenv("ULTRAMSG_API_TOKEN")
+    target_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
+
+    if not instance_id or not api_token or not target_id or not wo:
+        return False
+
+    url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+    formatted_target = target_id.strip() if "@g.us" in target_id else target_id.replace("+", "").replace(" ", "").replace("-", "")
+
+    client_name = (getattr(wo, "client_name", None) or (wo.client.name if getattr(wo, "client", None) else None) or getattr(wo, "title", None) or "Client").strip()
+    quote_no = getattr(wo, "quote_number", None)
+    quote_suffix = f" · {quote_no}" if quote_no and not len(str(quote_no)) > 20 else ""
+
+    # Format scheduled date DD/MM/YYYY (without internal planning hour)
+    raw_date = getattr(wo, "start_date", None) or getattr(wo, "deadline_date", None)
+    if hasattr(raw_date, "strftime") and raw_date:
+        date_str = raw_date.strftime("%d/%m/%Y")
+    elif raw_date:
+        parts = str(raw_date).split("T")[0].split("-")
+        date_str = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else str(raw_date)
+    else:
+        date_str = "—"
+
+    site_addr = (getattr(wo, "site_address", None) or (wo.site.address if getattr(wo, "site", None) else None) or "").strip()
+    vols = getattr(wo, "volumes", None) or []
+    total_m2 = 0.0
+    if isinstance(vols, list):
+        for v in vols:
+            if isinstance(v, dict):
+                try:
+                    total_m2 += float(v.get("quantity") or 0)
+                except (ValueError, TypeError):
+                    pass
+    if total_m2 <= 0:
+        try:
+            total_m2 = float(getattr(wo, "surface_area", 0) or getattr(wo, "surface", 0) or 0)
+        except (ValueError, TypeError):
+            total_m2 = 0.0
+
+    surf_str = f" ({total_m2:.0f} m²)" if total_m2 > 0 else ""
+
+    lines = [
+        f"✅ *DATA LUCRĂRII CONFIRMATĂ DE CLIENT!*",
+        "",
+        f"👤 *Client:* {client_name}{quote_suffix}",
+        f"📅 *Data confirmată:* {date_str}{surf_str}",
+    ]
+    if site_addr:
+        lines.append(f"📍 *Șantier:* {site_addr}")
+
+    if client_reply_text and client_reply_text.strip():
+        via_lbl = "WhatsApp" if confirmation_source == "whatsapp" else "Chat"
+        lines.append(f"💬 *Răspuns client ({via_lbl}):* \"{client_reply_text.strip()}\"")
+    else:
+        lines.append(f"🔗 *Confirmare:* Buton confirmare din link-ul lucrării")
+
+    confirm_key = getattr(wo, "token", None) or getattr(wo, "id", None)
+    if confirm_key:
+        client_lang = (getattr(wo, "client_language", None) or "fr").lower().split("-")[0].strip()
+        if client_lang not in ("fr", "nl", "en", "ro"):
+            client_lang = "fr"
+        confirm_url = f"https://davidechape.pontaj.app/confirm/{confirm_key}?lang={client_lang}"
+        seller_url = f"{confirm_url}&role=seller"
+        lines.append("")
+        lines.append(f"🛠️ *Link Davide Chape:*\n{seller_url}")
+
+    payload = {
+        "token": api_token,
+        "to": formatted_target,
+        "body": "\n".join(lines)
+    }
+
+    try:
+        response = httpx.post(url, data=payload, timeout=10.0)
+        response.raise_for_status()
+        logger.info(f"Date confirmed WhatsApp notification sent to group {formatted_target} for WO {wo.id}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send date confirmed WhatsApp notification to {formatted_target}: {e}")
+        return False
+
 def send_chat_text_whatsapp(phone_number: str, text: str):
     """
     Sends chat text strictly via UltraMsg (Official Company WhatsApp Number).
@@ -907,7 +1000,9 @@ def send_chat_text_whatsapp(phone_number: str, text: str):
         return {"success": False, "wamid": None, "error": "not_configured"}
 
     url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-    formatted_phone_ultramsg = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+    formatted_phone_ultramsg = normalize_phone_number(phone_number)
+    if not formatted_phone_ultramsg:
+        return {"success": False, "wamid": None, "error": "invalid_phone"}
 
     payload = {
         "token": api_token,
@@ -976,7 +1071,9 @@ def send_chat_attachment_whatsapp(phone_number: str, file_url: str, filename: st
     if not instance_id or not api_token or not phone_number or not file_url:
         return False
 
-    formatted_phone_ultramsg = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+    formatted_phone_ultramsg = normalize_phone_number(phone_number)
+    if not formatted_phone_ultramsg:
+        return False
     url = f"https://api.ultramsg.com/{instance_id}/messages/document"
     payload = {
         "token": api_token,

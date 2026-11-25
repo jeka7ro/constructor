@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
+import { useUIStore } from '../../store/uiStore'
 import { Users, Plus, Search, Coffee, MapPin, Clock, CheckCircle, XCircle, Loader2, UserPlus, Trash2, Building2, RefreshCw, ChevronDown, ChevronUp, Edit3 } from 'lucide-react'
 
 export default function TeamLeaderPanel() {
     const { t } = useTranslation()
+    const { showToast } = useUIStore()
     const [teams, setTeams] = useState([])
     const [loading, setLoading] = useState(true)
     const [showCreateForm, setShowCreateForm] = useState(false)
@@ -134,7 +136,7 @@ export default function TeamLeaderPanel() {
             setShowCreateForm(false)
             fetchTeams()
         } catch (error) {
-            alert(error.response?.data?.detail || t('errors.create_team'))
+            showToast(error.response?.data?.detail || t('errors.create_team'), 'error')
         } finally {
             setCreating(false)
         }
@@ -145,7 +147,7 @@ export default function TeamLeaderPanel() {
         try {
             await api.put(`/teams/${teamId}`, { name: editName.trim() })
         } catch (e) {
-            alert(e.response?.data?.detail || 'Eroare la redenumire')
+            showToast(e.response?.data?.detail || t('common.error', 'Erreur lors du renommage'), 'error')
         }
         setEditingName(false)
         fetchTeams()

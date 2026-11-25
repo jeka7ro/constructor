@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
@@ -1614,15 +1615,15 @@ export default function ClockInPage() {
             )}
 
             {/* Site Change Modal */}
-            {showSiteChange && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            {showSiteChange && createPortal(
+                <div className="fixed inset-0 bg-slate-950/55 backdrop-blur-md flex items-center justify-center z-[99999] p-4" onClick={() => setShowSiteChange(false)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] border-[1.5px] border-slate-300 dark:border-slate-700 max-w-sm w-full p-6 shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45),0_0_0_1px_rgba(15,23,42,0.08)]" onClick={e => e.stopPropagation()}>
                         <div className="text-center mb-4">
-                            <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <ArrowLeftRight className="w-7 h-7 text-indigo-600" />
+                            <div className="w-12 h-12 bg-indigo-500/15 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <ArrowLeftRight className="w-6 h-6 text-indigo-600" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900">{t('timesheets.change_site_modal')}</h3>
-                            <p className="text-sm text-slate-500 mt-1">{t('timesheets.change_site_desc')}</p>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-950 dark:text-white">{t('timesheets.change_site_modal')}</h3>
+                            <p className="text-[13px] font-medium text-slate-600 dark:text-slate-400 mt-1">{t('timesheets.change_site_desc')}</p>
                         </div>
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                             {sites.filter(s => s.id !== activeShift?.site_id).map(site => (
@@ -1630,98 +1631,100 @@ export default function ClockInPage() {
                                     key={site.id}
                                     onClick={() => handleSiteChange(site.id)}
                                     disabled={loading}
-                                    className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                                    className="w-full text-left p-3.5 rounded-[14px] border border-slate-200 dark:border-slate-700 hover:border-[#007AFF] hover:bg-sky-50/60 transition-colors"
                                 >
-                                    <div className="font-semibold text-sm text-slate-800">{site.name}</div>
-                                    <div className="text-xs text-slate-500">{site.address}</div>
+                                    <div className="font-bold text-sm text-slate-900 dark:text-white">{site.name}</div>
+                                    <div className="text-xs font-medium text-slate-500">{site.address}</div>
                                 </button>
                             ))}
                         </div>
                         <button
                             onClick={() => setShowSiteChange(false)}
-                            className="w-full mt-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors"
+                            className="w-full mt-4 h-11 rounded-[13px] bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-[15px] transition-colors"
                         >
                             {t('common.cancel')}
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {showClockOutConfirm && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-                        <div className="text-center mb-6">
-                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Square className="w-8 h-8 text-red-600" />
+            {showClockOutConfirm && createPortal(
+                <div className="fixed inset-0 bg-slate-950/55 backdrop-blur-md flex items-center justify-center z-[99999] p-4" onClick={() => setShowClockOutConfirm(false)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] border-[1.5px] border-slate-300 dark:border-slate-700 max-w-sm w-full p-6 shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45),0_0_0_1px_rgba(15,23,42,0.08)]" onClick={e => e.stopPropagation()}>
+                        <div className="text-center mb-5">
+                            <div className="w-12 h-12 bg-rose-500/15 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                                <Square className="w-6 h-6 text-[#FF3B30]" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-2">{t('timesheets.clock_out_confirm')}</h3>
-                            <p className="text-slate-600 text-sm">{t('timesheets.clock_out_confirm_desc')}</p>
-                            <p className="text-red-500 text-xs font-semibold mt-2">{t('timesheets.clock_out_warning')}</p>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-950 dark:text-white mb-1.5">{t('timesheets.clock_out_confirm')}</h3>
+                            <p className="text-slate-600 dark:text-slate-300 text-[13px] font-medium">{t('timesheets.clock_out_confirm_desc')}</p>
+                            <p className="text-[#FF3B30] text-xs font-semibold mt-2">{t('timesheets.clock_out_warning')}</p>
                         </div>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setShowClockOutConfirm(false)}
-                                className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold transition-colors"
+                                className="flex-1 px-4 h-11 bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-[13px] text-[15px] font-semibold transition-colors"
                             >
-                                Anulează
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button
                                 onClick={confirmClockOut}
-                                className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl font-semibold transition-all"
+                                className="flex-1 px-4 h-11 bg-[#FF3B30] hover:bg-[#D70015] text-white rounded-[13px] text-[15px] font-semibold shadow-sm transition-all"
                             >
-                                Da, închei
+                                {t('timesheets.confirm_end_shift', 'Confirmer')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {clockOutResult && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            {clockOutResult && createPortal(
+                <div className="fixed inset-0 bg-slate-950/55 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] border-[1.5px] border-slate-300 dark:border-slate-700 max-w-sm w-full p-6 shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45),0_0_0_1px_rgba(15,23,42,0.08)]">
                         <div className="text-center mb-4">
                             {clockOutResult.error ? (
                                 <>
-                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <XCircle className="w-8 h-8 text-red-600" />
+                                    <div className="w-12 h-12 bg-rose-500/15 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                                        <XCircle className="w-6 h-6 text-[#FF3B30]" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-slate-900 mb-2">{t('common.error')}</h3>
-                                    <p className="text-slate-600 text-sm">{clockOutResult.error}</p>
+                                    <h3 className="text-[17px] font-bold tracking-tight text-slate-950 dark:text-white mb-1.5">{t('common.error')}</h3>
+                                    <p className="text-slate-600 dark:text-slate-300 text-[13px] font-medium">{clockOutResult.error}</p>
                                 </>
                             ) : (
                                 <>
-                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <CheckCircle className="w-8 h-8 text-green-600" />
+                                    <div className="w-12 h-12 bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                                        <CheckCircle className="w-6 h-6 text-[#34C759]" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-slate-900 mb-2">{t('timesheets.shift_ended_success')}</h3>
-                                    <div className="space-y-2 text-sm text-left">
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                            <span className="text-slate-600">⏱ {t('timesheets.hours_worked_label')}</span>
-                                            <span className="font-bold text-blue-600">{formatHoursMinutes(clockOutResult.worked_hours)}</span>
+                                    <h3 className="text-[17px] font-bold tracking-tight text-slate-950 dark:text-white mb-3">{t('timesheets.shift_ended_success')}</h3>
+                                    <div className="space-y-2 text-sm text-left bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-[16px] border border-slate-200/80 dark:border-slate-700">
+                                        <div className="flex justify-between items-center py-1.5 border-b border-slate-200/70 dark:border-slate-700">
+                                            <span className="text-slate-600 dark:text-slate-400">⏱ {t('timesheets.hours_worked_label')}</span>
+                                            <span className="font-bold text-[#007AFF] tabular-nums">{formatHoursMinutes(clockOutResult.worked_hours)}</span>
                                         </div>
                                         {clockOutResult.break_hours > 0 && (
-                                            <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                <span className="text-slate-600">{t('timesheets.lunch_break_label')}</span>
-                                                <span className="font-bold text-orange-600">{formatHoursMinutes(clockOutResult.break_hours)}</span>
+                                            <div className="flex justify-between items-center py-1.5 border-b border-slate-200/70 dark:border-slate-700">
+                                                <span className="text-slate-600 dark:text-slate-400">{t('timesheets.lunch_break_label')}</span>
+                                                <span className="font-bold text-orange-600 tabular-nums">{formatHoursMinutes(clockOutResult.break_hours)}</span>
                                             </div>
                                         )}
                                         {clockOutResult.geofence_pause_hours > 0 && (
-                                            <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                <span className="text-slate-600">{t('timesheets.outside_zone_label')}</span>
-                                                <span className="font-bold text-red-500">{formatHoursMinutes(clockOutResult.geofence_pause_hours)}</span>
+                                            <div className="flex justify-between items-center py-1.5 border-b border-slate-200/70 dark:border-slate-700">
+                                                <span className="text-slate-600 dark:text-slate-400">{t('timesheets.outside_zone_label')}</span>
+                                                <span className="font-bold text-[#FF3B30] tabular-nums">{formatHoursMinutes(clockOutResult.geofence_pause_hours)}</span>
                                             </div>
                                         )}
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                            <span className="text-slate-600">{t('timesheets.total_with_break')}</span>
-                                            <span className="font-bold text-slate-900">{formatHoursMinutes(clockOutResult.total_hours)}</span>
+                                        <div className="flex justify-between items-center pt-1.5">
+                                            <span className="text-slate-600 dark:text-slate-400">{t('timesheets.total_with_break')}</span>
+                                            <span className="font-bold text-slate-950 dark:text-white tabular-nums">{formatHoursMinutes(clockOutResult.total_hours)}</span>
                                         </div>
                                         {clockOutResult.activities && clockOutResult.activities.length > 0 && (
-                                            <div className="pt-2">
-                                                <p className="text-xs font-semibold text-slate-700 mb-1">{t('activities.recorded_activities')}</p>
+                                            <div className="pt-2 border-t border-slate-200/70 dark:border-slate-700">
+                                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('activities.recorded_activities')}</p>
                                                 {clockOutResult.activities.map((act, i) => (
                                                     <div key={i} className="flex justify-between text-xs py-1">
-                                                        <span className="text-slate-600">{act.activity_name || act.name}</span>
-                                                        <span className="font-medium">{act.quantity} {act.unit_type}</span>
+                                                        <span className="text-slate-600 dark:text-slate-400">{act.activity_name || act.name}</span>
+                                                        <span className="font-semibold tabular-nums">{act.quantity} {act.unit_type}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1732,34 +1735,35 @@ export default function ClockInPage() {
                         </div>
                         <button
                             onClick={() => setClockOutResult(null)}
-                            className="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition-colors"
+                            className="w-full px-4 h-11 bg-[#007AFF] hover:bg-[#0062CC] text-white rounded-[13px] text-[15px] font-semibold transition-colors shadow-sm"
                         >
                             OK
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {breakMessage && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            {breakMessage && createPortal(
+                <div className="fixed inset-0 bg-slate-950/55 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] border-[1.5px] border-slate-300 dark:border-slate-700 max-w-sm w-full p-6 shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45),0_0_0_1px_rgba(15,23,42,0.08)]">
                         <div className="text-center mb-4">
-                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Coffee className="w-8 h-8 text-orange-600" />
+                            <div className="w-12 h-12 bg-amber-500/15 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                                <Coffee className="w-6 h-6 text-[#FF9500]" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">{t('timesheets.status.break')}</h3>
-                            <p className="text-slate-600 text-sm">{breakMessage}</p>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-950 dark:text-white mb-1.5">{t('timesheets.status.break')}</h3>
+                            <p className="text-slate-600 dark:text-slate-300 text-[13px] font-medium">{breakMessage}</p>
                         </div>
                         <button
                             onClick={() => setBreakMessage(null)}
-                            className="w-full px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors"
+                            className="w-full px-4 h-11 bg-[#FF9500] hover:bg-[#E08600] text-white rounded-[13px] text-[15px] font-semibold transition-colors shadow-sm"
                         >
                             {t('common.understood')}
                         </button>
                     </div>
-                </div>
-            )
-            }
+                </div>,
+                document.body
+            )}
         </div >
     )
 }

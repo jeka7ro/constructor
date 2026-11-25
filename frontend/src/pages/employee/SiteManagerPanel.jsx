@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
+import { useUIStore } from '../../store/uiStore'
 import { Users, Coffee, Clock, CheckCircle, Building2, RefreshCw, MapPin, ChevronDown, ChevronUp, Camera, X, Image, Loader2, Trash2 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
 export default function SiteManagerPanel() {
     const { t } = useTranslation()
+    const { showToast, openDialog } = useUIStore()
     const [teams, setTeams] = useState([])
     const [teamStatuses, setTeamStatuses] = useState({})
     const [loading, setLoading] = useState(true)
@@ -155,7 +158,7 @@ export default function SiteManagerPanel() {
 
         const siteId = getSiteIdForUpload()
         if (!siteId) {
-            alert(t('errors.no_site_found'))
+            showToast(t('errors.no_site_found'), 'error')
             return
         }
 
@@ -174,21 +177,28 @@ export default function SiteManagerPanel() {
         } catch (err) {
             console.error('Upload error:', err)
             const detail = err.response?.data?.detail || err.message || t('errors.unknown_error')
-            alert(`${t('errors.upload_error')}: ${detail}`)
+            showToast(`${t('errors.upload_error')}: ${detail}`, 'error')
         } finally {
             setUploading(false)
             if (fileInputRef.current) fileInputRef.current.value = ''
         }
     }
 
-    const handleDeletePhoto = async (photoId) => {
-        if (!confirm(t('common.delete_confirm'))) return
-        try {
-            await api.delete(`/site-photos/${photoId}`)
-            fetchPhotos()
-        } catch (e) {
-            console.error('Delete error:', e)
-        }
+    const handleDeletePhoto = (photoId) => {
+        openDialog({
+            type: 'danger',
+            title: t('common.delete', 'Supprimer'),
+            message: t('common.delete_confirm', 'Êtes-vous sûr de vouloir supprimer cette photo ?'),
+            confirmText: t('common.delete', 'Supprimer'),
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/site-photos/${photoId}`)
+                    fetchPhotos()
+                } catch (e) {
+                    console.error('Delete error:', e)
+                }
+            }
+        })
     }
 
     const toggleTeam = (teamId) => {
@@ -363,31 +373,32 @@ export default function SiteManagerPanel() {
             </div>
 
             {/* Photo Modal */}
-            {showPhotoModal && selectedPhoto && (
-                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowPhotoModal(false)}>
+            {showPhotoModal && selectedPhoto && createPortal(
+                <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99999] flex items-center justify-center p-4" onClick={() => setShowPhotoModal(false)}>
                     <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
                         <img
                             src={selectedPhoto.photo_path?.startsWith('http') ? selectedPhoto.photo_path : `${API_BASE}${selectedPhoto.photo_path}`}
                             alt={selectedPhoto.description || t('timesheets.site_photo')}
-                            className="w-full rounded-2xl"
+                            className="w-full rounded-[24px] border border-white/15 shadow-2xl"
                         />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-2xl">
-                            <p className="text-white text-sm font-medium">{selectedPhoto.uploader_name}</p>
-                            <p className="text-white/70 text-xs">
-                                {selectedPhoto.site_name} • {new Date(selectedPhoto.created_at).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent p-4 rounded-b-[24px]">
+                            <p className="text-white text-sm font-semibold">{selectedPhoto.uploader_name}</p>
+                            <p className="text-white/75 text-xs">
+                                {selectedPhoto.site_name} • {new Date(selectedPhoto.created_at).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}
                             </p>
                             {selectedPhoto.description && (
-                                <p className="text-white/80 text-xs mt-1">{selectedPhoto.description}</p>
+                                <p className="text-white/85 text-xs mt-1">{selectedPhoto.description}</p>
                             )}
                         </div>
                         <button
                             onClick={() => setShowPhotoModal(false)}
-                            className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full hover:bg-black/70"
+                            className="absolute top-3 right-3 w-9 h-9 bg-black/60 text-white rounded-full hover:bg-black/80 flex items-center justify-center"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4 stroke-[2.5]" />
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Teams */}

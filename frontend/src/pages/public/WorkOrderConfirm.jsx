@@ -931,7 +931,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center bg-[#F2F4F8] p-4">
             <div className="w-full max-w-[340px] rounded-[24px] bg-white/95 backdrop-blur-2xl border-[1.5px] border-slate-300/90 ring-1 ring-slate-900/[0.06] shadow-[0_24px_54px_-12px_rgba(15,23,42,0.16)] p-6 text-center">
-                <div className="w-12 h-12 rounded-full bg-sky-500/12 border border-sky-500/25 flex items-center justify-center mx-auto mb-3.5">
+                <div className="w-12 h-12 rounded-full bg-sky-500/15 border border-sky-500/25 flex items-center justify-center mx-auto mb-3.5">
                     <Loader2 className="w-6 h-6 animate-spin text-sky-600" />
                 </div>
                 <p className="text-[14px] text-slate-700 font-semibold">{t.loadingOrder}</p>
@@ -943,7 +943,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         <div className="min-h-screen flex items-center justify-center bg-[#F2F4F8] p-4">
             <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] backdrop-blur-3xl border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.28)] p-3.5 text-center">
                 <div className="rounded-[16px] bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-6">
-                    <div className="w-12 h-12 bg-rose-500/12 border border-rose-500/25 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                    <div className="w-12 h-12 bg-rose-500/15 border border-rose-500/25 rounded-full flex items-center justify-center mx-auto mb-3.5">
                         <AlertCircle className="w-6 h-6 text-rose-600" />
                     </div>
                     <h1 className="text-[17px] font-bold tracking-tight text-slate-900 leading-snug">
@@ -962,7 +962,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     return (
         <div className="min-h-screen bg-[#F2F4F8]">
             {/* Apple HIG Frosted Glass Navigation Bar */}
-            <div className="sticky top-0 z-30 w-full py-2.5 px-4 sm:py-3 sm:px-6 border-b border-slate-200/90 bg-white/88 backdrop-blur-2xl saturate-150 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.05)]">
+            <div className="sticky top-0 z-30 w-full py-2.5 px-4 sm:py-3 sm:px-6 border-b border-slate-200/90 bg-white/90 backdrop-blur-2xl saturate-150 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.05)]">
                 <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                         {order?.org_logo || (order?.org_name || '').toLowerCase().includes('davide') ? (
@@ -1029,7 +1029,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         <button 
                             type="button"
                             onClick={handleOpenChat}
-                            className="relative flex items-center justify-center w-9 h-9 rounded-full bg-sky-500/12 hover:bg-sky-500/20 text-sky-600 border border-sky-500/25 shadow-2xs transition-all cursor-pointer"
+                            className="relative flex items-center justify-center w-9 h-9 rounded-full bg-sky-500/15 hover:bg-sky-500/20 text-sky-600 border border-sky-500/25 shadow-2xs transition-all cursor-pointer"
                         >
                             <MessageSquare className="w-4 h-4" />
                             {unreadClientCount > 0 && (
@@ -1070,7 +1070,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         {confirmed && (
                             <div>
                                 <div className="flex items-start gap-3">
-                                    <span className="w-9 h-9 rounded-full bg-emerald-500/12 border border-emerald-500/25 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
+                                    <span className="w-9 h-9 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
                                         <CheckCircle2 className="w-4.5 h-4.5" />
                                     </span>
                                     <div className="min-w-0 flex-1">
@@ -1109,10 +1109,10 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             <div className="flex items-start gap-3">
                                 <span className={`w-9 h-9 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
                                     order.reschedule_requested
-                                        ? 'bg-amber-500/12 border-amber-500/25 text-amber-600'
+                                        ? 'bg-amber-500/15 border-amber-500/25 text-amber-600'
                                         : dateConfirmed
-                                            ? 'bg-emerald-500/12 border-emerald-500/25 text-emerald-600'
-                                            : 'bg-sky-500/12 border-sky-500/25 text-sky-600'
+                                            ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-600'
+                                            : 'bg-sky-500/15 border-sky-500/25 text-sky-600'
                                 }`}>
                                     <Calendar className="w-4.5 h-4.5" />
                                 </span>
@@ -1122,7 +1122,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                             {order.reschedule_requested ? t.reschedulePending : dateConfirmed ? t.dateConfirmedMsg : t.proposedDate}
                                         </span>
                                         {dateConfirmed && !order.reschedule_requested && (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/12 border border-emerald-500/25 text-emerald-700 text-[10.5px] font-semibold">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-700 text-[10.5px] font-semibold">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                                 Validée
                                             </span>
@@ -1130,7 +1130,6 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     </div>
                                     <div className="text-[16px] font-bold tracking-tight text-slate-900 tabular-nums mt-0.5">
                                         {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                        {order.start_time && ` • ${order.start_time}`}
                                     </div>
                                     {!dateConfirmed && !order.reschedule_requested && (
                                         <p className="text-[11.5px] text-amber-800 bg-amber-500/10 border border-amber-500/20 rounded-[10px] px-2.5 py-1.5 mt-2 font-medium leading-snug">
@@ -1143,6 +1142,48 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                             {t.onDate} {new Date(order.date_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
                                         </p>
                                     )}
+                                    {!isSeller && !order.reschedule_requested && (() => {
+                                        const clientConfirmedReady = Boolean(
+                                            order?.reminder_confirmed_at ||
+                                            order?.prices?.reminder_confirmed_at ||
+                                            (Array.isArray(order?.date_history) && order.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
+                                        );
+                                        if (clientConfirmedReady) {
+                                            return (
+                                                <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 text-xs font-bold">
+                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                    <span>
+                                                        {lang === 'nl'
+                                                            ? 'Werf en datum bevestigd door u'
+                                                            : lang === 'en'
+                                                                ? 'Site readiness & date confirmed by you'
+                                                                : 'Disponibilité du chantier confirmée par vous'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+                                        return (
+                                            <button
+                                                type="button"
+                                                disabled={confirmingDate}
+                                                onClick={handleConfirmDate}
+                                                className="mt-2.5 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+                                            >
+                                                {confirmingDate ? (
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                ) : (
+                                                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                                )}
+                                                <span>
+                                                    {lang === 'nl'
+                                                        ? 'Bevestigen dat de werf klaar is op deze datum'
+                                                        : lang === 'en'
+                                                            ? 'Confirm that the site is ready for this date'
+                                                            : 'Confirmer que le chantier est prêt pour cette date'}
+                                                </span>
+                                            </button>
+                                        );
+                                    })()}
                                     <button
                                         type="button"
                                         onClick={handleOpenChat}
@@ -1177,7 +1218,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     <div className="rounded-[22px] bg-white border-[1.5px] border-slate-200/95 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.08)] p-3 w-full flex flex-col print:hidden">
                                         <div className="px-1 pb-2.5 flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                <span className="w-7 h-7 rounded-full bg-sky-500/12 border border-sky-500/25 flex items-center justify-center text-sky-600 shrink-0">
+                                                <span className="w-7 h-7 rounded-full bg-sky-500/15 border border-sky-500/25 flex items-center justify-center text-sky-600 shrink-0">
                                                     <MapPin className="w-3.5 h-3.5" />
                                                 </span>
                                                 {isEditingAddress ? (
@@ -1466,7 +1507,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 const isOwn = isSeller ? msg.sender === 'admin' : msg.sender === 'client';
                                 // Determine the message content to show based on language mapping
                                 let displayMessage = msg.message;
-                                if (!isSeller && !isOwn && msg.translations && msg.translations[lang]) {
+                                if (!isSeller && !isOwn && msg.translations && msg.translations._target_lang !== 'none' && msg.translations[lang]) {
                                     // For client view: replace Davide Chape's message text with the client's selected language translation
                                     displayMessage = msg.translations[lang];
                                 }
@@ -1490,19 +1531,22 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                             </div>
                                         )}
                                         <p className="text-sm whitespace-pre-wrap">{displayMessage}</p>
-                                        {isSeller && !isOwn && msg.translations?.ro && msg.translations.ro !== msg.message && (
+                                        {isSeller && !isOwn && msg.translations?.ro && msg.translations.ro.trim().toLowerCase() !== (msg.message || '').trim().toLowerCase() && (
                                             <div className="mt-1.5 pt-1.5 border-t border-slate-100 text-xs text-slate-500 italic">
                                                 🌐 Traducere (RO): {msg.translations.ro}
                                             </div>
                                         )}
-                                        {isSeller && isOwn && msg.translations && Object.entries(msg.translations)
-                                            .filter(([k, v]) => !k.startsWith('_') && k !== 'ro' && v && v !== msg.message)
-                                            .map(([k, v]) => (
-                                                <div key={k} className="mt-1.5 pt-1.5 border-t border-emerald-500/40 text-xs text-emerald-100 italic">
-                                                    🌐 Traduction ({k.toUpperCase()}): {v}
+                                        {isSeller && isOwn && msg.translations && msg.translations._target_lang !== 'none' && (() => {
+                                            const activeTarget = lang || msg.translations._target_lang || 'fr';
+                                            const transVal = msg.translations[activeTarget] || (msg.translations._target_lang && msg.translations[msg.translations._target_lang]);
+                                            if (!transVal || transVal.trim().toLowerCase() === (msg.message || '').trim().toLowerCase()) return null;
+                                            const labelLang = (msg.translations[activeTarget] ? activeTarget : (msg.translations._target_lang || 'fr')).toUpperCase();
+                                            return (
+                                                <div className="mt-1.5 pt-1.5 border-t border-emerald-500/40 text-xs text-emerald-100 italic">
+                                                    🌐 Traduction ({labelLang}): {transVal}
                                                 </div>
-                                            ))
-                                        }
+                                            );
+                                        })()}
                                         
                                         {msg.attachments && msg.attachments.length > 0 && (
                                             <div className="mt-2 flex flex-col gap-2">
@@ -1570,7 +1614,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                         {/* Reaction Picker Popover */}
                                         {showEmojiPickerFor === msg.id && (
                                             <div className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white rounded-lg shadow-lg border border-slate-200 p-1 z-20 text-slate-800`}>
-                                                {['', '', '', '', '', ''].map(em => (
+                                                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(em => (
                                                     <button 
                                                         key={em} 
                                                         onClick={() => handleToggleReaction(msg.id, em)}
@@ -1675,7 +1719,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
                     <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] text-slate-900 backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 text-center overflow-hidden">
                         <div className="rounded-[16px] bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
-                            <div className="w-12 h-12 bg-sky-500/12 border border-sky-500/25 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                            <div className="w-12 h-12 bg-sky-500/15 border border-sky-500/25 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
                                 <AlertCircle className="w-6 h-6" />
                             </div>
                             <h3 className="font-bold text-[17px] tracking-tight text-slate-900 leading-snug">
@@ -1701,7 +1745,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
                     <div className="w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] text-slate-900 backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 ring-1 ring-slate-900/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 text-center overflow-hidden">
                         <div className="rounded-[16px] bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
-                            <div className="w-12 h-12 bg-emerald-500/12 border border-emerald-500/25 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                            <div className="w-12 h-12 bg-emerald-500/15 border border-emerald-500/25 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
                                 <Calendar className="w-6 h-6" />
                             </div>
                             <h3 className="font-bold text-[17px] tracking-tight text-slate-900 leading-snug">
@@ -1740,7 +1784,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             
             {/* Lightbox */}
             {lightboxIndex !== null && order?.completion_photos && createPortal(
-                <div className="fixed inset-0 z-[99999] bg-slate-950/92 backdrop-blur-xl flex items-center justify-center">
+                <div className="fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center">
                     <button 
                         type="button"
                         onClick={() => setLightboxIndex(null)}
@@ -1787,7 +1831,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             <button type="button" onClick={() => {setShowDateModal(false); setShowRescheduleForm(false); setRescheduleReason(''); setRescheduleDate('');}} className="absolute top-6 right-6 w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer">
                                 <X className="w-4 h-4" />
                             </button>
-                            <div className="w-12 h-12 bg-sky-500/12 border border-sky-500/25 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
+                            <div className="w-12 h-12 bg-sky-500/15 border border-sky-500/25 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-3.5">
                                 <Calendar className="w-6 h-6" />
                             </div>
                             <h3 className="text-center font-bold text-[17px] tracking-tight text-slate-900 leading-snug">

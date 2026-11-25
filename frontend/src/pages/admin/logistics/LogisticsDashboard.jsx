@@ -504,11 +504,18 @@ export default function LogisticsDashboard() {
                                     <CheckCircle2 className="w-4 h-4" /> {t('logistics.archived', 'Archivé')}
                                 </div>
                             )}
-                            {data?.archive_pending && (
-                                <div className="flex items-center gap-1.5 px-3 h-11 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-bold text-sm rounded-full border border-orange-200 dark:border-orange-800">
-                                    <RefreshCw className="w-4 h-4" /> {t('logistics.incomplete_coords', 'Coordonnées manquantes')}
-                                </div>
-                            )}
+                            {data?.archive_pending && (() => {
+                                const missingNames = (data?.routes || [])
+                                    .flatMap(r => (r.waypoints || []).filter(wp => wp.type === 'work' && (!wp.lat || !wp.lng)).map(wp => `${wp.name} (${r.team_name})`));
+                                return (
+                                    <div
+                                        title={missingNames.length > 0 ? `Lucrări fără coordonate GPS: ${missingNames.join(', ')}` : ''}
+                                        className="flex items-center gap-1.5 px-3 h-11 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-bold text-sm rounded-full border border-orange-200 dark:border-orange-800"
+                                    >
+                                        <RefreshCw className="w-4 h-4" /> {t('logistics.incomplete_coords', 'Coordonnées manquantes')}
+                                    </div>
+                                );
+                            })()}
                             <button
                                 onClick={recalculate}
                                 disabled={loading}

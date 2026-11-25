@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, Outlet, NavLink, useLocation, Navigate } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
 import { useTenantStore } from '../../store/tenantStore'
@@ -387,6 +388,7 @@ export default function AdminDashboard() {
             label: t('nav.cat_general', 'Général'),
             items: [
                 { path: '/admin/planning', icon: LayoutDashboard, label: t('nav.planning', 'Planning') },
+                { path: '/admin/tracking', icon: Radio, label: t('admin_overview.live_tracking', 'Suivi en Direct') },
                 { path: '/admin/quotes', icon: FileText, label: t('nav.quotes', 'Devis / Offres') },
                 { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistique') },
                 { path: '/admin/client-analytics', icon: BarChart3, label: t('nav.client_analytics', 'Analyse Clients') },
@@ -428,7 +430,6 @@ export default function AdminDashboard() {
                 { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Entrepôt') },
                 { path: '/admin/fleet', icon: Truck, label: t('nav.fleet', 'Flotte') },
                 { path: '/admin/transport', icon: Navigation, label: t('nav.transport', 'Feuilles de Route') },
-                { path: '/admin/tracking', icon: Radio, label: t('nav.tracking', 'Live Tracking') },
                 { path: '/admin/material-requests', icon: PackageSearch, label: t('nav.material_requests', 'Demandes Matériel') },
                 { path: '/admin/expenses', icon: Wallet, label: t('nav.expenses', 'Dépenses / Frais') },
             ]
@@ -1070,10 +1071,10 @@ export default function AdminDashboard() {
             </nav>
 
             {/* Birthday Popup */}
-            {showBirthdayPopup && birthdayUsers.length > 0 && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowBirthdayPopup(false)}></div>
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
+            {showBirthdayPopup && birthdayUsers.length > 0 && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-md" onClick={() => setShowBirthdayPopup(false)}></div>
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] border-[1.5px] border-slate-300 dark:border-slate-700 shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45),0_0_0_1px_rgba(15,23,42,0.08)] w-full max-w-md relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
                         <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-6 text-center">
                             <div className="w-16 h-16 bg-slate-200 dark:bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
                                 <span className="text-3xl"></span>
@@ -1083,7 +1084,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="p-6 space-y-4">
                             {birthdayUsers.map(u => (
-                                <div key={u.id} className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-100 dark:border-slate-700">
+                                <div key={u.id} className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-[16px] border border-slate-200 dark:border-slate-700">
                                     <div className="w-12 h-12 rounded-full bg-pink-100 dark:bg-pink-900/40 flex items-center justify-center text-pink-600 dark:text-pink-400 font-bold text-lg overflow-hidden border-2 border-white dark:border-slate-800 shadow-sm shrink-0">
                                         {u.avatar_path ? <img src={u.avatar_path.startsWith('http') ? u.avatar_path : `${API_BASE}${u.avatar_path}`} className="w-full h-full object-cover" alt="" /> : u.full_name?.charAt(0)}
                                     </div>
@@ -1095,13 +1096,14 @@ export default function AdminDashboard() {
                             ))}
                             <button 
                                 onClick={() => setShowBirthdayPopup(false)}
-                                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-colors mt-2"
+                                className="w-full h-11 bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-[13px] transition-colors mt-2"
                             >
                                 {t('common.close', 'Fermer')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             
             <GlobalSearch 

@@ -683,14 +683,14 @@ export default function AdminChats() {
                                                             {/* Translation Display */}
                                                             {msg.message && msg.translations && Object.keys(msg.translations).length > 0 && (
                                                                 (() => {
-                                                                    // If message is from client: show translation in Romanian (RO) under the original
-                                                                    if (msg.sender === 'client') {
+                                                                    // If message is from client or partner: show translation in Romanian (RO) under the original
+                                                                    if (msg.sender === 'client' || msg.sender === 'partner') {
                                                                         const roText = msg.translations.ro;
                                                                         if (!roText || !roText.trim() || roText.includes('Error 500') || roText.includes('Eroare la traducere') || roText.includes("That's an error")) return null;
                                                                         if (roText.trim().toLowerCase() === (msg.message || '').trim().toLowerCase()) return null;
                                                                         return (
                                                                             <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/50 text-xs italic text-slate-500 dark:text-slate-400">
-                                                                                <span className="font-semibold block mb-0.5">{t('chat.translation', 'Traducere')} (RO):</span>
+                                                                                <span className="font-semibold block mb-0.5">{t('chat.translation', 'Traduction')} (RO):</span>
                                                                                 {roText}
                                                                             </div>
                                                                         );
@@ -741,7 +741,7 @@ export default function AdminChats() {
                                                 {/* Reaction Picker Popover */}
                                                 {showEmojiPickerFor === msg.id && (
                                                     <div className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-1 z-20`}>
-                                                        {['', '', '', '', '', ''].map(em => (
+                                                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(em => (
                                                             <button 
                                                                 key={em} 
                                                                 onClick={() => handleToggleReaction(msg.id, em)}
@@ -769,7 +769,7 @@ export default function AdminChats() {
                                                         <button
                                                             onClick={() => handleToggleVisibility(msg.id)}
                                                             className="p-1.5 rounded-full text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                                            title={msg.is_hidden ? t('admin.show_to_client', 'Afișează la client') : t('admin.hide_from_client', 'Ascunde de la client')}
+                                                            title={msg.is_hidden ? t('admin.show_to_client', 'Afficher au client') : t('admin.hide_from_client', 'Masquer au client')}
                                                         >
                                                             {msg.is_hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                                                         </button>
@@ -849,7 +849,7 @@ export default function AdminChats() {
                                                 type="button"
                                                 onClick={() => fileInputRef.current?.click()}
                                                 className="p-2 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
-                                                title="Adaugă atașament"
+                                                title={t('chat.add_attachment', 'Ajouter une pièce jointe')}
                                             >
                                                 <Paperclip className="w-5 h-5" />
                                             </button>
@@ -904,7 +904,7 @@ export default function AdminChats() {
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setMessageToDelete(null)}>
                     <div className="relative w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden text-center" onClick={e => e.stopPropagation()}>
                         <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 flex flex-col items-center">
-                            <div className="w-12 h-12 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/25 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center mb-3.5">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/25 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center mb-3.5">
                                 <Trash2 className="w-6 h-6" />
                             </div>
                             <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
@@ -940,7 +940,7 @@ export default function AdminChats() {
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setChatToToggle(null)}>
                     <div className="relative w-full max-w-[360px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden text-center" onClick={e => e.stopPropagation()}>
                         <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 flex flex-col items-center">
-                            <div className="w-12 h-12 rounded-full bg-amber-500/12 dark:bg-amber-500/20 border border-amber-500/25 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center mb-3.5">
+                            <div className="w-12 h-12 rounded-full bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/25 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center mb-3.5">
                                 <Clock className="w-6 h-6" />
                             </div>
                             <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white leading-snug">

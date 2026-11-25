@@ -925,24 +925,13 @@ def post_worker_work_order_message(
         
     translations = {}
     
-    # Auto-translate to the 3 public languages if deep_translator is available
+    # Auto-translate to the 3 public languages via centralized translation_service
     try:
-        import time
-        from deep_translator import GoogleTranslator
+        from app.services.translation_service import translate_text
         for target_lang in ['fr', 'nl', 'en']:
-            for attempt in range(3):
-                try:
-                    translated = GoogleTranslator(source='auto', target=target_lang).translate(payload.message)
-                    if translated and ("Error 500" in translated or "That's an error" in translated or "Server Error" in translated):
-                        print(f"Translation attempt {attempt+1} for {target_lang} returned Error 500, retrying...")
-                        time.sleep(1)
-                        continue
-                    translations[target_lang] = translated
-                    break
-                except Exception as retry_err:
-                    print(f"Translation attempt {attempt+1} for {target_lang} failed: {retry_err}")
-                    if attempt < 2:
-                        time.sleep(1)
+            translated = translate_text(payload.message, target_lang)
+            if translated:
+                translations[target_lang] = translated
     except Exception as e:
         print(f"Auto-translation failed: {e}")
 

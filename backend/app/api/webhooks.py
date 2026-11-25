@@ -13,6 +13,48 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
+def _find_best_work_order_for_phone(db: Session, phone_suffix: str):
+    """
+    Finds the best matching active WorkOrder for an incoming WhatsApp message.
+    If the client has multiple work orders sharing the same phone number, prioritizes:
+    1. A work order with a pending unconfirmed reminder (reminder_sent_at set, reminder_confirmed_at not set)
+    2. The work order that most recently had an outgoing admin message in WorkOrderMessage
+    3. The most recently created work order
+    """
+    candidates = db.query(WorkOrder).filter(
+        WorkOrder.client_phone.ilike(f"%{phone_suffix}%"),
+        WorkOrder.status != 'deleted'
+    ).order_by(desc(WorkOrder.created_at)).all()
+
+    if not candidates:
+        return None
+    if len(candidates) == 1:
+        return candidates[0]
+
+    # 1. Prioritize any candidate with an active unconfirmed reminder_sent_at
+    with_pending_reminder = []
+    for wo in candidates:
+        p = wo.prices if isinstance(wo.prices, dict) else {}
+        if p.get("reminder_sent_at") and not p.get("reminder_confirmed_at"):
+            with_pending_reminder.append((str(p.get("reminder_sent_at")), wo))
+    if with_pending_reminder:
+        with_pending_reminder.sort(key=lambda x: x[0], reverse=True)
+        return with_pending_reminder[0][1]
+
+    # 2. Prioritize the candidate with the most recent admin message
+    cand_ids = [wo.id for wo in candidates]
+    latest_admin_msg = db.query(WorkOrderMessage).filter(
+        WorkOrderMessage.work_order_id.in_(cand_ids),
+        WorkOrderMessage.sender == 'admin'
+    ).order_by(desc(WorkOrderMessage.created_at)).first()
+    if latest_admin_msg:
+        for wo in candidates:
+            if wo.id == latest_admin_msg.work_order_id:
+                return wo
+
+    return candidates[0]
+
 @router.get("/whatsapp")
 async def verify_whatsapp_webhook(request: Request):
     """
@@ -103,6 +145,11 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                                 flag_modified(reacted_msg, "reactions")
                                 db.commit()
                                 logger.info(f"Updated client WhatsApp reaction '{emoji}' on message {target_wamid}")
+                                if emoji in ("👍", "👍🏻", "👍🏼", "✅", "☑️", "✔️", "👌", "🙏", "❤️"):
+                                    reacted_wo = db.query(WorkOrder).filter(WorkOrder.id == reacted_msg.work_order_id).first()
+                                    if reacted_wo and isinstance(reacted_wo.prices, dict) and reacted_wo.prices.get("reminder_sent_at") and not reacted_wo.prices.get("reminder_confirmed_at"):
+                                        from app.services.translation_service import mark_work_order_reminder_confirmed
+                                        mark_work_order_reminder_confirmed(reacted_wo, db, source="whatsapp", detail=f"Reacție {emoji}")
                         except Exception as err:
                             logger.error(f"Error updating client reaction for {target_wamid}: {err}")
                             db.rollback()
@@ -122,10 +169,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     continue
 
                 phone_suffix = sender[-9:]
-                recent_wo = db.query(WorkOrder).filter(
-                    WorkOrder.client_phone.ilike(f"%{phone_suffix}%"),
-                    WorkOrder.status != 'deleted'
-                ).order_by(desc(WorkOrder.created_at)).first()
+                recent_wo = _find_best_work_order_for_phone(db, phone_suffix)
 
                 if recent_wo:
                     msg_translations = {"_wamid": msg_id, "_delivery_status": "delivered", "_delivery_channel": "whatsapp"} if msg_id else {}
@@ -150,23 +194,19 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     db.commit()
                     logger.info(f"WhatsApp message from {sender} attached to WorkOrder {recent_wo.id}")
 
-                    # Forward to admin WhatsApp group
-                    try:
-                        admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
-                        if admin_group_id:
-                            from app.services.whatsapp_service import send_admin_client_message_whatsapp
-                            send_admin_client_message_whatsapp(
-                                target_id=admin_group_id,
-                                client_name=recent_wo.client_name or "Client",
-                                client_phone=recent_wo.client_phone or sender,
-                                message_text=body if body else "Mesaj primit via WhatsApp",
-                                quote_number=recent_wo.quote_number or f"DEV-{recent_wo.id}",
-                                wo_id=recent_wo.id,
-                                token=getattr(recent_wo, 'token', None),
-                                client_language=getattr(recent_wo, 'client_language', None) or 'fr'
+                    # Auto-detect client date confirmation from WhatsApp reply (ONLY when a reminder was sent and awaiting confirmation; normal WhatsApp messages are NOT forwarded to the group)
+                    if body and body.strip():
+                        try:
+                            from app.services.translation_service import is_client_confirmation_message, mark_work_order_reminder_confirmed
+                            has_pending_reminder = bool(
+                                isinstance(recent_wo.prices, dict)
+                                and recent_wo.prices.get("reminder_sent_at")
+                                and not recent_wo.prices.get("reminder_confirmed_at")
                             )
-                    except Exception as e:
-                        logger.error(f"Failed to forward Meta client message to WhatsApp admin group: {e}")
+                            if has_pending_reminder and is_client_confirmation_message(body):
+                                mark_work_order_reminder_confirmed(recent_wo, db, source="whatsapp", detail=body)
+                        except Exception as e:
+                            logger.warning(f"Failed auto-confirm detection on Meta WhatsApp message: {e}")
 
     return {"status": "success"}
 
@@ -212,10 +252,8 @@ async def ultramsg_webhook(request: Request, db: Session = Depends(get_db)):
         
     phone_suffix = clean_phone[-9:]
     
-    # Find the most recent active work order for this client
-    recent_wo = db.query(WorkOrder).filter(
-        WorkOrder.client_phone.ilike(f"%{phone_suffix}%"), WorkOrder.status != 'deleted'
-    ).order_by(desc(WorkOrder.created_at)).first()
+    # Find the most relevant active work order for this client
+    recent_wo = _find_best_work_order_for_phone(db, phone_suffix)
 
     if not recent_wo:
         logger.info(f"No matching WorkOrder found for WhatsApp number {clean_phone}")
@@ -238,13 +276,24 @@ async def ultramsg_webhook(request: Request, db: Session = Depends(get_db)):
             "type": message_type
         })
         
+    # Translate incoming message to Romanian for admin
+    msg_translations = {"_delivery_channel": "whatsapp", "_delivery_status": "delivered"}
+    if body and body.strip():
+        try:
+            from app.services.translation_service import translate_text
+            ro_trans = translate_text(body, 'ro')
+            if ro_trans:
+                msg_translations['ro'] = ro_trans
+        except Exception as e:
+            logger.warning(f"UltraMsg webhook message auto-translation failed: {e}")
+
     # Create the message
     msg = WorkOrderMessage(
         work_order_id=recent_wo.id,
         sender="client",
         message=body if body else "Atașament primit via WhatsApp",
         is_read_by_admin=False,
-        translations={},
+        translations=msg_translations,
         attachments=attachments
     )
     
@@ -253,22 +302,18 @@ async def ultramsg_webhook(request: Request, db: Session = Depends(get_db)):
     
     logger.info(f"WhatsApp message from {clean_phone} attached to WorkOrder {recent_wo.id}")
 
-    # Forward notification to company WhatsApp group (Davide Chape APP)
-    try:
-        admin_group_id = os.getenv("WHATSAPP_ADMIN_GROUP_ID", "120363427568793073@g.us")
-        if admin_group_id:
-            from app.services.whatsapp_service import send_admin_client_message_whatsapp
-            send_admin_client_message_whatsapp(
-                target_id=admin_group_id,
-                client_name=recent_wo.client_name or "Client",
-                client_phone=recent_wo.client_phone or clean_phone,
-                message_text=body if body else "Atașament primit via WhatsApp",
-                quote_number=recent_wo.quote_number or f"DEV-{recent_wo.id}",
-                wo_id=recent_wo.id,
-                token=getattr(recent_wo, 'token', None),
-                client_language=getattr(recent_wo, 'client_language', None) or 'fr'
+    # Auto-detect client date confirmation from UltraMsg WhatsApp reply (ONLY when a reminder was sent and awaiting confirmation; normal WhatsApp messages are NOT forwarded to the group)
+    if body and body.strip():
+        try:
+            from app.services.translation_service import is_client_confirmation_message, mark_work_order_reminder_confirmed
+            has_pending_reminder = bool(
+                isinstance(recent_wo.prices, dict)
+                and recent_wo.prices.get("reminder_sent_at")
+                and not recent_wo.prices.get("reminder_confirmed_at")
             )
-    except Exception as e:
-        logger.error(f"Failed to forward UltraMsg client message to WhatsApp admin group: {e}")
+            if has_pending_reminder and is_client_confirmation_message(body):
+                mark_work_order_reminder_confirmed(recent_wo, db, source="whatsapp", detail=body)
+        except Exception as e:
+            logger.warning(f"Failed auto-confirm detection on UltraMsg WhatsApp message: {e}")
 
     return {"status": "success"}

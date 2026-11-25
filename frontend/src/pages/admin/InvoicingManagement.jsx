@@ -747,7 +747,7 @@ export default function InvoicingManagement() {
 
             {/* FULL PAGE PREVIEW MODAL */}
             {previewWo && createPortal(
-                <div className="fixed inset-0 z-[100] flex flex-col bg-slate-100 dark:bg-slate-950">
+                <div className="fixed inset-0 z-[99999] flex flex-col bg-slate-100 dark:bg-slate-950">
                     {/* Header */}
                     <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0 shadow-sm">
                         <div className="flex items-center gap-4">
