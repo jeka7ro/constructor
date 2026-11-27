@@ -1,23 +1,129 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-    FileText, Search, ExternalLink, FileOutput, CheckCircle2, CircleDot, AlertTriangle, Loader2, X, User, Copy, Clock, Pencil, MoreVertical, XCircle, CalendarDays, Send
+    FileText, Search, ExternalLink, FileOutput, CheckCircle2, CircleDot, AlertTriangle,
+    Loader2, X, User, Copy, Clock, Pencil, MoreVertical, XCircle, CalendarDays, Send,
+    RefreshCw, FileSpreadsheet, ShieldCheck, Building2, Download, FileCode, Euro, Users
 } from 'lucide-react'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
 import ProformaView from './ProformaView'
 import SearchableSelect from '../../components/SearchableSelect'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
-import { buildQuoteItems } from '../../utils/pricingEngine'
+import { buildQuoteItems } from '../../utils/priceCalculator'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 import i18n from '../../i18n'
 
-const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedToken, onSendToBilltobox, onPreviewPdf }) => {
+const toLocalISO = (d) => {
+    const tzOffset = d.getTimezoneOffset() * 60000
+    return new Date(d.getTime() - tzOffset).toISOString().split('T')[0]
+}
+
+const _orderFinancialsMemo = new Map()
+
+function computeOrderFinancials(wo, pricingSettings) {
+    const cacheKey = `${wo.id}:${wo.updated_at || ''}:${wo.is_invoiced ? 1 : 0}:${pricingSettings ? 'ps' : 'nops'}`
+    if (_orderFinancialsMemo.has(cacheKey)) {
+        return _orderFinancialsMemo.get(cacheKey)
+    }
+    const p = wo.prices || {}
+    const pdata = wo.proforma_data || {}
+    let net = 0
+    let vatRate = 0
+
+    // 1. Check saved proforma_data.items
+    const pRaw = pdata.items
+    if (Array.isArray(pRaw) && pRaw.length > 0) {
+        const d0 = String(pRaw[0].desc || '').toLowerCase().trim()
+        const isPlaceholder = pRaw.length === 1 && (
+            pRaw[0].id === 'default' ||
+            d0.includes('conform deviz') ||
+            d0.includes('manoper') ||
+            d0 === 'chape' || d0 === 'sapa'
+        )
+        if (!isPlaceholder) {
+            const totalItems = pRaw
+                .filter(i => !i.isHeader && !i.isSubtotal)
+                .reduce((s, i) => s + (parseFloat(i.qty ?? 1) * parseFloat(i.price || 0)), 0)
+            const discount = parseFloat(p.discount || 0)
+            net = Math.max(0, totalItems - discount)
+        }
+    }
+
+    // 2. Fallback: buildQuoteItems
+    if (net <= 0 && Array.isArray(wo.volumes) && wo.volumes.length > 0) {
+        try {
+            const calc = buildQuoteItems(wo, pricingSettings, {
+                isInvoice: Boolean(wo.is_invoiced),
+                useInvoiceData: Boolean(wo.is_invoiced)
+            })
+            if (calc && calc.net > 0) {
+                net = parseFloat(calc.net) || 0
+            }
+        } catch {
+            // fallback below
+        }
+    }
+
+    // 3. Fallback: computed_total / estimated_price
+    if (net <= 0) {
+        const rawEst = String(wo.estimated_price || '0').replace(/[^0-9.]/g, '')
+        net = parseFloat(wo.computed_total) || parseFloat(rawEst) || 0
+    }
+
+    // VAT determination
+    const useVat = pdata.useVat !== undefined ? pdata.useVat : (p.useVat !== false)
+    if (useVat !== false) {
+        if (pdata.vatRate !== undefined && pdata.vatRate !== null) {
+            vatRate = parseFloat(pdata.vatRate) || 0
+        } else if (p.vat_type !== undefined && p.vat_type !== null) {
+            vatRate = parseFloat(p.vat_type) || 0
+        } else if (wo.client_type === 'pj' || wo.client_type === 'juridica') {
+            vatRate = 0
+        } else {
+            vatRate = wo.work_type === 'repair' ? 6 : 21
+        }
+    }
+
+    const vatAmount = net * (vatRate / 100)
+    const gross = net + vatAmount
+
+    // Extract VAT / CBE number for Peppol
+    const rawVat = String(
+        pdata.client_company_vat ||
+        wo.client_company_vat ||
+        wo.client_cui ||
+        wo.client_company_reg_number ||
+        ''
+    ).trim()
+
+    const cleanDigits = rawVat.replace(/[^0-9A-Za-z]/g, '').toUpperCase()
+    const isB2B = wo.client_type === 'pj' || wo.client_type === 'juridica' || Boolean(cleanDigits)
+    const peppolEndpoint = cleanDigits
+        ? (cleanDigits.startsWith('BE') ? `0208:${cleanDigits.replace(/^BE/, '')}` : `9956:${cleanDigits}`)
+        : null
+
+    const finResult = {
+        net: Number(net.toFixed(2)),
+        vatRate,
+        vatAmount: Number(vatAmount.toFixed(2)),
+        gross: Number(gross.toFixed(2)),
+        rawVat,
+        isB2B,
+        peppolEndpoint,
+        isPeppolReady: Boolean(cleanDigits)
+    }
+    _orderFinancialsMemo.set(cacheKey, finResult)
+    return finResult
+}
+
+const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedToken, onSendToBilltobox, onDownloadPeppolXml, onPreviewPdf }) => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const btnRef = React.useRef(null);
     const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -26,7 +132,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
         e.stopPropagation();
         if (!isOpen) {
             const rect = btnRef.current.getBoundingClientRect();
-            setCoords({ top: rect.bottom, left: rect.right - 220 }); 
+            setCoords({ top: rect.bottom, left: rect.right - 240 }); 
         }
         setIsOpen(!isOpen);
     };
@@ -48,87 +154,105 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
             <button 
                 ref={btnRef} 
                 onClick={toggle} 
-                className="p-1.5 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors border border-slate-200 shadow-sm"
+                className="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-50 rounded-full transition-colors border border-slate-200/90 dark:border-slate-700 shadow-2xs cursor-pointer"
                 title={t('invoicing.menu_actions', 'Menu Actions')}
             >
                 <MoreVertical className="w-4 h-4" />
             </button>
             {isOpen && createPortal(
                 <div 
-                    className="fixed z-50 w-56 bg-white rounded-lg shadow-xl border border-slate-200 py-1.5 flex flex-col gap-0.5"
-                    style={{ top: coords.top + 4, left: coords.left }}
+                    className="fixed z-[99999] w-60 bg-white dark:bg-slate-900 rounded-[18px] shadow-2xl border border-slate-200/90 dark:border-slate-700 py-2 flex flex-col gap-0.5"
+                    style={{ top: coords.top + 6, left: Math.max(12, coords.left) }}
                     onClick={(e) => e.stopPropagation()}
                 >
+                    <button 
+                        onClick={() => { navigate(`/admin/invoices/${wo.id}`); setIsOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-[14px] font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5"
+                    >
+                        <FileText className="w-4 h-4 text-[color:var(--tenant-bg)]" />
+                        {t('invoicing.open_invoice_view', 'Ouvrir Devis / Facture')}
+                    </button>
+
                     {wo.proforma_path ? (
                         <>
                             <button 
                                 onClick={() => { onPreviewPdf({ url: (wo.is_quote || !wo.is_invoiced) ? `/admin/quotes/${wo.id}/pdf` : wo.proforma_path, wo }); setIsOpen(false); }}
-                                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                className="w-full text-left px-4 py-2 text-[14px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5"
                             >
                                 <FileOutput className="w-4 h-4 text-slate-400" />
                                 {t('invoicing.view_pdf', 'Télécharger / Voir PDF')}
                             </button>
                             <button 
                                 onClick={() => { onEdit(wo); setIsOpen(false); }}
-                                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                className="w-full text-left px-4 py-2 text-[14px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5"
                             >
                                 <Pencil className="w-4 h-4 text-slate-400" />
                                 {t('invoicing.edit_doc', 'Éditer le Document')}
                             </button>
-                            <button
-                                onClick={() => { onCopyLink(wo); setIsOpen(false); }}
-                                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            >
-                                {copiedToken === wo.token ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
-                                {t('invoicing.copy_link', 'Copier le Lien Client')}
-                            </button>
-
-                            {wo.is_invoiced && (
-                                <>
-                                    <button
-                                        onClick={() => { onSendToBilltobox(wo.id); setIsOpen(false); }}
-                                        className="w-full text-left px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
-                                    >
-                                        {wo.billtobox_status === 'sent' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Send className="w-4 h-4 text-emerald-500" />}
-                                        {wo.billtobox_status === 'sent' ? t('invoicing.resend_billtobox', 'Renvoyer à Billtobox') : t('invoicing.send_billtobox', 'Envoyer à Billtobox')}
-                                    </button>
-                                    <button
-                                        onClick={() => { onStorno(wo.id); setIsOpen(false); }}
-                                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
-                                    >
-                                        <XCircle className="w-4 h-4 text-red-500" />
-                                        {t('invoicing.storno', 'Annuler la Facture')}
-                                    </button>
-                                </>
-                            )}
                         </>
                     ) : (
                         <button 
                             onClick={() => { onEdit(wo); setIsOpen(false); }}
-                            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 text-[14px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5"
                         >
                             <FileOutput className="w-4 h-4 text-slate-400" />
                             {t('invoicing.generate_proforma', 'Générer la Proforma')}
                         </button>
                     )}
+
+                    <button
+                        onClick={() => { onCopyLink(wo); setIsOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-[14px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5"
+                    >
+                        {copiedToken === wo.token ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                        {t('invoicing.copy_link', 'Copier le Lien Client')}
+                    </button>
+
+                    <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+
+                    <button
+                        onClick={() => { onSendToBilltobox(wo.id); setIsOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-[14px] font-bold text-[color:var(--tenant-bg)] hover:bg-blue-50/70 dark:hover:bg-slate-800 flex items-center gap-2.5"
+                    >
+                        <Send className="w-4 h-4" />
+                        {wo.billtobox_status === 'sent'
+                            ? t('invoicing.resend_billtobox', 'Retransmettre Peppol / Billtobox')
+                            : t('invoicing.send_billtobox', 'Transmettre Peppol / Billtobox')}
+                    </button>
+
+                    <button
+                        onClick={() => { onDownloadPeppolXml(wo); setIsOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-[14px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5"
+                    >
+                        <FileCode className="w-4 h-4 text-indigo-500" />
+                        {t('invoicing.download_ubl', 'Télécharger XML Peppol (UBL 2.1)')}
+                    </button>
                     
-                    {!wo.is_invoiced && (
+                    {!wo.is_invoiced ? (
                         <button 
                             onClick={() => { onMarkInvoiced(wo.id); setIsOpen(false); }}
-                            className="w-full text-left px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2 font-bold"
+                            className="w-full text-left px-4 py-2 text-[14px] text-emerald-600 hover:bg-emerald-50 flex items-center gap-2.5 border-t border-slate-100 dark:border-slate-800 mt-1 pt-2 font-bold"
                         >
                             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                             {t('invoicing.mark_invoiced', 'Émettre la Facture')}
                         </button>
+                    ) : (
+                        <button
+                            onClick={() => { onStorno(wo.id); setIsOpen(false); }}
+                            className="w-full text-left px-4 py-2 text-[14px] font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 border-t border-slate-100 dark:border-slate-800 mt-1 pt-2"
+                        >
+                            <XCircle className="w-4 h-4 text-red-500" />
+                            {t('invoicing.storno', 'Annuler la Facture (Storno)')}
+                        </button>
                     )}
 
-                    <div className="border-t border-slate-100 my-1"></div>
+                    <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
                     <button 
                         onClick={() => { navigate(`/admin/work-orders/${wo.id}`); setIsOpen(false); }}
-                        className="w-full text-left px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-[13.5px] font-medium text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5"
                     >
                         <ExternalLink className="w-4 h-4 text-slate-400" />
-                        {t('invoicing.view_details', 'Voir les Détails du Travail')}
+                        {t('invoicing.view_details', 'Voir la Fiche Chantier')}
                     </button>
                 </div>,
                 document.body
@@ -136,6 +260,13 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
         </>
     );
 };
+
+let _invoicingMemoryCache = {
+    workOrders: (typeof window !== 'undefined' && window.__adminInvoiceOrdersCache) || null,
+    clients: (typeof window !== 'undefined' && window.__adminClientsCache) || null,
+    pricingSettings: (typeof window !== 'undefined' && window.__adminPricingSettingsCache) || null,
+    lastUpdated: ''
+}
 
 export default function InvoicingManagement() {
     const { t } = useTranslation()
@@ -147,9 +278,9 @@ export default function InvoicingManagement() {
         setTimeout(() => setToast(null), 3000)
     }
 
-    const [workOrders, setWorkOrders] = useState([])
-    const [clients, setClients] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [workOrders, setWorkOrders] = useState(() => (typeof window !== 'undefined' && window.__adminInvoiceOrdersCache) || _invoicingMemoryCache.workOrders || [])
+    const [clients, setClients] = useState(() => (typeof window !== 'undefined' && window.__adminClientsCache) || _invoicingMemoryCache.clients || [])
+    const [loading, setLoading] = useState(() => !((typeof window !== 'undefined' && window.__adminInvoiceOrdersCache) || _invoicingMemoryCache.workOrders))
     const [previewWo, setPreviewWo] = useState(null)
     const [generatingId, setGeneratingId] = useState(null)
     const [copiedToken, setCopiedToken] = useState(null)
@@ -157,6 +288,11 @@ export default function InvoicingManagement() {
     const [isSearchingVies, setIsSearchingVies] = useState(false)
     const [selectedTeams, setSelectedTeams] = useState([])   // array de team names
     const [statusFilter, setStatusFilter] = useState(null)    // null | 'unfactured' | 'proforma' | 'invoiced' | 'quote'
+    const [peppolFilter, setPeppolFilter] = useState('all')   // 'all' | 'sent' | 'unsent' | 'error' | 'b2b'
+    const [activePreset, setActivePreset] = useState('all')
+    const [dateFrom, setDateFrom] = useState('')
+    const [dateTo, setDateTo] = useState('')
+    const [lastUpdated, setLastUpdated] = useState(() => _invoicingMemoryCache.lastUpdated || '')
     const [proformaConfig, setProformaConfig] = useState({ 
         useVat: true, 
         discountPct: 0, 
@@ -172,7 +308,7 @@ export default function InvoicingManagement() {
         client_address: ''
     })
 
-    const [pricingSettings, setPricingSettings] = useState(null)
+    const [pricingSettings, setPricingSettings] = useState(() => (typeof window !== 'undefined' && window.__adminPricingSettingsCache) || _invoicingMemoryCache.pricingSettings || null)
 
     const calculateItems = (wo, config, pSettings) => {
         const ps = pSettings || pricingSettings;
@@ -300,18 +436,62 @@ export default function InvoicingManagement() {
         setPreviewWo(wo);
     }
 
-    const fetchOrdersAndClients = async () => {
-        setLoading(true)
+    const applyPreset = (presetKey) => {
+        const now = new Date()
+        let start = new Date(now)
+        let end = new Date(now)
+
+        if (presetKey === 'all') {
+            setActivePreset('all')
+            setDateFrom('')
+            setDateTo('')
+            return
+        } else if (presetKey === 'today') {
+            // start & end = today
+        } else if (presetKey === 'last_7') {
+            start.setDate(now.getDate() - 7)
+        } else if (presetKey === 'last_30') {
+            start.setDate(now.getDate() - 30)
+        } else if (presetKey === 'current_month') {
+            start = new Date(now.getFullYear(), now.getMonth(), 1)
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        } else if (presetKey === 'prev_month') {
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+            end = new Date(now.getFullYear(), now.getMonth(), 0)
+        } else if (presetKey === 'current_year') {
+            start = new Date(now.getFullYear(), 0, 1)
+            end = new Date(now.getFullYear(), 11, 31)
+        }
+
+        setActivePreset(presetKey)
+        setDateFrom(toLocalISO(start))
+        setDateTo(toLocalISO(end))
+    }
+
+    const fetchOrdersAndClients = async (isBackground = false) => {
+        const hasCache = Boolean((typeof window !== 'undefined' && window.__adminInvoiceOrdersCache) || _invoicingMemoryCache.workOrders)
+        if (!isBackground && !hasCache) setLoading(true)
         try {
             const [woRes, clRes, psRes] = await Promise.all([
-                api.get('/admin/work-orders?limit=200&invoice_mode=true'),
+                api.get('/admin/work-orders?limit=1000&invoice_mode=true'),
                 api.get('/admin/clients'),
                 api.get('/admin/pricing-settings').catch(() => ({ data: null }))
             ])
-            // Backend returns is_quote=False orders + is_quote=True with status=planning
-            setWorkOrders(Array.isArray(woRes.data) ? woRes.data : (woRes.data?.items || woRes.data || []))
-            setClients(Array.isArray(clRes.data) ? clRes.data : (clRes.data?.items || []))
-            if (psRes.data) setPricingSettings(psRes.data)
+            const wos = Array.isArray(woRes.data) ? woRes.data : (woRes.data?.items || woRes.data || [])
+            const cls = Array.isArray(clRes.data) ? clRes.data : (clRes.data?.items || [])
+            const ps = psRes.data || (typeof window !== 'undefined' && window.__adminPricingSettingsCache) || _invoicingMemoryCache.pricingSettings || null
+            const nowStr = new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+            _invoicingMemoryCache = { workOrders: wos, clients: cls, pricingSettings: ps, lastUpdated: nowStr }
+            if (typeof window !== 'undefined') {
+                window.__adminInvoiceOrdersCache = wos
+                window.__adminClientsCache = cls
+                if (ps) window.__adminPricingSettingsCache = ps
+            }
+            setWorkOrders(wos)
+            setClients(cls)
+            if (ps) setPricingSettings(ps)
+            setLastUpdated(nowStr)
         } catch (error) {
             console.error('Error fetching data for invoicing:', error)
         } finally {
@@ -414,17 +594,23 @@ export default function InvoicingManagement() {
             setWorkOrders(prev => prev.map(wo => 
                 wo.id === woId ? { ...wo, billtobox_status: 'pending' } : wo
             ))
-            showToast(t('invoicing.sending_billtobox', 'Envoi de la facture à Billtobox...'), 'success')
+            showToast(t('invoicing.sending_billtobox', 'Transmitere factură UBL în Peppol / Billtobox...'), 'success')
             
             const res = await api.post(`/admin/work-orders/${woId}/billtobox`)
             
             setWorkOrders(prev => prev.map(wo => 
-                wo.id === woId ? { ...wo, billtobox_status: res.data.status } : wo
+                wo.id === woId ? {
+                    ...wo,
+                    is_invoiced: true,
+                    billtobox_status: res.data.status || 'sent',
+                    billtobox_sent_at: res.data.sent_at || new Date().toISOString(),
+                    billtobox_error: null
+                } : wo
             ))
-            showToast(t('invoicing.billtobox_success', 'La facture a été envoyée avec succès à Billtobox !'), 'success')
+            showToast(t('invoicing.billtobox_success', 'Factura a fost transmisă cu succes în Peppol / Billtobox !'), 'success')
         } catch (error) {
             console.error('Failed to send invoice to Billtobox:', error)
-            const msg = error.response?.data?.detail || t('invoicing.billtobox_error', 'Une erreur est survenue lors de l\'envoi de la facture.')
+            const msg = error.response?.data?.detail || t('invoicing.billtobox_error', 'Eroare la transmiterea în Peppol / Billtobox.')
             showToast(msg, 'error')
             
             setWorkOrders(prev => prev.map(wo => 
@@ -433,54 +619,245 @@ export default function InvoicingManagement() {
         }
     }
 
+    const handleDownloadPeppolXml = async (wo) => {
+        try {
+            const res = await api.get(`/admin/work-orders/${wo.id}/peppol-xml`, { responseType: 'blob' })
+            const docNum = wo.invoice_number || wo.quote_number || String(wo.id || '').slice(0, 8).toUpperCase()
+            const blob = new Blob([res.data], { type: 'application/xml' })
+            const url = window.URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `Peppol_UBL_BIS3_${docNum}.xml`
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+            showToast(`XML Peppol UBL (${docNum}) descărcat cu succes!`, 'success')
+        } catch (err) {
+            console.error('Error downloading Peppol XML:', err)
+            showToast('Eroare la generarea fișierului XML Peppol UBL.', 'error')
+        }
+    }
+
+    // Pre-calculate financials & Peppol metadata for every work order
+    const enrichedOrders = useMemo(() => {
+        return workOrders.map(wo => {
+            const fin = computeOrderFinancials(wo, pricingSettings)
+            const rawDate = (wo.invoiced_at || wo.start_date || wo.deadline_date || wo.approximate_date || wo.created_at || '').split('T')[0]
+            return {
+                ...wo,
+                _fin: fin,
+                _effectiveDate: rawDate
+            }
+        })
+    }, [workOrders, pricingSettings])
+
+    // Filter by Date Period first (so KPIs reflect the selected period!)
+    const periodOrders = useMemo(() => {
+        if (!dateFrom && !dateTo) return enrichedOrders
+        const startStr = dateFrom ? dateFrom.replace(/-/g, '') : '00000000'
+        const endStr = dateTo ? dateTo.replace(/-/g, '') : '99999999'
+        return enrichedOrders.filter(wo => {
+            if (!wo._effectiveDate) return false
+            const d = wo._effectiveDate.replace(/-/g, '')
+            return d >= startStr && d <= endStr
+        })
+    }, [enrichedOrders, dateFrom, dateTo])
+
+    // Compute Period KPIs
+    const kpiStats = useMemo(() => {
+        let totalNet = 0
+        let totalGross = 0
+        let toInvoiceCount = 0
+        let toInvoiceNet = 0
+        let invoicedCount = 0
+        let invoicedNet = 0
+        let peppolSentCount = 0
+        let peppolSentNet = 0
+        let peppolUnsentCount = 0
+        let peppolUnsentNet = 0
+        let peppolErrorCount = 0
+        let b2bMissingVatCount = 0
+
+        periodOrders.forEach(wo => {
+            const net = wo._fin.net || 0
+            const gross = wo._fin.gross || 0
+            totalNet += net
+            totalGross += gross
+
+            if (wo.is_invoiced) {
+                invoicedCount++
+                invoicedNet += net
+            } else {
+                toInvoiceCount++
+                toInvoiceNet += net
+            }
+
+            if (wo.billtobox_status === 'sent') {
+                peppolSentCount++
+                peppolSentNet += net
+            } else if (wo.billtobox_status === 'error') {
+                peppolErrorCount++
+                peppolUnsentCount++
+                peppolUnsentNet += net
+            } else {
+                peppolUnsentCount++
+                peppolUnsentNet += net
+            }
+
+            if (wo._fin.isB2B && !wo._fin.isPeppolReady) {
+                b2bMissingVatCount++
+            }
+        })
+
+        return {
+            totalCount: periodOrders.length,
+            totalNet: Math.round(totalNet),
+            totalGross: Math.round(totalGross),
+            avgNet: periodOrders.length > 0 ? Math.round(totalNet / periodOrders.length) : 0,
+            toInvoiceCount,
+            toInvoiceNet: Math.round(toInvoiceNet),
+            invoicedCount,
+            invoicedNet: Math.round(invoicedNet),
+            peppolSentCount,
+            peppolSentNet: Math.round(peppolSentNet),
+            peppolUnsentCount,
+            peppolUnsentNet: Math.round(peppolUnsentNet),
+            peppolErrorCount,
+            b2bMissingVatCount
+        }
+    }, [periodOrders])
+
+    const allTeamNames = useMemo(() => [...new Set(periodOrders.map(w => w.assigned_team_name).filter(Boolean))], [periodOrders])
+    const toggleTeam = (name) => setSelectedTeams(prev => prev.includes(name) ? prev.filter(t => t !== name) : [...prev, name])
+
+    const STATUS_FILTERS = [
+        { key: 'invoiced', label: t('invoicing.status_invoiced', 'Facturate'), count: kpiStats.invoicedCount },
+        { key: 'proforma', label: 'Proformă / Devis PDF', count: periodOrders.filter(w => w.proforma_path).length },
+        { key: 'unfactured', label: t('invoicing.status_notinvoiced', 'Nefacturate'), count: kpiStats.toInvoiceCount },
+        { key: 'quote', label: 'Devis Planificat', count: periodOrders.filter(w => w.is_quote && w.status === 'planning').length },
+    ]
+
+    const PEPPOL_FILTERS = [
+        { key: 'all', label: 'Toate Peppol', icon: ShieldCheck, iconClass: 'text-indigo-500' },
+        { key: 'sent', label: `Trimise Peppol (${kpiStats.peppolSentCount})`, icon: CheckCircle2, iconClass: 'text-emerald-500' },
+        { key: 'unsent', label: `Netrimise (${kpiStats.peppolUnsentCount})`, icon: Clock, iconClass: 'text-amber-500' },
+        { key: 'error', label: `Erori (${kpiStats.peppolErrorCount})`, icon: AlertTriangle, iconClass: 'text-rose-500' },
+        { key: 'b2b', label: 'Clienți B2B (TVA/BCE)', icon: Building2, iconClass: 'text-indigo-500' }
+    ]
+
+    const filteredOrders = useMemo(() => {
+        return periodOrders.filter(wo => {
+            if (selectedTeams.length > 0 && !selectedTeams.includes(wo.assigned_team_name)) return false
+            if (statusFilter === 'unfactured' && wo.is_invoiced) return false
+            if (statusFilter === 'proforma' && !wo.proforma_path) return false
+            if (statusFilter === 'invoiced' && !wo.is_invoiced) return false
+            if (statusFilter === 'quote' && !(wo.is_quote && wo.status === 'planning')) return false
+
+            if (peppolFilter === 'sent' && wo.billtobox_status !== 'sent') return false
+            if (peppolFilter === 'unsent' && wo.billtobox_status === 'sent') return false
+            if (peppolFilter === 'error' && wo.billtobox_status !== 'error') return false
+            if (peppolFilter === 'b2b' && !wo._fin.isB2B) return false
+
+            return true
+        })
+    }, [periodOrders, selectedTeams, statusFilter, peppolFilter])
+
+    const handleExportCSV = () => {
+        const headers = ['Nr Document', 'Data', 'Client', 'Tip Client', 'Cod TVA / BCE', 'Peppol Endpoint', 'Adresa', 'Echipa', 'Valoare HT (EUR)', 'TVA (%)', 'Total TTC (EUR)', 'Status Factura', 'Status Peppol / Billtobox', 'Data Transmiterii Peppol']
+        const rows = filteredOrders.map(wo => [
+            wo.invoice_number || wo.quote_number || `#${String(wo.id || '').slice(0, 6).toUpperCase()}`,
+            wo._effectiveDate || '',
+            `"${String(wo.client_name || '').replace(/"/g, '""')}"`,
+            wo._fin.isB2B ? 'B2B' : 'B2C',
+            `"${wo._fin.rawVat || ''}"`,
+            `"${wo._fin.peppolEndpoint || ''}"`,
+            `"${String(wo.site_address || wo.site_name || '').replace(/"/g, '""')}"`,
+            `"${String(wo.assigned_team_name || '').replace(/"/g, '""')}"`,
+            wo._fin.net.toFixed(2),
+            wo._fin.vatRate,
+            wo._fin.gross.toFixed(2),
+            wo.is_invoiced ? 'FACTURAT' : (wo.proforma_path ? 'PROFORMA' : 'NEFACTURAT'),
+            wo.billtobox_status === 'sent' ? 'TRIMIS PEPPOL' : (wo.billtobox_status === 'error' ? 'EROARE PEPPOL' : 'NETRIMIS'),
+            wo.billtobox_sent_at ? new Date(wo.billtobox_sent_at).toLocaleString('ro-RO') : ''
+        ])
+        const csv = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+        const a = document.createElement('a')
+        a.href = encodeURI(csv)
+        a.download = `facturare_peppol_${dateFrom || 'toate'}_${dateTo || 'toate'}.csv`
+        a.click()
+    }
+
     const columns = [
         {
             key: 'date',
-            label: t('invoicing.col_date', 'Date'),
-            className: 'w-[10%]',
+            label: t('invoicing.col_doc_date', 'Document / Dată'),
             sortable: true,
-            sortValue: (wo) => wo.start_date || wo.approximate_date || '',
-            render: (wo) => (
-                <div className="flex flex-col gap-0.5">
-                    <span className="text-slate-600 dark:text-slate-400 font-medium">
-                        {wo.start_date ? new Date(wo.start_date).toLocaleDateString(i18n.language === 'en' ? 'en-GB' : (i18n.language === 'fr' ? 'fr-FR' : (i18n.language === 'de' ? 'de-DE' : 'ro-RO'))) : '-'}
-                    </span>
-                    {wo.assigned_team_name && (
-                        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 leading-tight">
-                            {wo.assigned_team_name}
+            sortValue: (wo) => wo._effectiveDate || '',
+            render: (wo) => {
+                const docNum = wo.invoice_number || wo.quote_number || `#${String(wo.id || '').slice(0, 6).toUpperCase()}`
+                return (
+                    <div className="flex flex-col gap-0.5 whitespace-nowrap">
+                        <button
+                            onClick={() => navigate(`/admin/invoices/${wo.id}`)}
+                            className="font-black text-[14.5px] text-slate-900 dark:text-white hover:text-[color:var(--tenant-bg)] text-left tabular-nums tracking-tight cursor-pointer"
+                        >
+                            #{docNum.replace(/^#/, '')}
+                        </button>
+                        <span className="text-[12.5px] text-slate-500 dark:text-slate-400 font-semibold tabular-nums">
+                            {wo._effectiveDate ? new Date(wo._effectiveDate).toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
                         </span>
-                    )}
-                    {wo.confirmed_at && (
-                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 uppercase tracking-wide leading-none mt-0.5 whitespace-nowrap">
-                            <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
-                            Confirmé client
-                        </span>
-                    )}
-                </div>
-            )
+                        {wo.assigned_team_name && (
+                            <span className="inline-flex items-center gap-1.5 text-[11.5px] font-extrabold text-slate-600 dark:text-slate-400 mt-0.5">
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: wo.assigned_team_color || '#2563EB' }} />
+                                {wo.assigned_team_name}
+                            </span>
+                        )}
+                    </div>
+                )
+            }
         },
         {
             key: 'client',
-            label: t('invoicing.col_client', 'Client & Adresse'),
-            className: 'w-[35%]',
+            label: t('invoicing.col_client', 'Client & TVA / BCE (Peppol)'),
             sortable: true,
             sortValue: (wo) => (wo.client_name || '').toLowerCase(),
             render: (wo) => (
-                <div className="flex flex-col">
-                    <button 
-                        onClick={() => navigate(`/admin/invoices/${wo.id}`)}
-                        className="font-bold text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300 line-clamp-1 transition-colors text-left text-[14px]" 
-                        title={wo.client_name || t('invoicing.no_client', 'Sans Client')}
-                    >
-                        {wo.client_name || t('invoicing.no_client', 'Sans Client')}
-                    </button>
-                    <span className="text-[11px] text-slate-500 line-clamp-2 mt-0.5" title={wo.site_name || wo.site_address}>{wo.site_name || wo.site_address || t('invoicing.no_address', 'Sans adresse')}</span>
+                <div className="flex flex-col max-w-sm">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        <button 
+                            onClick={() => navigate(`/admin/invoices/${wo.id}`)}
+                            className="font-extrabold text-slate-900 hover:text-[color:var(--tenant-bg)] dark:text-white transition-colors text-left text-[14.5px] cursor-pointer truncate" 
+                            title={wo.client_name || t('invoicing.no_client', 'Sans Client')}
+                        >
+                            {wo.client_name || t('invoicing.no_client', 'Sans Client')}
+                        </button>
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-extrabold uppercase whitespace-nowrap ${
+                            wo._fin.isB2B
+                                ? 'bg-indigo-500/12 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20'
+                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        }`}>
+                            {wo._fin.isB2B ? 'B2B' : 'B2C'}
+                        </span>
+                        {wo._fin.rawVat ? (
+                            <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 tabular-nums border border-slate-200/80 dark:border-slate-700 whitespace-nowrap">
+                                TVA: {wo._fin.rawVat}
+                            </span>
+                        ) : wo._fin.isB2B ? (
+                            <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+                                Lipsă CUI / TVA
+                            </span>
+                        ) : null}
+                    </div>
+                    <span className="text-[12.5px] font-medium text-slate-500 truncate mt-0.5" title={wo.site_name || wo.site_address}>
+                        {wo.site_name || wo.site_address || t('invoicing.no_address', 'Sans adresse')}
+                    </span>
                 </div>
             )
         },
         {
             key: 'details',
-            label: t('invoicing.col_details', 'Surface / Épaisseur'),
+            label: t('invoicing.col_details', 'Suprafață / Grosime'),
             sortable: true,
             sortValue: (wo) => parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0),
             render: (wo) => {
@@ -490,21 +867,19 @@ export default function InvoicingManagement() {
                 const realSurf = parseFloat(wo.actual_surface_m2 || 0)
                 const realThick = parseFloat(wo.actual_thickness_cm || 0)
 
-                if (!estSurf && !realSurf) return <span className="text-slate-400">-</span>
+                if (!estSurf && !realSurf) return <span className="text-slate-400">—</span>
 
                 return (
-                    <div className="flex flex-col gap-0.5">
-                        {/* Estimatif */}
-                        <div className="flex items-baseline gap-1">
-                            {estSurf > 0 && <span className="font-bold text-slate-800 dark:text-slate-200 text-[13px]">{estSurf} m²</span>}
-                            {estThick > 0 && <span className="text-[11px] text-slate-500">{estThick} cm</span>}
+                    <div className="flex flex-col gap-0.5 tabular-nums whitespace-nowrap">
+                        <div className="flex items-baseline gap-1.5">
+                            {estSurf > 0 && <span className="font-black text-slate-900 dark:text-slate-100 text-[14.5px] whitespace-nowrap">{estSurf} m²</span>}
+                            {estThick > 0 && <span className="text-[13px] font-semibold text-slate-500 whitespace-nowrap">· {estThick} cm</span>}
                         </div>
-                        {/* Real */}
                         {(realSurf > 0 || realThick > 0) && (
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Réel</span>
-                                {realSurf > 0 && <span className="text-[12px] font-bold text-emerald-700 dark:text-emerald-400">{realSurf} m²</span>}
-                                {realThick > 0 && <span className="text-[11px] text-emerald-600">{realThick} cm</span>}
+                            <div className="flex items-baseline gap-1.5">
+                                <span className="text-[10.5px] font-black text-emerald-600 uppercase tracking-wider px-1.5 py-0.2 rounded bg-emerald-50">Réel</span>
+                                {realSurf > 0 && <span className="text-[13px] font-extrabold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">{realSurf} m²</span>}
+                                {realThick > 0 && <span className="text-[12px] font-semibold text-emerald-600 whitespace-nowrap">· {realThick} cm</span>}
                             </div>
                         )}
                     </div>
@@ -513,105 +888,184 @@ export default function InvoicingManagement() {
         },
         {
             key: 'price',
-            label: t('invoicing.col_price', 'Prix Estimé'),
+            label: t('invoicing.col_price', 'Valoare (€ HT / TTC)'),
             sortable: true,
-            sortValue: (wo) => {
-                let autoNet = 0
-                let isAuto = false
-                ;(wo.volumes || []).forEach(vol => {
-                    const surface = parseFloat(vol.quantity) || 0
-                    const thickness = parseFloat(vol.thickness) || 0
-                    const labelSafe = (vol.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                    if ((labelSafe.includes('sapa') || labelSafe.includes('chape')) && surface > 0) {
-                        isAuto = true
-                        const extraThickness = Math.max(0, thickness - 5)
-                        autoNet += parseFloat(wo.prices?.base || 12.5) * surface
-                        autoNet += extraThickness * parseFloat(wo.prices?.extra || 1.25) * surface
-                        autoNet += vol.has_foil ? parseFloat(wo.prices?.foil || 1.2) * surface : 0
-                        autoNet += vol.has_mesh ? parseFloat(wo.prices?.mesh || 2.5) * surface : 0
-                        autoNet += vol.has_fiber ? surface * parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) : 0
-                    }
-                })
-                return isAuto ? autoNet : parseFloat((wo.estimated_price || '0').toString().replace(/[^0-9.]/g, '')) || 0
-            },
+            sortValue: (wo) => wo._fin?.net || 0,
             render: (wo) => {
-                let autoNet = 0;
-                let isAuto = false;
-                (wo.volumes || []).forEach(vol => {
-                    const surface = parseFloat(vol.quantity) || 0;
-                    const thickness = parseFloat(vol.thickness) || 0;
-                    const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    if ((labelSafe.includes('sapa') || labelSafe.includes('chape')) && surface > 0) {
-                        isAuto = true;
-                        const extraThickness = Math.max(0, thickness - 5);
-                        autoNet += parseFloat(wo.prices?.base || 12.5) * surface;
-                        autoNet += extraThickness * parseFloat(wo.prices?.extra || 1.25) * surface;
-                        autoNet += vol.has_foil ? parseFloat(wo.prices?.foil || 1.2) * surface : 0;
-                        autoNet += vol.has_mesh ? parseFloat(wo.prices?.mesh || 2.5) * surface : 0;
-                        const fiberRate = parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0));
-                        autoNet += vol.has_fiber ? surface * fiberRate : 0;
-                    }
-                });
-
-                const displayPrice = isAuto ? autoNet.toFixed(2) : (wo.estimated_price ? parseFloat(wo.estimated_price.toString().replace(/[^0-9.]/g, '')).toFixed(2) : null);
-
+                const { net, vatRate, gross } = wo._fin
                 return (
-                    <div className="text-slate-700 dark:text-slate-300 font-bold tabular-nums">
-                        {displayPrice ? `${displayPrice} €` : '-'}
+                    <div className="tabular-nums whitespace-nowrap">
+                        <div className="text-[15.5px] font-black text-slate-900 dark:text-white leading-tight">
+                            {net > 0 ? `${net.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : '—'}
+                            <span className="text-[11.5px] font-bold text-slate-400 ml-1">HT</span>
+                        </div>
+                        {net > 0 && (
+                            <div className="text-[12px] font-semibold text-slate-500 mt-0.5">
+                                TTC ({vatRate}%): <strong className="text-slate-700 dark:text-slate-300">{gross.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</strong>
+                            </div>
+                        )}
                     </div>
-                );
+                )
             }
         },
         {
             key: 'status',
-            label: t('invoicing.col_status', 'Status'),
+            label: t('invoicing.col_status', 'Status Factură'),
             sortable: true,
             sortValue: (wo) => wo.is_invoiced ? 3 : wo.proforma_path ? 2 : wo.confirmed_at ? 1 : 0,
             render: (wo) => {
                 const confirmedBadge = wo.confirmed_at ? (
-                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 uppercase tracking-wide leading-none mt-0.5">
-                        <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
+                    <span className="inline-flex items-center gap-1 text-[11.5px] font-bold text-emerald-600 mt-1 whitespace-nowrap">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                         Confirmé client
                     </span>
                 ) : null
 
-                if (wo.is_quote && wo.status === 'planning') {
-                    return (
-                        <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
-                            <span className="inline-flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Devis Planifié</span>
-                            {confirmedBadge}
-                        </span>
-                    )
-                }
                 if (wo.is_invoiced) {
                     return (
-                        <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
-                            <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_invoiced', 'Facturé')}</span>
+                        <div className="flex flex-col items-start">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12.5px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 whitespace-nowrap">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                {t('invoicing.status_invoiced', 'Facturé')}
+                            </span>
                             {confirmedBadge}
-                        </span>
+                        </div>
                     )
                 }
                 if (wo.proforma_path) {
                     return (
-                        <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-blue-600 w-fit shrink-0">
-                            <span className="inline-flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_proforma', 'Proforma Émise')}</span>
+                        <div className="flex flex-col items-start">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12.5px] font-extrabold bg-blue-500/12 text-blue-700 dark:text-blue-300 border border-blue-500/25 whitespace-nowrap">
+                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                                {t('invoicing.status_proforma', 'Proforma Émise')}
+                            </span>
                             {confirmedBadge}
-                        </span>
+                        </div>
+                    )
+                }
+                if (wo.is_quote && wo.status === 'planning') {
+                    return (
+                        <div className="flex flex-col items-start">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12.5px] font-extrabold bg-purple-500/12 text-purple-700 dark:text-purple-300 border border-purple-500/25 whitespace-nowrap">
+                                <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+                                Devis Planifié
+                            </span>
+                            {confirmedBadge}
+                        </div>
                     )
                 }
                 return (
-                    <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap w-fit shrink-0">
-                        <span className="inline-flex items-center gap-1.5"><CircleDot className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_notinvoiced', 'Non facturé')}</span>
+                    <div className="flex flex-col items-start">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12.5px] font-extrabold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/80 whitespace-nowrap">
+                            <CircleDot className="w-3.5 h-3.5 shrink-0" />
+                            {t('invoicing.status_notinvoiced', 'Non facturé')}
+                        </span>
                         {confirmedBadge}
-                    </span>
+                    </div>
+                )
+            }
+        },
+        {
+            key: 'peppol',
+            label: 'Peppol / Billtobox (SPV Belgia)',
+            sortable: true,
+            sortValue: (wo) => wo.billtobox_status === 'sent' ? 3 : wo.billtobox_status === 'error' ? 2 : wo.billtobox_status === 'pending' ? 1 : 0,
+            render: (wo) => {
+                const status = wo.billtobox_status || 'none'
+                const sentAt = wo.billtobox_sent_at ? new Date(wo.billtobox_sent_at).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : null
+
+                return (
+                    <div className="flex flex-col gap-1 min-w-[215px]">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            {status === 'sent' ? (
+                                <span className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full text-[12px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 whitespace-nowrap">
+                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    Trimis în Peppol
+                                </span>
+                            ) : status === 'pending' ? (
+                                <span className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full text-[12px] font-extrabold bg-amber-500/15 text-amber-700 border border-amber-500/25 whitespace-nowrap">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                                    Se transmite...
+                                </span>
+                            ) : status === 'error' ? (
+                                <span
+                                    className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full text-[12px] font-extrabold bg-rose-500/15 text-rose-700 border border-rose-500/25 whitespace-nowrap"
+                                    title={wo.billtobox_error || 'Eroare transmitere'}
+                                >
+                                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                    Eroare Peppol
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full text-[12px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700 whitespace-nowrap">
+                                    <span className="w-2 h-2 rounded-full bg-slate-400" />
+                                    Netrimis Peppol
+                                </span>
+                            )}
+
+                            {/* 1-Click Peppol Send & UBL XML Download (identical h-8 height) */}
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleSendToBilltobox(wo.id) }}
+                                    disabled={status === 'pending'}
+                                    className={`h-8 px-2.5 rounded-full text-[12px] font-extrabold flex items-center gap-1 transition-all cursor-pointer shadow-2xs whitespace-nowrap ${
+                                        status === 'sent'
+                                            ? 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90'
+                                            : 'bg-[color:var(--tenant-bg)] hover:brightness-95 text-white'
+                                    }`}
+                                    title={status === 'sent' ? 'Retransmite factura în Peppol / Billtobox' : 'Transmite factura acum în Peppol / Billtobox (e-FFF UBL)'}
+                                >
+                                    <Send className="w-3 h-3" />
+                                    {status === 'sent' ? 'Retrimite' : 'Trimite'}
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleDownloadPeppolXml(wo) }}
+                                    className="h-8 px-2.5 rounded-full text-[12px] font-extrabold bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200/90 flex items-center gap-1 transition-all cursor-pointer shadow-2xs whitespace-nowrap"
+                                    title="Descarcă fișierul XML Peppol BIS 3.0 (e-FFF UBL 2.1 Belgia)"
+                                >
+                                    <FileCode className="w-3.5 h-3.5" />
+                                    UBL
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Secondary line: Sent timestamp, error message, or Peppol Endpoint ID */}
+                        {status === 'sent' && sentAt ? (
+                            <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                                <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                Transmis: {sentAt} {wo._fin.peppolEndpoint ? `• ID ${wo._fin.peppolEndpoint}` : ''}
+                            </span>
+                        ) : status === 'error' && wo.billtobox_error ? (
+                            <span className="text-[11.5px] font-semibold text-rose-600 truncate max-w-[230px]" title={wo.billtobox_error}>
+                                {wo.billtobox_error}
+                            </span>
+                        ) : wo._fin.peppolEndpoint ? (
+                            <span className="text-[11.5px] font-semibold text-slate-500 tabular-nums">
+                                Endpoint Peppol: <strong className="text-slate-700 dark:text-slate-300">{wo._fin.peppolEndpoint}</strong>
+                            </span>
+                        ) : (
+                            <span className="text-[11.5px] font-medium text-slate-400">
+                                Standard UBL BIS 3.0 (e-FFF)
+                            </span>
+                        )}
+                    </div>
                 )
             }
         },
         {
             key: 'actions',
-            label: t('invoicing.col_actions', 'Actions'),
+            label: t('invoicing.col_actions', 'Acțiuni'),
             render: (wo) => (
-                <div className="flex justify-end pr-2">
+                <div className="flex items-center justify-end gap-1.5 pr-1">
+                    {!wo.is_invoiced && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleMarkInvoiced(wo.id) }}
+                            className="h-8.5 px-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-extrabold flex items-center gap-1 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
+                            title="Emite Factura Fiscală"
+                        >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Facturează
+                        </button>
+                    )}
                     <ActionMenu 
                         wo={wo} 
                         onEdit={handleOpenPreview} 
@@ -620,6 +1074,7 @@ export default function InvoicingManagement() {
                         onCopyLink={handleCopyLink}
                         copiedToken={copiedToken}
                         onSendToBilltobox={handleSendToBilltobox}
+                        onDownloadPeppolXml={handleDownloadPeppolXml}
                         onPreviewPdf={setPdfPreviewUrl}
                     />
                 </div>
@@ -648,99 +1103,349 @@ export default function InvoicingManagement() {
         }))
     }
 
-    // Filtrare dupa echipa si status
-    const allTeamNames = [...new Set(workOrders.map(w => w.assigned_team_name).filter(Boolean))]
-    const toggleTeam = (name) => setSelectedTeams(prev => prev.includes(name) ? prev.filter(t => t !== name) : [...prev, name])
-    const STATUS_FILTERS = [
-        { key: 'unfactured', label: 'Non Facturé', color: 'slate' },
-        { key: 'proforma', label: 'Devis PDF', color: 'blue' },
-        { key: 'invoiced', label: 'Facturé', color: 'emerald' },
-        { key: 'quote', label: 'Devis Planifié', color: 'violet' },
-    ]
-    const filteredOrders = workOrders.filter(wo => {
-        if (selectedTeams.length > 0 && !selectedTeams.includes(wo.assigned_team_name)) return false
-        if (statusFilter === 'unfactured' && (wo.is_invoiced || wo.proforma_path || (wo.is_quote && wo.status === 'planning'))) return false
-        if (statusFilter === 'proforma' && !wo.proforma_path) return false
-        if (statusFilter === 'invoiced' && !wo.is_invoiced) return false
-        if (statusFilter === 'quote' && !(wo.is_quote && wo.status === 'planning')) return false
-        return true
-    })
-
     return (
-        <div className="p-4 md:p-8 w-full space-y-6">
-            <div className="mb-6">
-                <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-blue-600" />
-                    {t('nav.invoicing', 'Facturation & Proformas')}
-                </h1>
-                <p className="text-sm font-medium text-slate-500 mt-1">{t('invoicing.page_desc', 'Gestion des factures, devis et paiements')}</p>
+        <div className="w-full space-y-4">
+            {/* ── 1. HEADER DISPATCH LIVE (Apple HIG uniform height controls) ─────────── */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        <h1 className="text-[24px] font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                            {t('nav.invoicing', 'Facturation, Proformas & Peppol (Belgique)')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[13px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[12.5px] font-extrabold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            Peppol BIS 3.0 / e-FFF (BE0785292895)
+                        </span>
+                    </div>
+                    <p className="text-[13.5px] font-semibold text-slate-500 dark:text-slate-400 mt-1">
+                        {t('invoicing.page_desc', 'Gestiunea facturilor, proformelor și evidența transmiterii electronice în rețeaua Peppol / Billtobox Belgia')}
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    {lastUpdated && (
+                        <span className="text-[13px] font-semibold text-slate-400 mr-1 tabular-nums">
+                            Actualizat: {lastUpdated}
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        onClick={fetchOrdersAndClients}
+                        className="h-10 px-4 rounded-full bg-white hover:bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[13.5px] font-bold inline-flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
+                    >
+                        <RefreshCw className={`w-4 h-4 shrink-0 ${loading ? 'animate-spin' : ''}`} />
+                        <span>Reîncarcă</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleExportCSV}
+                        className="h-10 px-4 rounded-full bg-[color:var(--tenant-bg)] hover:brightness-95 text-white text-[13.5px] font-bold inline-flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                    >
+                        <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                        <span>Export CSV & Peppol</span>
+                    </button>
+                </div>
             </div>
 
-            {/* KPIs Dashboard */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.kpi_total', 'Total Commandes')}</p>
-                    <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{workOrders.length}</p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.kpi_to_invoice', 'À Facturer (Devis/Proforma)')}</p>
-                    <p className="text-2xl font-black text-amber-600 dark:text-amber-500">{workOrders.filter(w => !w.is_invoiced && (w.is_quote || w.proforma_path)).length}</p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.kpi_invoiced', 'Facturées')}</p>
-                    <p className="text-2xl font-black text-emerald-600 dark:text-emerald-500">{workOrders.filter(w => w.is_invoiced).length}</p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.kpi_billtobox', 'Envoyées Billtobox')}</p>
-                    <p className="text-2xl font-black text-blue-600 dark:text-blue-500">{workOrders.filter(w => w.billtobox_status === 'sent').length}</p>
-                </div>
-            </div>
+            {/* ── 2. PERIOD & TEAM FILTER BAR (all pills & pickers identical h-[42px] outer / h-8 inner) ── */}
+            <div className="bg-white dark:bg-slate-900 rounded-[20px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 p-3.5 space-y-2.5">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+                    {/* Period Preset Pills (p-1 + border + h-8 = exact 42px outer height, single row) */}
+                    <div className="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 flex-nowrap overflow-x-auto hide-scrollbar">
+                        {[
+                            { id: 'all', label: 'Toate' },
+                            { id: 'today', label: 'Astăzi' },
+                            { id: 'last_7', label: '7 Zile' },
+                            { id: 'last_30', label: '30 Zile' },
+                            { id: 'current_month', label: 'Luna Curentă' },
+                            { id: 'prev_month', label: 'Luna Trecută' },
+                            { id: 'current_year', label: 'Anul Curent' }
+                        ].map(p => (
+                            <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => applyPreset(p.id)}
+                                className={`h-8 px-3 rounded-full text-[13px] font-bold inline-flex items-center justify-center transition-all whitespace-nowrap cursor-pointer ${
+                                    activePreset === p.id
+                                        ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-white/70'
+                                }`}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
 
-            {/* Filtre rapide — stil consistent cu restul aplicatiei */}
-            <div className="flex flex-wrap items-center gap-2">
-                {/* Filtre Status */}
-                {STATUS_FILTERS.map(sf => (
-                    <button key={sf.key}
-                        onClick={() => setStatusFilter(prev => prev === sf.key ? null : sf.key)}
-                        className={`h-8 px-3 rounded-xl text-xs font-bold border transition-all ${
-                            statusFilter === sf.key
-                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:text-blue-600'
-                        }`}>
-                        {sf.label}
-                    </button>
-                ))}
-                {/* Separator */}
-                {allTeamNames.length > 0 && <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />}
-                {/* Filtre Echipe */}
-                {allTeamNames.map(name => (
-                    <button key={name}
-                        onClick={() => toggleTeam(name)}
-                        className={`h-8 px-3 rounded-xl text-xs font-bold border transition-all ${
-                            selectedTeams.includes(name)
-                                ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-violet-300 hover:text-violet-600'
-                        }`}>
-                        {name}
-                    </button>
-                ))}
-                {/* Reset */}
-                {(selectedTeams.length > 0 || statusFilter) && (
-                    <button onClick={() => { setSelectedTeams([]); setStatusFilter(null) }}
-                        className="h-8 px-3 rounded-xl text-xs font-bold text-red-500 border border-red-200 hover:bg-red-50 transition-all">
-                        Reset
-                    </button>
+                    {/* Custom Date Range Pickers (exact h-[42px]) */}
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 bg-slate-100/90 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-full px-3.5 h-[42px]">
+                            <CalendarDays className="w-4 h-4 text-[color:var(--tenant-bg)] shrink-0" />
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => { setDateFrom(e.target.value); setActivePreset('custom') }}
+                                className="ui-date-input bg-transparent text-[13px] font-bold text-slate-800 dark:text-slate-200 outline-none tabular-nums"
+                            />
+                            <span className="text-slate-400 font-bold">–</span>
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => { setDateTo(e.target.value); setActivePreset('custom') }}
+                                className="ui-date-input bg-transparent text-[13px] font-bold text-slate-800 dark:text-slate-200 outline-none tabular-nums"
+                            />
+                            {(dateFrom || dateTo) && (
+                                <button
+                                    type="button"
+                                    onClick={() => applyPreset('all')}
+                                    className="p-1 text-slate-400 hover:text-slate-700 rounded-full"
+                                    title="Resetează perioada"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Team Filter Pills */}
+                {allTeamNames.length > 0 && (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[12px] font-extrabold uppercase tracking-wider text-slate-400 mr-1.5 flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5" /> Echipe:
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedTeams([])}
+                            className={`h-8 px-3.5 rounded-full text-[13px] font-bold inline-flex items-center justify-center transition-all cursor-pointer ${
+                                selectedTeams.length === 0
+                                    ? 'bg-[color:var(--tenant-bg)] text-white shadow-2xs'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                            }`}
+                        >
+                            Toate Echipele
+                        </button>
+                        {allTeamNames.map(name => (
+                            <button
+                                key={name}
+                                type="button"
+                                onClick={() => toggleTeam(name)}
+                                className={`h-8 px-3.5 rounded-full text-[13px] font-bold inline-flex items-center justify-center transition-all cursor-pointer border ${
+                                    selectedTeams.includes(name)
+                                        ? 'bg-[color:var(--tenant-bg)] text-white border-transparent shadow-2xs'
+                                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-slate-700 hover:bg-slate-50'
+                                }`}
+                            >
+                                {name}
+                            </button>
+                        ))}
+                    </div>
                 )}
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border-0 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+            {/* ── 3. 6 INTERACTIVE FINANCIAL & PEPPOL KPI CARDS (p-5 rounded-[20px], zero default selection border) ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+                {/* KPI 1: Total Value & Documents — Neutral border like all other cards */}
+                <div
+                    onClick={() => { setStatusFilter(null); setPeppolFilter('all') }}
+                    className="bg-white dark:bg-slate-900 p-5 rounded-[20px] border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between cursor-pointer transition-all"
+                >
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-200">Valoare Totală (HT)</p>
+                        <span className="w-2.5 h-2.5 rounded-full bg-[color:var(--tenant-bg)]" />
+                    </div>
+                    <p className="text-[25px] font-black text-slate-950 dark:text-slate-100 leading-none tabular-nums my-2 whitespace-nowrap">
+                        {kpiStats.totalNet.toLocaleString('fr-FR')} <span className="text-[14px] font-bold text-slate-400">€</span>
+                    </p>
+                    <div className="flex items-center justify-between text-[12px] font-bold text-slate-500 tabular-nums">
+                        <span>{kpiStats.totalCount} documente</span>
+                        <span className="text-[color:var(--tenant-bg)]">TTC: {kpiStats.totalGross.toLocaleString('fr-FR')} €</span>
+                    </div>
+                </div>
+
+                {/* KPI 2: To Invoice / Proformas */}
+                <div
+                    onClick={() => setStatusFilter(statusFilter === 'unfactured' ? null : 'unfactured')}
+                    className={`bg-white dark:bg-slate-900 p-5 rounded-[20px] border shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between cursor-pointer transition-all ${
+                        statusFilter === 'unfactured'
+                            ? 'border-[color:var(--tenant-bg)] ring-1 ring-sky-500/20'
+                            : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-200">De Facturat</p>
+                        <span className="text-[12.5px] font-extrabold text-amber-600 tabular-nums">{kpiStats.toInvoiceNet.toLocaleString('fr-FR')} €</span>
+                    </div>
+                    <p className="text-[25px] font-black text-slate-950 dark:text-slate-100 leading-none tabular-nums my-2">
+                        {kpiStats.toInvoiceCount} <span className="text-[14px] font-semibold text-slate-400">lucrări</span>
+                    </p>
+                    <div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold bg-amber-500/15 text-amber-700 border border-amber-500/25">
+                            În așteptare factură
+                        </span>
+                    </div>
+                </div>
+
+                {/* KPI 3: Invoiced */}
+                <div
+                    onClick={() => setStatusFilter(statusFilter === 'invoiced' ? null : 'invoiced')}
+                    className={`bg-white dark:bg-slate-900 p-5 rounded-[20px] border shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between cursor-pointer transition-all ${
+                        statusFilter === 'invoiced'
+                            ? 'border-[color:var(--tenant-bg)] ring-1 ring-sky-500/20'
+                            : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-200">Facturi Emise</p>
+                        <span className="text-[12.5px] font-extrabold text-emerald-600 tabular-nums">{kpiStats.invoicedNet.toLocaleString('fr-FR')} €</span>
+                    </div>
+                    <p className="text-[25px] font-black text-slate-950 dark:text-slate-100 leading-none tabular-nums my-2">
+                        {kpiStats.invoicedCount} <span className="text-[14px] font-semibold text-slate-400">facturi</span>
+                    </p>
+                    <div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            Facturate fiscal
+                        </span>
+                    </div>
+                </div>
+
+                {/* KPI 4: Peppol / Billtobox Sent */}
+                <div
+                    onClick={() => setPeppolFilter(peppolFilter === 'sent' ? 'all' : 'sent')}
+                    className={`bg-white dark:bg-slate-900 p-5 rounded-[20px] border shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between cursor-pointer transition-all ${
+                        peppolFilter === 'sent'
+                            ? 'border-[color:var(--tenant-bg)] ring-1 ring-sky-500/20'
+                            : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-200">Trimise Peppol</p>
+                        <span className="text-[12.5px] font-extrabold text-emerald-600 tabular-nums">{kpiStats.peppolSentNet.toLocaleString('fr-FR')} €</span>
+                    </div>
+                    <p className="text-[25px] font-black text-slate-950 dark:text-slate-100 leading-none tabular-nums my-2">
+                        {kpiStats.peppolSentCount} <span className="text-[14px] font-semibold text-slate-400">transmise</span>
+                    </p>
+                    <div>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Billtobox / e-FFF OK
+                        </span>
+                    </div>
+                </div>
+
+                {/* KPI 5: Peppol Pending / Unsent */}
+                <div
+                    onClick={() => setPeppolFilter(peppolFilter === 'unsent' ? 'all' : 'unsent')}
+                    className={`bg-white dark:bg-slate-900 p-5 rounded-[20px] border shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between cursor-pointer transition-all ${
+                        peppolFilter === 'unsent'
+                            ? 'border-[color:var(--tenant-bg)] ring-1 ring-sky-500/20'
+                            : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-200">Netrimise Peppol</p>
+                        <span className="text-[12.5px] font-extrabold text-sky-600 tabular-nums">{kpiStats.peppolUnsentNet.toLocaleString('fr-FR')} €</span>
+                    </div>
+                    <p className="text-[25px] font-black text-slate-950 dark:text-slate-100 leading-none tabular-nums my-2">
+                        {kpiStats.peppolUnsentCount} <span className="text-[14px] font-semibold text-slate-400">netrimise</span>
+                    </p>
+                    <div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold bg-sky-500/12 text-sky-700 border border-sky-500/25">
+                            Pregătite UBL BIS 3.0
+                        </span>
+                    </div>
+                </div>
+
+                {/* KPI 6: Peppol Errors / B2B Check */}
+                <div
+                    onClick={() => setPeppolFilter(peppolFilter === 'error' ? 'all' : (kpiStats.peppolErrorCount > 0 ? 'error' : 'b2b'))}
+                    className={`bg-white dark:bg-slate-900 p-5 rounded-[20px] border shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between cursor-pointer transition-all ${
+                        peppolFilter === 'error' || peppolFilter === 'b2b'
+                            ? 'border-[color:var(--tenant-bg)] ring-1 ring-sky-500/20'
+                            : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-200">Erori / Verificare TVA</p>
+                        <span className={`w-2.5 h-2.5 rounded-full ${kpiStats.peppolErrorCount > 0 ? 'bg-rose-500' : 'bg-indigo-500'}`} />
+                    </div>
+                    <p className="text-[25px] font-black text-slate-950 dark:text-slate-100 leading-none tabular-nums my-2">
+                        {kpiStats.peppolErrorCount} <span className="text-[14px] font-semibold text-slate-400">erori</span>
+                    </p>
+                    <div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold bg-indigo-500/12 text-indigo-700 border border-indigo-500/25">
+                            {kpiStats.b2bMissingVatCount > 0 ? `${kpiStats.b2bMissingVatCount} B2B fără CUI/TVA` : 'Toți clienții validați'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── 4. UNIFIED TABLE CONTAINER WITH DOCUMENT & PEPPOL FILTER PILLS (identical p-1 + h-8 = 42px outer height) ───── */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-[20px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col">
+                <div className="px-5 py-3.5 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+                    {/* Left: Document Status Pills */}
+                    <div className="inline-flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-1 bg-slate-100/90 dark:bg-slate-800 p-1 rounded-full border border-slate-200/80 dark:border-slate-700">
+                        <button
+                            type="button"
+                            onClick={() => setStatusFilter(null)}
+                            className={`h-8 px-3 rounded-full text-[12.5px] font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                                !statusFilter
+                                    ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
+                                    : 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-white'
+                            }`}
+                        >
+                            <span>{t('common.all', 'Toate')}</span>
+                            <span className="opacity-85 tabular-nums">({periodOrders.length})</span>
+                        </button>
+                        {STATUS_FILTERS.map(sf => (
+                            <button
+                                key={sf.key}
+                                type="button"
+                                onClick={() => setStatusFilter(prev => prev === sf.key ? null : sf.key)}
+                                className={`h-8 px-3 rounded-full text-[12.5px] font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                                    statusFilter === sf.key
+                                        ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
+                                        : 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-white'
+                                }`}
+                            >
+                                <span>{sf.label}</span>
+                                <span className="opacity-80 tabular-nums">{sf.count}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Right: Dedicated Peppol (SPV Belgia) Filter Pills — stylized Lucide vector icons, identical h-8 height */}
+                    <div className="inline-flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-1 bg-slate-100/90 dark:bg-slate-800 p-1 rounded-full border border-slate-200/80 dark:border-slate-700">
+                        {PEPPOL_FILTERS.map(pf => {
+                            const IconComp = pf.icon
+                            const isActive = peppolFilter === pf.key
+                            return (
+                                <button
+                                    key={pf.key}
+                                    type="button"
+                                    onClick={() => setPeppolFilter(pf.key)}
+                                    className={`h-8 px-3 rounded-full text-[12.5px] font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                                        isActive
+                                            ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
+                                            : 'text-slate-600 dark:text-slate-300 hover:bg-white'
+                                    }`}
+                                >
+                                    {IconComp && <IconComp className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : pf.iconClass}`} />}
+                                    <span>{pf.label}</span>
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
                 <DataTable 
                     data={filteredOrders}
                     columns={columns}
                     loading={loading}
                     searchable
-                    searchPlaceholder={t('invoicing.search', 'Rechercher facture/client...')}
-                    defaultSortKey="start_date"
+                    searchPlaceholder={t('invoicing.search', 'Caută după factură, deviz, client, CUI/TVA sau adresă...')}
+                    defaultSortKey="date"
                     defaultSortDir="desc"
                 />
             </div>

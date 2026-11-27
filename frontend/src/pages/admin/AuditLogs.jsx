@@ -212,22 +212,27 @@ export default function AuditLogs() {
     ]
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5 w-full">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <History className="w-6 h-6 text-blue-500" />
-                        {t('audit.title', 'Jurnal Activitate')}
-                    </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                            {t('audit.title', 'Jurnal Activitate')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
                         {t('audit.subtitle', 'Monitorizează acțiunile efectuate de administratori și utilizatori.')}
                     </p>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-[22px] border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(15,23,42,0.05)] flex flex-col gap-4">
                 <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                     {/* Search */}
                     <div className="relative flex-1">

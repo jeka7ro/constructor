@@ -4,7 +4,8 @@ const _frontendGeoCache = new Map();
 export const reverseGeocode = (latitude, longitude) => {
     const key = `${parseFloat(latitude).toFixed(4)},${parseFloat(longitude).toFixed(4)}`;
     if (_frontendReverseGeoCache.has(key)) {
-        return Promise.resolve(_frontendReverseGeoCache.get(key));
+        const cached = _frontendReverseGeoCache.get(key);
+        return cached ? Promise.resolve(cached) : Promise.reject(new Error("Geocodare eșuată (cache)"));
     }
     return new Promise((resolve, reject) => {
         if (!window.google || !window.google.maps) {
@@ -17,6 +18,9 @@ export const reverseGeocode = (latitude, longitude) => {
                 _frontendReverseGeoCache.set(key, addr);
                 resolve(addr);
             } else {
+                if (status === 'ZERO_RESULTS' || status === 'INVALID_REQUEST') {
+                    _frontendReverseGeoCache.set(key, null);
+                }
                 reject(new Error("Geocodare eșuată"));
             }
         });
@@ -29,7 +33,8 @@ export const geocodeAddress = (address) => {
         return Promise.reject(new Error("Adresă invalidă"));
     }
     if (_frontendGeoCache.has(key)) {
-        return Promise.resolve(_frontendGeoCache.get(key));
+        const cached = _frontendGeoCache.get(key);
+        return cached ? Promise.resolve(cached) : Promise.reject(new Error("Geocodare eșuată (cache)"));
     }
     return new Promise((resolve, reject) => {
         if (!window.google || !window.google.maps) {
@@ -45,6 +50,9 @@ export const geocodeAddress = (address) => {
                 _frontendGeoCache.set(key, res);
                 resolve(res);
             } else {
+                if (status === 'ZERO_RESULTS' || status === 'INVALID_REQUEST') {
+                    _frontendGeoCache.set(key, null);
+                }
                 reject(new Error("Geocodare eșuată"));
             }
         });

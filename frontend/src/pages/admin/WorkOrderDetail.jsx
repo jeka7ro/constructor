@@ -61,25 +61,35 @@ const getLanguageFlag = (lang) => {
     return l ? l.toUpperCase() : '';
 };
 
-// ─── Sub-components (Apple HIG / macOS Tahoe Enterprise Craft) ─────────────────
+// ─── Sub-components (Apple HIG Compact Space-Optimized Craft) ─────────────────
 function KPI({ icon: Icon, label, value, sub, color = 'blue', iconColor }) {
     const tone = {
-        blue:   'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border-sky-200/70 dark:border-sky-800/60',
-        green:  'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/70 dark:border-emerald-800/60',
-        purple: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-200/70 dark:border-indigo-800/60',
-        amber:  'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200/70 dark:border-amber-800/60',
-        slate:  'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700',
-        rose:   'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200/70 dark:border-rose-800/60',
+        blue:   { bg: 'bg-sky-50 dark:bg-sky-950/60 border-sky-200/70 dark:border-sky-800/60',       icon: 'text-sky-600 dark:text-sky-400',     pill: 'bg-sky-500/12 text-sky-700 dark:text-sky-300' },
+        green:  { bg: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200/70 dark:border-emerald-800/60', icon: 'text-emerald-600 dark:text-emerald-400', pill: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300' },
+        purple: { bg: 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200/70 dark:border-indigo-800/60',  icon: 'text-indigo-600 dark:text-indigo-400',  pill: 'bg-indigo-500/12 text-indigo-700 dark:text-indigo-300' },
+        amber:  { bg: 'bg-amber-50 dark:bg-amber-950/60 border-amber-200/70 dark:border-amber-800/60',   icon: 'text-amber-600 dark:text-amber-400',   pill: 'bg-amber-500/12 text-amber-800 dark:text-amber-300' },
+        slate:  { bg: 'bg-slate-100 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700',   icon: 'text-slate-600 dark:text-slate-300',   pill: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+        rose:   { bg: 'bg-rose-50 dark:bg-rose-950/60 border-rose-200/70 dark:border-rose-800/60',    icon: 'text-rose-600 dark:text-rose-400',    pill: 'bg-rose-500/12 text-rose-700 dark:text-rose-300' },
     }
+    const cfg = tone[color] || tone.blue
     return (
-        <div className="apple-craft-card rounded-2xl p-3 border border-slate-200/85 dark:border-slate-800 flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl border ${tone[color] || tone.blue} flex items-center justify-center shrink-0`}>
-                <Icon className="w-4 h-4" color={iconColor} />
+        <div className="rounded-2xl bg-white dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.05)] flex items-center gap-3 min-w-0">
+            <div className={`w-9 h-9 rounded-xl border ${cfg.bg} flex items-center justify-center shrink-0`}>
+                <Icon className={`w-4.5 h-4.5 ${cfg.icon}`} color={iconColor} />
             </div>
             <div className="min-w-0 flex-1">
-                <div className="text-sm sm:text-[15px] font-black text-slate-900 dark:text-white leading-tight truncate tabular-nums">{value}</div>
-                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate mt-0.5">
-                    {label} {sub && <span className="text-slate-400 dark:text-slate-500 lowercase font-medium ml-0.5">({sub})</span>}
+                <div className="text-[17px] font-black tracking-tight text-slate-950 dark:text-white leading-tight truncate tabular-nums">
+                    {value}
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+                        {label}
+                    </span>
+                    {sub && (
+                        <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 truncate">
+                            ({sub})
+                        </span>
+                    )}
                 </div>
             </div>
         </div>
@@ -99,26 +109,26 @@ function TruckSVG({ color = 'currentColor', className = 'w-4 h-4' }) {
 
 function Section({ className = '', contentClassName = '', icon: Icon, title, children, headerRight }) {
     return (
-        <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/85 dark:border-slate-800 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.07),0_1px_3px_0_rgba(15,23,42,0.04)] flex flex-col overflow-hidden ${className}`}>
-            <div className="px-5 py-3.5 bg-gradient-to-b from-slate-50/90 to-white dark:from-slate-800/70 dark:to-slate-900 border-b border-slate-200/75 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(15,23,42,0.05)] flex flex-col overflow-hidden ${className}`}>
+            <div className="px-4 py-2.5 bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200/70 dark:border-sky-800/60 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
-                        <Icon className="w-3.5 h-3.5" />
+                    <span className="w-7 h-7 rounded-lg bg-sky-500/15 dark:bg-sky-950/60 border border-sky-500/25 dark:border-sky-800/60 flex items-center justify-center text-[color:var(--tenant-bg)] dark:text-sky-400 shrink-0">
+                        <Icon className="w-4 h-4" />
                     </span>
-                    <h2 className="font-extrabold text-slate-800 dark:text-slate-100 text-xs sm:text-[13px] uppercase tracking-wider">{title}</h2>
+                    <h2 className="font-extrabold text-slate-800 dark:text-slate-100 text-[14px] uppercase tracking-wider">{title}</h2>
                 </div>
                 {headerRight && <div>{headerRight}</div>}
             </div>
-            <div className={`p-5 flex-1 ${contentClassName}`}>{children}</div>
+            <div className={`p-4 flex-1 ${contentClassName}`}>{children}</div>
         </div>
     )
 }
 
 function Row({ label, value, mono }) {
     return (
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between py-2.5 sm:py-3 border-b border-slate-50 dark:border-slate-700/50 last:border-0 gap-0.5 sm:gap-3">
-            <span className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider sm:w-44 shrink-0">{label}</span>
-            <span className={`text-sm font-semibold text-slate-800 dark:text-slate-200 sm:text-right ${mono ? 'tabular-nums' : ''} break-words whitespace-pre-line`}>{value || '—'}</span>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between py-2 border-b border-slate-100 dark:border-slate-700/50 last:border-0 gap-0.5 sm:gap-3">
+            <span className="text-[11.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider sm:w-44 shrink-0">{label}</span>
+            <span className={`text-[14.5px] font-bold text-slate-800 dark:text-slate-200 sm:text-right ${mono ? 'tabular-nums' : ''} break-words whitespace-pre-line`}>{value || '—'}</span>
         </div>
     )
 }
@@ -346,18 +356,49 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [sendingReminder, setSendingReminder] = useState(false)
     const [togglingConfirm, setTogglingConfirm] = useState(false)
 
-    const reminderIssueType = wo?.prices?.reminder_issue_type || (wo?.reschedule_requested ? 'reschedule' : null)
+    const { currentDateHist, lastDateChangeTs } = (() => {
+        const hist = Array.isArray(wo?.date_history) ? wo.date_history : []
+        let lastIdx = -1
+        let lastTs = null
+        hist.forEach((h, idx) => {
+            if (h && h.action === 'changed_by_admin') {
+                lastIdx = idx
+                lastTs = h.timestamp || null
+            }
+        })
+        return {
+            currentDateHist: lastIdx >= 0 ? hist.slice(lastIdx + 1) : hist,
+            lastDateChangeTs: lastTs
+        }
+    })()
+
+    const isTsAfterLastChange = (ts) => {
+        if (!ts) return false
+        if (!lastDateChangeTs) return true
+        const t1 = new Date(ts).getTime()
+        const t2 = new Date(lastDateChangeTs).getTime()
+        if (!isNaN(t1) && !isNaN(t2)) return t1 >= t2
+        return String(ts) >= String(lastDateChangeTs)
+    }
+
+    const reminderIssueType = (!lastDateChangeTs || !wo?.prices?.reminder_issue_at || isTsAfterLastChange(wo?.prices?.reminder_issue_at))
+        ? (wo?.prices?.reminder_issue_type || (wo?.reschedule_requested ? 'reschedule' : null))
+        : null
     const reminderRequestedDate = wo?.prices?.reminder_requested_date || wo?.reschedule_requested_date || null
     const reminderIssueMessage = wo?.prices?.reminder_issue_message || wo?.reschedule_reason || null
+    const validConfirmedAt = isTsAfterLastChange(wo?.reminder_confirmed_at)
+        ? wo?.reminder_confirmed_at
+        : (isTsAfterLastChange(wo?.prices?.reminder_confirmed_at) ? wo?.prices?.reminder_confirmed_at : null)
     const isReminderConfirmed = !reminderIssueType && Boolean(
-        wo?.reminder_confirmed_at ||
-        wo?.prices?.reminder_confirmed_at ||
-        (Array.isArray(wo?.date_history) && wo.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
+        validConfirmedAt ||
+        currentDateHist.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action))
     )
+    const validSentAt = isTsAfterLastChange(wo?.reminder_sent_at)
+        ? wo?.reminder_sent_at
+        : (isTsAfterLastChange(wo?.prices?.reminder_sent_at) ? wo?.prices?.reminder_sent_at : null)
     const isReminderSent = Boolean(
-        wo?.reminder_sent_at ||
-        wo?.prices?.reminder_sent_at ||
-        (Array.isArray(wo?.date_history) && wo.date_history.some(h => h && h.action === 'reminder_sent'))
+        validSentAt ||
+        currentDateHist.some(h => h && h.action === 'reminder_sent')
     )
 
     const buildReminderMessage = (orderObj, langCode) => {
@@ -1038,7 +1079,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         return () => window.removeEventListener('keydown', handler);
     }, [lightbox, photos.length]);
 
-    if (loading) return (
+    // IMPORTANT: Nu demontăm toată pagina (MapView + StreetViewPhotos) când reîncărcăm în fundal același deviz (`wo.id === id`),
+    // pentru a evita crearea unei noi instanțe Google Maps și re-descărcarea imaginilor Street View!
+    if (loading && (!wo || String(wo.id) !== String(id))) return (
         <div className="flex items-center justify-center min-h-[60vh]">
             <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
@@ -1728,54 +1771,50 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const hasSig = wo.client_signature && (wo.status === 'confirmed' || wo.status === 'completed')
 
     const pageContent = (
-        <div className="p-4 sm:p-6 w-full max-w-[1680px] mx-auto space-y-5 pb-10">
+        <div className="w-full space-y-2.5 pb-8">
 
-            {/* ── Header (Apple HIG Frosted Toolbar Card) ─────────────────────── */}
-            <div className="apple-craft-card bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-200/85 dark:border-slate-800 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex items-center gap-3 min-w-0">
+            {/* ── Header (Single-Line Compact Apple HIG Toolbar Card) ─────────────────────── */}
+            <div className="apple-craft-card bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-200/90 dark:border-slate-800 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
                     <button onClick={() => goBack()}
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 transition-colors shrink-0">
-                        <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                        className="w-8.5 h-8.5 flex items-center justify-center rounded-full bg-slate-100/90 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 transition-colors shrink-0 cursor-pointer">
+                        <ChevronLeft className="w-4.5 h-4.5 text-slate-700 dark:text-slate-300" />
                     </button>
-                    <div className="w-10 h-10 bg-sky-50 dark:bg-sky-950/70 border border-sky-200/80 dark:border-sky-800/70 rounded-xl flex items-center justify-center shrink-0">
-                        <ClipboardList className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                    <div className="w-9 h-9 bg-sky-500/15 dark:bg-sky-950/70 border border-sky-500/25 dark:border-sky-800/70 rounded-xl flex items-center justify-center shrink-0">
+                        <ClipboardList className="w-4.5 h-4.5 text-[color:var(--tenant-bg)] dark:text-sky-400" />
                     </div>
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-tight truncate tracking-tight">
-                                {wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title}
-                            </h1>
-                            {wo.quote_number && (
-                                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-[11px] font-black text-slate-600 dark:text-slate-300 tabular-nums">
-                                    {wo.quote_number}
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${cfg.color}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                {cfg.label}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                        <h1 className="text-[19px] sm:text-[21px] font-black text-slate-950 dark:text-white leading-tight truncate tracking-tight">
+                            {wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title}
+                        </h1>
+                        {wo.quote_number && (
+                            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-[12.5px] font-black text-slate-700 dark:text-slate-200 tabular-nums">
+                                {wo.quote_number}
                             </span>
-                        </div>
+                        )}
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-extrabold ${cfg.color}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                            {cfg.label}
+                        </span>
                     </div>
                 </div>
                 <div className="flex gap-2 sm:ml-auto shrink-0 items-center">
                     {quoteIds.length > 0 && (
-                        <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-full p-1 shadow-inner mr-1 sm:mr-2">
+                        <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 rounded-full p-1 shadow-inner mr-1">
                             <button 
                                 onClick={() => navigate(`/admin/work-orders/${prevId}`, { state: location.state })}
                                 disabled={!prevId}
                                 title={t('common.prev', 'Précédent')}
-                                className="w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 disabled:opacity-30 transition-colors"
+                                className="w-7.5 h-7.5 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-300 border border-slate-200/90 dark:border-slate-700 disabled:opacity-30 transition-colors cursor-pointer"
                             >
                                 <ChevronLeft className="w-4 h-4" />
                             </button>
-                            <span className="text-[10.5px] font-extrabold text-slate-500 dark:text-slate-400 px-1.5 tabular-nums">{currentIndex + 1} / {quoteIds.length}</span>
+                            <span className="text-[12.5px] font-extrabold text-slate-700 dark:text-slate-300 px-2 tabular-nums">{currentIndex + 1} / {quoteIds.length}</span>
                             <button 
                                 onClick={() => navigate(`/admin/work-orders/${nextId}`, { state: location.state })}
                                 disabled={!nextId}
                                 title={t('common.next', 'Suivant')}
-                                className="w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 disabled:opacity-30 transition-colors"
+                                className="w-7.5 h-7.5 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-300 border border-slate-200/90 dark:border-slate-700 disabled:opacity-30 transition-colors cursor-pointer"
                             >
                                 <ChevronRight className="w-4 h-4" />
                             </button>
@@ -1789,7 +1828,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         orderTime={wo.start_time}
                         inline={true}
                     />
-                    <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-inner">
+                    <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 shadow-inner">
                         <button
                             onClick={async () => {
                                 try {
@@ -1800,10 +1839,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     showToast('Eroare la marcarea ca necitit.', 'error');
                                 }
                             }}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-sky-600 dark:text-slate-400 transition-colors shrink-0 shadow-2xs"
+                            className="w-8.5 h-8.5 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-600 hover:text-[color:var(--tenant-bg)] dark:text-slate-300 transition-colors shrink-0 shadow-2xs cursor-pointer"
                             title={t('work_order_detail.mark_unread_desc', 'Marchează înapoi ca Nou (Necitit)')}
                         >
-                            <EyeOff className="w-3.5 h-3.5" />
+                            <EyeOff className="w-4 h-4" />
                         </button>
                         {wo.token && (
                             <>
@@ -1817,10 +1856,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         setCopiedLink(true)
                                         setTimeout(() => setCopiedLink(false), 3000)
                                     }}
-                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors shrink-0 shadow-2xs ${copiedLink ? 'bg-emerald-600 text-white border border-emerald-600' : 'bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-sky-600 dark:text-slate-400'}`}
+                                    className={`w-8.5 h-8.5 flex items-center justify-center rounded-full transition-colors shrink-0 shadow-2xs cursor-pointer ${copiedLink ? 'bg-emerald-600 text-white border border-emerald-600' : 'bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-600 hover:text-[color:var(--tenant-bg)] dark:text-slate-300'}`}
                                     title={wo.is_invoiced ? t('quotes.copy_link_invoice', 'Copier le lien de la facture') : t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
                                 >
-                                    {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                    {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                 </button>
                                 <a
                                     href={wo.is_invoiced 
@@ -1828,28 +1867,28 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         : `/confirm/${wo.token}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-sky-600 dark:text-slate-400 transition-colors shrink-0 shadow-2xs"
+                                    className="w-8.5 h-8.5 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-600 hover:text-[color:var(--tenant-bg)] dark:text-slate-300 transition-colors shrink-0 shadow-2xs"
                                     title={t('quotes.open_link', 'Ouvrir le lien')}
                                 >
-                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    <ExternalLink className="w-4 h-4" />
                                 </a>
                             </>
                         )}
                         {wo.status !== 'completed' && wo.status !== 'cancelled' && wo.status !== 'draft' && (
                             <button
                                 onClick={() => setShowCompleteConfirm(true)}
-                                className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-slate-900 text-emerald-600 border border-slate-200/90 dark:border-slate-700 hover:bg-emerald-50 transition-colors shrink-0 shadow-2xs"
+                                className="flex items-center justify-center w-8.5 h-8.5 rounded-full bg-white dark:bg-slate-900 text-emerald-600 border border-slate-200/90 dark:border-slate-700 hover:bg-emerald-50 transition-colors shrink-0 shadow-2xs cursor-pointer"
                                 title={t('work_order_detail.mark_completed_btn', 'Marquer comme terminé')}
                             >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <CheckCircle2 className="w-4 h-4" />
                             </button>
                         )}
                         <button 
                             onClick={() => setShowDeleteConfirm(true)}
-                            className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-slate-900 text-rose-600 border border-slate-200/90 dark:border-slate-700 hover:bg-rose-50 transition-colors shrink-0 shadow-2xs"
+                            className="flex items-center justify-center w-8.5 h-8.5 rounded-full bg-white dark:bg-slate-900 text-rose-600 border border-slate-200/90 dark:border-slate-700 hover:bg-rose-50 transition-colors shrink-0 shadow-2xs cursor-pointer"
                             title={t('common.delete', 'Supprimer')}
                         >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                         </button>
 
                         {wo.client_email && (
@@ -1863,17 +1902,17 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         showToast(t('work_order_detail.email_prev_err', 'Erreur lors de la prévisualisation de l\'email.'), 'error');
                                     }
                                 }}
-                                className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-slate-900 text-sky-600 border border-slate-200/90 dark:border-slate-700 hover:bg-sky-50 transition-colors shrink-0 shadow-2xs"
+                                className="flex items-center justify-center w-8.5 h-8.5 rounded-full bg-white dark:bg-slate-900 text-[color:var(--tenant-bg)] border border-slate-200/90 dark:border-slate-700 hover:bg-sky-50 transition-colors shrink-0 shadow-2xs cursor-pointer"
                                 title={t('planning.send_email_btn', 'Envoyer Notification')}
                             >
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                             </button>
                         )}
                         {(wo.client_phone || wo.client_email) && (
                             <button
                                 type="button"
                                 onClick={handleOpenReminderModal}
-                                className={`relative flex items-center justify-center w-8 h-8 rounded-full transition-colors shrink-0 shadow-2xs cursor-pointer border ${
+                                className={`relative flex items-center justify-center w-8.5 h-8.5 rounded-full transition-colors shrink-0 shadow-2xs cursor-pointer border ${
                                     isReminderConfirmed
                                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
                                         : isReminderSent
@@ -1889,7 +1928,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 }
                             >
                                 {isReminderConfirmed ? (
-                                    <CheckCheck className="w-4 h-4 stroke-[2.6]" />
+                                    <CheckCheck className="w-4.5 h-4.5 stroke-[2.6]" />
                                 ) : isReminderSent ? (
                                     <>
                                         <Send className="w-3.5 h-3.5 stroke-[2.4] -ml-0.5" />
@@ -1898,7 +1937,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         </span>
                                     </>
                                 ) : (
-                                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                                    <svg className="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24">
                                         <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.126.556 4.122 1.532 5.854l-1.532 5.596 5.736-1.505c1.694.922 3.633 1.447 5.698 1.447 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z"/>
                                     </svg>
                                 )}
@@ -1908,8 +1947,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>
             </div>
 
-            {/* ── KPIs ────────────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+            {/* ── KPIs (Single-Row Compact Horizontal Cards) ─────────────────── */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                 <KPI icon={Users}    label={t('work_order_detail.kpi.employees', 'Employés')}       value={workersValue}     sub={workersSub}       color="purple" />
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', 'Volume')}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
@@ -1928,7 +1967,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
             {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
             <div className="bg-transparent rounded-2xl border-0 overflow-hidden">
-                <div className="px-1 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+                <div className="px-1 py-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
                     {isEditingAddress ? (
                         <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 w-full max-w-md z-50">
                             <div className="flex-1 relative z-50">
@@ -1958,15 +1997,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-2 group">
-                            <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            <div className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide truncate">{address || t('work_order_detail.location.no_address', 'Aucune adresse spécifiée')}</div>
+                        <div className="flex items-center gap-2.5 group">
+                            <MapPin className="w-5 h-5 text-[color:var(--tenant-bg)] dark:text-sky-400" />
+                            <div className="font-black text-slate-900 dark:text-white text-[16px] uppercase tracking-wide truncate">{address || t('work_order_detail.location.no_address', 'Aucune adresse spécifiée')}</div>
                             <button
                                 onClick={() => {
                                     setEditAddressData({ address: wo.site_address || '', lat: wo.site_latitude, lon: wo.site_longitude });
                                     setIsEditingAddress(true);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 transition-colors shrink-0"
+                                className="w-9 h-9 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 transition-colors shrink-0 cursor-pointer"
                                 title={t('common.edit', 'Modifier')}
                             >
                                 <Edit2 className="w-4 h-4" />
@@ -2022,98 +2061,151 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             {/* ── Main Grid ───────────────────────────────────────────────────── */}
 
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch mb-5">
-                <div className="flex flex-col gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch mb-4">
+                <div className="flex flex-col gap-4">
 
                     <Section 
                         className="flex-1" 
                         icon={FileText} 
                         title={t('work_order_detail.general_details.title', 'Détails Généraux')} 
-                        contentClassName="!p-3"
+                        contentClassName="!p-4"
                     >
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
+                                            {/* Row 1: Quote Number, Planned, Invoiced, Billtobox */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-700/50">
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.quote_number', 'Numéro de Devis')}</p>
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <p className="text-sm font-black tracking-widest text-slate-800 dark:text-white">{wo.quote_number || wo.id?.slice(0, 8).toUpperCase()}</p>
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.quote_number', 'Numéro de Devis')}</p>
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <p className="text-[15.5px] font-black tracking-tight text-slate-900 dark:text-white tabular-nums">{wo.quote_number || wo.id?.slice(0, 8).toUpperCase()}</p>
                                                         {wo.source_system === 'we-r' || wo.source_system === 'calculator_public' ? (
-                                                            <span className="text-[8px] font-bold uppercase tracking-wide text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">{t('source.we_r', 'WE-R')}</span>
+                                                            <span className="text-[10px] font-extrabold uppercase tracking-wide text-amber-700 bg-amber-500/15 px-2 py-0.5 rounded-full">{t('source.we_r', 'WE-R')}</span>
                                                         ) : wo.source_system === 'devis_online' ? (
-                                                            <span className="text-[8px] font-bold uppercase tracking-wide text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">{t('source.devis', 'Devis en ligne')}</span>
+                                                            <span className="text-[10px] font-extrabold uppercase tracking-wide text-sky-700 bg-sky-500/15 px-2 py-0.5 rounded-full">{t('source.devis', 'Devis en ligne')}</span>
                                                         ) : wo.source_system === 'robaws' ? (
-                                                            <span className="text-[8px] font-bold uppercase tracking-wide text-indigo-500 bg-indigo-500/10 px-1.5 py-0.5 rounded">{t('source.robaws', 'Robaws')}</span>
+                                                            <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700 bg-indigo-500/15 px-2 py-0.5 rounded-full">{t('source.robaws', 'Robaws')}</span>
                                                         ) : wo.source_system === 'partner' ? (
-                                                            <span className="text-[8px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">{t('source.partner', 'Partenaire')}{wo.client_name ? ` — ${wo.client_name}` : ''}</span>
+                                                            <span className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700 bg-emerald-500/15 px-2 py-0.5 rounded-full">{t('source.partner', 'Partenaire')}</span>
                                                         ) : (
-                                                            <span className="text-[8px] font-bold uppercase tracking-wide text-slate-500 bg-slate-500/10 px-1.5 py-0.5 rounded">{t('source.manual', 'Ajouté manuellement')}</span>
+                                                            <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">{t('source.manual', 'Manual')}</span>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('planning.planned', 'Planifié')}</p>
-                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${wo.start_date ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('planning.planned', 'Planifié')}</p>
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold uppercase tracking-wider ${wo.start_date ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
                                                         {wo.start_date ? t('planning.yes', 'Oui') : t('planning.no', 'Non')}
                                                     </span>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.status_invoiced', 'Facturé')}</p>
-                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${wo.is_invoiced ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.status_invoiced', 'Facturé')}</p>
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold uppercase tracking-wider ${wo.is_invoiced ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-800 dark:text-amber-300'}`}>
                                                         {wo.is_invoiced ? t('general.yes', 'Oui') : t('general.no', 'Non')}
                                                     </span>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">Billtobox</p>
-                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${wo.billtobox_status === 'sent' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">Billtobox</p>
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold uppercase tracking-wider ${wo.billtobox_status === 'sent' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
                                                         {wo.billtobox_status === 'sent' ? t('invoicing.billtobox_sent', 'Envoyé') : t('general.no', 'Non')}
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4 pb-4 border-b border-slate-50 dark:border-slate-700/50 mt-4">
+
+                                            {/* Row 2: 3 Dates + Client Language on 1 single 4-column row */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-700/50">
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.date', 'Date Devis')}</p>
-                                                    <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                                                        <CalendarDays className="w-4 h-4 text-slate-400" />
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.date', 'Date Devis')}</p>
+                                                    <div className="flex items-center gap-1.5 text-[14.5px] font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+                                                        <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
                                                         <span>{wo.created_at ? new Date(wo.created_at).toLocaleDateString('ro-RO') : '—'}</span>
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.approx_date', 'Date Approx.')}</p>
-                                                    <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                                                        <CalendarDays className="w-4 h-4 text-slate-400" />
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.approx_date', 'Date Approx.')}</p>
+                                                    <div className="flex items-center gap-1.5 text-[14.5px] font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+                                                        <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
                                                         <span>{wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('ro-RO') : '—'}</span>
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.status.confirmed_by_team', 'Confirmé Équipe')}</p>
-                                                    <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                                                        <CalendarDays className="w-4 h-4 text-slate-400" />
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.status.confirmed_by_team', 'Confirmé Équipe')}</p>
+                                                    <div className="flex items-center gap-1.5 text-[14.5px] font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+                                                        <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
                                                         <span>{wo.start_date ? `${new Date(wo.start_date).toLocaleDateString('ro-RO')}${wo.start_time ? ` ${wo.start_time}` : ''}` : '—'}</span>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.client', 'Client')}</p>
-                                                    <div className="flex flex-col">
-                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                                                            {wo.client_name} <span className="text-xs text-slate-400">{getLanguageFlag(wo.client_language)}</span>
-                                                        </p>
-                                                        {wo.client_email && (
-                                                            <a href={`mailto:${wo.client_email}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-0.5 break-all transition-colors">
-                                                                {wo.client_email}
-                                                            </a>
-                                                        )}
-                                                    </div>
+                                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Langue Client</p>
+                                                    {isEditingLang ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <select
+                                                                value={editLang}
+                                                                onChange={(e) => setEditLang(e.target.value)}
+                                                                className="text-xs font-bold bg-white border border-slate-300 rounded px-2 py-0.5"
+                                                            >
+                                                                <option value="fr">FR</option>
+                                                                <option value="en">EN</option>
+                                                                <option value="nl">NL</option>
+                                                                <option value="ro">RO</option>
+                                                            </select>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await api.put(`/admin/work-orders/${id}`, { client_language: editLang });
+                                                                        wo.client_language = editLang;
+                                                                        setIsEditingLang(false);
+                                                                    } catch (e) {
+                                                                        console.error(e);
+                                                                    }
+                                                                }}
+                                                                className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                                                            >
+                                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setIsEditingLang(false)}
+                                                                className="p-1 bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
+                                                            >
+                                                                <X className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1.5 group">
+                                                            <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-slate-200 uppercase">
+                                                                {wo.client_language || 'FR'}
+                                                            </span>
+                                                            <button 
+                                                                onClick={() => { setEditLang(wo.client_language || 'fr'); setIsEditingLang(true); }}
+                                                                className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-[color:var(--tenant-bg)] transition-opacity cursor-pointer"
+                                                                title="Schimbă limba"
+                                                            >
+                                                                <Edit2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.phone', 'Téléphone')}</p>
+                                            </div>
+
+                                            {/* Row 3: Client + Phone + Type/Construction/CUI compacted */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-700/50">
+                                                <div className="sm:col-span-4 min-w-0">
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.client', 'Client')}</p>
+                                                    <p className="text-[15.5px] font-black text-slate-900 dark:text-slate-100 truncate">
+                                                        {wo.client_name} <span className="text-xs text-slate-400">{getLanguageFlag(wo.client_language)}</span>
+                                                    </p>
+                                                    {wo.client_email && (
+                                                        <a href={`mailto:${wo.client_email}`} className="text-[13.5px] font-bold text-[color:var(--tenant-bg)] hover:underline block truncate transition-colors">
+                                                            {wo.client_email}
+                                                        </a>
+                                                    )}
+                                                </div>
+                                                <div className="sm:col-span-5">
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.phone', 'Téléphone')}</p>
                                                     <div className="flex items-center gap-2 flex-wrap">
-                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 tabular-nums">{wo.client_phone || '—'}</p>
+                                                        <p className="text-[15px] font-black text-slate-900 dark:text-slate-100 tabular-nums">{wo.client_phone || '—'}</p>
                                                         {(wo.client_phone || wo.client_email) && (
                                                             <button
                                                                 type="button"
                                                                 onClick={handleOpenReminderModal}
-                                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer border ${
+                                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-extrabold shadow-2xs transition-colors cursor-pointer border ${
                                                                     isReminderConfirmed
                                                                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
                                                                         : isReminderSent
@@ -2144,85 +2236,30 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         )}
                                                     </div>
                                                 </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
-                                                <div>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.project_info.client_type', 'Type de Client')}</p>
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                                                        {(wo.client_type === 'pf' || wo.client_type === 'fizica') ? t('quotes.pf', 'Particulier') : 
-                                                         (wo.client_type === 'pj' || wo.client_type === 'juridica') ? t('quotes.pj', 'Entreprise') : '—'}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.project_info.construction_type', 'Type de Construction')}</p>
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                                                        {wo.work_type === 'new' ? t('quotes.construction_new', 'Nouvelle Construction') : 
-                                                         wo.work_type === 'repair' ? t('quotes.construction_renovation', 'Rénovation') : '—'}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">TVA / CUI</p>
-                                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                                        {wo.client_cui || '—'}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Langue Client</p>
-                                                    {isEditingLang ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <select
-                                                                value={editLang}
-                                                                onChange={(e) => setEditLang(e.target.value)}
-                                                                className="text-sm bg-white border border-slate-300 rounded px-2 py-1"
-                                                            >
-                                                                <option value="fr">FR</option>
-                                                                <option value="en">EN</option>
-                                                                <option value="nl">NL</option>
-                                                                <option value="ro">RO</option>
-                                                            </select>
-                                                            <button
-                                                                onClick={async () => {
-                                                                    try {
-                                                                        await api.put(`/admin/work-orders/${id}`, { client_language: editLang });
-                                                                        wo.client_language = editLang;
-                                                                        setIsEditingLang(false);
-                                                                    } catch (e) {
-                                                                        console.error(e);
-                                                                    }
-                                                                }}
-                                                                className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
-                                                            >
-                                                                <CheckCircle2 className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setIsEditingLang(false)}
-                                                                className="p-1 bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
-                                                            >
-                                                                <X className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-2 group">
-                                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase">
-                                                                {wo.client_language || 'FR'}
+                                                <div className="sm:col-span-3">
+                                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.project_info.client_type', 'Client / Șantier')}</p>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[12px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                                                            {(wo.client_type === 'pf' || wo.client_type === 'fizica') ? t('quotes.pf', 'Particulier') : 
+                                                             (wo.client_type === 'pj' || wo.client_type === 'juridica') ? t('quotes.pj', 'Entreprise') : '—'}
+                                                        </span>
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[12px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                                                            {wo.work_type === 'new' ? t('quotes.construction_new', 'Nouvelle') : 
+                                                             wo.work_type === 'repair' ? t('quotes.construction_renovation', 'Rénovation') : '—'}
+                                                        </span>
+                                                        {wo.client_cui && (
+                                                            <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 tabular-nums">
+                                                                {wo.client_cui}
                                                             </span>
-                                                            <button 
-                                                                onClick={() => { setEditLang(wo.client_language || 'fr'); setIsEditingLang(true); }}
-                                                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 transition-opacity"
-                                                                title="Schimbă limba"
-                                                            >
-                                                                <Edit2 className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        </div>
-                                                    )}
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
+                                            {/* Row 4: Surface & Materials on ONE single horizontal line per surface */}
                                             {(wo.volumes && wo.volumes.length > 0) && (
-                                                <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.project_info.materials', 'Détails de Surface & Matériaux')}</p>
-                                                    <div className="space-y-3">
+                                                <div className="mb-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-700/50">
+                                                    <div className="space-y-1.5">
                                                         {wo.volumes.map((v, i) => {
                                                             const options = [];
                                                             if (v.has_foil) options.push(t('materials.foil', 'Film'));
@@ -2236,26 +2273,22 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                             if (v.pur_protection) options.push(t('materials.pur_protection', 'Protection'));
                                                             
                                                             return (
-                                                                <div key={i} className="flex flex-col gap-1.5 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
-                                                                    <div className="flex items-center justify-between">
-                                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+                                                                <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50/90 dark:bg-slate-800/50 rounded-xl border border-slate-200/80 dark:border-slate-700 flex-wrap">
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        <span className="text-[13.5px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
                                                                             {v.label?.match(/^\d+$/) 
                                                                                 ? t('materials.surface_n', 'Surface {{n}}', { n: v.label }) 
                                                                                 : ((v.label || '').toLowerCase().match(/chape|[sșş]ap[aăâ]/) ? t('materials.surface_n', 'Surface {{n}}', { n: i + 1 }) : v.label || 'Surface')}
                                                                         </span>
-                                                                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-600">
-                                                                            {v.quantity || 0} {v.unit || 'm²'} <span className="text-slate-300 dark:text-slate-600 mx-1">|</span> {v.thickness || 0} CM
-                                                                        </span>
+                                                                        {options.map((opt, j) => (
+                                                                            <span key={j} className="inline-flex items-center bg-sky-500/15 dark:bg-sky-900/30 text-[color:var(--tenant-bg)] dark:text-sky-300 border border-sky-500/25 px-2 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider">
+                                                                                {opt}
+                                                                            </span>
+                                                                        ))}
                                                                     </div>
-                                                                    {options.length > 0 && (
-                                                                        <div className="flex flex-wrap gap-1.5 mt-1">
-                                                                            {options.map((opt, j) => (
-                                                                                <span key={j} className="inline-flex items-center bg-blue-100/60 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider">
-                                                                                    {opt}
-                                                                                </span>
-                                                                            ))}
-                                                                        </div>
-                                                                    )}
+                                                                    <span className="text-[14px] font-extrabold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 px-2.5 py-0.5 rounded-lg shadow-2xs border border-slate-200/90 dark:border-slate-600 tabular-nums shrink-0">
+                                                                        {v.quantity || 0} {v.unit || 'm²'} <span className="text-slate-300 dark:text-slate-600 mx-1">|</span> {v.thickness || 0} CM
+                                                                    </span>
                                                                 </div>
                                                             );
                                                         })}
@@ -2263,108 +2296,108 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 </div>
                                             )}
 
-                                            <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50 space-y-2">
-                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Bénéficiaire')}</p>
-                                                {(wo.confirmed_at || wo.date_confirmed_at) ? (
-                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                        <div className="flex-1">
-                                                            {wo.reschedule_requested && (
-                                                                <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                                                                        <span className="font-bold text-amber-800 uppercase text-[10px]">{t('work_order_detail.reschedule_requested', 'Le client a demandé une reprogrammation')}</span>
-                                                                    </div>
-                                                                    {wo.reschedule_requested_date && (
-                                                                        <div className="text-xs font-bold text-amber-900 mb-1">
-                                                                            {t('work_order_detail.requested_date', 'Date souhaitée :')} {new Date(wo.reschedule_requested_date).toLocaleDateString('fr-FR')}
+                                            {/* Row 5: Beneficiary Confirmation + Street View side-by-side */}
+                                            <div className={`grid grid-cols-1 ${(!wo.external_id && ((wo.site_latitude && wo.site_longitude) || wo.site_address)) ? 'xl:grid-cols-12' : ''} gap-3 items-start`}>
+                                                <div className={(!wo.external_id && ((wo.site_latitude && wo.site_longitude) || wo.site_address)) ? 'xl:col-span-7' : ''}>
+                                                    <p className="text-[11px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.general_details.client_beneficiary', 'Client / Bénéficiaire')}</p>
+                                                    {(wo.confirmed_at || isReminderConfirmed) ? (
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                            <div className="flex-1">
+                                                                {wo.reschedule_requested && (
+                                                                    <div className="mb-2 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
+                                                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                                                            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                                                                            <span className="font-extrabold text-amber-800 uppercase text-[11px]">{t('work_order_detail.reschedule_requested', 'Le client a demandé une reprogrammation')}</span>
                                                                         </div>
-                                                                    )}
-                                                                    {wo.reschedule_reason && (
-                                                                        <p className="text-xs text-amber-700 font-semibold italic mb-2">"{wo.reschedule_reason}"</p>
-                                                                    )}
-                                                                    <button
-                                                                        onClick={() => document.getElementById('chat-input-field')?.focus()}
-                                                                        className="mt-2 flex items-center justify-center gap-2 w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold uppercase transition-colors"
-                                                                    >
-                                                                        <MessageSquare className="w-4 h-4" />
-                                                                        {t('work_order_detail.reply_to_client', 'Répondre au client')}
-                                                                    </button>
+                                                                        {wo.reschedule_requested_date && (
+                                                                            <div className="text-xs font-bold text-amber-900">
+                                                                                {t('work_order_detail.requested_date', 'Date souhaitée :')} {new Date(wo.reschedule_requested_date).toLocaleDateString('fr-FR')}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                                {wo.start_date && (
+                                                                    <div className="flex items-center justify-between text-[13px] mb-1">
+                                                                        <span className={`font-extrabold uppercase ${isReminderConfirmed ? 'text-slate-600' : 'text-red-500'}`}>{t('work_order_detail.status.accepted_date', 'Data Intervenției Acceptată')}</span>
+                                                                        <span className={`font-black tabular-nums ${isReminderConfirmed ? 'text-[color:var(--tenant-bg)]' : 'text-red-600 animate-pulse'}`}>
+                                                                            {new Date(wo.start_date).toLocaleDateString('ro-RO')} {wo.start_time && ` • ${wo.start_time}`}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {isReminderConfirmed ? (
+                                                                    <div className="flex items-center justify-between text-xs border border-emerald-200/80 bg-emerald-50/70 px-3 py-2 rounded-xl">
+                                                                        <div className="flex flex-col">
+                                                                            <span className="font-extrabold text-emerald-700 uppercase text-[10.5px]">{t('work_order_detail.status.date_confirmed_at', 'Confirmé par le client')}</span>
+                                                                            <span className="font-black text-emerald-700 text-[13.5px]">{wo.client_name}</span>
+                                                                        </div>
+                                                                        <div className="flex flex-col items-end gap-0.5">
+                                                                            <span className="font-extrabold text-emerald-700 tabular-nums">{fmtFull(validConfirmedAt || wo.date_confirmed_at)}</span>
+                                                                            {wo.date_history && wo.date_history.length > 0 && (
+                                                                                <button 
+                                                                                    onClick={() => setHistoryModalOpen(true)}
+                                                                                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline uppercase cursor-pointer"
+                                                                                >
+                                                                                    {t('work_order_detail.btn_history', 'Historique')}
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    wo.date_history && wo.date_history.length > 0 && (
+                                                                        <div className="flex items-center justify-end text-xs pt-1">
+                                                                            <button 
+                                                                                onClick={() => setHistoryModalOpen(true)}
+                                                                                className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline uppercase cursor-pointer"
+                                                                            >
+                                                                                {t('work_order_detail.btn_history', 'Historique')}
+                                                                            </button>
+                                                                        </div>
+                                                                    )
+                                                                )}
+                                                            </div>
+                                                            {hasSig && (
+                                                                <div className="flex-shrink-0 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 p-1.5 flex items-center justify-center">
+                                                                    <img src={wo.client_signature} alt="Semnătură" className="h-10 object-contain" />
                                                                 </div>
                                                             )}
-                                                            {wo.confirmed_at && (
-                                                                <>
-                                                                    <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                                                        <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.confirmed_by', 'Confirmat de')}</span>
-                                                                        <span className="font-semibold text-emerald-600">{wo.confirmed_by_name}</span>
-                                                                    </div>
-                                                                    <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2 mt-2">
-                                                                        <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.at_date', 'La')}</span>
-                                                                        <span className="font-semibold text-emerald-600">{fmtFull(wo.confirmed_at)}</span>
-                                                                    </div>
-                                                                </>
-                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col gap-1 py-2 px-3 bg-slate-50/90 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                                                             {wo.start_date && (
-                                                                <div className="flex items-center justify-between text-xs pt-2">
-                                                                    <span className={`font-bold uppercase ${wo.date_confirmed_at ? 'text-slate-500' : 'text-red-500'}`}>{t('work_order_detail.status.accepted_date', 'Data Intervenției (Propusă/Acceptată)')}</span>
-                                                                    <span className={`font-semibold ${wo.date_confirmed_at ? 'text-blue-600' : 'text-red-600 animate-pulse'}`}>
+                                                                <div className="flex items-center justify-between text-[13px]">
+                                                                    <span className="font-extrabold uppercase text-red-500">{t('work_order_detail.status.accepted_date', 'Data Intervenției Acceptată')}</span>
+                                                                    <span className="font-black text-red-600 animate-pulse tabular-nums">
                                                                         {new Date(wo.start_date).toLocaleDateString('ro-RO')} {wo.start_time && ` • ${wo.start_time}`}
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                            {wo.date_confirmed_at ? (
-                                                                <div className="flex items-center justify-between text-xs border-t border-emerald-100 bg-emerald-50/50 p-2 mt-2 rounded-lg">
-                                                                    <div className="flex flex-col">
-                                                                        <span className="font-bold text-emerald-700 uppercase text-[10px]">{t('work_order_detail.status.date_confirmed_at', 'Confirmé par le client')}</span>
-                                                                        <span className="font-bold text-emerald-600">{wo.client_name}</span>
-                                                                    </div>
-                                                                    <div className="flex flex-col items-end gap-1">
-                                                                        <span className="font-bold text-emerald-700">{fmtFull(wo.date_confirmed_at)}</span>
-                                                                        {wo.date_history && wo.date_history.length > 0 && (
-                                                                            <button 
-                                                                                onClick={() => setHistoryModalOpen(true)}
-                                                                                className="text-[10px] text-emerald-600 hover:text-emerald-800 underline uppercase"
-                                                                            >
-                                                                                {t('work_order_detail.btn_history', 'Historique')}
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                wo.date_history && wo.date_history.length > 0 && (
-                                                                    <div className="flex items-center justify-end text-xs p-2 mt-2">
-                                                                        <button 
-                                                                            onClick={() => setHistoryModalOpen(true)}
-                                                                            className="text-[10px] text-slate-500 hover:text-slate-800 underline uppercase"
-                                                                        >
-                                                                            {t('work_order_detail.btn_history', 'Historique')}
-                                                                        </button>
-                                                                    </div>
-                                                                )
-                                                            )}
-                                                        </div>
-                                                        {hasSig && (
-                                                            <div className="flex-shrink-0 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 p-2 flex items-center justify-center">
-                                                                <img src={wo.client_signature} alt="Semnătură" className="h-12 object-contain" />
+                                                            <div className="flex items-center justify-between">
+                                                                <p className="text-[12.5px] text-slate-500 font-semibold">{t('work_order_detail.status.not_confirmed_by_client', 'Neconfirmat de client.')}</p>
+                                                                {wo.date_history && wo.date_history.length > 0 && (
+                                                                    <button 
+                                                                        onClick={() => setHistoryModalOpen(true)}
+                                                                        className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline uppercase cursor-pointer"
+                                                                    >
+                                                                        {t('work_order_detail.btn_history', 'Historique')}
+                                                                    </button>
+                                                                )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center justify-center py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                                                        <p className="text-xs text-slate-400 font-medium">{t('work_order_detail.status.not_confirmed_by_client', 'Neconfirmat de client.')}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {(!wo.external_id && ((wo.site_latitude && wo.site_longitude) || wo.site_address)) && (
+                                                    <div className="xl:col-span-5">
+                                                        <StreetViewPhotos lat={wo.site_latitude} lng={wo.site_longitude} address={wo.site_address} />
                                                     </div>
                                                 )}
                                             </div>
-                                            {(!wo.external_id && ((wo.site_latitude && wo.site_longitude) || wo.site_address)) && (
-                                                <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
-                                                    <StreetViewPhotos lat={wo.site_latitude} lng={wo.site_longitude} address={wo.site_address} />
-                                                </div>
-                                            )}
                                         </Section>
                 </div>
-                <div className="flex flex-col gap-5 h-full">
+                <div className="flex flex-col gap-4 h-full">
 
                     <Section 
-                        className="flex-1 flex flex-col min-h-[500px] h-full" 
+                        className="flex-1 flex flex-col min-h-[340px] max-h-[520px] h-full" 
                         icon={MessageSquare} 
                         title={t('admin.chat_with_client', 'Chat avec le client')}
                         contentClassName="!p-0 flex flex-col flex-1 h-full min-h-0 relative"
@@ -2442,7 +2475,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <div className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${isOwn ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                    <div className={`text-[15px] whitespace-pre-wrap break-words leading-relaxed ${isOwn ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                                                         {msg.message}
                                                     </div>
                                                     
@@ -2906,26 +2939,26 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                                 {/* ── Alert différence majeure ── */}
                                 {bigDiff && hasRealData && (
-                                    <div className="m-4 mb-0 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg flex items-start gap-3">
+                                    <div className="m-4 mb-0 p-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl flex items-start gap-3">
                                         <AlertCircle className="w-5 h-5 text-slate-600 dark:text-slate-400 shrink-0 mt-0.5" />
                                         <div>
-                                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{t('work_order_detail.calc_diff_alert', 'Différence importante détectée')}</p>
-                                            <p className="text-xs text-slate-600 dark:text-slate-400">{t('work_order_detail.calc_diff_pct', 'Écart entre estimatif et réel')}: <b>{diffPct.toFixed(1)}%</b></p>
+                                            <p className="text-[15px] font-bold text-slate-800 dark:text-slate-200">{t('work_order_detail.calc_diff_alert', 'Différence importante détectée')}</p>
+                                            <p className="text-[13.5px] text-slate-600 dark:text-slate-400">{t('work_order_detail.calc_diff_pct', 'Écart entre estimatif et réel')}: <b>{diffPct.toFixed(1)}%</b></p>
                                         </div>
                                     </div>
                                 )}
-                                <div className="p-4 space-y-2 text-sm">
+                                <div className="p-3.5 space-y-1.5 text-[14.5px]">
                                     {quote.items.map((item, idx) => {
                                         if (item.isHeader) {
                                             return (
-                                                <div key={idx} className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1 border-b border-slate-200 dark:border-slate-700 pb-1">
+                                                <div key={idx} className="font-extrabold text-[12px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-2.5 mb-1 border-b border-slate-200 dark:border-slate-700 pb-1">
                                                     {item.headerLabel}
                                                 </div>
                                             );
                                         }
                                         if (item.isSubtotal) {
                                             return (
-                                                <div key={idx} className="flex justify-between font-bold text-slate-800 dark:text-slate-200 py-1.5 px-2 bg-slate-100 dark:bg-slate-800/60 rounded-lg text-xs uppercase tracking-wider my-1">
+                                                <div key={idx} className="flex justify-between font-extrabold text-slate-800 dark:text-slate-200 py-1.5 px-2.5 bg-slate-100 dark:bg-slate-800/60 rounded-lg text-[13px] uppercase tracking-wider my-1">
                                                     <span>{item.subtotalLabel}</span>
                                                     <span className="tabular-nums font-black">{item.subtotalAmount.toFixed(2)}&nbsp;EUR</span>
                                                 </div>
@@ -2938,44 +2971,44 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                                         return (
                                             <div key={idx} className={`flex justify-between ${
-                                                isDiscount ? 'text-emerald-600 dark:text-emerald-400 font-semibold mt-1' :
-                                                isTransport ? 'font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300' :
-                                                isThreshold || isMinAdj ? 'text-slate-700 dark:text-slate-300 font-semibold mt-2' :
-                                                item.id.endsWith('_base') || item.desc.includes('- Bază') || item.desc.includes('Isolation PUR') || item.desc.includes('Isolation EPS') ? 'text-slate-700 dark:text-slate-300 font-medium' :
-                                                'text-slate-600 dark:text-slate-400 pl-4'
+                                                isDiscount ? 'text-emerald-600 dark:text-emerald-400 font-bold mt-1' :
+                                                isTransport ? 'font-bold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200' :
+                                                isThreshold || isMinAdj ? 'text-slate-800 dark:text-slate-200 font-bold mt-1.5' :
+                                                item.id.endsWith('_base') || item.desc.includes('- Bază') || item.desc.includes('Isolation PUR') || item.desc.includes('Isolation EPS') ? 'text-slate-800 dark:text-slate-200 font-semibold' :
+                                                'text-slate-600 dark:text-slate-400 pl-3'
                                             }`}>
                                                 <span>{item.desc}</span>
                                                 <span className="text-right tabular-nums">
                                                     {item.unit !== 'Forfait' && item.unit !== 'forfait' && item.qty > 1 ? `${item.qty} ${item.unit} × ${item.price.toFixed(2)} = ` : ''}
-                                                    <b>{(item.qty * item.price).toFixed(2)}&nbsp;EUR</b>
+                                                    <b className="font-extrabold text-slate-900 dark:text-white">{(item.qty * item.price).toFixed(2)}&nbsp;EUR</b>
                                                 </span>
                                             </div>
                                         );
                                     })}
 
                                     {/* TVA Auto-calculated */}
-                                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
+                                    <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700 text-[15px]">
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-bold">
                                             <span>{t('work_order_detail.invoicing.net_htva', 'Total Net')}</span>
-                                            <span className="tabular-nums">{autoNet.toFixed(2)}&nbsp;EUR</span>
+                                            <span className="tabular-nums font-extrabold text-slate-900 dark:text-white">{autoNet.toFixed(2)}&nbsp;EUR</span>
                                         </div>
                                         
                                         {quote.vatRate > 0 ? (
-                                            <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium mt-1">
+                                            <div className="flex justify-between text-slate-600 dark:text-slate-400 font-semibold mt-1">
                                                 <span>TVA ({quote.vatRate}%)</span>
-                                                <span className="tabular-nums">{autoVat.toFixed(2)}&nbsp;EUR</span>
+                                                <span className="tabular-nums font-bold">{autoVat.toFixed(2)}&nbsp;EUR</span>
                                             </div>
                                         ) : (
-                                            <div className="flex justify-between text-slate-500 dark:text-slate-500 font-medium mt-1">
+                                            <div className="flex justify-between text-slate-500 dark:text-slate-500 font-semibold mt-1">
                                                 <span>{t('quotes.tva_disabled', 'TVA non appliquée')}</span>
                                                 <span className="tabular-nums">0.00&nbsp;EUR</span>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="mt-3 px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-950 text-white flex justify-between items-center shadow-sm">
-                                        <span className="text-xs font-extrabold uppercase tracking-wider text-slate-300">{t('work_order_detail.invoicing.gross', 'TOTAL À PAYER:')}</span>
-                                        <span className="text-lg font-black tabular-nums whitespace-nowrap">{totalGross.toFixed(2)}&nbsp;EUR</span>
+                                    <div className="mt-2.5 px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-950 text-white flex justify-between items-center shadow-sm">
+                                        <span className="text-[13px] font-extrabold uppercase tracking-wider text-slate-300">{t('work_order_detail.invoicing.gross', 'TOTAL À PAYER:')}</span>
+                                        <span className="text-[19px] font-black tabular-nums whitespace-nowrap">{totalGross.toFixed(2)}&nbsp;EUR</span>
                                     </div>
                                 </div>
                             </div>
@@ -3165,19 +3198,17 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {/* Status + Tabs + Badge — totul pe un singur rând */}
                         <div className="flex items-center gap-3 mb-4 flex-wrap">
                             {/* Tabs DEVIS / FACTURE — schimbă preview, click pe PDF deschide full page */}
-                            <div className="bg-slate-50 dark:bg-slate-800/50 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex gap-1">
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs flex gap-1.5">
                                     <button
                                         onClick={() => setActiveDocTab('devis')}
-                                        style={activeDocTab === 'devis' ? { backgroundColor: `#2563EB20`, color: '#2563EB', borderColor: `#2563EB40` } : {}}
-                                        className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors ${activeDocTab === 'devis' ? 'shadow-sm ring-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                                        className={`px-4 py-1.5 text-[13.5px] font-extrabold rounded-full transition-colors cursor-pointer ${activeDocTab === 'devis' ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                     >
                                         DEVIS {wo.quote_number ? `· ${wo.quote_number}` : ''}
                                     </button>
                                     {wo.is_invoiced && (
                                         <button
                                             onClick={() => setActiveDocTab('facture')}
-                                            style={activeDocTab === 'facture' ? { backgroundColor: `#2563EB20`, color: '#2563EB', borderColor: `#2563EB40` } : {}}
-                                            className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors ${activeDocTab === 'facture' ? 'shadow-sm ring-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                                            className={`px-4 py-1.5 text-[13.5px] font-extrabold rounded-full transition-colors cursor-pointer ${activeDocTab === 'facture' ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                         >
                                             FACTURE {wo.invoice_number ? `· ${wo.invoice_number}` : ''}
                                         </button>
@@ -3189,10 +3220,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             <button
                                 onClick={() => handleDownloadPdf('devis-pdf-iframe')}
                                 disabled={isDownloadingPdf}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full text-[10px] sm:text-xs uppercase tracking-wider shadow-sm transition-colors shrink-0 disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 border border-slate-200/90 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-extrabold rounded-full text-[13.5px] shadow-2xs transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
                                 title={t('work_order_detail.invoicing.download_pdf_title', 'Télécharger le fichier PDF')}
                             >
-                                {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                {isDownloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                                 {t('work_order_detail.invoicing.download_pdf', 'Télécharger PDF')}
                             </button>
 
@@ -3207,21 +3238,21 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         showToast(t('work_order_detail.email_prev_err', 'Erreur lors de la prévisualisation de l\'email.'), 'error');
                                     }
                                 }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full text-[10px] sm:text-xs uppercase tracking-wider shadow-sm transition-colors shrink-0"
+                                className="flex items-center gap-2 px-4 py-2 bg-[color:var(--tenant-bg)] hover:opacity-95 text-white font-extrabold rounded-full text-[13.5px] shadow-xs transition-colors shrink-0 cursor-pointer"
                             >
-                                <Mail className="w-3.5 h-3.5" />
+                                <Mail className="w-4 h-4" />
                                 {t('work_order_detail.btn_preview_email', 'Envoyer par email')}
                             </button>
 
                             <div className="ml-auto">
                                 {wo.is_invoiced ? (
-                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-2 px-3.5 py-1.5 rounded-full text-[12.5px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 uppercase tracking-wider">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                                         {t('work_order_detail.invoicing.invoiced', 'Facturé')}
                                     </span>
                                 ) : (
-                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 inline-block"></span>
+                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-2 px-3.5 py-1.5 rounded-full text-[12.5px] font-extrabold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
+                                        <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500 inline-block"></span>
                                         {t('work_order_detail.invoicing.not_invoiced', 'Non facturé')}
                                     </span>
                                 )}

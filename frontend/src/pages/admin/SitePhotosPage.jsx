@@ -137,17 +137,18 @@ export default function SitePhotosPage() {
         photo.photo_path?.startsWith('http') ? photo.photo_path : `${API_BASE}${photo.photo_path}`
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-            <div className="w-full">
+        <div className="w-full space-y-5">
+            <div className="w-full space-y-5">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
-                            <Camera className="w-5 h-5 text-white" />
-                        </div>
-                        Poze Șantier
-                        <span className="text-base font-normal text-slate-400">({total})</span>
-                    </h1>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight">
+                            {t('nav.site_photos', 'Photos de Chantiers')}
+                        </h1>
+                        <span className="px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-sky-500/15 text-[color:var(--tenant-bg)] border border-sky-500/25 tabular-nums">
+                            {total}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Toolbar */}

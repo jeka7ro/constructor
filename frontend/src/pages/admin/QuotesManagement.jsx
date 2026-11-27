@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useAdminStore } from '../../store/adminStore'
 import { createPortal } from 'react-dom'
-import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip, Eye, EyeOff, Route, Copy, ExternalLink, MessageSquare, Wind, Thermometer } from 'lucide-react'
+import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip, Eye, EyeOff, Route, Copy, ExternalLink, MessageSquare, Wind, Thermometer, Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import DataTable from '../../components/DataTable'
@@ -137,17 +137,17 @@ const EditablePrice = ({ row, onUpdate }) => {
 
     return (
         <div
-            onClick={() => { setManualInput(row.estimated_price ?? ''); setIsEditing(true); }}
-            className="flex items-baseline gap-1 cursor-pointer group"
+            onClick={(e) => { e.stopPropagation(); setManualInput(row.estimated_price ?? ''); setIsEditing(true); }}
+            className="inline-flex items-baseline gap-1 cursor-pointer group tabular-nums whitespace-nowrap"
             title="Cliquer pour saisir un prix manuel"
         >
             {isSaving
                 ? <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                : <span className={`text-sm transition-colors ${!isRead ? 'font-bold text-slate-900' : 'font-medium text-slate-500'}`}>
+                : <span className={`text-[15.5px] tracking-tight transition-colors ${!isRead ? 'font-black text-slate-950 dark:text-white' : 'font-extrabold text-slate-900 dark:text-slate-100'}`}>
                     {displayValue != null ? fmt(displayValue) : '—'}
                   </span>
             }
-            <span className={`text-xs ${!isRead ? 'font-bold text-slate-600' : 'font-medium text-slate-400'}`}>€</span>
+            <span className={`text-[13.5px] ${!isRead ? 'font-black text-slate-800 dark:text-slate-200' : 'font-bold text-slate-600'}`}>€</span>
         </div>
     )
 }
@@ -240,8 +240,8 @@ const DateScheduleTooltip = ({ date, i18n, navigate }) => {
             onMouseLeave={() => setIsOpen(false)}
             onClick={(e) => { e.stopPropagation(); if(isOpen) { setIsOpen(false) } else { handleOpen() } }}
         >
-            <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-xs shrink-0 whitespace-nowrap cursor-pointer hover:bg-blue-100 transition-colors">
-                <CalendarDays className="w-3 h-3" />
+            <span className="inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white text-[15px] font-bold shrink-0 whitespace-nowrap cursor-pointer transition-colors tabular-nums">
+                <CalendarDays className="w-4 h-4 text-slate-400" />
                 {formattedDate}
             </span>
 
@@ -288,17 +288,19 @@ const DateScheduleTooltip = ({ date, i18n, navigate }) => {
     );
 };
 
+let _quotesMemoryCache = (typeof window !== 'undefined' && window.__adminQuotesCache) || null
+
 export default function QuotesManagement() {
     const { admin } = useAdminStore()
     const { t, i18n } = useTranslation()
     const navigate = useNavigate()
-    const [quotes, setQuotes] = useState([])
-    const [clients, setClients] = useState([])
+    const [quotes, setQuotes] = useState(() => (typeof window !== 'undefined' && window.__adminQuotesCache) || _quotesMemoryCache || [])
+    const [clients, setClients] = useState(() => (typeof window !== 'undefined' && window.__adminClientsCache) || [])
     const [activities, setActivities] = useState([])
     const [previewDocs, setPreviewDocs] = useState(null)
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(() => !((typeof window !== 'undefined' && window.__adminQuotesCache) || _quotesMemoryCache))
     const [sentToPlanningIds, setSentToPlanningIds] = useState(new Set())
-    const [teams, setTeams] = useState([])
+    const [teams, setTeams] = useState(() => (typeof window !== 'undefined' && window.__adminTeamsCache) || [])
     const [planningModal, setPlanningModal] = useState(null) // { quote } when open
     const [planningForm, setPlanningForm] = useState({ date: '', time: '07:00', teamId: '' })
     const [isSendingPlanning, setIsSendingPlanning] = useState(false)
@@ -309,6 +311,10 @@ export default function QuotesManagement() {
     const [isBulkRecalculating, setIsBulkRecalculating] = useState(false)
     const [previewPdfId, setPreviewPdfId] = useState(null)
     const [viewMode, setViewMode] = useState('active') // 'active' | 'archived'
+    const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'pending' | 'planning' | 'confirmed' | 'unread'
+    const [sourceFilter, setSourceFilter] = useState('all') // 'all' | 'devis_online' | 'we-r' | 'partner' | 'manual'
+    const [searchQuery, setSearchQuery] = useState('')
+    const [lastUpdatedTime, setLastUpdatedTime] = useState(() => new Date())
 
     const handleSelectAll = (e) => {
         if (e.target.checked) {
@@ -499,7 +505,8 @@ export default function QuotesManagement() {
     }
 
     const fetchQuotes = async (silent = false) => {
-        if (!silent) setLoading(true)
+        const hasCache = Boolean((typeof window !== 'undefined' && window.__adminQuotesCache) || _quotesMemoryCache)
+        if (!silent && (!hasCache || viewMode === 'archived')) setLoading(true)
         try {
             const endpoint = viewMode === 'archived'
                 ? '/admin/work-orders?is_quote=true&status=deleted&slim=true'
@@ -507,7 +514,12 @@ export default function QuotesManagement() {
             // Add timestamp cache buster to force fresh data from server
             const res = await api.get(`${endpoint}&_t=${Date.now()}`)
             const activeQuotes = res.data.filter(q => q.status !== 'cancelled');
+            if (viewMode === 'active') {
+                _quotesMemoryCache = activeQuotes
+                if (typeof window !== 'undefined') window.__adminQuotesCache = activeQuotes
+            }
             setQuotes(activeQuotes)
+            setLastUpdatedTime(new Date())
             
             // Fix unread count by dispatching event, HeaderNotifications will handle localStorage
             window.dispatchEvent(new Event('quotesViewed'));
@@ -647,13 +659,13 @@ export default function QuotesManagement() {
     const columns = [
         {
             key: 'checkbox',
-            className: 'w-[32px] max-w-[32px] !px-1',
+            className: 'w-[46px] max-w-[46px] !px-2',
             label: (
                 <input 
                     type="checkbox" 
                     checked={quotes.length > 0 && selectedIds.length === quotes.length}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
             ),
             sortable: false,
@@ -663,7 +675,7 @@ export default function QuotesManagement() {
                         type="checkbox" 
                         checked={selectedIds.includes(row.id)}
                         onChange={(e) => handleSelectRow(e, row.id)}
-                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         onClick={(e) => e.stopPropagation()}
                     />
                 </div>
@@ -673,7 +685,7 @@ export default function QuotesManagement() {
             key: 'created_at',
             label: t('quotes.quote_details', 'Citat Nr. / Data'),
             sortable: true,
-            className: 'w-[175px] max-w-[180px]',
+            className: 'w-[13%] min-w-[145px]',
             render: (row) => {
                 let display = '-'
                 let timeDisplay = ''
@@ -691,65 +703,64 @@ export default function QuotesManagement() {
                         display = row.created_at
                     }
                 }
-                const getStatusDot = (status) => {
-                    const map = {
-                        planning:  { color: 'bg-emerald-500 animate-pulse', label: t('status.planning', 'En planning'),  text: 'text-emerald-700' },
-                        confirmed: { color: 'bg-green-500',                 label: t('status.confirmed', 'Signé'),       text: 'text-green-700'   },
-                        completed: { color: 'bg-slate-400',                 label: t('status.completed', 'Terminé'),     text: 'text-slate-500'   },
-                        cancelled: { color: 'bg-red-400',                   label: t('status.cancelled', 'Annulé'),      text: 'text-red-500'     },
-                    }
-                    const cfg = map[status] || { color: 'bg-amber-400', label: t('status.pending', 'En attente'), text: 'text-amber-600' }
-                    return (
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap ${cfg.text}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${cfg.color}`}></span>
-                            {cfg.label}
-                        </span>
-                    )
-                }
-                const getSourceBadge = (src, lang) => {
-                    const flag = lang ? (lang.toLowerCase() === 'fr' ? '' : lang.toLowerCase() === 'nl' ? '' : lang.toLowerCase() === 'en' ? '' : '') : '';
-                    if (src === 'calculator_public' || src === 'we-r') return (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-500 whitespace-nowrap">
-                            {t('source.we_r', 'WE-R')} {flag && <span className="text-sm">{flag}</span>}
-                        </span>
-                    )
-                    if (src === 'devis_online') return (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-blue-500 whitespace-nowrap">
-                            {t('source.devis', 'Devis en ligne')} {flag && <span className="text-sm">{flag}</span>}
-                        </span>
-                    )
-                    if (src === 'robaws') return (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-indigo-500 whitespace-nowrap">
-                            {t('source.robaws', 'Robaws')}
-                        </span>
-                    )
-                    if (src === 'partner') return (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-500 whitespace-nowrap">
-                            {t('source.partner', 'Partenaire')}
-                        </span>
-                    )
-                    if (src === 'manual') return (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">
-                            {t('source.manual', 'Ajouté manuellement')}
-                        </span>
-                    )
-                    return null
-                }
                 const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
                 return (
-                    <div className="flex flex-col gap-0.5">
-                        <div className={`flex items-center gap-1.5 text-sm ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
-                            <span className="shrink-0">{row.quote_number || '-'}</span>
-                            <span className="text-slate-300">•</span>
-                            <div className={`flex items-center gap-1 text-[11px] ${!isRead ? 'font-bold text-slate-600' : 'font-medium text-slate-400'}`}>
-                                <CalendarDays className="w-3 h-3 shrink-0" />
-                                <span className="truncate">{display}</span>
-                            </div>
+                    <div className="flex flex-col gap-0.5 tabular-nums whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                            {!isRead && (
+                                <span className="w-2.5 h-2.5 rounded-full bg-[color:var(--tenant-bg)] shrink-0" title={t('quotes.unread', 'Nou / Necitit')} />
+                            )}
+                            <span className={`text-[14.5px] tracking-tight whitespace-nowrap ${!isRead ? 'font-black text-slate-950 dark:text-white' : 'font-extrabold text-slate-900 dark:text-slate-100'}`}>
+                                #{row.quote_number || '-'}
+                            </span>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                            {getStatusDot(row.status)}
-                            {getSourceBadge(row.source_system, row.client_language)}
+                        <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            <span>{display}</span>
+                            {timeDisplay && (
+                                <span className="font-extrabold text-slate-800 dark:text-slate-200">{timeDisplay}</span>
+                            )}
                         </div>
+                    </div>
+                )
+            }
+        },
+        {
+            key: 'status',
+            label: t('quotes.status_source_col', 'Status & Sursă'),
+            sortable: true,
+            className: 'w-[14%] min-w-[160px]',
+            render: (row) => {
+                const statusMap = {
+                    planning:  { dot: 'bg-sky-500',     pill: 'bg-sky-500/10 text-sky-700 border-sky-500/25 dark:text-sky-300',         label: t('status.planning', 'În planificare') },
+                    confirmed: { dot: 'bg-emerald-500', pill: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/25 dark:text-emerald-300', label: t('status.confirmed', 'Confirmat') },
+                    completed: { dot: 'bg-slate-400',   pill: 'bg-slate-500/10 text-slate-600 border-slate-500/20 dark:text-slate-300',     label: t('status.completed', 'Finalizat') },
+                    cancelled: { dot: 'bg-rose-500',    pill: 'bg-rose-500/10 text-rose-700 border-rose-500/25 dark:text-rose-300',         label: t('status.cancelled', 'Anulat') },
+                }
+                const cfg = statusMap[row.status] || {
+                    dot: 'bg-amber-500',
+                    pill: 'bg-amber-500/10 text-amber-700 border-amber-500/25 dark:text-amber-300',
+                    label: t('status.pending', 'În așteptare')
+                }
+                const src = row.source_system;
+                const sourceLabel = (src === 'calculator_public' || src === 'we-r')
+                    ? t('source.we_r', 'WE-R')
+                    : src === 'devis_online'
+                        ? t('source.devis', 'Devis Online')
+                        : src === 'robaws'
+                            ? t('source.robaws', 'Robaws')
+                            : src === 'partner'
+                                ? t('source.partner', 'Partener')
+                                : t('source.manual', 'Manual');
+
+                return (
+                    <div className="flex flex-col items-start gap-1">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12.5px] font-extrabold border whitespace-nowrap ${cfg.pill}`}>
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+                            {cfg.label}
+                        </span>
+                        <span className="text-[12.5px] font-bold text-slate-500 dark:text-slate-300 pl-1 whitespace-nowrap">
+                            {sourceLabel}
+                        </span>
                     </div>
                 )
             }
@@ -758,36 +769,28 @@ export default function QuotesManagement() {
             key: 'client_name',
             label: t('quotes.client_address', 'Client & Adresă'),
             sortable: true,
-            className: 'w-[200px]',
+            className: 'w-[29%] min-w-[260px]',
             render: (row) => {
                 const addr = row.site_address;
                 const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
                 const distance = row.route_distance_km ? parseFloat(row.route_distance_km) : (row.prices?.distance_km ? parseFloat(row.prices.distance_km) * 2 : 0);
 
-                let badgeColor = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
-                if (row.source_system === 'calculator_public' || row.source_system === 'we-r') {
-                    badgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400';
-                } else if (row.source_system === 'devis_online') {
-                    badgeColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400';
-                } else if (row.source_system === 'robaws') {
-                    badgeColor = 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400';
-                }
-
                 return (
-                    <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1.5 text-sm text-slate-700">
+                    <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-1.5 text-[14.5px] min-w-0 flex-wrap">
+                            <User className="w-4 h-4 text-slate-400 shrink-0" />
                             {row.client_id ? (
                                 <RouterLink 
                                     to={`/admin/clients/${row.client_id}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className={`whitespace-normal break-words px-2 py-0.5 rounded-xl ${badgeColor} ${!isRead ? 'font-bold' : 'font-medium'} hover:opacity-80 transition-opacity cursor-pointer`}
+                                    className={`truncate text-slate-950 dark:text-white ${!isRead ? 'font-black' : 'font-extrabold'} hover:text-[color:var(--tenant-bg)] dark:hover:text-sky-400 transition-colors cursor-pointer`}
                                     title={row.client_name}
                                 >
                                     {row.client_name || '-'}
                                 </RouterLink>
                             ) : (
                                 <span 
-                                    className={`whitespace-normal break-words px-2 py-0.5 rounded-xl ${badgeColor} ${!isRead ? 'font-bold' : 'font-medium'}`} 
+                                    className={`truncate text-slate-950 dark:text-white ${!isRead ? 'font-black' : 'font-extrabold'}`} 
                                     title={row.client_name}
                                 >
                                     {row.client_name || '-'}
@@ -795,16 +798,17 @@ export default function QuotesManagement() {
                             )}
                             {(row.start_date || row.approximate_date) && (
                                 <>
-                                    <span className="text-slate-300 shrink-0">•</span>
+                                    <span className="text-slate-300 dark:text-slate-600 shrink-0">•</span>
                                     <DateScheduleTooltip date={row.start_date || row.approximate_date} i18n={i18n} navigate={navigate} />
                                 </>
                             )}
                         </div>
-                        <div className={`flex items-center gap-1.5 text-sm text-slate-500 overflow-hidden ${!isRead ? 'font-bold' : 'font-medium'}`}>
+                        <div className="flex items-center gap-1.5 text-[12.5px] text-slate-500 dark:text-slate-400 overflow-hidden font-semibold">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             {distance > 0 && (
                                 <>
-                                    <span className="text-slate-500 shrink-0">{Math.round(distance)} km</span>
-                                    <span className="text-slate-300 shrink-0">•</span>
+                                    <span className="text-slate-700 dark:text-slate-300 font-extrabold shrink-0 tabular-nums whitespace-nowrap">{Math.round(distance)} km</span>
+                                    <span className="text-slate-300 dark:text-slate-600 shrink-0">•</span>
                                 </>
                             )}
                             <span className="truncate" title={addr}>{addr || '—'}</span>
@@ -817,44 +821,48 @@ export default function QuotesManagement() {
             key: 'surface_thickness',
             label: t('quotes.surface_thickness', 'Suprafață / Grosime'),
             sortable: true,
-            className: 'w-[190px]',
+            className: 'w-[17%] min-w-[195px]',
             render: (row) => {
-                let displayDate = '';
-                if (row.start_date || row.approximate_date) {
-                    try {
-                        const d = new Date(row.start_date || row.approximate_date)
-                        if (!isNaN(d.getTime())) {
-                            displayDate = d.toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : 'en-GB')
-                        }
-                    } catch(e) {}
-                }
-                
                 const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
                 const isolationVol = row.volumes?.find(v => v.label?.toLowerCase().includes('isolation') || v.label?.toLowerCase().includes('pur') || v.type === 'isolation');
                 
                 return (
-                    <div className={`flex flex-col gap-1.5 text-sm ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+                    <div className="flex flex-col gap-1 tabular-nums whitespace-nowrap">
                         {/* Chape */}
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-slate-400 font-normal w-[42px] shrink-0">Chape:</span>
-                            <span>{row.volumes?.[0]?.quantity ? `${row.volumes[0].quantity} m²` : '-'}</span>
-                            <span className="text-slate-300">•</span>
-                            <span className="uppercase text-slate-500">{row.volumes?.[0]?.thickness ? `${row.volumes[0].thickness} cm` : '-'}</span>
+                        <div className="flex items-center gap-1.5 text-[14px] whitespace-nowrap">
+                            <span className="text-[12.5px] text-slate-500 font-bold w-[46px] shrink-0 whitespace-nowrap">Chape</span>
+                            <span className={`whitespace-nowrap ${!isRead ? 'font-black text-slate-950 dark:text-white' : 'font-extrabold text-slate-900 dark:text-slate-100'}`}>
+                                {row.volumes?.[0]?.quantity ? `${row.volumes[0].quantity} m²` : '-'}
+                            </span>
+                            <span className="text-slate-300 dark:text-slate-600">•</span>
+                            <span className="text-[13px] font-extrabold text-slate-600 dark:text-slate-400 uppercase whitespace-nowrap">
+                                {row.volumes?.[0]?.thickness ? `${row.volumes[0].thickness} cm` : '-'}
+                            </span>
                         </div>
                         
                         {/* Isolation */}
                         {isolationVol && (
-                            <div className="flex items-center gap-1.5 text-sm mt-0.5">
-                                <div className="w-[42px] flex justify-start shrink-0">
+                            <div className="flex items-center gap-1.5 text-[13.5px] whitespace-nowrap">
+                                <div className="w-[46px] flex items-center gap-1 shrink-0 text-[12px] font-bold text-slate-500 whitespace-nowrap">
                                     {isolationVol.label.toLowerCase().includes('pur') ? (
-                                        <Wind className="w-4 h-4 text-indigo-400" />
+                                        <>
+                                            <Wind className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                            <span>PUR</span>
+                                        </>
                                     ) : (
-                                        <Thermometer className="w-4 h-4 text-emerald-400" />
+                                        <>
+                                            <Thermometer className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                            <span>Iso</span>
+                                        </>
                                     )}
                                 </div>
-                                <span>{isolationVol.quantity ? `${isolationVol.quantity} m²` : '-'}</span>
-                                <span className="text-slate-300">•</span>
-                                <span className="uppercase text-slate-500">{isolationVol.thickness ? `${isolationVol.thickness} cm` : '-'}</span>
+                                <span className="font-extrabold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                                    {isolationVol.quantity ? `${isolationVol.quantity} m²` : '-'}
+                                </span>
+                                <span className="text-slate-300 dark:text-slate-600">•</span>
+                                <span className="text-[12.5px] font-bold text-slate-500 uppercase whitespace-nowrap">
+                                    {isolationVol.thickness ? `${isolationVol.thickness} cm` : '-'}
+                                </span>
                             </div>
                         )}
                     </div>
@@ -865,7 +873,8 @@ export default function QuotesManagement() {
             key: 'estimated_price',
             label: t('quotes.price', 'Preț (€)'),
             sortable: true,
-            className: 'w-[90px]',
+            align: 'right',
+            className: 'w-[11%] min-w-[130px]',
             render: (row) => {
                 let discounts = [];
                 if (row.proforma_data?.items) {
@@ -877,25 +886,17 @@ export default function QuotesManagement() {
                     }
                 }
                 
-                const isolationVol = row.volumes?.find(v => v.label?.includes('Isolation'));
-                
                 return (
-                    <div className="flex flex-col gap-0.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <EditablePrice row={row} onUpdate={fetchQuotes} />
-                        </div>
-                        
+                    <div className="flex flex-col items-end gap-0.5 tabular-nums whitespace-nowrap">
+                        <EditablePrice row={row} onUpdate={fetchQuotes} />
                         {discounts.length > 0 && (
-                            <div className="flex flex-nowrap items-center gap-1.5 mt-0.5">
+                            <div className="flex flex-nowrap items-center justify-end gap-1">
                                 {discounts.map((d, idx) => {
                                     const match = (d.desc || '').match(/\(([\d.]+%)\)/);
                                     const pct = match ? match[1] : '';
-                                    let label = (d.desc || '').replace(/\s*\([^)]+\)/, '').trim();
-                                    label = label.replace(/Remise/i, '').trim(); 
-                                    
                                     return (
-                                        <span key={idx} className="text-emerald-600 text-[10px] font-bold whitespace-nowrap tracking-tight bg-emerald-50 px-1.5 py-0.5 rounded">
-                                            - {new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(d.price))} € {label ? `${label} ` : ''}{pct ? `(${pct})` : ''}
+                                        <span key={idx} className="text-emerald-600 dark:text-emerald-400 text-[12px] font-extrabold whitespace-nowrap">
+                                            -{new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(d.price))} € {pct ? `(${pct})` : ''}
                                         </span>
                                     );
                                 })}
@@ -906,12 +907,14 @@ export default function QuotesManagement() {
             }
         },
         {
-            label: 'ACȚIUNI',
-            className: 'w-[110px]',
+            label: t('common.actions', 'Acțiuni'),
+            align: 'right',
+            className: 'w-[14%] min-w-[225px]',
             render: (row) => {
                 const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
+                const btnBase = "w-8.5 h-8.5 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all cursor-pointer shadow-2xs shrink-0";
                 return (
-                <div className="grid grid-cols-3 gap-1 w-[96px]">
+                <div className="flex items-center justify-end gap-1">
                     {row.status === 'deleted' ? (
                         <button
                             title={t('quotes.btn_restore_short', 'Restaurer')}
@@ -935,7 +938,7 @@ export default function QuotesManagement() {
                                     }
                                 });
                             }}
-                            className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
+                            className={btnBase}
                         >
                             <RefreshCw className="w-4 h-4" />
                         </button>
@@ -956,7 +959,7 @@ export default function QuotesManagement() {
                                         console.error(err);
                                     }
                                 }}
-                                className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors ${isRead ? 'text-slate-400 dark:text-slate-500' : 'text-blue-500 dark:text-blue-400'}`}
+                                className={`${btnBase} ${isRead ? '' : '!text-[color:var(--tenant-bg)] !border-sky-500/35 !bg-sky-500/10'}`}
                             >
                                 {isRead ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -969,7 +972,7 @@ export default function QuotesManagement() {
                                         navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`);
                                         showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'), 'success');
                                     }}
-                                    className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
+                                    className={btnBase}
                                 >
                                     <Copy className="w-4 h-4" />
                                 </button>
@@ -980,7 +983,7 @@ export default function QuotesManagement() {
                                     e.stopPropagation();
                                     navigate(`/admin/chats?wo_id=${row.id}`);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
+                                className={btnBase}
                             >
                                 <MessageSquare className="w-4 h-4" />
                             </button>
@@ -990,7 +993,7 @@ export default function QuotesManagement() {
                                     e.stopPropagation();
                                     setPreviewPdfId(row.id);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
+                                className={btnBase}
                             >
                                 <FileText className="w-4 h-4" />
                             </button>
@@ -1002,7 +1005,7 @@ export default function QuotesManagement() {
                                     setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' })
                                     setPlanningModal(row)
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
+                                className={btnBase}
                             >
                                 <CalendarDays className="w-4 h-4" />
                             </button>
@@ -1027,7 +1030,7 @@ export default function QuotesManagement() {
                                         }
                                     })
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
+                                className={`${btnBase} hover:!text-rose-600 hover:!border-rose-200 hover:!bg-rose-50`}
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -1131,23 +1134,295 @@ export default function QuotesManagement() {
         }
     }
 
+    // ── Live KPIs, Status Counts, Source Counts & Filtered List (Apple HIG / Screen 2 style) ──
+    const fmtEur = (val) => new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
+    const getRowPrice = (r) => computeQuoteTotalFromRow(r) ?? (r.computed_total ?? (r.estimated_price ? parseFloat(r.estimated_price) : 0)) ?? 0;
+    const getRowSqm = (r) => {
+        if (Array.isArray(r.volumes) && r.volumes.length > 0) {
+            return parseFloat(r.volumes[0]?.quantity || 0) || 0;
+        }
+        return parseFloat(r.surface_m2 || 0) || 0;
+    };
+    const isRowRead = (r) => r.read_by_admins?.map(String).includes(String(admin?.id));
+
+    const kpiStats = (() => {
+        let totalValue = 0;
+        let totalSqm = 0;
+        let pendingCount = 0;
+        let pendingValue = 0;
+        let planningCount = 0;
+        let planningSqm = 0;
+        let confirmedCount = 0;
+        let confirmedValue = 0;
+        let unreadCount = 0;
+        let srcDevisOnline = 0;
+        let srcWeR = 0;
+        let srcPartner = 0;
+        let srcManual = 0;
+
+        quotes.forEach(q => {
+            const p = getRowPrice(q);
+            const sqm = getRowSqm(q);
+            totalValue += p;
+            totalSqm += sqm;
+
+            if (!isRowRead(q)) unreadCount++;
+
+            if (q.status === 'planning') {
+                planningCount++;
+                planningSqm += sqm;
+            } else if (q.status === 'confirmed') {
+                confirmedCount++;
+                confirmedValue += p;
+            } else {
+                pendingCount++;
+                pendingValue += p;
+            }
+
+            if (q.source_system === 'devis_online') srcDevisOnline++;
+            else if (q.source_system === 'we-r' || q.source_system === 'calculator_public') srcWeR++;
+            else if (q.source_system === 'partner') srcPartner++;
+            else srcManual++;
+        });
+
+        const avgPrice = quotes.length > 0 ? totalValue / quotes.length : 0;
+        const avgSqm = quotes.length > 0 ? Math.round(totalSqm / quotes.length) : 0;
+
+        return {
+            totalValue,
+            avgPrice,
+            totalSqm: Math.round(totalSqm),
+            avgSqm,
+            pendingCount,
+            pendingValue,
+            planningCount,
+            planningSqm: Math.round(planningSqm),
+            confirmedCount,
+            confirmedValue,
+            unreadCount,
+            srcDevisOnline,
+            srcWeR,
+            srcPartner,
+            srcManual
+        };
+    })();
+
+    const filteredQuotes = quotes.filter(q => {
+        if (viewMode === 'active') {
+            if (statusFilter === 'pending' && (q.status === 'planning' || q.status === 'confirmed' || q.status === 'completed')) return false;
+            if (statusFilter === 'planning' && q.status !== 'planning') return false;
+            if (statusFilter === 'confirmed' && q.status !== 'confirmed') return false;
+            if (statusFilter === 'unread' && isRowRead(q)) return false;
+
+            if (sourceFilter === 'devis_online' && q.source_system !== 'devis_online') return false;
+            if (sourceFilter === 'we-r' && q.source_system !== 'we-r' && q.source_system !== 'calculator_public') return false;
+            if (sourceFilter === 'partner' && q.source_system !== 'partner') return false;
+            if (sourceFilter === 'manual' && q.source_system && !['manual', 'robaws'].includes(q.source_system)) return false;
+        }
+        if (searchQuery.trim()) {
+            const term = searchQuery.toLowerCase().trim();
+            const haystack = [
+                q.quote_number,
+                q.client_name,
+                q.site_address,
+                q.client_phone,
+                q.client_email,
+                q.notes
+            ].filter(Boolean).join(' ').toLowerCase();
+            if (!haystack.includes(term)) return false;
+        }
+        return true;
+    });
+
     return (
-        <div className="p-4 md:p-8 w-full flex flex-col min-h-[calc(100vh-64px)]">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">{t('quotes.title_main', 'Devis / Oferte')}</h2>
-                    <p className="text-slate-500 text-sm">{t('quotes.subtitle', 'Gérer les demandes de devis avant la planification')}</p>
+        <div className="w-full flex flex-col min-h-[calc(100vh-100px)] space-y-4">
+            {/* ── Top Header Bar (Apple HIG / Dispatch Live style — uniform heights) ───── */}
+            <div className="flex flex-wrap justify-between items-center gap-3">
+                <div className="flex items-center gap-3">
+                    <div>
+                        <div className="flex items-center gap-2.5">
+                            <h2 className="text-[24px] font-black text-slate-900 dark:text-white tracking-tight">
+                                {t('quotes.title_main', 'Devize / Oferte')}
+                            </h2>
+                            <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[13px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                Live
+                            </span>
+                        </div>
+                        <p className="text-slate-500 dark:text-slate-400 text-[13.5px] font-semibold mt-0.5">
+                            {t('quotes.subtitle', 'Gérer les demandes de devis avant la planification')}
+                        </p>
+                    </div>
                 </div>
-                {!showQuickAdd && (
-                    <button 
-                        onClick={() => setShowQuickAdd(true)}
-                        className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-sm flex items-center gap-2 transition-colors"
+
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="text-[13px] font-semibold text-slate-400 dark:text-slate-400 tabular-nums hidden sm:inline mr-1">
+                        {t('common.updated', 'Actualizat')}: {lastUpdatedTime.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => fetchQuotes(false)}
+                        className="h-10 px-4 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-[13.5px] font-bold inline-flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
                     >
-                        <Plus className="w-4 h-4" />
-                        {t('quotes.quick_add', 'Ajout Rapide Devis')}
+                        <RefreshCw className={`w-4 h-4 shrink-0 ${loading ? 'animate-spin text-[color:var(--tenant-bg)]' : 'text-slate-600'}`} />
+                        <span>{t('common.refresh', 'Reîncarcă')}</span>
                     </button>
-                )}
+                    {!showQuickAdd && (
+                        <button 
+                            type="button"
+                            onClick={() => setShowQuickAdd(true)}
+                            className="h-10 px-4 bg-[color:var(--tenant-bg)] hover:opacity-95 text-white font-bold rounded-full text-[13.5px] shadow-xs inline-flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap"
+                        >
+                            <Plus className="w-4 h-4 stroke-[2.5] shrink-0" />
+                            <span>{t('quotes.quick_add', 'Ajout Rapide Devis')}</span>
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {/* ── Apple HIG KPI Summary Cards Row (5 Clean White Cards, p-5 rounded-[20px], zero default selection border) ── */}
+            {viewMode === 'active' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                    {/* Card 1: Total Value — Neutral border like all other cards */}
+                    <div
+                        onClick={() => { setStatusFilter('all'); setSourceFilter('all'); }}
+                        className="rounded-[20px] bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 p-5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] transition-all cursor-pointer flex flex-col justify-between"
+                    >
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200">
+                                    {t('quotes.kpi_total_value', 'Valoare Totală Devize')}
+                                </span>
+                                <span className="w-2.5 h-2.5 rounded-full bg-[color:var(--tenant-bg)]" />
+                            </div>
+                            <div className="text-[25px] font-black tracking-tight text-slate-950 dark:text-white leading-tight tabular-nums whitespace-nowrap">
+                                {fmtEur(kpiStats.totalValue)} €
+                            </div>
+                        </div>
+                        <div className="mt-2.5 flex items-center justify-between gap-2 flex-wrap">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-extrabold bg-sky-500/12 text-[color:var(--tenant-bg)] dark:text-sky-300 tabular-nums">
+                                {t('quotes.kpi_avg_quote', 'Medie')}: {fmtEur(kpiStats.avgPrice)} €
+                            </span>
+                            <span className="text-[12px] font-bold text-slate-400 tabular-nums">
+                                {quotes.length} total
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Card 2: În Așteptare */}
+                    <div
+                        onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+                        className={`rounded-[20px] bg-white dark:bg-slate-900 border p-5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] transition-all cursor-pointer flex flex-col justify-between ${
+                            statusFilter === 'pending'
+                                ? 'border-amber-500/60 ring-1 ring-amber-500/20'
+                                : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200">
+                                    {t('status.pending', 'În așteptare')}
+                                </span>
+                                <span className="text-[12.5px] font-bold text-slate-400 tabular-nums whitespace-nowrap">
+                                    {fmtEur(kpiStats.pendingValue)} €
+                                </span>
+                            </div>
+                            <div className="text-[26px] font-black tracking-tight text-slate-950 dark:text-white leading-tight tabular-nums">
+                                {kpiStats.pendingCount} <span className="text-[14.5px] font-bold text-slate-500">devize</span>
+                            </div>
+                        </div>
+                        <div className="mt-2.5">
+                            {kpiStats.unreadCount > 0 ? (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-extrabold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25">
+                                    {kpiStats.unreadCount} {t('quotes.kpi_unread_new', 'noi (necitite)')}
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                    {t('quotes.kpi_all_read', 'Toate verificate')}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Card 3: În Planificare */}
+                    <div
+                        onClick={() => setStatusFilter(statusFilter === 'planning' ? 'all' : 'planning')}
+                        className={`rounded-[20px] bg-white dark:bg-slate-900 border p-5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] transition-all cursor-pointer flex flex-col justify-between ${
+                            statusFilter === 'planning'
+                                ? 'border-sky-500/60 ring-1 ring-sky-500/20'
+                                : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200">
+                                    {t('status.planning', 'În planificare')}
+                                </span>
+                                <span className="text-[12.5px] font-bold text-slate-400 tabular-nums whitespace-nowrap">
+                                    {kpiStats.planningSqm} m²
+                                </span>
+                            </div>
+                            <div className="text-[26px] font-black tracking-tight text-slate-950 dark:text-white leading-tight tabular-nums">
+                                {kpiStats.planningCount} <span className="text-[14.5px] font-bold text-slate-500">în calendar</span>
+                            </div>
+                        </div>
+                        <div className="mt-2.5">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-extrabold bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/25">
+                                {t('quotes.kpi_scheduled_badge', 'Programate în planning')}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Card 4: Confirmate */}
+                    <div
+                        onClick={() => setStatusFilter(statusFilter === 'confirmed' ? 'all' : 'confirmed')}
+                        className={`rounded-[20px] bg-white dark:bg-slate-900 border p-5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] transition-all cursor-pointer flex flex-col justify-between ${
+                            statusFilter === 'confirmed'
+                                ? 'border-emerald-500/60 ring-1 ring-emerald-500/20'
+                                : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200">
+                                    {t('status.confirmed', 'Confirmat')}
+                                </span>
+                                <span className="text-[12.5px] font-bold text-slate-400 tabular-nums whitespace-nowrap">
+                                    {fmtEur(kpiStats.confirmedValue)} €
+                                </span>
+                            </div>
+                            <div className="text-[26px] font-black tracking-tight text-slate-950 dark:text-white leading-tight tabular-nums">
+                                {kpiStats.confirmedCount} <span className="text-[14.5px] font-bold text-slate-500">acceptate</span>
+                            </div>
+                        </div>
+                        <div className="mt-2.5">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                                {t('quotes.kpi_confirmed_badge', 'Validat de client')}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Card 5: Suprafață Totală */}
+                    <div className="rounded-[20px] bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-5 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200">
+                                    {t('quotes.kpi_total_surface', 'Suprafață Totală')}
+                                </span>
+                                <span className="text-[12.5px] font-bold text-slate-400">Chape</span>
+                            </div>
+                            <div className="text-[26px] font-black tracking-tight text-slate-950 dark:text-white leading-tight tabular-nums whitespace-nowrap">
+                                {kpiStats.totalSqm.toLocaleString('ro-RO')} <span className="text-[14.5px] font-bold text-slate-500">m²</span>
+                            </div>
+                        </div>
+                        <div className="mt-2.5">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 tabular-nums">
+                                {t('quotes.kpi_avg_quote', 'Medie')}: {kpiStats.avgSqm} m² / deviz
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Quick Add Form */}
             {showQuickAdd && (
@@ -1163,86 +1438,176 @@ export default function QuotesManagement() {
                 />
             )}
 
-            {/* Table */}
-            <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[300px]">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                    <div className="flex items-center gap-3">
-                        <div className="flex bg-slate-200/50 p-1 rounded-xl">
-                            <button
-                                onClick={() => setViewMode('active')}
-                                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                                    viewMode === 'active' 
-                                    ? 'bg-white text-slate-800 shadow-sm' 
-                                    : 'text-slate-500 hover:text-slate-700'
-                                }`}
-                            >
-                                {t('quotes.active_tab', 'Actifs')}
-                            </button>
-                            <button
-                                onClick={() => setViewMode('archived')}
-                                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                                    viewMode === 'archived' 
-                                    ? 'bg-white text-slate-800 shadow-sm' 
-                                    : 'text-slate-500 hover:text-slate-700'
-                                }`}
-                            >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                {t('quotes.archived_tab', 'Corbeille')}
-                            </button>
+            {/* ── Main Apple HIG Table Container (1:1 Dispatch Live Layout) ─────────────── */}
+            <div className="flex-1 bg-white dark:bg-slate-900 rounded-[20px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden flex flex-col min-h-[300px]">
+                {/* Row 1: Title + Count Pill on Left, Search Input + Bulk Actions on Right */}
+                <div className="px-5 pt-4 pb-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        <div className="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center text-[color:var(--tenant-bg)] dark:text-sky-400 shrink-0">
+                            <FileText className="w-4 h-4" />
                         </div>
-                        <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-full">
-                            {quotes.length} {t('quotes.total', 'total')}
+                        <h3 className="text-[17px] font-black text-slate-900 dark:text-white tracking-tight">
+                            {viewMode === 'archived'
+                                ? t('quotes.archived_table_title', 'Arhivă Devize Șterse')
+                                : t('quotes.live_table_title', 'Tabel Operativ Devize')}
+                        </h3>
+                        <span className="inline-flex items-center h-7 px-3 rounded-full text-[12.5px] font-extrabold bg-sky-500/15 text-[color:var(--tenant-bg)] dark:text-sky-300 border border-sky-500/25 tabular-nums">
+                            {filteredQuotes.length} {t('quotes.quotes_count_label', 'devize')}
                         </span>
+
+                        {selectedIds.length > 0 && (
+                            <div className="flex items-center gap-1.5 ml-2 pl-2.5 border-l border-slate-200 dark:border-slate-700">
+                                <button 
+                                    type="button"
+                                    onClick={() => handleBulkMarkStatus(true)}
+                                    className="h-9 bg-slate-50 hover:bg-slate-100 text-slate-700 px-3 rounded-lg text-[13px] font-bold inline-flex items-center gap-1.5 transition-colors border border-slate-200/90 cursor-pointer"
+                                    title={t('quotes.mark_read', 'Marchează ca citite')}
+                                >
+                                    <Eye className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => handleBulkMarkStatus(false)}
+                                    className="h-9 bg-slate-50 hover:bg-slate-100 text-slate-700 px-3 rounded-lg text-[13px] font-bold inline-flex items-center gap-1.5 transition-colors border border-slate-200/90 cursor-pointer"
+                                    title={t('quotes.mark_unread', 'Marchează ca noi (necitite)')}
+                                >
+                                    <EyeOff className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={handleBulkRecalculate}
+                                    disabled={isBulkRecalculating}
+                                    className="h-9 bg-slate-50 hover:bg-slate-100 text-slate-700 px-3 rounded-lg text-[13px] font-bold inline-flex items-center gap-1.5 transition-colors border border-slate-200/90 disabled:opacity-50 cursor-pointer"
+                                >
+                                    {isBulkRecalculating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Route className="w-4 h-4" />}
+                                    <span>{t('quotes.recalculate_distances', 'Recalculare distanțe')} ({selectedIds.length})</span>
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowBulkDeleteConfirm(true)}
+                                    className="h-9 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 px-3 rounded-lg text-[13px] font-bold inline-flex items-center gap-1.5 transition-colors border border-rose-500/25 cursor-pointer"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>{t('common.delete_selected', 'Supprimer')} ({selectedIds.length})</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
-                    {selectedIds.length > 0 && (
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => handleBulkMarkStatus(true)}
-                                className="bg-slate-50 text-slate-600 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-slate-200"
-                                title={t('quotes.mark_read', 'Marchează ca citite')}
+
+                    {/* Right: Unified Apple HIG Pill Search Input (h-[42px]) */}
+                    <div className="relative w-full lg:w-[380px]">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={t('quotes.search', 'Caută după număr deviz, client, adresă...')}
+                            className="w-full h-[42px] pl-10 pr-9 bg-slate-100/90 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-full text-[13.5px] font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-[color:var(--tenant-bg)] transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
                             >
-                                <Eye className="w-4 h-4" />
+                                <X className="w-3 h-3" />
                             </button>
-                            <button 
-                                onClick={() => handleBulkMarkStatus(false)}
-                                className="bg-slate-50 text-slate-600 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-slate-200"
-                                title={t('quotes.mark_unread', 'Marchează ca noi (necitite)')}
-                            >
-                                <EyeOff className="w-4 h-4" />
-                            </button>
-                            <button 
-                                onClick={handleBulkRecalculate}
-                                disabled={isBulkRecalculating}
-                                className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-blue-200 disabled:opacity-50"
-                            >
-                                {isBulkRecalculating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Route className="w-4 h-4" />}
-                                {t('quotes.recalculate_distances', 'Recalculare distanțe')} ({selectedIds.length})
-                            </button>
-                            <button 
-                                onClick={() => setShowBulkDeleteConfirm(true)}
-                                className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-red-200"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                                {t('common.delete_selected', 'Supprimer')} ({selectedIds.length})
-                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Row 2: Filter Pills Bar (BOTH Left Status Pills and Right Source Pills have identical p-1 + h-8 = 42px outer height) */}
+                <div className="px-5 pb-3.5 pt-0.5 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+                    {/* Left: Status Filter Pills */}
+                    <div className="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 flex-wrap">
+                        {[
+                            { id: 'all',       label: t('common.all', 'Toate'),                 count: quotes.length,          icon: null },
+                            { id: 'pending',   label: t('status.pending', 'În așteptare'),      count: kpiStats.pendingCount,  icon: Clock },
+                            { id: 'planning',  label: t('status.planning', 'În planificare'),   count: kpiStats.planningCount, icon: CalendarDays },
+                            { id: 'confirmed', label: t('status.confirmed', 'Confirmat'),       count: kpiStats.confirmedCount,icon: CheckCircle2 },
+                            { id: 'unread',    label: t('quotes.unread_tab', 'Necitite'),       count: kpiStats.unreadCount,   icon: Eye },
+                        ].map(tab => {
+                            const isActive = viewMode === 'active' && statusFilter === tab.id;
+                            const TabIcon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => {
+                                        if (viewMode !== 'active') setViewMode('active');
+                                        setStatusFilter(tab.id);
+                                    }}
+                                    className={`h-8 px-3.5 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                                        isActive
+                                            ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
+                                            : 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    {TabIcon && <TabIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />}
+                                    <span>{tab.label}</span>
+                                    <span className={`tabular-nums text-[12.5px] ${isActive ? 'text-white/90 font-extrabold' : 'text-slate-400 font-semibold'}`}>
+                                        {tab.count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+
+                        <button
+                            type="button"
+                            onClick={() => setViewMode(viewMode === 'archived' ? 'active' : 'archived')}
+                            className={`h-8 px-3.5 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                                viewMode === 'archived'
+                                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                                    : 'bg-transparent text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'
+                            }`}
+                        >
+                            <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                            <span>{t('quotes.archived_tab', 'Arhivă')}</span>
+                        </button>
+                    </div>
+
+                    {/* Right: Source Channel Pills (identical p-1 container and h-8 buttons = 42px outer height) */}
+                    {viewMode === 'active' && (
+                        <div className="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 flex-wrap">
+                            {[
+                                { id: 'devis_online', label: t('source.devis', 'Devis Online'), count: kpiStats.srcDevisOnline },
+                                { id: 'we-r',         label: t('source.we_r', 'WE-R'),          count: kpiStats.srcWeR },
+                                { id: 'partner',      label: t('source.partner', 'Partener'),   count: kpiStats.srcPartner },
+                                { id: 'manual',       label: t('source.manual', 'Manual'),      count: kpiStats.srcManual },
+                            ].map(src => {
+                                const isAct = sourceFilter === src.id;
+                                return (
+                                    <button
+                                        key={src.id}
+                                        type="button"
+                                        onClick={() => setSourceFilter(isAct ? 'all' : src.id)}
+                                        className={`h-8 px-3.5 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                                            isAct
+                                                ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
+                                                : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        <span>{src.label}</span>
+                                        <span className={`tabular-nums text-[12.5px] ${isAct ? 'text-white/90 font-extrabold' : 'text-slate-400 font-semibold'}`}>{src.count}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
                 
                 <DataTable 
                     columns={columns}
-                    tableClassName="table-fixed"
-                    data={quotes}
+                    data={filteredQuotes}
                     loading={loading}
                     defaultPageSize={25}
                     storageKey="admin_quotes"
                     defaultSortKey="created_at"
                     defaultSortDir="desc"
-                    searchable={true}
-                    searchPlaceholder={t('quotes.search', 'Rechercher un devis...')}
+                    searchable={false}
                     emptyText={t('quotes.empty', 'Aucun devis en attente.')}
                     onRowClick={(row, filtered) => navigate(`/admin/work-orders/${row.id}`, { state: { from: '/admin/quotes', quoteIds: filtered?.map(q => q.id) || [] } })}
-                    rowClassName={(row) => `cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${!row.read_by_admins?.map(String).includes(String(admin?.id)) ? 'font-bold' : 'font-normal text-slate-700'}`}
+                    rowClassName={(row) => `cursor-pointer transition-colors hover:bg-slate-50/90 dark:hover:bg-slate-800/60 ${!row.read_by_admins?.map(String).includes(String(admin?.id)) ? 'font-bold' : 'font-normal text-slate-700'}`}
                     mobileCard={(row, index) => (
                         <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col gap-3 relative mb-2">
                             <div className="flex justify-between items-start">

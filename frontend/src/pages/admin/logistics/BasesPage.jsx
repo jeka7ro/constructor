@@ -143,20 +143,26 @@ export default function BasesPage() {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-            <div className="flex items-center gap-4">
-                <Link to="/admin/logistica" className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors">
-                    <ArrowLeft className="w-5 h-5 text-slate-600" />
+        <div className="w-full space-y-5">
+            <div className="flex flex-wrap items-center gap-4">
+                <Link to="/admin/logistica" className="w-10 h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs">
+                    <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <MapPin className="w-6 h-6 text-blue-600" /> {t('logistics.bases_title', 'Baze (Puncte de plecare)')}
-                    </h1>
-                    <p className="text-slate-500 text-sm">{t('logistics.bases_desc', 'Gestionează garajele/locațiile unde sunt parcate camioanele peste noapte.')}</p>
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+                            <MapPin className="w-6 h-6 text-[color:var(--tenant-bg)]" /> {t('logistics.bases_title', 'Baze (Puncte de plecare)')}
+                        </h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-slate-500 text-[15px] font-semibold mt-0.5">{t('logistics.bases_desc', 'Gestionează garajele/locațiile unde sunt parcate camioanele peste noapte.')}</p>
                 </div>
                 <div className="ml-auto">
-                    <button onClick={() => openModal()} className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2 shadow-sm">
-                        <Plus className="w-4 h-4" /> {t('logistics.add_base', 'Ajouter Bază')}
+                    <button onClick={() => openModal()} className="px-6 h-11 rounded-full bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-[15px] font-extrabold flex items-center gap-2 shadow-xs transition-all cursor-pointer">
+                        <Plus className="w-4.5 h-4.5" /> {t('logistics.add_base', 'Ajouter Bază')}
                     </button>
                 </div>
             </div>
@@ -219,10 +225,11 @@ export default function BasesPage() {
                 ]
                 
                 return (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
-                            <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-white" /> {t('logistics.bases_table', 'Tabel Baze (Garaje)')}
+                    <div className="bg-white dark:bg-slate-900 rounded-[20px] shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden">
+                        <div className="px-5 py-3.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+                            <h2 className="font-extrabold text-slate-900 dark:text-white text-[15px] tracking-tight flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-emerald-600" /> {t('logistics.bases_table', 'Tabel Baze (Garaje)')}
+                                <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 tabular-nums">{bases.length}</span>
                             </h2>
                         </div>
                         <DataTable
@@ -334,7 +341,7 @@ export default function BasesPage() {
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/85">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="h-[42px] px-5 rounded-[13px] bg-white border border-slate-300/90 text-slate-700 hover:bg-slate-50 font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]">{t('common.cancel', 'Annuler')}</button>
-                                <button type="submit" disabled={saving} className="h-[42px] px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[14px] rounded-[13px] shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] flex items-center gap-2 transition-all active:scale-[0.98]">
+                                <button type="submit" disabled={saving} className="h-[42px] px-6 bg-[color:var(--tenant-bg)] hover:opacity-95 text-white font-bold text-[14px] rounded-[13px] shadow-sm flex items-center gap-2 transition-all active:scale-[0.98]">
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('common.save', 'Enregistrer')}
                                 </button>
                             </div>

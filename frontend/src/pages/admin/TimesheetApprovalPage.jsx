@@ -344,14 +344,23 @@ export default function TimesheetApprovalPage() {
     ]
 
     return (
-        <div className="p-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
+        <div className="w-full space-y-5">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('timesheets.title')}</h1>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('timesheets.subtitle')}</p>
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight">{t('timesheets.title')}</h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15px] font-semibold text-slate-500 mt-0.5">{t('timesheets.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {lastRefresh && (
+                        <span className="text-[15px] font-semibold text-slate-500 tabular-nums hidden sm:inline">{lastRefresh.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                    )}
                     <button
                         onClick={async () => {
                             try {
@@ -371,33 +380,30 @@ export default function TimesheetApprovalPage() {
                                 openDialog({ type: 'danger', title: 'Erreur d\'exportation', message: 'Erreur d\'exportation: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
                             }
                         }}
-                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                        className="flex items-center gap-2 px-5 h-11 rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 text-slate-800 dark:text-slate-200 text-[15px] font-extrabold shadow-2xs transition-all whitespace-nowrap cursor-pointer"
                     >
-                        <FileSpreadsheet className="w-4 h-4" />
+                        <FileSpreadsheet className="w-4.5 h-4.5 text-emerald-600" />
                         <span className="hidden sm:inline">{t('common.export')}</span>
                     </button>
-                    <button onClick={fetchWorkers} className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap">
-                        <RefreshCw className="w-4 h-4" /> 
+                    <button onClick={fetchWorkers} className="flex items-center gap-2 px-6 h-11 rounded-full bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-[15px] font-extrabold shadow-xs transition-all whitespace-nowrap cursor-pointer">
+                        <RefreshCw className="w-4.5 h-4.5" /> 
                         <span className="hidden sm:inline">{t('common.refresh', 'Actualiser')}</span>
                     </button>
-                    {lastRefresh && (
-                        <span className="text-xs text-slate-400">{lastRefresh.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                    )}
                 </div>
             </div>
 
             {/* Period Selector */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-2 mb-6 overflow-x-auto hide-scrollbar">
+            <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 p-3.5 overflow-x-auto hide-scrollbar">
                 <div className="flex items-center justify-between w-full min-w-max gap-4 px-1">
-                    <div className="flex items-center gap-2">
+                    <div className="inline-flex items-center gap-1.5 bg-slate-50/90 dark:bg-slate-800/80 p-1.5 rounded-full border border-slate-200/90 dark:border-slate-700">
                         {PERIOD_PRESETS.map(preset => (
                             <button
                                 key={preset.key}
                                 onClick={() => handlePreset(preset)}
-                                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                                className={`h-9.5 px-4 py-1.5 rounded-full text-[15px] font-bold transition-all whitespace-nowrap cursor-pointer ${
                                     activePeriod === preset.key 
-                                        ? 'bg-blue-600 text-white shadow-md' 
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                        ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs' 
+                                        : 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
                                 }`}
                             >
                                 {t(preset.label)}
@@ -407,14 +413,14 @@ export default function TimesheetApprovalPage() {
                     
                     <div className="flex items-center gap-3 pl-2 sm:border-l border-slate-200 dark:border-slate-700">
                         <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-500 font-medium whitespace-nowrap">{t('timesheets.from')}:</label>
+                            <label className="text-[14px] text-slate-500 font-bold whitespace-nowrap">{t('timesheets.from')}:</label>
                             <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setActivePeriod('custom') }}
-                                className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-blue-500 outline-none transition-all cursor-pointer" />
+                                className="h-10 px-3.5 border border-slate-200/90 dark:border-slate-700 rounded-full text-[14px] font-bold bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-[color:var(--tenant-bg)] outline-none transition-all cursor-pointer" />
                         </div>
                         <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-500 font-medium whitespace-nowrap">{t('timesheets.to')}:</label>
+                            <label className="text-[14px] text-slate-500 font-bold whitespace-nowrap">{t('timesheets.to')}:</label>
                             <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setActivePeriod('custom') }}
-                                className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-blue-500 outline-none transition-all cursor-pointer" />
+                                className="h-10 px-3.5 border border-slate-200/90 dark:border-slate-700 rounded-full text-[14px] font-bold bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-[color:var(--tenant-bg)] outline-none transition-all cursor-pointer" />
                         </div>
                     </div>
                 </div>
@@ -509,12 +515,12 @@ export default function TimesheetApprovalPage() {
                     emptyText={t('timesheets.no_workers')}
                 />
 
-                {/* Activity Detail Popup */}
-                {activityPopup && (
+                {/* Activity Detail Popup — Apple HIG Popover via createPortal */}
+                {activityPopup && createPortal(
                     <>
-                        <div className="fixed inset-0 z-30" onClick={() => setActivityPopup(null)} />
+                        <div className="fixed inset-0 z-[99998]" onClick={() => setActivityPopup(null)} />
                         <div
-                            className="fixed z-40 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl p-4 min-w-[280px] max-w-[360px]"
+                            className="fixed z-[99999] bg-white dark:bg-slate-900 rounded-[20px] border-[1.5px] border-slate-300/95 dark:border-slate-700 ring-1 ring-slate-900/10 shadow-[0_24px_48px_-12px_rgba(15,23,42,0.32)] p-4 min-w-[280px] max-w-[360px]"
                             style={{
                                 top: Math.min(activityPopup.anchorRect.bottom + 8, window.innerHeight - 250),
                                 left: Math.min(activityPopup.anchorRect.left, window.innerWidth - 380),
@@ -522,23 +528,24 @@ export default function TimesheetApprovalPage() {
                         >
                             <div className="flex items-center justify-between mb-3">
                                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                                    <Activity className="w-4 h-4 text-blue-500" />
+                                    <Activity className="w-4 h-4 text-[color:var(--tenant-bg)]" />
                                     {t('dashboard.activities')} — {activityPopup.worker_name}
                                 </h4>
-                                <button onClick={() => setActivityPopup(null)} className="p-1 hover:bg-slate-100 rounded-lg">
+                                <button onClick={() => setActivityPopup(null)} className="w-7 h-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
                                     <X className="w-4 h-4 text-slate-400" />
                                 </button>
                             </div>
                             <div className="space-y-2">
                                 {activityPopup.activities.map((a, i) => (
-                                    <div key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2.5 border border-slate-100 dark:border-slate-700">
-                                        <span className="text-sm text-slate-700 dark:text-slate-200 font-medium">{a.name}</span>
-                                        <span className="text-sm font-bold text-blue-600">{a.quantity} <span className="text-xs text-slate-400 font-normal">{a.unit_type}</span></span>
+                                    <div key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2.5 border border-slate-200/80 dark:border-slate-700">
+                                        <span className="text-sm text-slate-700 dark:text-slate-200 font-semibold">{a.name}</span>
+                                        <span className="text-sm font-extrabold text-[color:var(--tenant-bg)] tabular-nums">{a.quantity} <span className="text-xs text-slate-400 font-normal">{a.unit_type}</span></span>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    </>
+                    </>,
+                    document.body
                 )}
             </div>
 

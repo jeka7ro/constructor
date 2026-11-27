@@ -383,36 +383,40 @@ export default function ActivitiesManagement() {
 
 
     return (
-        <div className="p-4 md:p-8 w-full max-w-7xl mx-auto">
+        <div className="w-full space-y-5">
             {/* Header Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 w-full">
-                <div className="flex items-center gap-6">
-                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <div className="flex flex-wrap items-center justify-between gap-4 w-full">
+                <div className="flex items-center gap-3.5">
+                    <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight">
                         {t('dashboard.activities', 'Activități')}
                     </h1>
+                    <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live
+                    </span>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="relative group flex items-center">
-                        <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                            <Search className="w-4 h-4" />
+                        <div className="absolute left-4 text-slate-400 group-focus-within:text-[color:var(--tenant-bg)] transition-colors">
+                            <Search className="w-5 h-5" />
                         </div>
                         <input
                             type="text"
                             placeholder={t('activities.search_placeholder', 'Caută activități...')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full sm:w-64 md:w-80 h-10 pl-10 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
+                            className="w-full sm:w-64 md:w-80 h-11 pl-11 pr-4 bg-white dark:bg-slate-900 text-[15px] font-medium text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-slate-700 rounded-full focus:border-[color:var(--tenant-bg)] focus:ring-2 focus:ring-sky-500/20 outline-none transition-all shadow-2xs"
                         />
                     </div>
-                </div>
-                
-                <div className="flex flex-wrap items-center gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer h-10 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                    <label className="flex items-center gap-2 cursor-pointer h-11 px-4 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-2xs">
                         <input 
                             type="checkbox" 
                             checked={showInactive} 
                             onChange={(e) => setShowInactive(e.target.checked)} 
-                            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
+                            className="w-4.5 h-4.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
                         />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('activities.archive_inactive', 'Arhivă (Inactivi)')}</span>
+                        <span className="text-[14.5px] font-bold text-slate-700 dark:text-slate-300">{t('activities.archive_inactive', 'Arhivă (Inactivi)')}</span>
                     </label>
 
                     <button
@@ -431,9 +435,9 @@ export default function ActivitiesManagement() {
                                 showDialog({ type: 'danger', title: t('common.export_error', 'Eroare Export'), message: t('common.error_message') + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
                             }
                         }}
-                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                        className="flex items-center gap-2 px-5 h-11 rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 text-slate-800 dark:text-slate-200 text-[15px] font-extrabold shadow-2xs transition-all whitespace-nowrap cursor-pointer"
                     >
-                        <FileSpreadsheet className="w-4 h-4" />
+                        <FileSpreadsheet className="w-4.5 h-4.5 text-emerald-600" />
                         <span className="hidden sm:inline">{t('common.export', 'Exportă')}</span>
                     </button>
                     
@@ -443,24 +447,24 @@ export default function ActivitiesManagement() {
                             setCategoryForm({ name: '', color: '#3b82f6', sort_order: 0 })
                             setShowCategoryModal(true)
                         }}
-                        className="flex items-center gap-1.5 px-4 h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors"
+                        className="flex items-center gap-2 px-5 h-11 rounded-full border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-[15px] font-extrabold transition-colors cursor-pointer"
                     >
-                        <FolderPlus className="w-4 h-4" />
+                        <FolderPlus className="w-4.5 h-4.5" />
                         <span className="hidden sm:inline">{t('activities.new_category', 'Categorie Nouă')}</span>
                     </button>
                     
                     <button
                         onClick={() => handleAddActivityToCategory('')}
-                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                        className="flex items-center gap-2 px-6 h-11 rounded-full bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-[15px] font-extrabold shadow-xs transition-all whitespace-nowrap cursor-pointer"
                     >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
                         {t('activities.new_activity', 'Activitate Nouă')}
                     </button>
                 </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <KPICard label={t('activities.categories', 'Categorii')} value={displayCategoryList.length} icon={Layers} colorTheme="purple" />
                 <KPICard label={t('activities.total_activities', 'Total Activități')} value={allData.length} icon={ActivityIcon} colorTheme="blue" />
                 <KPICard label={t('activities.active_count', 'Active')} value={allData.filter(a => a.is_active).length} icon={CheckCircle} colorTheme="green" />
@@ -468,7 +472,7 @@ export default function ActivitiesManagement() {
             </div>
 
             {/* DataTable */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden">
                 <DataTable
                     columns={columns}
                     data={filteredData}

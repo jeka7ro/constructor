@@ -337,14 +337,35 @@ export default function UsersManagement() {
     const labelCls = "block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
     return (
-        <div className="p-4 md:p-8 space-y-6 w-full">
-
+        <div className="space-y-5 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                            {t('nav.users', 'Utilisateurs & Administrateurs')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                        {t('users.admin_subtitle', 'Gestion des accès administrateurs et notifications')}
+                    </p>
+                </div>
+                <button 
+                    onClick={openAdd} 
+                    className="flex items-center gap-2 px-5 h-10 rounded-full text-white text-[15px] font-bold shadow-sm transition-all whitespace-nowrap hover:brightness-95 bg-[color:var(--tenant-bg)] cursor-pointer"
+                >
+                    <Plus className="w-4 h-4 stroke-[2.5]" /> {t('users.add_user', 'Ajouter Utilizator')}
+                </button>
+            </div>
 
             {/* Main Table Container */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] overflow-hidden rounded-[24px]">
                 
                 {/* Filters & Actions Bar */}
-                <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">
+                <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800">
                     <div className="relative group flex items-center w-full sm:w-auto">
                         <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
                             <Search className="w-4 h-4" />
@@ -354,43 +375,34 @@ export default function UsersManagement() {
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
                             placeholder={t('users.search_placeholder', 'Rechercher par nom ou email...')}
-                            className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                            className="w-full sm:w-72 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-[15px] font-medium text-slate-800 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                         />
                         {search && (
-                            <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
-                                <span className="text-[10px] font-bold text-white">
+                            <div className="absolute right-1.5 flex items-center gap-1 bg-[color:var(--tenant-bg)] px-2.5 py-1 rounded-full shadow-sm">
+                                <span className="text-[11px] font-bold text-white tabular-nums">
                                     {filtered.length}/{users.length}
                                 </span>
                                 <button 
                                     onClick={() => { setSearch(''); setCurrentPage(PAGE_ID, 1) }}
-                                    className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5"
+                                    className="p-0.5 hover:brightness-90 rounded-full transition-colors ml-0.5"
                                 >
                                     <X className="w-3 h-3 text-white/80 hover:text-white" />
                                 </button>
                             </div>
                         )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
-                        <button 
-                            onClick={openAdd} 
-                            className="flex items-center gap-1.5 px-5 h-10 rounded-full text-white text-sm font-bold shadow-sm hover:shadow-md transition-all whitespace-nowrap hover:brightness-110"
-                            style={{ backgroundColor: tenant?.primary_color || '#3b82f6' }}
-                        >
-                            <Plus className="w-4 h-4" /> {t('users.add_user', 'Ajouter Utilizator')}
-                        </button>
-                    </div>
                 </div>
 
                 <div className="bg-slate-50/30 dark:bg-slate-900/50 flex-1 relative">
-                    <table className="w-full">
-                        <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                    <table className="w-full text-[16px]">
+                        <thead className="bg-slate-50/90 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-700 text-[15px] font-bold">
                             <tr>
-                                <th className="px-5 py-3 text-left border-r border-slate-100 dark:border-slate-800">{t('users.employee_col', 'Utilizator')}</th>
-                                <th className="px-5 py-3 text-left">{t('common.contact', 'Contact')}</th>
-                                <th className="px-5 py-3 text-left">{t('common.role', 'Rol')}</th>
-                                <th className="px-5 py-3 text-left">{t('common.status', 'Status')}</th>
-                                <th className="px-5 py-3 text-center">{t('common.alerts', 'Notificări Devis')}</th>
-                                <th className="px-5 py-3 text-right">{t('common.actions', 'Acțiuni')}</th>
+                                <th className="px-5 py-3.5 text-left border-r border-slate-100 dark:border-slate-800">{t('users.employee_col', 'Utilizator')}</th>
+                                <th className="px-5 py-3.5 text-left">{t('common.contact', 'Contact')}</th>
+                                <th className="px-5 py-3.5 text-left">{t('common.role', 'Rol')}</th>
+                                <th className="px-5 py-3.5 text-left">{t('common.status', 'Status')}</th>
+                                <th className="px-5 py-3.5 text-center">{t('common.alerts', 'Notificări Devis')}</th>
+                                <th className="px-5 py-3.5 text-right">{t('common.actions', 'Acțiuni')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

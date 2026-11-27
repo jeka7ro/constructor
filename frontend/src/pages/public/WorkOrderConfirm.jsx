@@ -1143,10 +1143,25 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                         </p>
                                     )}
                                     {!isSeller && !order.reschedule_requested && (() => {
+                                        const hist = Array.isArray(order?.date_history) ? order.date_history : [];
+                                        let lastChangeIdx = -1;
+                                        let lastChangeTs = null;
+                                        hist.forEach((h, idx) => {
+                                            if (h && h.action === 'changed_by_admin') {
+                                                lastChangeIdx = idx;
+                                                lastChangeTs = h.timestamp || null;
+                                            }
+                                        });
+                                        const currentHist = lastChangeIdx >= 0 ? hist.slice(lastChangeIdx + 1) : hist;
+                                        const isTsValid = (ts) => {
+                                            if (!ts) return false;
+                                            if (!lastChangeTs) return true;
+                                            return new Date(ts).getTime() >= new Date(lastChangeTs).getTime();
+                                        };
                                         const clientConfirmedReady = Boolean(
-                                            order?.reminder_confirmed_at ||
-                                            order?.prices?.reminder_confirmed_at ||
-                                            (Array.isArray(order?.date_history) && order.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
+                                            isTsValid(order?.reminder_confirmed_at) ||
+                                            isTsValid(order?.prices?.reminder_confirmed_at) ||
+                                            currentHist.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action))
                                         );
                                         if (clientConfirmedReady) {
                                             return (

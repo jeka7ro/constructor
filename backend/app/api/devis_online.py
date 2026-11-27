@@ -200,12 +200,18 @@ def get_driving_distance_km(origin: str, destination: str) -> float:
             data = res.json()
             if data.get("rows") and data["rows"][0].get("elements"):
                 element = data["rows"][0]["elements"][0]
-                if element.get("status") == "OK":
+                el_status = element.get("status")
+                if el_status == "OK":
                     km = round(element["distance"]["value"] / 1000.0, 2)
                     with _devis_online_dist_lock:
                         _devis_online_dist_cache[cache_key] = km
                         _devis_online_dist_cache[f"{dest_clean}|{orig_clean}"] = km
                     return km
+                elif el_status in ("ZERO_RESULTS", "NOT_FOUND"):
+                    with _devis_online_dist_lock:
+                        _devis_online_dist_cache[cache_key] = 0.0
+                        _devis_online_dist_cache[f"{dest_clean}|{orig_clean}"] = 0.0
+                    return 0.0
     except Exception as e:
         print(f"Error calculating distance: {e}")
     return 0.0

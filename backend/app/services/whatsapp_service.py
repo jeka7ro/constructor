@@ -276,15 +276,52 @@ def send_planning_update_whatsapp(phone_number: str, client_name: str, client_la
 
     url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
     formatted_phone = normalize_phone_number(phone_number) or phone_number.replace("+", "").replace(" ", "").replace("-", "")
+    lang_clean = str(client_language or "fr").lower().split("-")[0].strip()
 
-    body_text = f"Bonjour {client_name},\n\nLa date de votre intervention a été mise à jour par l'équipe Davide Chape : {new_date}.\n\nVous pouvez consulter les détails ici : {signing_url}\n\nCordialement,\nL'équipe Davide Chape"
+    body_text = (
+        f"Bonjour {client_name},\n\n"
+        f"La date de vos travaux de chape a été mise à jour par l'équipe Davide Chape : *{new_date}*.\n\n"
+        f"Merci de reconfirmer cette nouvelle date en répondant directement à ce message WhatsApp :\n"
+        f"✅ Répondez OK pour confirmer la nouvelle date\n"
+        f"📅 Répondez REPORT + la date souhaitée (ex: REPORT 28.11 ou 2 déc) pour demander une autre date (sous réserve de confirmation par notre équipe)\n"
+        f"❌ Répondez ANNULER pour annuler l'intervention\n\n"
+        f"🔗 Ou confirmez en ligne :\n{signing_url}\n\n"
+        f"Cordialement,\nL'équipe Davide Chape"
+    )
     
-    if client_language == "ro":
-        body_text = f"Bună ziua {client_name},\n\nData intervenției a fost actualizată de echipa Davide Chape: {new_date}.\n\nPoți consulta detaliile aici: {signing_url}\n\nCu respect,\nEchipa Davide Chape"
-    elif client_language == "nl":
-        body_text = f"Hallo {client_name},\n\nDe datum van uw interventie is bijgewerkt door het Davide Chape team: {new_date}.\n\nU kunt de details hier bekijken: {signing_url}\n\nMet vriendelijke groet,\nDavide Chape Team"
-    elif client_language == "en":
-        body_text = f"Dear {client_name},\n\nThe date of your intervention has been updated by the Davide Chape team: {new_date}.\n\nYou can view the details here: {signing_url}\n\nBest regards,\nThe Davide Chape Team"
+    if lang_clean == "ro":
+        body_text = (
+            f"Bună ziua {client_name},\n\n"
+            f"Data intervenției a fost actualizată de echipa Davide Chape: *{new_date}*.\n\n"
+            f"Vă rugăm să reconfirmați noua dată răspunzând direct la acest mesaj WhatsApp:\n"
+            f"✅ Răspundeți OK pentru a confirma noua dată\n"
+            f"📅 Răspundeți REPORT + data dorită (ex: REPORT 28.11 sau 2 dec) pentru reprogramare (sub rezerva confirmării echipei)\n"
+            f"❌ Răspundeți ANNULER pentru anulare\n\n"
+            f"🔗 Sau confirmați online:\n{signing_url}\n\n"
+            f"Cu respect,\nEchipa Davide Chape"
+        )
+    elif lang_clean == "nl":
+        body_text = (
+            f"Hallo {client_name},\n\n"
+            f"De datum van uw chapewerken is bijgewerkt door het Davide Chape team: *{new_date}*.\n\n"
+            f"Gelieve deze nieuwe datum te herbevestigen door rechtstreeks op dit WhatsApp-bericht te antwoorden :\n"
+            f"✅ Antwoord OK om de nieuwe datum te bevestigen\n"
+            f"📅 Antwoord VERPLAATSEN + gewenste datum (bv. VERPLAATSEN 28.11 of 2 dec) om een andere datum aan te vragen (onder voorbehoud van bevestiging door ons team)\n"
+            f"❌ Antwoord ANNULEREN om te annuleren\n\n"
+            f"🔗 Of bevestig online :\n{signing_url}\n\n"
+            f"Met vriendelijke groet,\nHet Davide Chape Team"
+        )
+    elif lang_clean == "en":
+        body_text = (
+            f"Hello {client_name},\n\n"
+            f"The date of your screed works has been updated by the Davide Chape team: *{new_date}*.\n\n"
+            f"Please re-confirm this new date by replying directly to this WhatsApp message :\n"
+            f"✅ Reply OK to confirm the new date\n"
+            f"📅 Reply RESCHEDULE + preferred date (e.g. RESCHEDULE 28.11 or 2 dec) to request another date (subject to confirmation by our team)\n"
+            f"❌ Reply CANCEL to cancel the appointment\n\n"
+            f"🔗 Or confirm online :\n{signing_url}\n\n"
+            f"Best regards,\nThe Davide Chape Team"
+        )
 
     payload = {
         "token": api_token,

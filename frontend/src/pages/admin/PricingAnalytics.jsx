@@ -275,9 +275,9 @@ export default function PricingAnalytics() {
             render: (row) => (
                 <div className="flex items-center gap-2">
                     {row.is_quote ? (
-                        <span className="px-2.5 py-1 text-xs font-bold bg-blue-100 text-blue-700 rounded-full">Online</span>
+                        <span className="px-2.5 py-0.5 text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80 rounded-full">Online</span>
                     ) : (
-                        <span className="px-2.5 py-1 text-xs font-bold bg-amber-100 text-amber-700 rounded-full">Manual</span>
+                        <span className="px-2.5 py-0.5 text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200/80 rounded-full">Manual</span>
                     )}
                 </div>
             )
@@ -287,13 +287,13 @@ export default function PricingAnalytics() {
             label: t('common.quote', 'DEVIS'),
             sortable: true,
             render: (row) => (
-                <div className="flex flex-col gap-0.5 max-w-[200px]">
+                <div className="flex flex-col gap-0.5 max-w-[220px]">
                     <div className="flex items-center gap-2">
                         <a 
                             href={`/admin/work-orders/${row.id}`}
-                            className="font-bold text-blue-600 hover:text-blue-700 hover:underline truncate" 
+                            className="font-bold text-slate-900 hover:text-emerald-600 truncate transition-colors" 
                         >
-                            {row.is_quote ? `DEV${row.public_id || ''} - ${row.client_name}` : row.client_name}
+                            {row.is_quote ? `${row.quote_number || `DEV${row.public_id || ''}`} — ${row.client_name}` : row.client_name}
                         </a>
                     </div>
                     {row.title && (
@@ -313,13 +313,12 @@ export default function PricingAnalytics() {
                 }
                 
                 return (
-                    <span className={`px-2 py-1 text-[10px] uppercase tracking-wider font-bold rounded-full ${
-                        row.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                        row.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
-                        row.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                        row.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                        row.status === 'isoflex' ? 'bg-indigo-100 text-indigo-700' :
-                        'bg-slate-100 text-slate-700'
+                    <span className={`px-2.5 py-0.5 text-[10.5px] uppercase tracking-wider font-bold rounded-full border ${
+                        row.status === 'completed' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/25' :
+                        row.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/25' :
+                        row.status === 'pending' ? 'bg-amber-500/10 text-amber-700 border-amber-500/25' :
+                        row.status === 'cancelled' ? 'bg-rose-500/10 text-rose-700 border-rose-500/25' :
+                        'bg-slate-100 text-slate-600 border-slate-200/80'
                     }`}>
                         {displayStatus}
                     </span>
@@ -429,22 +428,27 @@ export default function PricingAnalytics() {
     ];
 
     return (
-        <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="w-full space-y-5 pb-10">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                        <Calculator className="w-6 h-6 text-blue-600" />
-                        {t('nav.pricing_analytics', 'Analyse Devis')}
-                    </h1>
-                    <p className="mt-2 text-sm text-slate-500">
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 tracking-tight">
+                            {t('nav.pricing_analytics', 'Analyse Devis')}
+                        </h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="mt-0.5 text-[15px] font-semibold text-slate-500">
                         {t('pricing_analytics.desc', 'Vérification automatique des prix calculés par rapport aux prix sauvegardés.')}
                     </p>
                 </div>
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <KPICard 
                     label={t('pricing_analytics.kpi_total_quotes', 'Total Devis Analysés')} 
                     value={totalQuotes} 
@@ -465,50 +469,45 @@ export default function PricingAnalytics() {
                 />
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div className="bg-white rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 overflow-hidden flex flex-col">
                 
-                {/* Custom Filter Bar */}
-                <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-2">
-                        <Filter className="w-4 h-4 text-slate-400" />
-                        <span className="text-sm font-bold text-slate-600">{t('pricing_analytics.filter_quick', 'Filtres Rapides :')}</span>
-                        
-                        <div className="flex bg-white border border-slate-200 rounded-full p-1 gap-1">
-                            {[
-                                { id: 'all', label: t('pricing_analytics.filter_all', 'Tous'), count: data.length },
-                                { id: 'online', label: 'Online', count: data.filter(d => d.is_quote).length },
-                                { id: 'manual', label: 'Manual', count: data.filter(d => !d.is_quote).length },
-                                { id: 'discrepancies', label: t('pricing_analytics.filter_with_diff', 'Avec Écarts'), count: data.filter(d => d.isDiscrepancy).length },
-                                { id: 'clean', label: t('pricing_analytics.filter_without_diff', 'Sans Écart'), count: data.filter(d => !d.isDiscrepancy).length }
-                            ].map(f => (
-                                <button
-                                    key={f.id}
-                                    onClick={() => setFilterType(f.id)}
-                                    className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors flex items-center gap-2 ${
-                                        filterType === f.id 
-                                            ? 'bg-blue-600 text-white shadow-sm' 
-                                            : 'text-slate-500 hover:bg-slate-100'
-                                    }`}
-                                >
-                                    {f.label}
-                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                                        filterType === f.id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
-                                    }`}>
-                                        {f.count}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
+                {/* Custom Filter Bar — 1:1 Dispatch Live style */}
+                <div className="px-6 py-5 border-b border-slate-200/80 bg-white flex items-center justify-between gap-4 flex-wrap">
+                    <div className="inline-flex items-center gap-1.5 bg-slate-50/90 p-1.5 rounded-full border border-slate-200/90 flex-wrap">
+                        {[
+                            { id: 'all', label: t('pricing_analytics.filter_all', 'Tous'), count: data.length },
+                            { id: 'online', label: 'Online', count: data.filter(d => d.is_quote).length },
+                            { id: 'manual', label: 'Manual', count: data.filter(d => !d.is_quote).length },
+                            { id: 'discrepancies', label: t('pricing_analytics.filter_with_diff', 'Avec Écarts'), count: data.filter(d => d.isDiscrepancy).length },
+                            { id: 'clean', label: t('pricing_analytics.filter_without_diff', 'Sans Écart'), count: data.filter(d => !d.isDiscrepancy).length }
+                        ].map(f => (
+                            <button
+                                key={f.id}
+                                onClick={() => setFilterType(f.id)}
+                                className={`h-9.5 px-4 py-1.5 text-[15px] font-bold rounded-full transition-all flex items-center gap-2 cursor-pointer ${
+                                    filterType === f.id 
+                                        ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs' 
+                                        : 'bg-transparent text-slate-600 hover:bg-white'
+                                }`}
+                            >
+                                <span>{f.label}</span>
+                                <span className={`text-[14.5px] tabular-nums ${
+                                    filterType === f.id ? 'text-white/90 font-extrabold' : 'text-slate-400 font-semibold'
+                                }`}>
+                                    {f.count}
+                                </span>
+                            </button>
+                        ))}
                     </div>
                     
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <div className="relative w-full md:w-[420px]">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder={t('pricing_analytics.search', 'Rechercher par nom, ID, somme...')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 pr-4 py-2 border border-slate-200 rounded-full text-sm w-full md:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="pl-11 pr-4 h-11 bg-slate-50/90 border border-slate-200/90 rounded-full text-[15px] font-medium w-full focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-[color:var(--tenant-bg)]"
                         />
                     </div>
                 </div>

@@ -8,6 +8,7 @@ import {
     CalendarDays,
     ChevronRight,
     Sparkles,
+    Bell,
     X,
 } from 'lucide-react'
 import api from '../lib/api'
@@ -116,13 +117,18 @@ export default function HeaderDynamicIsland() {
         activeTrucks: 0,
         movingTrucks: 0,
         totalKmToday: 0,
+        todayEstimatedKm: 0,
         todayJobsCount: 0,
         todayTotalM2: 0,
+        todaySandTons: 0,
         pendingQuotesTotal: 0,
         recentPendingQuotes: [],
+        latestQuote: null,
+        latestQuoteSqm: 0,
         unreadMessagesCount: 0,
         unreadMessages: [],
     })
+    const [tickerIndex, setTickerIndex] = useState(0)
 
     const triggerPeek = useCallback((durationMs = 5000) => {
         setIsPeeking(true)
@@ -190,6 +196,18 @@ export default function HeaderDynamicIsland() {
                 .sort((a, b) => (starredIds.includes(b.id) ? 1 : 0) - (starredIds.includes(a.id) ? 1 : 0))
             const pendingQuotesTotal = pendingItems.length
             const recentPendingQuotes = pendingItems.slice(0, 4)
+            const sortedByNewestQuote = [...rawPending]
+                .filter(q => q.status !== 'cancelled')
+                .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+            const latestQuote = sortedByNewestQuote[0] || recentPendingQuotes[0] || null
+            const latestQuoteSqm = latestQuote
+                ? Math.round(
+                    (Array.isArray(latestQuote.volumes) ? latestQuote.volumes : []).reduce(
+                        (s, v) => s + (parseFloat(v.quantity) || 0),
+                        0
+                    ) || parseFloat(latestQuote.surface_area || latestQuote.surface_m2 || 0) || 0
+                )
+                : 0
 
             const todayRaw = Array.isArray(resToday.data?.items)
                 ? resToday.data.items
@@ -199,13 +217,56 @@ export default function HeaderDynamicIsland() {
                 return dStr === todayStr && !['cancelled', 'pending'].includes(w.status)
             })
             const todayJobsCount = todayActiveJobs.length
-            const todayTotalM2 = Math.round(
-                todayActiveJobs.reduce((acc, w) => {
-                    const vols = Array.isArray(w.volumes) ? w.volumes : []
-                    const surf = vols.reduce((s, v) => s + (parseFloat(v.quantity) || 0), 0) || parseFloat(w.surface_area || w.surface || 0) || 0
-                    return acc + surf
-                }, 0)
-            )
+            let calcTodayM2 = 0
+            let calcTodaySandTons = 0
+            let calcTodayKm = 0
+            todayActiveJobs.forEach(w => {
+                const vols = Array.isArray(w.volumes) ? w.volumes : []
+                let jobSqm = 0
+                let jobWeightedCm = 0
+                vols.forEach(v => {
+                    const q = parseFloat(v.actual_quantity || v.quantity) || 0
+                    const th = parseFloat(v.actual_thickness || v.thickness) || 6
+                    const lbl = String(v.label || '').toLowerCase()
+                    if (q > 0) {
+                        jobSqm += q
+                        if (!lbl.includes('pur') && !lbl.includes('mousse') && !lbl.includes('eps')) {
+                            jobWeightedCm += q * th
+                        }
+                    }
+                })
+                if (jobSqm <= 0) {
+                    jobSqm = parseFloat(w.actual_surface_m2 || w.surface_m2 || w.surface_area || w.surface || 0) || 0
+                    const th = parseFloat(w.actual_thickness_cm || w.thickness_cm || w.thickness) || 6
+                    jobWeightedCm = jobSqm * th
+                }
+                calcTodayM2 += jobSqm
+
+                const routeSandKg = parseFloat(w.route_sand_kg) || 0
+                const actualSandRaw = parseFloat(w.actual_sand_quantity) || 0
+                if (actualSandRaw > 0) {
+                    calcTodaySandTons += actualSandRaw > 200 ? actualSandRaw / 1000 : actualSandRaw
+                } else if (routeSandKg > 0) {
+                    calcTodaySandTons += routeSandKg / 1000
+                } else if (jobWeightedCm > 0) {
+                    calcTodaySandTons += (jobWeightedCm * 16) / 1000
+                }
+
+                let jobKm = parseFloat(w.route_distance_km) || 0
+                if (jobKm <= 0 && w.prices?.distance_km) {
+                    jobKm = (parseFloat(w.prices.distance_km) || 0) * 2
+                }
+                if (jobKm <= 0 && w.distance_km) {
+                    jobKm = (parseFloat(w.distance_km) || 0) * 2
+                }
+                if (jobKm <= 0 && Array.isArray(w.route_segments) && w.route_segments.length > 0) {
+                    jobKm = w.route_segments.reduce((s, seg) => s + (parseFloat(seg.km) || 0), 0) * 2
+                }
+                calcTodayKm += jobKm
+            })
+            const todayTotalM2 = Math.round(calcTodayM2)
+            const todaySandTons = Number(calcTodaySandTons.toFixed(1))
+            const todayEstimatedKm = Math.round(calcTodayKm)
 
             // Expand automatically ONLY when a new message or new pending quote arrives
             const newestMsgId = unreadMessages[0]?.id || unreadMessages[0]?.created_at || null
@@ -256,10 +317,14 @@ export default function HeaderDynamicIsland() {
                 activeTrucks,
                 movingTrucks,
                 totalKmToday,
+                todayEstimatedKm,
                 todayJobsCount,
                 todayTotalM2,
+                todaySandTons,
                 pendingQuotesTotal,
                 recentPendingQuotes,
+                latestQuote,
+                latestQuoteSqm,
                 unreadMessagesCount,
                 unreadMessages,
             })
@@ -331,9 +396,55 @@ export default function HeaderDynamicIsland() {
         transition: 'all 650ms cubic-bezier(0.22, 1, 0.36, 1)',
     }
 
+    const tickerItems = [
+        {
+            key: 'today_jobs',
+            dotClass: 'bg-[#34C759] shadow-[0_0_6px_rgba(52,199,89,0.45)]',
+            text: `${t('dynamic_island.today', "Aujourd'hui")}: ${summary.todayJobsCount} ${t('dynamic_island.jobs_short', 'chantiers')}`,
+        },
+        {
+            key: 'today_vol_sand',
+            dotClass: 'bg-sky-500 shadow-[0_0_6px_rgba(14,165,233,0.4)]',
+            text: `${summary.todayTotalM2} m² · ${summary.todaySandTons} T ${t('dynamic_island.sand_short', 'sable')}`,
+        },
+        {
+            key: 'today_est_km',
+            dotClass: 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.45)]',
+            text: `${t('dynamic_island.route_today_prefix', 'Traseu azi')}: ${summary.todayEstimatedKm} km ${t('dynamic_island.estimated_short', 'estimați')}`,
+        },
+        {
+            key: 'latest_quote',
+            dotClass: 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.45)]',
+            text: summary.latestQuote
+                ? `${t('dynamic_island.latest_quote_prefix', 'Dernier devis')}: ${summary.latestQuote.quote_number || ''}${summary.latestQuoteSqm > 0 ? ` · ${summary.latestQuoteSqm} m²` : ` · ${(summary.latestQuote.client_name || summary.latestQuote.title || '').slice(0, 14)}`}`
+                : `${t('dynamic_island.pending', 'En attente')}: ${summary.pendingQuotesTotal} ${t('dynamic_island.quotes_short', 'devis')}`,
+        },
+        {
+            key: 'pending_quotes',
+            dotClass: 'bg-violet-500 shadow-[0_0_6px_rgba(139,92,246,0.45)]',
+            text: `${t('dynamic_island.pending', 'En attente')}: ${summary.pendingQuotesTotal} ${t('dynamic_island.quotes_short', 'devis')}`,
+        },
+        ...(summary.unreadMessagesCount > 0
+            ? [{
+                key: 'unread_msgs',
+                dotClass: 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.45)]',
+                text: `${summary.unreadMessagesCount} ${t('dynamic_island.unread_msgs_short', 'messages non lus')}`,
+            }]
+            : []),
+    ]
+
+    useEffect(() => {
+        const rotateTimer = setInterval(() => {
+            setTickerIndex(prev => (prev + 1) % tickerItems.length)
+        }, 5000)
+        return () => clearInterval(rotateTimer)
+    }, [tickerItems.length])
+
+    const currentTicker = tickerItems[tickerIndex % tickerItems.length] || tickerItems[0]
+
     return (
         <div ref={islandRef} className="relative flex items-center justify-center z-50 select-none">
-            {/* State 1: Compact Apple Dynamic Island Capsule in the center of the Header Bar (Pulses gently when releasing or absorbing a notification below it) */}
+            {/* State 1: Compact Apple Dynamic Island Capsule in the center of the Header Bar (Rotates live info every 5s) */}
             <button
                 type="button"
                 onClick={() => {
@@ -346,62 +457,33 @@ export default function HeaderDynamicIsland() {
                 }}
                 title={isOpen ? undefined : t('dynamic_island.tooltip', 'Dynamic Island — Activité en direct, Messages & Devis')}
                 style={{
-                    willChange: 'transform',
                     transform: isAbsorbing
-                        ? 'scale3d(1.08, 0.93, 1)'
-                        : (isAlertVisible || isOpen)
-                            ? 'scale3d(1.03, 1.03, 1)'
-                            : 'scale3d(1, 1, 1)',
+                        ? 'scale(1.06, 0.94)'
+                        : 'none',
                     transition: isAbsorbing
                         ? 'transform 170ms cubic-bezier(0.22, 1, 0.36, 1), background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease'
                         : 'transform 520ms cubic-bezier(0.22, 1.28, 0.36, 1), background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
                 }}
-                className={`relative z-20 rounded-full backdrop-blur-2xl border-[1.5px] flex items-center justify-center cursor-pointer overflow-hidden ${isAlertVisible
-                    ? 'h-8 px-4 bg-white/30 dark:bg-slate-900/90 border-emerald-300/90 dark:border-emerald-400/75 text-white shadow-[0_0_24px_rgba(16,185,129,0.42),inset_0_1px_0_rgba(255,255,255,0.65)]'
-                    : isOpen || isAbsorbing
-                        ? 'h-8 px-4 bg-white/30 dark:bg-slate-900/90 border-white/80 dark:border-sky-400/55 text-white shadow-[0_10px_28px_-6px_rgba(8,47,73,0.5),inset_0_1px_0_rgba(255,255,255,0.65)]'
-                        : 'h-8 px-3.5 bg-white/20 hover:bg-white/25 dark:bg-slate-900/80 border-white/45 hover:border-white/70 dark:border-white/25 text-white shadow-[0_6px_18px_-4px_rgba(8,47,73,0.3),inset_0_1px_0_rgba(255,255,255,0.45)]'
-                    }`}
+                className={`relative z-20 h-[34px] min-w-[224px] max-w-[290px] px-3.5 rounded-full bg-white hover:bg-slate-50/95 dark:bg-[#1C1C1E] dark:hover:bg-[#242426] border border-slate-200/90 dark:border-white/15 text-slate-900 dark:text-white flex items-center justify-between cursor-pointer overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] transition-all duration-300 ${
+                    isAlertVisible ? 'ring-2 ring-emerald-400/70' : isOpen ? 'ring-2 ring-white/50' : ''
+                }`}
             >
-                <div className="min-w-0 overflow-hidden flex items-center">
-                    {/* 1. Trucks Icon */}
-                    <div className="flex items-center shrink-0">
-                        <span className="relative flex items-center justify-center">
-                            <Truck className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                        </span>
-                    </div>
+                {/* Left: Status dot + 5-second rotating live info */}
+                <div key={currentTicker.key} className="flex items-center gap-2 pr-3 min-w-0 animate-[fadeIn_260ms_ease-out]">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-colors duration-300 ${currentTicker.dotClass}`} />
+                    <span className="text-[13px] font-bold text-slate-900 dark:text-white tabular-nums tracking-tight whitespace-nowrap truncate">
+                        {currentTicker.text}
+                    </span>
+                </div>
 
-                    <div className="w-0 mx-1.5 h-3.5 bg-white/25 shrink-0 opacity-0" />
-
-                    {/* 2. Today's Calendar Icon */}
-                    <div className="flex items-center shrink-0">
-                        <CalendarDays className="w-3.5 h-3.5 text-sky-200 shrink-0" />
-                    </div>
-
-                    <div className="w-0 mx-1.5 h-3.5 bg-white/25 shrink-0 opacity-0" />
-
-                    {/* 3. Pending Quotes Icon */}
-                    <div className="flex items-center shrink-0">
-                        <span className="relative flex items-center justify-center">
-                            <ClipboardList className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                            {summary.pendingQuotesTotal > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-300" />
-                            )}
-                        </span>
-                    </div>
-
-                    <div className="w-0 mx-1.5 h-3.5 bg-white/25 shrink-0 opacity-0" />
-
-                    {/* 4. Client Messages Icon */}
-                    <div className="flex items-center shrink-0">
-                        <span className="relative flex items-center justify-center">
-                            <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${(summary.unreadMessagesCount > 0 || isAlertVisible) ? 'text-emerald-300' : 'text-white/75'}`} />
-                            {(summary.unreadMessagesCount > 0 || isAlertVisible) && (
-                                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
-                            )}
-                        </span>
-                    </div>
+                {/* Right: Vertical divider + Bell icon */}
+                <div className="flex items-center pl-2.5 border-l border-slate-200 dark:border-white/15 shrink-0">
+                    <span className="relative flex items-center justify-center">
+                        <Bell className="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" strokeWidth={1.85} />
+                        {(summary.unreadMessagesCount > 0 || summary.pendingQuotesTotal > 0 || isAlertVisible) && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#1C1C1E]" />
+                        )}
+                    </span>
                 </div>
             </button>
 
@@ -514,7 +596,7 @@ export default function HeaderDynamicIsland() {
                             {summary.todayJobsCount} <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300">{t('dynamic_island.jobs_short', 'chantiers')}</span>
                         </div>
                         <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 tabular-nums truncate">
-                            {summary.todayTotalM2} m² {t('dynamic_island.planned_short', 'planifiés')}
+                            {summary.todayTotalM2} m² · {summary.todaySandTons} T {t('dynamic_island.sand_short', 'nisip')}
                         </div>
                     </div>
 
@@ -527,10 +609,10 @@ export default function HeaderDynamicIsland() {
                             <span className="truncate">{t('dynamic_island.fleet_gps', 'Flotte GPS')}</span>
                         </div>
                         <div className="mt-0.5 text-[17px] font-black tracking-tight text-slate-950 dark:text-white tabular-nums leading-tight">
-                            {summary.activeTrucks} <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300">{t('dynamic_island.active_plural', 'actifs')}</span>
+                            {summary.todayEstimatedKm} <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300">km {t('dynamic_island.estimated_short', 'estimați')}</span>
                         </div>
                         <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 tabular-nums truncate">
-                            {summary.totalKmToday} km · {summary.movingTrucks} {t('dynamic_island.moving_short', 'en route')}
+                            {summary.activeTrucks} {t('dynamic_island.active_plural', 'active')} · {summary.movingTrucks} {t('dynamic_island.moving_short', 'în mișcare')}
                         </div>
                     </div>
 

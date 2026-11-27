@@ -125,39 +125,44 @@ export default function AdminBackups() {
     ]
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-4">
-                <div className="p-2 bg-amber-100 text-amber-600 rounded-full h-fit shrink-0">
-                    <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                    <h3 className="font-semibold text-amber-800">Information Importante sur la Restauration</h3>
-                    <p className="text-sm text-amber-700 mt-1">
-                        La fonction de restauration complète depuis l'interface efface l'intégralité de la base de données actuelle pour y substituer les données du fichier sélectionné. Cette opération irréversible est actuellement protégée.
-                    </p>
-                </div>
-            </div>
-
+        <div className="w-full space-y-5">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                        <HardDrive className="w-6 h-6 text-blue-600" />
-                        {t('backups.title', 'Sauvegardes du Système')}
-                    </h1>
-                    <p className="text-sm text-slate-500 mt-1">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                            {t('backups.title', 'Sauvegardes du Système')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
                         {t('backups.subtitle', 'Consultez et téléchargez les sauvegardes automatiques de la base de données.')}
                     </p>
                 </div>
                 <button 
                     onClick={fetchBackups}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[15px] font-bold rounded-full hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
                 >
                     <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     {t('common.refresh', 'Rafraîchir')}
                 </button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-amber-50/90 border border-amber-200 rounded-[20px] p-4 flex gap-4">
+                <div className="p-2 bg-amber-100 text-amber-600 rounded-full h-fit shrink-0">
+                    <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                    <h3 className="text-[15px] font-bold text-amber-900">Information Importante sur la Restauration</h3>
+                    <p className="text-[14px] text-amber-800 mt-0.5">
+                        La fonction de restauration complète depuis l'interface efface l'intégralité de la base de données actuelle pour y substituer les données du fichier sélectionné. Cette opération irréversible est actuellement protégée.
+                    </p>
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden">
                 <DataTable
                     columns={columns}
                     data={backups}

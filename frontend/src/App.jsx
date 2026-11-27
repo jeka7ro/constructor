@@ -5,11 +5,12 @@ import { useAdminStore } from './store/adminStore'
 import { usePartnerStore } from './store/partnerStore'
 import { useTenantStore } from './store/tenantStore'
 import api from './lib/api'
+import { applyTenantTheme, enforceIconButtonsAccessibility } from './lib/tenantTheme'
 import Login from './pages/Login'
 import { Loader2 } from 'lucide-react'
 import i18n from './i18n'
 
-// Eager load core admin pages for INSTANT navigation and 0 delays
+// Eager load core admin pages for INSTANT navigation and 0 delays (never unmount Sidebar/Header)
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AlertsManagement from './pages/admin/AlertsManagement'
 import AdminOverview from './pages/admin/AdminOverview'
@@ -18,54 +19,58 @@ import ReportsPage from './pages/admin/ReportsPage'
 import EmployeesManagement from './pages/admin/EmployeesManagement'
 import LogisticsRouter from './pages/admin/logistics/LogisticsRouter'
 import PricingAnalytics from './pages/admin/PricingAnalytics'
-
 import SitesManagement from './pages/admin/SitesManagement'
 import ActivitiesManagement from './pages/admin/ActivitiesManagement'
+import QuotesManagement from './pages/admin/QuotesManagement'
+import InvoicingManagement from './pages/admin/InvoicingManagement'
+import InvoiceDetails from './pages/admin/InvoiceDetails'
+import AdminChats from './pages/admin/AdminChats'
+import IsoflexHistory from './pages/admin/IsoflexHistory'
+import ClientAnalytics from './pages/admin/ClientAnalytics'
+import ClientsManagement from './pages/admin/ClientsManagement'
+import ClientDetail from './pages/admin/ClientDetail'
+import LiveTracking from './pages/admin/LiveTracking'
+import WarehouseManagement from './pages/admin/WarehouseManagement'
+import FleetManagement from './pages/admin/FleetManagement'
+import TransportManagement from './pages/admin/TransportManagement'
+import AdminMaterialRequests from './pages/admin/AdminMaterialRequests'
+import ExpensesManagement from './pages/admin/ExpensesManagement'
+import UsersManagement from './pages/admin/UsersManagement'
+import TeamsManagement from './pages/admin/TeamsManagement'
+import PartnersManagement from './pages/admin/PartnersManagement'
+import AccommodationsManagement from './pages/admin/AccommodationsManagement'
+import PricingSettingsPage from './pages/admin/PricingSettingsPage'
+import SettingsPage from './pages/admin/SettingsPage'
+import PublicCalculator from './pages/PublicCalculator'
+import AdminLogin from './pages/admin/AdminLogin'
+import AuditLogs from './pages/admin/AuditLogs'
+import PhotoTestPage from './pages/admin/PhotoTestPage'
+import SitePhotosPage from './pages/admin/SitePhotosPage'
+import NotificationsPage from './pages/admin/NotificationsPage'
+import ComplaintsManagement from './pages/admin/ComplaintsManagement'
+import LeavesManagement from './pages/admin/LeavesManagement'
+import AdminEmergencies from './pages/admin/AdminEmergencies'
+import EmailLogs from './pages/admin/EmailLogs'
+import ProformaView from './pages/admin/ProformaView'
+import DevisView from './pages/admin/DevisView'
+import AdminBackups from './pages/admin/AdminBackups'
+import OrganizationsManagement from './pages/admin/OrganizationsManagement'
+import WorkOrders from './pages/admin/WorkOrders'
+import WorkOrderForm from './pages/admin/WorkOrderForm'
+import WorkOrderDetail from './pages/admin/WorkOrderDetail'
+import WorkOrderCalculations from './pages/admin/WorkOrderCalculations'
 
-// Lazy load secondary/heavy pages
+// Lazy load secondary/public/employee pages
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const TodayTimesheet = lazy(() => import('./pages/TodayTimesheet'))
 const History = lazy(() => import('./pages/History'))
-const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 const DemoSignup = lazy(() => import('./pages/DemoSignup'))
 const WorkspaceRouter = lazy(() => import('./pages/WorkspaceRouter'))
-const UsersManagement = lazy(() => import('./pages/admin/UsersManagement'))
-const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'))
-const ClientsManagement = lazy(() => import('./pages/admin/ClientsManagement'))
-const ClientDetail = lazy(() => import('./pages/admin/ClientDetail'))
-const PhotoTestPage = lazy(() => import('./pages/admin/PhotoTestPage'))
 const TimesheetsPage = lazy(() => import('./pages/employee/TimesheetsPage'))
 const TimesheetForm = lazy(() => import('./pages/employee/TimesheetForm'))
 const ClockInPage = lazy(() => import('./pages/employee/ClockInPage'))
-const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
-const PricingSettingsPage = lazy(() => import('./pages/admin/PricingSettingsPage'))
-const SitePhotosPage = lazy(() => import('./pages/admin/SitePhotosPage'))
-const TeamsManagement = lazy(() => import('./pages/admin/TeamsManagement'))
-const NotificationsPage = lazy(() => import('./pages/admin/NotificationsPage'))
-const FleetManagement = lazy(() => import('./pages/admin/FleetManagement'))
-const TransportManagement = lazy(() => import('./pages/admin/TransportManagement'))
-const LiveTracking = lazy(() => import('./pages/admin/LiveTracking'))
-const WarehouseManagement = lazy(() => import('./pages/admin/WarehouseManagement'))
-const ComplaintsManagement = lazy(() => import('./pages/admin/ComplaintsManagement'))
-const AccommodationsManagement = lazy(() => import('./pages/admin/AccommodationsManagement'))
-const LeavesManagement = lazy(() => import('./pages/admin/LeavesManagement'))
-const ExpensesManagement = lazy(() => import('./pages/admin/ExpensesManagement'))
-const IsoflexHistory = lazy(() => import('./pages/admin/IsoflexHistory'))
-const AdminMaterialRequests = lazy(() => import('./pages/admin/AdminMaterialRequests'))
-const AdminEmergencies = lazy(() => import('./pages/admin/AdminEmergencies'))
-const InvoicingManagement = lazy(() => import('./pages/admin/InvoicingManagement'))
-const InvoiceDetails = lazy(() => import('./pages/admin/InvoiceDetails'))
-const QuotesManagement = lazy(() => import('./pages/admin/QuotesManagement'))
-const EmailLogs = lazy(() => import('./pages/admin/EmailLogs'))
-const ClientAnalytics = lazy(() => import('./pages/admin/ClientAnalytics'))
-const ProformaView = lazy(() => import('./pages/admin/ProformaView'))
-const DevisView = lazy(() => import('./pages/admin/DevisView'))
-const AdminChats = lazy(() => import('./pages/admin/AdminChats'))
-const AdminBackups = lazy(() => import('./pages/admin/AdminBackups'))
 const PublicProformaView = lazy(() => import('./pages/PublicProformaView'))
-const PublicCalculator = lazy(() => import('./pages/PublicCalculator'))
 const DevisOnline = lazy(() => import('./pages/DevisOnline'))
-const PartnersManagement = lazy(() => import('./pages/admin/PartnersManagement'))
 const PartnerPlanning = lazy(() => import('./pages/partner/PartnerPlanning'))
 const PartnerLogin = lazy(() => import('./pages/partner/PartnerLogin'))
 const PartnerDashboard = lazy(() => import('./pages/partner/PartnerDashboard'))
@@ -79,6 +84,8 @@ const EmployeeEmergencies = lazy(() => import('./pages/employee/EmployeeEmergenc
 const EmployeeInventory = lazy(() => import('./pages/employee/EmployeeInventory'))
 const WorkerOrdersPage = lazy(() => import('./pages/employee/WorkerOrdersPage'))
 const EmployeeFleetMap = lazy(() => import('./pages/employee/EmployeeFleetMap'))
+const WorkOrderConfirm = lazy(() => import('./pages/public/WorkOrderConfirm'))
+const QuoteCalculator = lazy(() => import('./pages/public/QuoteCalculator'))
 import EmployeeLayout from './components/layout/EmployeeLayout'
 import { DialogOverlay } from './components/ui/DialogOverlay'
 import { ToastOverlay } from './components/ui/ToastOverlay'
@@ -96,44 +103,57 @@ function PageLoader() {
     )
 }
 
+function isTransientChunkError(error) {
+    if (!error) return false
+    const msg = (error.message || '').toLowerCase()
+    return (
+        error.name === 'ChunkLoadError' ||
+        msg.includes('fetch dynamically imported module') ||
+        msg.includes('error loading dynamically imported module') ||
+        msg.includes('mime type') ||
+        msg.includes('importing a module script failed')
+    )
+}
+
 class GlobalErrorBoundary extends React.Component {
     constructor(props) {
         super(props)
-        this.state = { hasError: false }
+        this.state = { hasError: false, error: null }
     }
     static getDerivedStateFromError(error) {
         return { hasError: true, error }
     }
     componentDidCatch(error, errorInfo) {
         console.error('App routing error:', error)
-        // Auto-refresh if it's a chunk load error (network glitch / new deployment)
-        const msg = (error.message || '').toLowerCase();
-        if (
-            error.name === 'ChunkLoadError' || 
-            msg.includes('fetch dynamically imported module') ||
-            msg.includes('mime type') ||
-            msg.includes('importing a module script failed')
-        ) {
+        if (isTransientChunkError(error)) {
             window.location.reload()
         }
     }
     render() {
         if (this.state.hasError) {
+            if (isTransientChunkError(this.state.error)) {
+                return null
+            }
             return (
                 <div className="min-h-screen flex flex-col items-center justify-center bg-[#F2F4F8] dark:bg-slate-950 p-4">
                     <div className="w-full max-w-[380px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.34)] p-3.5 text-center">
                         <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
                             <h2 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white">Une erreur de navigation est survenue</h2>
-                            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1.5">Veuillez actualiser la page pour continuer.</p>
+                            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1.5">Veuillez réessayer ou actualiser la page pour continuer.</p>
                             {this.state.error && (
                                 <div className="mt-3 p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800/50 rounded-[12px] max-h-36 overflow-auto text-[11px] text-left tabular-nums">
                                     {this.state.error.message}
                                 </div>
                             )}
                         </div>
-                        <button onClick={() => window.location.reload()} className="w-full mt-3 h-10 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-[13.5px] rounded-[14px] shadow-sm shadow-sky-600/20 transition-all cursor-pointer">
-                            Actualiser la page
-                        </button>
+                        <div className="flex gap-2 mt-3">
+                            <button onClick={() => this.setState({ hasError: false, error: null })} className="flex-1 h-10 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-semibold text-[13.5px] rounded-[14px] transition-all cursor-pointer">
+                                Réessayer
+                            </button>
+                            <button onClick={() => window.location.reload()} className="flex-1 h-10 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-[13.5px] rounded-[14px] shadow-sm shadow-sky-600/20 transition-all cursor-pointer">
+                                Actualiser la page
+                            </button>
+                        </div>
                     </div>
                 </div>
             )
@@ -141,14 +161,6 @@ class GlobalErrorBoundary extends React.Component {
         return this.props.children
     }
 }
-
-import OrganizationsManagement from './pages/admin/OrganizationsManagement'
-const WorkOrders = lazy(() => import('./pages/admin/WorkOrders'))
-const WorkOrderForm   = lazy(() => import('./pages/admin/WorkOrderForm'))
-const WorkOrderDetail = lazy(() => import('./pages/admin/WorkOrderDetail'))
-const WorkOrderConfirm = lazy(() => import('./pages/public/WorkOrderConfirm'))
-const QuoteCalculator = lazy(() => import('./pages/public/QuoteCalculator'))
-const WorkOrderCalculations = lazy(() => import('./pages/admin/WorkOrderCalculations'))
 
 function App() {
     const { user } = useAuthStore()
@@ -228,27 +240,42 @@ function App() {
     // Apply tenant styles synchronously when tenant state is available (from persist or fetch)
     const tenantObj = useTenantStore((state) => state.tenant)
     useEffect(() => {
-        if (tenantObj?.primary_color) {
-            document.documentElement.style.setProperty('--primary-tenant', tenantObj.primary_color)
-            let style = document.getElementById('tenant-dynamic-styles')
-            if (!style) {
-                style = document.createElement('style')
-                style.id = 'tenant-dynamic-styles'
-                document.head.appendChild(style)
-            }
-            style.innerHTML = `
-                .bg-blue-600, .bg-indigo-600 { background-color: ${tenantObj.primary_color} !important; }
-                .text-blue-600, .text-indigo-600 { color: ${tenantObj.primary_color} !important; }
-                .border-blue-600, .border-indigo-600 { border-color: ${tenantObj.primary_color} !important; }
-                .ring-blue-600, .ring-indigo-600 { --tw-ring-color: ${tenantObj.primary_color} !important; }
-                .focus\:border-blue-500:focus, .focus\:border-indigo-500:focus { border-color: ${tenantObj.primary_color} !important; }
-                
-                /* Extra states */
-                .hover\:bg-blue-700:hover, .hover\:bg-indigo-700:hover { background-color: ${tenantObj.primary_color} !important; filter: brightness(0.9); }
-                .hover\:text-blue-700:hover, .hover\:text-indigo-700:hover { color: ${tenantObj.primary_color} !important; filter: brightness(0.9); }
-            `
+        const primaryHex = tenantObj?.primary_color || '#007EA7'
+        applyTenantTheme(primaryHex, tenantObj?.secondary_color)
+
+        let style = document.getElementById('tenant-dynamic-styles')
+        if (!style) {
+            style = document.createElement('style')
+            style.id = 'tenant-dynamic-styles'
+            document.head.appendChild(style)
         }
-    }, [tenantObj?.primary_color])
+        style.innerHTML = `
+            .bg-blue-600, .bg-indigo-600 {
+                background-color: var(--tenant-accent) !important;
+                color: var(--tenant-accent-fg) !important;
+            }
+            .text-blue-600, .text-indigo-600 { color: var(--tenant-accent-on-light, var(--tenant-accent)) !important; }
+            .dark .text-blue-600, .dark .text-indigo-600 { color: var(--tenant-accent-text, var(--tenant-accent)) !important; }
+            .border-blue-600, .border-indigo-600 { border-color: var(--tenant-accent) !important; }
+            .ring-blue-600, .ring-indigo-600 { --tw-ring-color: var(--tenant-accent) !important; }
+            .focus\\:border-blue-500:focus, .focus\\:border-indigo-500:focus { border-color: var(--tenant-accent) !important; }
+            .hover\\:bg-blue-700:hover, .hover\\:bg-indigo-700:hover {
+                background-color: var(--tenant-accent-hover) !important;
+                color: var(--tenant-accent-fg) !important;
+            }
+            .hover\\:text-blue-700:hover, .hover\\:text-indigo-700:hover { color: var(--tenant-accent-hover) !important; }
+        `
+    }, [tenantObj?.primary_color, tenantObj?.secondary_color])
+
+    // Enforce icon-only button accessibility (type="button" + aria-label) across dynamic renders
+    useEffect(() => {
+        enforceIconButtonsAccessibility(document)
+        const observer = new MutationObserver(() => {
+            enforceIconButtonsAccessibility(document)
+        })
+        observer.observe(document.body, { childList: true, subtree: true })
+        return () => observer.disconnect()
+    }, [])
 
     // ─── Auto-reload la deploy nou (fara refresh manual de la angajati) ───────
     useEffect(() => {

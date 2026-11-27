@@ -346,7 +346,7 @@ def places_autocomplete(input: str, types: str = None, lang: str = "ro"):
             timeout=5.0
         )
         data = resp.json()
-        if data.get("status") == "OK":
+        if data.get("status") in ("OK", "ZERO_RESULTS"):
             with _places_cache_lock:
                 _places_cache[key] = (now, data)
         return data
@@ -374,7 +374,7 @@ def place_details(place_id: str, lang: str = "ro"):
             timeout=5.0
         )
         data = resp.json()
-        if data.get("status") == "OK":
+        if data.get("status") in ("OK", "ZERO_RESULTS", "NOT_FOUND"):
             with _place_details_lock:
                 _place_details_cache[key] = data
         return data
@@ -399,7 +399,7 @@ def place_reverse_geocode(lat: float, lng: float, lang: str = "ro"):
             timeout=5.0
         )
         data = resp.json()
-        if data.get("status") == "OK":
+        if data.get("status") in ("OK", "ZERO_RESULTS"):
             with _place_reverse_lock:
                 _place_reverse_cache[key] = data
         return data

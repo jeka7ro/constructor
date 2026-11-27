@@ -323,23 +323,28 @@ export default function PricingSettingsPage() {
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-8 w-full">
+        <div className="space-y-8 w-full">
             {/* Global Pricing Section */}
             <div>
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200/80 dark:border-slate-800">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                            <Settings className="w-6 h-6 text-blue-500" />
-                            {t('pricing_settings.global_title', 'Tarifs Globaux')}
-                        </h1>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                                {t('pricing_settings.global_title', 'Tarifs Globaux')}
+                            </h1>
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Live
+                            </span>
+                        </div>
+                        <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
                             {t('pricing_settings.global_desc', 'Prix par défaut appliqués à tous les devis.')}
                         </p>
                     </div>
                     <button
                         onClick={handleSaveGlobal}
                         disabled={savingGlobal}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50"
+                        className="flex items-center gap-2 px-6 h-10 bg-[color:var(--tenant-bg)] hover:brightness-95 text-white text-[15px] font-bold rounded-full transition-all shadow-sm disabled:opacity-50 cursor-pointer"
                     >
                         {savingGlobal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         {t('common.save', 'Enregistrer')}
@@ -356,27 +361,27 @@ export default function PricingSettingsPage() {
             </div>
 
             {/* Preferential Pricing Section */}
-            <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
-                <div className="flex items-center justify-between mb-6">
+            <div className="mt-10 pt-8 border-t border-slate-200/80 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-5">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                            <Users className="w-5 h-5 text-indigo-500" />
+                        <h2 className="text-[22px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                            <Users className="w-5 h-5 text-[color:var(--tenant-bg)]" />
                             {t('pricing_settings.preferential_title', 'Tarification Préférentielle')}
                         </h2>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <p className="text-[15px] font-medium text-slate-500 mt-1">
                             {t('pricing_settings.preferential_desc', 'Clients avec des prix personnalisés.')}
                         </p>
                     </div>
                     <button
                         onClick={() => openClientModal('')}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold rounded-xl transition-all"
+                        className="flex items-center gap-2 px-5 h-10 bg-[color:var(--tenant-bg)] hover:brightness-95 text-white text-[15px] font-bold rounded-full shadow-sm transition-all cursor-pointer"
                     >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4 h-4 stroke-[2.5]" />
                         {t('pricing_settings.add_client', 'Ajouter un Client')}
                     </button>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden">
                     <DataTable 
                         columns={clientColumns}
                         data={customClientsList}

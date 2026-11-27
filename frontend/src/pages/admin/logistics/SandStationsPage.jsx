@@ -156,28 +156,34 @@ export default function SandStationsPage() {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-            <div className="flex items-center gap-4">
-                <Link to="/admin/logistica" className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors">
-                    <ArrowLeft className="w-5 h-5 text-slate-600" />
+        <div className="w-full space-y-5">
+            <div className="flex flex-wrap items-center gap-4">
+                <Link to="/admin/logistica" className="w-10 h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs">
+                    <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <Beaker className="w-6 h-6 text-blue-600" /> Stații de Nisip
-                    </h1>
-                    <p className="text-slate-500 text-sm">Gestionează stațiile de la care se încarcă nisip/agregate.</p>
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+                            <Beaker className="w-6 h-6 text-[color:var(--tenant-bg)]" /> Stații de Nisip
+                        </h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-slate-500 text-[15px] font-semibold mt-0.5">Gestionează stațiile de la care se încarcă nisip/agregate.</p>
                 </div>
                 <div className="ml-auto flex items-center gap-3">
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
-                        <button onClick={() => setViewMode('table')} className={`px-4 h-9 flex items-center gap-2 rounded-full text-sm font-bold transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200/90 dark:border-slate-700">
+                        <button onClick={() => setViewMode('table')} className={`px-4 h-9.5 flex items-center gap-2 rounded-full text-[14.5px] font-bold transition-colors cursor-pointer ${viewMode === 'table' ? 'bg-[color:var(--tenant-bg)] shadow-xs text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
                             <List className="w-4 h-4" /> Tabel
                         </button>
-                        <button onClick={() => setViewMode('map')} className={`px-4 h-9 flex items-center gap-2 rounded-full text-sm font-bold transition-colors ${viewMode === 'map' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                        <button onClick={() => setViewMode('map')} className={`px-4 h-9.5 flex items-center gap-2 rounded-full text-[14.5px] font-bold transition-colors cursor-pointer ${viewMode === 'map' ? 'bg-[color:var(--tenant-bg)] shadow-xs text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
                             <MapIcon className="w-4 h-4" /> Hartă
                         </button>
                     </div>
-                    <button onClick={() => openModal()} className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2 shadow-sm">
-                        <Plus className="w-4 h-4" /> Ajouter Stație
+                    <button onClick={() => openModal()} className="px-6 h-11 rounded-full bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-[15px] font-extrabold flex items-center gap-2 shadow-xs transition-all cursor-pointer">
+                        <Plus className="w-4.5 h-4.5" /> Ajouter Stație
                     </button>
                 </div>
             </div>
@@ -264,10 +270,11 @@ export default function SandStationsPage() {
                     ]
                     
                     return (
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
-                                <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
-                                    <Beaker className="w-4 h-4 text-white" /> Tabel Stații Nisip
+                        <div className="bg-white dark:bg-slate-900 rounded-[20px] shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden">
+                            <div className="px-5 py-3.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+                                <h2 className="font-extrabold text-slate-900 dark:text-white text-[15px] tracking-tight flex items-center gap-2">
+                                    <Beaker className="w-4 h-4 text-emerald-600" /> Tabel Stații Nisip
+                                    <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 tabular-nums">{stations.length}</span>
                                 </h2>
                             </div>
                             <DataTable
@@ -459,7 +466,7 @@ export default function SandStationsPage() {
                             </div>
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/85">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="h-[42px] px-5 rounded-[13px] bg-white border border-slate-300/90 text-slate-700 hover:bg-slate-50 font-bold text-[14px] shadow-2xs transition-all active:scale-[0.98]">Annuler</button>
-                                <button type="submit" disabled={saving} className="h-[42px] px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[14px] rounded-[13px] shadow-[0_8px_18px_-4px_rgba(37,99,235,0.45)] flex items-center gap-2 transition-all active:scale-[0.98]">
+                                <button type="submit" disabled={saving} className="h-[42px] px-6 bg-[color:var(--tenant-bg)] hover:opacity-95 text-white font-bold text-[14px] rounded-[13px] shadow-sm flex items-center gap-2 transition-all active:scale-[0.98]">
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Enregistrer
                                 </button>
                             </div>

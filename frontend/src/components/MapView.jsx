@@ -262,7 +262,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 if (qClean.includes('baza') || qClean.includes('base') || qClean.includes('h&h')) {
                     return { lat: 50.88243, lng: 4.39343 }; // Baza H&H Resources Brussels
                 }
-                if (_globalMapGeocodeCache[qClean]) {
+                if (_globalMapGeocodeCache[qClean] !== undefined) {
                     return Promise.resolve(_globalMapGeocodeCache[qClean]);
                 }
                 return new Promise((resolve) => {
@@ -273,6 +273,10 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                             _globalMapGeocodeCache[qClean] = coords;
                             resolve(coords);
                         } else {
+                            // Negative cache: nu mai re-apelăm Google Geocoder în buclă pentru o adresă invalidă
+                            if (status === 'ZERO_RESULTS' || status === 'INVALID_REQUEST') {
+                                _globalMapGeocodeCache[qClean] = null;
+                            }
                             resolve(null);
                         }
                     });
@@ -308,10 +312,29 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     });
                     elementsRef.current.directionsRenderer = directionsRenderer;
 
-                    // Use cache for routes to avoid redundant API calls for the same coordinates
-                    const routeKey = `${startCoords.lat},${startCoords.lng}-${center.lat},${center.lng}`;
-                    if (_globalMapRouteCache[routeKey]) {
-                        directionsRenderer.setDirections(_globalMapRouteCache[routeKey]);
+                    // Use cache for routes to avoid redundant API calls for the same coordinates (rounded to 4 decimals ~11m)
+                    const routeKey = `${Number(startCoords.lat).toFixed(4)},${Number(startCoords.lng).toFixed(4)}-${Number(center.lat).toFixed(4)},${Number(center.lng).toFixed(4)}`;
+                    const drawFallbackPolyline = () => {
+                        const line = new window.google.maps.Polyline({
+                            path: [startCoords, center],
+                            strokeColor: teamColor || '#3b82f6',
+                            strokeOpacity: 0.5,
+                            strokeWeight: 3,
+                            map: mapInstance.current
+                        });
+                        elementsRef.current.directionsRenderer = line;
+                        const bounds = new window.google.maps.LatLngBounds();
+                        bounds.extend(startCoords);
+                        bounds.extend(center);
+                        mapInstance.current.fitBounds(bounds, { padding: 50 });
+                    };
+
+                    if (_globalMapRouteCache[routeKey] !== undefined) {
+                        if (_globalMapRouteCache[routeKey]) {
+                            directionsRenderer.setDirections(_globalMapRouteCache[routeKey]);
+                        } else {
+                            drawFallbackPolyline();
+                        }
                     } else {
                         directionsService.route({
                             origin: startCoords,
@@ -322,20 +345,11 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                                 _globalMapRouteCache[routeKey] = result;
                                 directionsRenderer.setDirections(result);
                             } else {
-                                // Fallback to straight line if routing fails
-                                const line = new window.google.maps.Polyline({
-                                    path: [startCoords, center],
-                                    strokeColor: teamColor || '#3b82f6',
-                                    strokeOpacity: 0.5,
-                                    strokeWeight: 3,
-                                    map: mapInstance.current
-                                });
-                                elementsRef.current.directionsRenderer = line;
-                                
-                                const bounds = new window.google.maps.LatLngBounds();
-                                bounds.extend(startCoords);
-                                bounds.extend(center);
-                                mapInstance.current.fitBounds(bounds, { padding: 50 });
+                                // Negative cache pentru rute imposibile ca să nu re-apeleze Directions API la re-render
+                                if (status === 'ZERO_RESULTS' || status === 'NOT_FOUND') {
+                                    _globalMapRouteCache[routeKey] = null;
+                                }
+                                drawFallbackPolyline();
                             }
                         });
                     }
@@ -356,19 +370,34 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
     }, [isFullScreen]);
 
     const routeSegmentsStr = JSON.stringify(routeSegments || []);
+    const lastInitSignatureRef = useRef('');
 
     useEffect(() => {
         if (!mapRef.current || !window.google) return;
 
         const hasCoords = latitude && longitude && parseFloat(latitude) !== 0 && parseFloat(longitude) !== 0;
+        const normLat = hasCoords ? parseFloat(latitude).toFixed(5) : '';
+        const normLon = hasCoords ? parseFloat(longitude).toFixed(5) : '';
+        const normAddr = (address || '').trim().toLowerCase();
+        const currentSig = `${normLat}|${normLon}|${normAddr}|${zoom}|${geofenceRadius || ''}|${routeSegmentsStr}|${teamColor || ''}|${markerType || ''}`;
+
+        // Dacă harta este deja inițializată exact cu aceleași coordonate și segmente, nu mai re-rulăm initMap / Directions API
+        if (mapInstance.current && lastInitSignatureRef.current === currentSig) {
+            return;
+        }
+        lastInitSignatureRef.current = currentSig;
 
         if (hasCoords) {
             initMap(parseFloat(latitude), parseFloat(longitude), zoom, label || address);
         } else if (address && address.trim().length > 3) {
             const addrClean = address.trim().toLowerCase();
-            if (_globalMapGeocodeCache[addrClean]) {
+            if (_globalMapGeocodeCache[addrClean] !== undefined) {
                 const cached = _globalMapGeocodeCache[addrClean];
-                initMap(cached.lat, cached.lng ?? cached.lon, 15, label || address);
+                if (cached) {
+                    initMap(cached.lat, cached.lng ?? cached.lon, 15, label || address);
+                } else {
+                    setGeoError(true);
+                }
                 return;
             }
 
@@ -383,6 +412,10 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     _globalMapGeocodeCache[addrClean] = { lat, lng: lon, lon };
                     initMap(lat, lon, 15, label || address);
                 } else {
+                    // Negative cache: o adresă de negăsit nu va mai fi re-interogată la fiecare re-render
+                    if (status === 'ZERO_RESULTS' || status === 'INVALID_REQUEST') {
+                        _globalMapGeocodeCache[addrClean] = null;
+                    }
                     setGeoError(true);
                     // Fallback to tenant country center
                     let defaultCenter = { lat: 50.8503, lng: 4.3517 }; // BE fallback

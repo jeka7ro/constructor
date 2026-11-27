@@ -1,27 +1,40 @@
 ---
 trigger: always_on
 ---
-# Ierarhia de Design, Calitate și Verificare (Davide Chape / Pontaje)
+# Ierarhia de Design, Calitate, Arhitectură și Verificare (Davide Chape / Pontaje)
 
-Această regulă este permanent activă (`always_on`) și stabilește ordinea de prioritate între skill-urile proiectului:
+Această regulă este permanent activă (`always_on`) și integrează cele 6 familii de skill-uri ale proiectului:
 
-## 1. Prioritatea #1 pe Design Vizual: `apple-design` (Apple Human Interface Guidelines)
-- **`apple-design` (`.agents/skills/apple-design/SKILL.md`) are prioritate absolută pe tot ce ține de aspectul vizual și UX.**
-- Toate paginile, modalele, alertele, butoanele, tabelele, cardurile și controalele trebuie să respecte estetica **Apple HIG**:
-  - **System Sheets & Alerts:** fundal solid/opac curat (`bg-[#F2F4F8]` / `bg-white`, `dark:bg-slate-900`), contur clar (`rounded-[24px] border-[1.5px] border-slate-300 ring-1 ring-slate-900/10`), secțiuni interioare **Inset Grouped** (`rounded-[16px] bg-white border border-slate-200`), `createPortal(..., document.body)` cu `z-[99999]`.
-  - **Tipografie Retina Crisp:** fără `scale3d` sau `will-change: transform` lăsate active pe containerele deschise care conțin text; contrast puternic (`text-slate-950 font-bold` pentru titluri, `text-slate-700 font-semibold` pentru valori secundare).
-  - **Segmented Controls & Touch Targets:** segmente egale, ținte tactile de minimum `44×44px` pe mobil/iPad.
+## 1. Prioritatea #1 pe Design Vizual & Compoziție: `apple-tahoe-tenant-design` + `apple-design` + `frontend-design`
+- **Surse:** `.agents/skills/apple-tahoe-tenant-design/SKILL.md` + `dickwu/apple-design-skill` (`.agents/skills/apple-design/SKILL.md`) + `anthropics/skills` (`.agents/skills/frontend-design/SKILL.md`).
+- **Reguli obligatorii:**
+  - **Apple Tahoe Multi-Tenant Color Engine (`--tenant-accent` & `--tenant-accent-fg`):** zero culori de brand hardcodate pentru butoane primare, taburi active, focus rings sau stări selectate; toate se rezolvă dinamic prin `applyTenantTheme()` în `--tenant-accent` (și aliasul `--tenant-bg`), cu contrast automat WCAG AA (`--tenant-accent-fg: #111113` sau `#FFFFFF` în funcție de luminanță `> 0.42`) și suprafețe 100% neutre (`#F2F2F4` / `#FFFFFF` în Light Mode, `#0C0C0E` / `#1C1C1E` în Dark Mode fără tentă albăstruie).
+  - **Dispatch Live Layout:** aliniere la stânga lângă sidebar (`16px` gap), fără `max-w-* mx-auto` sau dublu padding exterior; antet clar + pastila verde `• Live`.
+  - **Culoarea Tenantului (`var(--tenant-accent)` / `var(--tenant-bg)`):** toate butoanele principale (`.ui-btn-primary`), filtrele/taburile active (`.ui-segment-active`) și focus rings folosesc exclusiv variabilele tenantului.
+  - **System Sheets & Alerts:** fundal solid/opac curat (`.ui-sheet` / `var(--ui-surface)`), contur clar, secțiuni interioare **Inset Grouped** (`.ui-inset-card`), `createPortal(..., document.body)` cu `z-[99999]`.
+  - **Tipografie Retina Crisp:** fără `scale3d` sau `will-change: transform` lăsate active pe containerele deschise care conțin text; `text-wrap: balance` pe titluri.
 
-## 2. Igienă Tehnică CSS & iOS Safari: `web-design-guidelines` (Vercel)
-- În completarea esteticii `apple-design`, respectă regulile tehnice din `.agents/skills/web-design-guidelines/references/command.md`:
-  - `min-w-0` pe toate elementele `flex` și `grid` ca textele traduse (`FR` / `NL` / `EN`) să nu depășească niciodată containerul.
-  - `tabular-nums` și `whitespace-nowrap` pe toate prețurile (`€`), suprafețele (`m²`), tonajele (`T`), distanțele (`km`) și orele.
-  - Folosește doar clase de opacitate valide în Tailwind CSS v3 (multipli de 5: `/90`, `/95`, `/100` sau valori arbitrare `/[0.98]`, niciodată `/98` sau `/96` fără paranteze pătrate).
-  - `overscroll-behavior: contain` în modale și panouri scrollabile.
+## 2. Igienă Tehnică CSS & iOS Safari (100+ Reguli): `web-design-guidelines` (Vercel)
+- **Sursă:** `vercel-labs/agent-skills` & `vercel-labs/web-interface-guidelines` (`.agents/skills/web-design-guidelines/SKILL.md`).
+- **Reguli aplicate global în `frontend/src/index.css` și componente:**
+  - `touch-action: manipulation` și `-webkit-tap-highlight-color: transparent` pe toate controalele interactive (elimină delay-ul de 300ms și auto-zoom-ul la dublu-tap pe iOS).
+  - `font-size >= 16px` pe `<input>`, `<select>`, `<textarea>` pe mobil (`@media (max-width: 767px)`) contra auto-zoom-ului din iOS Safari.
+  - `min-width: 0` (`min-w-0`) pe elementele `flex` și `grid` ca textele traduse (`RO / FR / NL / EN / DE`) să nu depășească niciodată ecranul.
+  - `overscroll-behavior: contain` în toate modalele, panourile laterale și listele scrollabile.
+  - `tabular-nums` și `whitespace-nowrap` pe toate prețurile (`€`), suprafețele (`m²`), tonajele (`T`), distanțele (`km`), procentele (`%`) și orele.
+  - Ținte tactile de minimum `44×44px` pe mobil/iPad și inel `:focus-visible` în culoarea tenantului.
 
-## 3. Debugging Sistematic & Modificări Chirurgicale: `systematic-debugging` + `karpathy-guidelines`
-- **Fără cârpeli fără cauza rădăcină (`.agents/skills/systematic-debugging/SKILL.md`):** Înainte de a modifica orice linie de cod pentru un bug, identifică și verifică tehnic cauza reală (ex. statusul HTTP al API-ului, CSS-ul compilat în `dist/`, sau dimensiunea reală din DOM).
-- **Simplicity First & Surgical Changes (`.agents/skills/karpathy-guidelines/SKILL.md`):** Atinge strict liniile necesare cerinței, fără a strica funcționalitatea existentă.
+## 3. Arhitectură, Module Profunde & Limbaj de Domeniu: `mattpocock-skills`
+- **Sursă:** `mattpocock/skills` (`.agents/skills/mattpocock-skills/SKILL.md`).
+- **Design It Twice & Deep Modules:** logica matematică de prețuri și materiale rămâne într-o singură sursă de adevăr (`buildQuoteItems` / `pricing_engine.py`), niciodată duplicată în pagini.
+- **Ubiquitous Language (Davide Chape Belgia):** folosirea consecventă a termenilor de domeniu (*Chape*, *Isolation PUR/EPS*, *Forfait*, *Seuil 250 m²*, *Peppol BIS 3.0 / e-FFF / Billtobox*, *Rappel WhatsApp 4 stări*).
+- **Triage Issue:** urmărirea completă a unui bug pe verticală (`DB Model -> Serializer (_serialize / _serialize_invoice_mode / _serialize_slim) -> Frontend API -> DOM`).
 
-## 4. Verificare Înainte de Finalizare: `verification-before-completion` + `webapp-testing` + `audit-gatekeeper`
-- **Dovezi înainte de afirmații (`.agents/skills/verification-before-completion/SKILL.md`):** Nu afirma niciodată că o modificare este gata fără a rula verificarea în același pas (`npm run build`, `.agents/skills/audit-gatekeeper/scripts/run_prepush_audit.py` și/sau inspecția matematică în browser cu `.agents/skills/webapp-testing/SKILL.md` pe portul `5678`).
+## 4. Debugging Sistematic & Modificări Chirurgicale: `systematic-debugging` + `karpathy-guidelines`
+- **Surse:** `obra/superpowers` (`.agents/skills/systematic-debugging/SKILL.md`) + `multica-ai/andrej-karpathy-skills` (`.agents/skills/karpathy-guidelines/SKILL.md`).
+- **Think Before Coding & Root Cause First:** identifică și verifică tehnic cauza reală înainte de orice modificare.
+- **Simplicity First & Surgical Changes:** cod minim, curat, care rezolvă exact cerința fără efecte secundare.
+
+## 5. Verificare Înainte de Finalizare & Audit Multi-Viewport: `verification-before-completion` + `webapp-testing` + `audit-gatekeeper`
+- **Surse:** `obra/superpowers` (`.agents/skills/verification-before-completion/SKILL.md`) + `anthropics/skills` (`.agents/skills/webapp-testing/SKILL.md`) + `.agents/skills/audit-gatekeeper/SKILL.md`.
+- **Dovezi înainte de afirmații:** rulează `npm run build`, `.agents/skills/audit-gatekeeper/scripts/run_prepush_audit.py` și/sau `.agents/skills/webapp-testing/scripts/audit_ui_geometry.py` (verificare Playwright pe `320px`, `375px`, `390px`, `430px`, `1024px`, `1440px`) înainte de a raporta finalizarea.

@@ -84,6 +84,9 @@ def _geocode_address_cached(address: str):
                 return result
     except Exception:
         pass
+    # Negative cache: dacă atât Google cât și Nominatim nu au găsit adresa, salvăm None ca să nu o re-apelăm în buclă
+    with _global_geo_lock:
+        _global_geo_cache[key] = None
     return None
 
 
@@ -350,15 +353,50 @@ def _serialize_audit_mode(wo) -> dict:
         "source_system": wo.source_system
     }
 
+def _get_history_since_last_date_change(wo: WorkOrder):
+    hist = wo.date_history if isinstance(wo.date_history, list) else []
+    last_change_idx = -1
+    last_change_ts = None
+    for idx, h in enumerate(hist):
+        if isinstance(h, dict) and h.get("action") == "changed_by_admin":
+            last_change_idx = idx
+            last_change_ts = h.get("timestamp")
+    current_hist = hist[last_change_idx + 1:] if last_change_idx >= 0 else hist
+    return current_hist, last_change_ts
+
+
+def _is_ts_after(ts_str: str, ref_ts_str: str) -> bool:
+    if not ts_str:
+        return False
+    if not ref_ts_str:
+        return True
+    try:
+        from datetime import datetime
+        t1 = datetime.fromisoformat(str(ts_str).replace("Z", "").split("+")[0])
+        t2 = datetime.fromisoformat(str(ref_ts_str).replace("Z", "").split("+")[0])
+        return t1 >= t2
+    except Exception:
+        return str(ts_str) >= str(ref_ts_str)
+
+
 def _extract_reminder_timestamps(wo: WorkOrder):
     p = wo.prices if isinstance(wo.prices, dict) else {}
-    hist = wo.date_history if isinstance(wo.date_history, list) else []
-    sent_at = p.get("reminder_sent_at") or next(
-        (h.get("timestamp") for h in reversed(hist) if isinstance(h, dict) and h.get("action") == "reminder_sent"),
+    current_hist, last_change_ts = _get_history_since_last_date_change(wo)
+
+    p_sent = p.get("reminder_sent_at")
+    if p_sent and last_change_ts and not _is_ts_after(p_sent, last_change_ts):
+        p_sent = None
+
+    p_conf = p.get("reminder_confirmed_at")
+    if p_conf and last_change_ts and not _is_ts_after(p_conf, last_change_ts):
+        p_conf = None
+
+    sent_at = p_sent or next(
+        (h.get("timestamp") for h in reversed(current_hist) if isinstance(h, dict) and h.get("action") == "reminder_sent"),
         None
     )
-    confirmed_at = p.get("reminder_confirmed_at") or next(
-        (h.get("timestamp") for h in reversed(hist) if isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually")),
+    confirmed_at = p_conf or next(
+        (h.get("timestamp") for h in reversed(current_hist) if isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually")),
         None
     )
     return sent_at, confirmed_at
@@ -509,9 +547,10 @@ def _serialize_slim(wo: WorkOrder, partner_colors: dict = None) -> dict:
 
 def _serialize_invoice_mode(wo: WorkOrder, partner_colors: dict = None) -> dict:
     partner_colors = partner_colors or {}
-    """Versiune optimizată pentru pagina de facturare — include proforma_data și date client, exclude poze, documente, etc."""
+    """Versiune optimizată pentru pagina de facturare — include proforma_data, Peppol/Billtobox și date client, exclude poze/documente grele."""
     site_name = wo.site.name if wo.site else None
     client_display = wo.client_name or (wo.client.name if wo.client else None)
+    reminder_sent_at, reminder_confirmed_at = _extract_reminder_timestamps(wo)
     return {
         "id": wo.id,
         "token": wo.token,
@@ -519,31 +558,55 @@ def _serialize_invoice_mode(wo: WorkOrder, partner_colors: dict = None) -> dict:
         "work_type": wo.work_type,
         "start_date": str(wo.start_date) if wo.start_date else None,
         "start_time": wo.start_time,
+        "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,
+        "approximate_date": wo.approximate_date,
         "is_quote": bool(wo.is_quote),
         "status": wo.status,
         "duration_days": getattr(wo, "duration_days", 1),
         "source_system": wo.source_system,
+        "site_id": wo.site_id,
+        "site_name": site_name,
         "site_address": wo.site_address or (wo.site.address if wo.site else None),
         "client_id": wo.client_id,
         "client_name": client_display,
         "client_email": wo.client_email or (wo.client.email if wo.client else None),
         "client_phone": wo.client_phone or (wo.client.phone if wo.client else None),
-        "client_type": wo.client.client_type if wo.client else "juridica",
-        "client_company_reg_number": wo.client.company_reg_number if wo.client else None,
-        "client_company_vat": wo.client.company_vat if wo.client else None,
-        "client_address": wo.client.address if wo.client else wo.client_address,
+        "client_type": wo.client.client_type if wo.client else (getattr(wo, "client_type", None) or "juridica"),
+        "client_country": (getattr(wo.client, "country", None) if wo.client else None) or "BE",
+        "client_company_reg_number": getattr(wo.client, "reg_com", None) if wo.client else None,
+        "client_company_vat": (getattr(wo.client, "cui", None) or getattr(wo.client, "company_vat", None)) if wo.client else None,
+        "client_cui": getattr(wo.client, "cui", None) if wo.client else None,
+        "client_reg_com": getattr(wo.client, "reg_com", None) if wo.client else None,
+        "client_address": getattr(wo.client, "address", None) if wo.client else getattr(wo, "site_address", None),
+        "assigned_team_id": wo.assigned_team_id,
+        "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
+        "assigned_team_color": wo.assigned_team.color if wo.assigned_team else None,
         "volumes": wo.volumes or [],
-        "has_foil": wo.has_foil,
-        "actual_has_foil": wo.actual_has_foil,
-        "has_mesh": wo.has_mesh,
-        "actual_has_mesh": wo.actual_has_mesh,
-        "has_fiber": wo.has_fiber,
-        "actual_has_fiber": wo.actual_has_fiber,
-        "surface_m2": wo.surface_m2,
+        "has_foil": getattr(wo, "has_foil", False),
+        "actual_has_foil": getattr(wo, "actual_has_foil", False),
+        "has_mesh": getattr(wo, "has_mesh", False),
+        "actual_has_mesh": getattr(wo, "actual_has_mesh", False),
+        "has_fiber": getattr(wo, "has_fiber", False),
+        "actual_has_fiber": getattr(wo, "actual_has_fiber", False),
+        "surface_m2": getattr(wo, "surface_m2", None),
         "actual_surface_m2": wo.actual_surface_m2,
-        "thickness_cm": wo.thickness_cm,
+        "thickness_cm": getattr(wo, "thickness_cm", None),
         "actual_thickness_cm": wo.actual_thickness_cm,
+        "actual_sand_quantity": getattr(wo, "actual_sand_quantity", None),
+        "route_distance_km": getattr(wo, "route_distance_km", None),
+        "route_sand_kg": getattr(wo, "route_sand_kg", None),
+        "materials_consumed": getattr(wo, "materials_consumed", None) or [],
         "is_invoiced": bool(wo.is_invoiced),
+        "invoiced_at": wo.invoiced_at.isoformat() if getattr(wo, "invoiced_at", None) else None,
+        "proforma_path": getattr(wo, "proforma_path", None),
+        "proforma_issued_at": wo.proforma_issued_at.isoformat() if getattr(wo, "proforma_issued_at", None) else None,
+        "pdf_path": getattr(wo, "pdf_path", None),
+        "billtobox_status": getattr(wo, "billtobox_status", "none") or "none",
+        "billtobox_sent_at": wo.billtobox_sent_at.isoformat() if getattr(wo, "billtobox_sent_at", None) else None,
+        "billtobox_error": getattr(wo, "billtobox_error", None),
+        "confirmed_at": reminder_confirmed_at or (wo.date_confirmed_at.isoformat() if getattr(wo, "date_confirmed_at", None) else None),
+        "reminder_sent_at": reminder_sent_at,
+        "reminder_confirmed_at": reminder_confirmed_at,
         "quote_number": wo.quote_number,
         "invoice_number": wo.invoice_number,
         "estimated_price": wo.estimated_price,
@@ -790,6 +853,14 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, pa
     except Exception as _e:
         computed_total = None  # silently fallback — nu oprim aplicatia
 
+    _rem_sent_at, _rem_confirmed_at = _extract_reminder_timestamps(wo)
+    _, _last_change_ts = _get_history_since_last_date_change(wo)
+    _effective_date_confirmed_at = (
+        _rem_confirmed_at
+        if _last_change_ts
+        else (wo.date_confirmed_at.isoformat() if getattr(wo, 'date_confirmed_at', None) else _rem_confirmed_at)
+    )
+
     result = {
         "id": wo.id,
         "token": wo.token,
@@ -830,16 +901,10 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False, pa
         "prices": wo_prices,
         "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
         "confirmed_by_name": wo.confirmed_by_name,
-        "date_confirmed_at": wo.date_confirmed_at.isoformat() if getattr(wo, 'date_confirmed_at', None) else None,
-        "date_confirmed_ip": getattr(wo, 'date_confirmed_ip', None),
-        "reminder_sent_at": (wo_prices or {}).get("reminder_sent_at") or next(
-            (h.get("timestamp") for h in reversed(wo.date_history or []) if isinstance(h, dict) and h.get("action") == "reminder_sent"),
-            None
-        ),
-        "reminder_confirmed_at": (wo_prices or {}).get("reminder_confirmed_at") or next(
-            (h.get("timestamp") for h in reversed(wo.date_history or []) if isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually")),
-            None
-        ),
+        "date_confirmed_at": _effective_date_confirmed_at,
+        "date_confirmed_ip": getattr(wo, 'date_confirmed_ip', None) if _effective_date_confirmed_at else None,
+        "reminder_sent_at": _rem_sent_at,
+        "reminder_confirmed_at": _rem_confirmed_at,
         "reschedule_requested": getattr(wo, 'reschedule_requested', False),
         "reschedule_requested_date": str(wo.reschedule_requested_date) if getattr(wo, 'reschedule_requested_date', None) else None,
         "reschedule_reason": getattr(wo, 'reschedule_reason', None),
@@ -1628,23 +1693,28 @@ def update_work_order(
     if "start_date" in update_data and str(update_data["start_date"]) != str(old_start_date):
         wo.reschedule_requested = False
         wo.reschedule_requested_date = None
-        # When an admin schedules the order in the calendar (status=planning/confirmed/in_progress or team assigned),
-        # mark the date as validated by Davide Chape so the client page shows "Date confirmée" instead of "En attente de validation"
-        if wo.start_date and (wo.assigned_team_id or wo.status in ("planning", "confirmed", "in_progress")):
-            wo.date_confirmed_at = datetime.utcnow()
-        else:
-            wo.date_confirmed_at = None
+        wo.reschedule_reason = None
+        # Când lucrarea este mutată pe o altă zi, confirmarea anterioară a datei de către client se resetează
+        # și clientul trebuie să reconfirme noua dată pentru ca bifa să reapară.
+        wo.date_confirmed_at = None
+        wo.date_confirmed_ip = None
+
+        p_reset = dict(wo.prices or {})
+        for k in ("reminder_sent_at", "reminder_confirmed_at", "reminder_issue_type", "reminder_issue_at", "reminder_issue_message", "reminder_requested_date"):
+            p_reset.pop(k, None)
+        wo.prices = p_reset
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(wo, "prices")
         
         hist = list(wo.date_history) if wo.date_history else []
         hist.append({
             "action": "changed_by_admin",
             "old_date": str(old_start_date) if old_start_date else None,
             "new_date": str(update_data["start_date"]),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.utcnow().isoformat() + "Z",
             "admin_name": current_admin.full_name
         })
         wo.date_history = hist
-        from sqlalchemy.orm.attributes import flag_modified
         flag_modified(wo, "date_history")
         
     new_prices = wo.prices or {}
@@ -1779,11 +1849,9 @@ def update_work_order(
 
     wo.updated_at = datetime.utcnow()
     
-    if wo.start_date and (wo.assigned_team_id or wo.status in ("planning", "confirmed", "in_progress")):
-        if not wo.date_confirmed_at or str(old_start_date) != (str(wo.start_date) if wo.start_date else ""):
-            wo.date_confirmed_at = datetime.utcnow()
-    elif str(old_start_date) != (str(wo.start_date) if wo.start_date else ""):
+    if str(old_start_date) != (str(wo.start_date).split("T")[0] if wo.start_date else ""):
         wo.date_confirmed_at = None
+        wo.date_confirmed_ip = None
         
     db.commit()
     db.refresh(wo)
@@ -1839,25 +1907,43 @@ def update_work_order(
             for k in ("reminder_sent_at", "reminder_confirmed_at", "reminder_issue_type", "reminder_issue_at", "reminder_issue_message", "reminder_requested_date"):
                 p_copy.pop(k, None)
             wo.prices = p_copy
+            wo.date_confirmed_at = None
+            wo.date_confirmed_ip = None
             wo.reschedule_requested = False
             wo.reschedule_reason = None
             flag_modified(wo, "prices")
             db.commit()
         except Exception:
             pass
-    should_notify_client = (not only_time_changed_same_day) and (
-        bool(getattr(payload, 'send_notification', False)) or day_changed_in_planning
-    )
+    # Notificarea pe WhatsApp și Email se trimite DOAR dacă utilizatorul a bifat/confirmat explicit trimiterea (send_notification=True)
+    should_notify_client = (not only_time_changed_same_day) and bool(getattr(payload, 'send_notification', False))
 
     if should_notify_client:
         if getattr(wo, 'token', None):
+            from sqlalchemy.orm.attributes import flag_modified
+            now_rem_iso = datetime.utcnow().isoformat() + "Z"
             wo.client_notified = True
+            p_notify = dict(wo.prices or {})
+            p_notify["reminder_sent_at"] = now_rem_iso
+            p_notify.pop("reminder_confirmed_at", None)
+            wo.prices = p_notify
+            flag_modified(wo, "prices")
+
+            hist_notify = list(wo.date_history) if isinstance(wo.date_history, list) else []
+            hist_notify.append({
+                "action": "reminder_sent",
+                "timestamp": now_rem_iso,
+                "by": current_admin.full_name or "Admin"
+            })
+            wo.date_history = hist_notify
+            flag_modified(wo, "date_history")
             db.commit()
+
             from app.services.email_service import send_planning_update_email
             from app.services.whatsapp_service import send_planning_update_whatsapp
             
             client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
-            proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}?lang={client_lang}"
+            confirm_url = f"https://davidechape.pontaj.app/confirm/{wo.token}?lang={client_lang}"
             if hasattr(wo.start_date, 'strftime'):
                 formatted_date = wo.start_date.strftime("%d/%m/%Y")
             elif wo.start_date:
@@ -1868,12 +1954,12 @@ def update_work_order(
 
             if wo.client_email:
                 try:
-                    send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date, org_id=wo.organization_id, wo_id=wo.id)
+                    send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), confirm_url, formatted_date, org_id=wo.organization_id, wo_id=wo.id)
                 except Exception as e:
                     print(f"Failed to send planning update email: {e}")
             if wo.client_phone:
                 try:
-                    send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
+                    send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), confirm_url, formatted_date)
                 except Exception as e:
                     print(f"Failed to send planning update whatsapp: {e}")
             
@@ -2003,12 +2089,19 @@ def get_driving_distance_km(origin: str, destination: str) -> float:
             data = res.json()
             if data.get("rows") and data["rows"][0].get("elements"):
                 element = data["rows"][0]["elements"][0]
-                if element.get("status") == "OK":
+                el_status = element.get("status")
+                if el_status == "OK":
                     km = round(element["distance"]["value"] / 1000.0, 2)
                     with _distance_matrix_lock:
                         _distance_matrix_cache[cache_key] = km
                         _distance_matrix_cache[f"{dest_clean}|{orig_clean}"] = km
                     return km
+                elif el_status in ("ZERO_RESULTS", "NOT_FOUND"):
+                    # Negative cache: nu mai re-interogăm Google Distance Matrix pentru o adresă inexistentă
+                    with _distance_matrix_lock:
+                        _distance_matrix_cache[cache_key] = 0.0
+                        _distance_matrix_cache[f"{dest_clean}|{orig_clean}"] = 0.0
+                    return 0.0
     except Exception as e:
         print(f"Error calculating distance: {e}")
     return 0.0
@@ -2083,12 +2176,42 @@ def sync_work_order_prices(
         
         pricing_data = dict(wo.prices) if wo.prices else {}
         
-        # Calculate distance if not present
+        # Calculate distance if not present — prioritate: 1) route_distance_km deja salvat, 2) Haversine * 1.3 din coordonate GPS (0 cost Google), 3) fallback cache-uit DistanceMatrix
         distance_km = float(pricing_data.get('distance_km', 0))
-        if distance_km <= 0 and wo.site_address:
+        if distance_km <= 0 and float(wo.route_distance_km or 0) > 0:
+            distance_km = round(float(wo.route_distance_km) / 2.0, 2)
+            pricing_data['distance_km'] = distance_km
+
+        if distance_km <= 0 and (wo.site_address or (wo.site_latitude and wo.site_longitude)):
+            import math
             from app.models import LogisticBase
             bases = db.query(LogisticBase).filter(LogisticBase.organization_id == current_admin.organization_id).all()
-            if bases:
+            site_lat = wo.site_latitude
+            site_lng = wo.site_longitude
+            if (not site_lat or not site_lng) and wo.site_address:
+                geo = _geocode_address_cached(wo.site_address)
+                if geo:
+                    site_lat, site_lng = geo
+                    wo.site_latitude, wo.site_longitude = site_lat, site_lng
+
+            if site_lat and site_lng and bases:
+                def _haversine_sync(lat1, lon1, lat2, lon2):
+                    R = 6371.0
+                    dLat = math.radians(lat2 - lat1)
+                    dLon = math.radians(lon2 - lon1)
+                    a = math.sin(dLat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon / 2)**2
+                    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+                min_dist = 999999.0
+                for base_record in bases:
+                    if base_record.latitude and base_record.longitude:
+                        d_km = round(_haversine_sync(base_record.latitude, base_record.longitude, float(site_lat), float(site_lng)) * 1.3, 2)
+                        if 0 < d_km < min_dist:
+                            min_dist = d_km
+                if min_dist < 999999.0:
+                    distance_km = min_dist
+                    pricing_data['distance_km'] = distance_km
+            elif bases and wo.site_address:
                 min_dist = 999999.0
                 for base_record in bases:
                     if base_record.address:
@@ -3175,6 +3298,35 @@ def convert_quote_to_order(
     
     return {"message": "Quote converted to Work Order", "work_order": _serialize(wo, db)}
 
+@router.get("/work-orders/{wo_id}/peppol-xml")
+def download_peppol_ubl_xml_endpoint(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """
+    Generează și descarcă fișierul XML Peppol BIS 3.0 / e-FFF (UBL 2.1 Belgia) pentru o lucrare/factură.
+    """
+    from fastapi.responses import Response
+    from app.services.billtobox import generate_efff_xml
+
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+
+    client = None
+    if wo.client_id:
+        client = db.query(Client).filter(Client.id == wo.client_id).first()
+
+    xml_str = generate_efff_xml(wo, client)
+    doc_num = wo.invoice_number or wo.quote_number or wo.id[:8].upper()
+    filename = f"Peppol_UBL_{doc_num}.xml"
+    return Response(
+        content=xml_str.encode("utf-8"),
+        media_type="application/xml",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
 @router.post("/work-orders/{wo_id}/billtobox")
 def send_to_billtobox_endpoint(
     wo_id: str,
@@ -3182,14 +3334,16 @@ def send_to_billtobox_endpoint(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """
-    Trimite o factură finalizată către Billtobox via e-FFF XML format.
+    Trimite o factură către rețeaua Peppol / Billtobox via e-FFF XML format.
     """
     wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
     if not wo:
         raise HTTPException(status_code=404, detail="Work Order not found")
         
     if not wo.is_invoiced:
-        raise HTTPException(status_code=400, detail="Doar facturile finale pot fi trimise către Billtobox.")
+        wo.is_invoiced = True
+        if not wo.invoiced_at:
+            wo.invoiced_at = datetime.utcnow()
         
     client = None
     if wo.client_id:
@@ -3202,12 +3356,16 @@ def send_to_billtobox_endpoint(
         wo.billtobox_sent_at = datetime.utcnow()
         wo.billtobox_error = None
         db.commit()
-        return {"message": "Factura a fost trimisă cu succes către Billtobox.", "status": "sent"}
+        return {
+            "message": "Factura a fost transmisă cu succes în Peppol / Billtobox.",
+            "status": "sent",
+            "sent_at": wo.billtobox_sent_at.isoformat()
+        }
     else:
         wo.billtobox_status = "error"
         wo.billtobox_error = message
         db.commit()
-        raise HTTPException(status_code=500, detail=f"Eroare la trimiterea către Billtobox: {message}")
+        raise HTTPException(status_code=500, detail=f"Eroare la transmiterea în Peppol / Billtobox: {message}")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Chat Messages (Admin ↔ Client)
@@ -3233,6 +3391,7 @@ def get_work_order_messages(
         for m in unread_client_msgs:
             m.is_read_by_admin = True
         db.commit()
+        _chats_list_cache.clear()
         
     # Build initial context messages
     initial_messages = []
@@ -3270,24 +3429,6 @@ def get_work_order_messages(
         if m.message == '[reaction]':
             continue
         m_translations = dict(m.translations or {})
-        if m.sender in ('client', 'partner') and m.message and ('ro' not in m_translations or str(m_translations.get('ro', '')).strip().lower() == m.message.strip().lower()):
-            try:
-                from app.services.translation_service import translate_text
-                ro_text = translate_text(m.message, 'ro')
-                if ro_text and ro_text.strip().lower() != m.message.strip().lower():
-                    m_translations['ro'] = ro_text
-            except Exception:
-                pass
-        elif m.sender == 'admin' and m.message and m_translations.get('_target_lang') != 'none':
-            target_l = m_translations.get('_target_lang') or (getattr(wo, 'client_language', 'fr') or 'fr').lower().split('-')[0].strip()
-            if target_l and target_l != 'none' and (target_l not in m_translations or not m_translations.get(target_l)):
-                try:
-                    from app.services.translation_service import translate_text
-                    tr_val = translate_text(m.message, target_l)
-                    if tr_val:
-                        m_translations[target_l] = tr_val
-                except Exception:
-                    pass
 
         db_messages.append({
             "id": m.id,
@@ -3607,6 +3748,8 @@ def toggle_work_order_reminder_confirmation(
         p_dict.pop("reminder_confirmed_at", None)
         for k in ("reminder_issue_type", "reminder_issue_at", "reminder_issue_message", "reminder_requested_date"):
             p_dict.pop(k, None)
+        wo.date_confirmed_at = None
+        wo.date_confirmed_ip = None
         wo.reschedule_requested = False
         wo.reschedule_reason = None
         if isinstance(wo.date_history, list):
@@ -3904,55 +4047,98 @@ def get_unread_quotes_count(
         "server_time": datetime.utcnow().isoformat() + "Z"
     }
 
+_chats_list_cache: dict = {}
+
 @router.get("/chats")
 def get_all_chats(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
-    """Returns a list of all work orders that have at least one message, grouped for the chat page."""
-    # Find all work orders with messages
-    subquery = db.query(WorkOrderMessage.work_order_id, func.max(WorkOrderMessage.created_at).label("last_msg_time")).group_by(WorkOrderMessage.work_order_id).subquery()
-    
+    """Returns a list of all work orders that have at least one message, grouped for the chat page (Zero N+1 queries)."""
+    import time as _time
+    org_id = str(current_admin.organization_id)
+    now_ts = _time.time()
+    cached = _chats_list_cache.get(org_id)
+    if cached and (now_ts - cached[0]) < 1.5:
+        return cached[1]
+
+    # 1. Single aggregated query: last_msg_time + unread_count per work_order_id
+    from sqlalchemy import case
+    agg_sub = (
+        db.query(
+            WorkOrderMessage.work_order_id.label("wo_id"),
+            func.max(WorkOrderMessage.created_at).label("last_msg_time"),
+            func.sum(
+                case(
+                    (
+                        (WorkOrderMessage.sender == 'client') & (WorkOrderMessage.is_read_by_admin == False),
+                        1
+                    ),
+                    else_=0
+                )
+            ).label("unread_count")
+        )
+        .group_by(WorkOrderMessage.work_order_id)
+        .subquery()
+    )
+
     chats = (
-        db.query(WorkOrder, subquery.c.last_msg_time)
-        .join(subquery, WorkOrder.id == subquery.c.work_order_id)
+        db.query(WorkOrder, agg_sub.c.last_msg_time, agg_sub.c.unread_count)
+        .join(agg_sub, WorkOrder.id == agg_sub.c.wo_id)
         .filter(WorkOrder.organization_id == current_admin.organization_id)
-        .order_by(subquery.c.last_msg_time.desc())
+        .order_by(agg_sub.c.last_msg_time.desc())
         .all()
     )
-    
+
+    wo_ids = [wo.id for wo, _, _ in chats]
+    last_msg_map = {}
+    if wo_ids:
+        # 2. Single bulk query for latest non-reaction message text per work_order_id
+        latest_msg_sub = (
+            db.query(
+                WorkOrderMessage.work_order_id.label("wo_id"),
+                func.max(WorkOrderMessage.created_at).label("max_created")
+            )
+            .filter(
+                WorkOrderMessage.work_order_id.in_(wo_ids),
+                WorkOrderMessage.message != '[reaction]'
+            )
+            .group_by(WorkOrderMessage.work_order_id)
+            .subquery()
+        )
+        latest_msgs = (
+            db.query(WorkOrderMessage.work_order_id, WorkOrderMessage.message)
+            .join(
+                latest_msg_sub,
+                (WorkOrderMessage.work_order_id == latest_msg_sub.c.wo_id)
+                & (WorkOrderMessage.created_at == latest_msg_sub.c.max_created)
+            )
+            .all()
+        )
+        for wid, msg_txt in latest_msgs:
+            last_msg_map[wid] = msg_txt or ""
+
     results = []
-    for wo, last_msg_time in chats:
-        # get unread count
-        unread = db.query(WorkOrderMessage).filter(
-            WorkOrderMessage.work_order_id == wo.id,
-            WorkOrderMessage.sender == 'client',
-            WorkOrderMessage.is_read_by_admin == False
-        ).count()
-        
-        # get last message text
-        last_msg = db.query(WorkOrderMessage).filter(
-            WorkOrderMessage.work_order_id == wo.id,
-            WorkOrderMessage.message != '[reaction]'
-        ).order_by(WorkOrderMessage.created_at.desc()).first()
-        
+    for wo, last_msg_time, unread_cnt in chats:
         results.append({
+            "id": wo.id,
             "work_order_id": wo.id,
             "title": wo.title or f"CMD-{wo.id[:4]}",
             "client_name": wo.client_name,
             "status": wo.status,
-        "duration_days": getattr(wo, "duration_days", 1),
+            "duration_days": getattr(wo, "duration_days", 1),
             "is_quote": wo.is_quote,
             "quote_number": getattr(wo, 'quote_number', None),
             "invoice_number": getattr(wo, 'invoice_number', None),
             "is_chat_closed": getattr(wo, 'is_chat_closed', False),
             "source_system": getattr(wo, 'source_system', 'manual'),
             "client_language": getattr(wo, 'client_language', 'ro'),
-            "unread_count": unread,
-            "last_message": last_msg.message if last_msg else "",
+            "unread_count": int(unread_cnt or 0),
+            "last_message": last_msg_map.get(wo.id, ""),
             "last_message_time": last_msg_time.isoformat() + "Z" if last_msg_time else wo.created_at.isoformat() + "Z"
         })
-        
+
+    _chats_list_cache[org_id] = (now_ts, results)
     return results
 
 @router.post("/work-orders/{wo_id}/chat/close")

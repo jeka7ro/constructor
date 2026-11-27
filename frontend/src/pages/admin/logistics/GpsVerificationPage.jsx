@@ -159,17 +159,24 @@ export default function GpsVerificationPage() {
     const vehiclesWithData = filteredResults.filter(r => r.gps_points > 0).length
 
     return (
-        <div className="p-4 md:p-8 min-h-screen">
+        <div className="w-full space-y-5">
             {/* Header with tab navigation */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
                     <button 
                         onClick={() => navigate('/admin/logistica')}
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                        className="w-10 h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 rounded-full flex items-center justify-center transition-colors text-slate-600 dark:text-slate-300 shadow-2xs cursor-pointer"
                         title="Retour Logistique"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                     </button>
+                    <div className="flex items-center gap-3 mr-2">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight">Vérification GPS</h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
                     {/* Tab bar — same as LogisticsDashboard */}
                     <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
                         <Link
@@ -191,7 +198,7 @@ export default function GpsVerificationPage() {
                             <BarChart3 className="w-4 h-4" /> {t('logistics.report', 'Rapport')}
                         </Link>
                         {/* Active tab — GPS Verification */}
-                        <div className="px-4 h-9 flex items-center gap-2 rounded-full bg-white dark:bg-slate-700 shadow-sm text-sm font-bold text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900">
+                        <div className="px-4 h-9 flex items-center gap-2 rounded-full bg-[color:var(--tenant-bg)] shadow-sm text-sm font-bold text-white">
                             <Navigation className="w-4 h-4" /> Vérif. GPS
                         </div>
                     </div>

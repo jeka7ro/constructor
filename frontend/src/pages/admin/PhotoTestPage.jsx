@@ -20,8 +20,8 @@ export default function PhotoTestPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-6">
-            <div className="max-w-5xl mx-auto">
+        <div className="w-full space-y-5">
+            <div>
                 {/* Header */}
                 <div className="mb-6">
                     <button
@@ -32,12 +32,18 @@ export default function PhotoTestPage() {
                         Înapoi la Dashboard
                     </button>
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-                            <Camera className="w-8 h-8 text-white" />
+                        <div className="p-3 bg-[color:var(--tenant-bg)] rounded-2xl shadow-sm">
+                            <Camera className="w-7 h-7 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-bold text-slate-900">Test Încărcare Fotografii</h1>
-                            <p className="text-slate-600 mt-1">Testează funcționalitatea de upload pentru pontaje</p>
+                            <div className="flex items-center gap-3.5">
+                                <h1 className="text-[28px] font-black text-slate-900 tracking-tight">Test Încărcare Fotografii</h1>
+                                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    Live
+                                </span>
+                            </div>
+                            <p className="text-slate-500 text-[15px] font-semibold mt-0.5">Testează funcționalitatea de upload pentru pontaje</p>
                         </div>
                     </div>
                 </div>

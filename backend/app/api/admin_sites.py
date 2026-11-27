@@ -57,6 +57,10 @@ def geocode_address(address: str, county: str = None) -> dict:
             with _sites_geo_lock:
                 _sites_geo_cache[key] = res
             return res
+        elif results.get("status") in ("ZERO_RESULTS", "INVALID_REQUEST"):
+            with _sites_geo_lock:
+                _sites_geo_cache[key] = {}
+            return {}
     except Exception as e:
         logger.warning(f"Geocoding failed for '{address}': {e}")
     return {}

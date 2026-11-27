@@ -171,21 +171,21 @@ export default function DataTable({
             )}
 
             {/* Table */}
-            <div className={`overflow-x-auto pb-4 ${mobileCard ? 'hidden md:block' : ''}`}>
-                <table className={`w-full text-sm text-left tabular-nums ${tableClassName || ''}`}>
-                    <thead className="tahoe-table-header bg-white/85 dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+            <div className={`overflow-x-auto pb-1 ${mobileCard ? 'hidden md:block' : ''}`}>
+                <table className={`w-full text-[14px] text-left tabular-nums ${tableClassName || ''}`}>
+                    <thead className="tahoe-table-header bg-slate-50/90 dark:bg-slate-900/85 text-slate-600 dark:text-slate-300 border-b border-slate-200/90 dark:border-slate-700 text-[13px] font-bold">
                         <tr>
                             {/* Row number column */}
-                            <th className="px-1 py-2 text-center w-8 select-none">
-                                {t('common.row_number')}
+                            <th className="px-3.5 py-3 text-center w-12 select-none text-slate-500 dark:text-slate-400 font-bold">
+                                №
                             </th>
                             {columns.map(col => (
                                 <th
                                     key={col.key || col.label}
                                     className={[
-                                        'px-2 py-2 whitespace-nowrap select-none',
+                                        'px-4 py-3 whitespace-nowrap select-none font-bold',
                                         col.align === 'right' ? 'text-right' : 'text-left',
-                                        col.sortable ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : '',
+                                        col.sortable ? 'cursor-pointer hover:text-slate-950 dark:hover:text-white transition-colors' : '',
                                         col.className || ''
                                     ].filter(Boolean).join(' ')}
                                     onClick={col.sortable ? () => handleSort(col.key) : undefined}
@@ -198,16 +198,16 @@ export default function DataTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
                         {loading ? (
                             <tr>
-                                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-sm text-slate-400">
+                                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-[14px] text-slate-400">
                                     {t('common.loading')}
                                 </td>
                             </tr>
                         ) : slice.length === 0 ? (
                             <tr>
-                                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-sm text-slate-400">
+                                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-[14px] text-slate-400">
                                     {emptyText || t('common.no_data')}
                                 </td>
                             </tr>
@@ -215,7 +215,7 @@ export default function DataTable({
                             slice.map((row, idx) => (
                                 <tr
                                     key={row.id ?? idx}
-                                    className={`tahoe-table-row hover:bg-blue-50/40 dark:hover:bg-slate-800/60 transition-colors group ${onRowClick ? 'cursor-pointer' : ''} ${rowClassName ? rowClassName(row) : ''}`}
+                                    className={`tahoe-table-row hover:bg-slate-50/90 dark:hover:bg-slate-800/60 transition-colors group ${onRowClick ? 'cursor-pointer' : ''} ${rowClassName ? rowClassName(row) : ''}`}
                                     style={rowStyle ? rowStyle(row) : undefined}
                                     onClick={onRowClick ? (e) => {
                                         // Nu naviga daca s-a dat click pe un buton/link/input din rand
@@ -223,11 +223,11 @@ export default function DataTable({
                                         onRowClick(row, sorted)
                                     } : undefined}
                                 >
-                                    <td className="px-1 py-2 text-center text-slate-500 tabular-nums text-xs">
+                                    <td className="px-3.5 py-3 text-center text-slate-500 dark:text-slate-400 font-bold tabular-nums text-[13.5px]">
                                         {from + idx + 1}
                                     </td>
                                     {columns.map(col => (
-                                        <td key={col.key || col.label} className={`px-2 py-2 align-middle text-slate-900 dark:text-white ${col.align === 'right' ? 'text-right' : ''} ${col.className || ''}`}>
+                                        <td key={col.key || col.label} className={`px-4 py-3 align-middle text-slate-900 dark:text-white ${col.align === 'right' ? 'text-right' : ''} ${col.className || ''}`}>
                                             {col.render ? col.render(row, from + idx) : (row[col.key] ?? '—')}
                                         </td>
                                     ))}
@@ -239,7 +239,7 @@ export default function DataTable({
             </div>
 
             {/* Pagination Footer */}
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <div className="px-5 py-3 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-3 text-[13px] font-semibold text-slate-600 dark:text-slate-400">
                 <div className="flex items-center gap-2">
                     <span className="uppercase tracking-wide">{t('datatable.show', 'Afișează')}</span>
                     <select

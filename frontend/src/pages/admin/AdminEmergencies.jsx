@@ -100,13 +100,28 @@ export default function AdminEmergencies() {
 
     return (
         <>
-            <div className="p-4 md:p-8 w-full">
+            <div className="w-full space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                                {t('nav.emergencies', 'Urgences & Incidents')}
+                            </h1>
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Live
+                            </span>
+                        </div>
+                        <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                            {t('emergencies.subtitle', 'Suivi en temps réel des alertes d\'urgence signalées sur chantier')}
+                        </p>
+                    </div>
+                </div>
 
-
-                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
-                    <div className="p-4 sm:p-5 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">
+                <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden flex flex-col">
+                    <div className="px-6 py-4 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800">
                         <div className="relative group flex items-center w-full sm:w-auto">
-                            <div className="absolute left-3.5 text-slate-400 group-focus-within:text-rose-500 transition-colors">
+                            <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                 <Search className="w-4 h-4" />
                             </div>
                             <input
@@ -114,19 +129,19 @@ export default function AdminEmergencies() {
                                 placeholder={t('common.search', 'Rechercher...')}
                                 value={searchQuery}
                                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1) }}
-                                className="w-full sm:w-72 h-10 pl-10 pr-10 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
+                                className="w-full sm:w-72 h-10 pl-10 pr-10 bg-slate-50 dark:bg-slate-900 text-[15px] font-medium text-slate-800 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                             />
                         </div>
 
-                        <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-full shadow-inner shrink-0 overflow-x-auto">
+                        <div className="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 shrink-0 overflow-x-auto">
                             {STATUSES.map(s => (
                                 <button
                                     key={s.id}
                                     onClick={() => { setStatusFilter(s.id); setCurrentPage(1) }}
-                                    className={`flex items-center justify-center gap-1.5 px-4 h-8 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
+                                    className={`flex items-center justify-center gap-1.5 px-4 h-9.5 rounded-full text-[15px] font-bold transition-all whitespace-nowrap cursor-pointer ${
                                         statusFilter === s.id
-                                            ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-white shadow-sm ring-1 ring-slate-900/5'
-                                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                                            ? 'bg-[color:var(--tenant-bg)] text-white shadow-sm'
+                                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                                     }`}
                                 >
                                     {t(s.labelKey, s.fallback)}
@@ -136,8 +151,8 @@ export default function AdminEmergencies() {
                     </div>
 
                     {selectedIds.length > 0 && (
-                        <div className="bg-rose-50 border-b border-rose-100 px-4 py-2 flex items-center justify-between dark:bg-rose-900/20 dark:border-rose-900/50">
-                            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} {t('common.selected', 'sélectionné(s)')}</span>
+                        <div className="bg-rose-50 border-b border-rose-100 px-6 py-2.5 flex items-center justify-between dark:bg-rose-900/20 dark:border-rose-900/50">
+                            <span className="text-[15px] font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} {t('common.selected', 'sélectionné(s)')}</span>
                             <button
                                 onClick={() => setConfirmModal({
                                     isOpen: true,
@@ -149,14 +164,14 @@ export default function AdminEmergencies() {
                                         fetchEmergencies()
                                     }
                                 })}
-                                className="text-sm px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-medium transition-colors"
+                                className="text-[14px] px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full font-bold transition-colors"
                             >{t('common.delete_selected', 'Supprimer la Sélection')}</button>
                         </div>
                     )}
 
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                        <table className="w-full text-left text-[16px] whitespace-nowrap">
+                            <thead className="bg-slate-50/90 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-700 text-[15px] font-bold">
                                 <tr>
                                     <th className="px-4 py-4 w-10 text-center"><input type="checkbox" onChange={toggleAll} className="rounded" /></th>
                                     <th className="px-6 py-4">{t('emergencies.employee_site', 'Employé / Chantier')}</th>

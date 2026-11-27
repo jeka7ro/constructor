@@ -173,24 +173,62 @@ export default function ShortWorksCalendar({
     const [confirmedOrderIds, setConfirmedOrderIds] = useState(new Set());
     const [unconfirmedOrderIds, setUnconfirmedOrderIds] = useState(new Set());
 
+    const getHistorySinceLastDateChange = (dateHistory) => {
+        if (!Array.isArray(dateHistory)) return { currentHist: [], lastChangeTs: null };
+        let lastChangeIdx = -1;
+        let lastChangeTs = null;
+        dateHistory.forEach((h, idx) => {
+            if (h && h.action === 'changed_by_admin') {
+                lastChangeIdx = idx;
+                lastChangeTs = h.timestamp || null;
+            }
+        });
+        return {
+            currentHist: lastChangeIdx >= 0 ? dateHistory.slice(lastChangeIdx + 1) : dateHistory,
+            lastChangeTs
+        };
+    };
+
+    const isTsAfterChange = (ts, lastChangeTs) => {
+        if (!ts) return false;
+        if (!lastChangeTs) return true;
+        const t1 = new Date(ts).getTime();
+        const t2 = new Date(lastChangeTs).getTime();
+        if (!isNaN(t1) && !isNaN(t2)) return t1 >= t2;
+        return String(ts) >= String(lastChangeTs);
+    };
+
     const getOrderReminderState = (wo) => {
         if (!wo) return { isConfirmed: false, isSent: false, issueType: null, requestedDate: null, issueMessage: null };
-        const issueType = !unconfirmedOrderIds.has(wo.id) && !confirmedOrderIds.has(wo.id)
+        const { currentHist, lastChangeTs } = getHistorySinceLastDateChange(wo.date_history);
+        const issueAt = wo.prices?.reminder_issue_at;
+        const validIssue = (!lastChangeTs || !issueAt || isTsAfterChange(issueAt, lastChangeTs))
             ? (wo.prices?.reminder_issue_type || (wo.reschedule_requested ? 'reschedule' : null))
+            : null;
+        const issueType = !unconfirmedOrderIds.has(wo.id) && !confirmedOrderIds.has(wo.id)
+            ? validIssue
             : null;
         const requestedDate = wo.prices?.reminder_requested_date || wo.reschedule_requested_date || null;
         const issueMessage = wo.prices?.reminder_issue_message || wo.reschedule_reason || null;
+
+        const validReminderConfirmedAt = isTsAfterChange(wo.reminder_confirmed_at, lastChangeTs)
+            ? wo.reminder_confirmed_at
+            : (isTsAfterChange(wo.prices?.reminder_confirmed_at, lastChangeTs) ? wo.prices?.reminder_confirmed_at : null);
+
         const hasDbConfirm = Boolean(
-            wo.reminder_confirmed_at ||
-            wo.prices?.reminder_confirmed_at ||
-            (Array.isArray(wo.date_history) && wo.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
+            validReminderConfirmedAt ||
+            currentHist.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action))
         );
         const isConfirmed = !issueType && !unconfirmedOrderIds.has(wo.id) && (confirmedOrderIds.has(wo.id) || hasDbConfirm);
+
+        const validReminderSentAt = isTsAfterChange(wo.reminder_sent_at, lastChangeTs)
+            ? wo.reminder_sent_at
+            : (isTsAfterChange(wo.prices?.reminder_sent_at, lastChangeTs) ? wo.prices?.reminder_sent_at : null);
+
         const isSent = Boolean(
             remindedOrderIds.has(wo.id) ||
-            wo.reminder_sent_at ||
-            wo.prices?.reminder_sent_at ||
-            (Array.isArray(wo.date_history) && wo.date_history.some(h => h && h.action === 'reminder_sent'))
+            validReminderSentAt ||
+            currentHist.some(h => h && h.action === 'reminder_sent')
         );
         return { isConfirmed, isSent, issueType, requestedDate, issueMessage };
     };
@@ -210,10 +248,13 @@ export default function ShortWorksCalendar({
                 const list = Array.isArray(res.data) ? res.data : [];
                 const newlyConfirmed = [];
                 list.forEach(item => {
+                    const { currentHist, lastChangeTs } = getHistorySinceLastDateChange(item.date_history);
+                    const validConfTs = isTsAfterChange(item.reminder_confirmed_at, lastChangeTs)
+                        ? item.reminder_confirmed_at
+                        : (isTsAfterChange(item.prices?.reminder_confirmed_at, lastChangeTs) ? item.prices?.reminder_confirmed_at : null);
                     if (
-                        item.reminder_confirmed_at ||
-                        item.prices?.reminder_confirmed_at ||
-                        (Array.isArray(item.date_history) && item.date_history.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action)))
+                        validConfTs ||
+                        currentHist.some(h => h && ['confirmed_by_client', 'confirmed_by_client_message', 'confirmed_manually'].includes(h.action))
                     ) {
                         newlyConfirmed.push(item.id);
                     }
@@ -506,6 +547,29 @@ export default function ShortWorksCalendar({
         const dateStr = format(date, 'yyyy-MM-dd');
         const oldDateStr = (heldOrder.start_date || heldOrder.deadline_date || '').split('T')[0];
         const isDayChanged = Boolean(oldDateStr && oldDateStr !== dateStr);
+
+        if (isDayChanged) {
+            const targetTimeStr = timeStr || '08:00';
+            setPlanningTime(targetTimeStr);
+            setPlanningNotify(true);
+            setPendingReschedule({
+                id: heldOrder.id,
+                wo: heldOrder,
+                old_date: oldDateStr,
+                start_date: dateStr,
+                deadline_date: dateStr,
+                start_time: targetTimeStr,
+                status: 'confirmed',
+                isDayChanged: true,
+                hadConfirmation: getOrderReminderState(heldOrder).isConfirmed,
+                fromHeldOrder: true,
+                instantSave: false
+            });
+            setHeldOrder(null);
+            setIsSelectingForHolding(false);
+            return;
+        }
+
         setSyncing(true);
         try {
             const payload = {
@@ -513,13 +577,13 @@ export default function ShortWorksCalendar({
                 deadline_date: dateStr,
                 start_time: timeStr || '08:00',
                 status: 'confirmed',
-                send_notification: isDayChanged
+                send_notification: false
             };
-            await apiClient.put(`${apiBasePath}/${heldOrder.id}`, payload);
+            const res = await apiClient.put(`${apiBasePath}/${heldOrder.id}`, payload);
             const droppedId = heldOrder.id;
             setHeldOrder(null);
             setIsSelectingForHolding(false);
-            if (onOrderRescheduled) onOrderRescheduled(droppedId, dateStr, timeStr || '08:00');
+            if (onOrderRescheduled) onOrderRescheduled(droppedId, dateStr, timeStr || '08:00', false, undefined, res.data);
             else window.location.reload();
         } catch (error) {
             console.error('Error dropping held order:', error);
@@ -1295,7 +1359,23 @@ export default function ShortWorksCalendar({
                                         const oldDateStr = (wo.start_date || wo.deadline_date || '').split('T')[0];
                                         const isDayChanged = Boolean(oldDateStr && oldDateStr !== targetDate);
 
-                                        console.log(`[onDrop Empty] setting pendingReschedule for ${woId} to ${targetDate} (isDayChanged=${isDayChanged})`);
+                                        if (isDayChanged) {
+                                            setPlanningTime(targetTime);
+                                            setPlanningNotify(true);
+                                            setPendingReschedule({
+                                                id: woId,
+                                                wo,
+                                                old_date: oldDateStr,
+                                                start_date: targetDate,
+                                                start_time: targetTime,
+                                                status: wo?.status === 'draft' ? 'planning' : undefined,
+                                                isDayChanged: true,
+                                                hadConfirmation: getOrderReminderState(wo).isConfirmed,
+                                                instantSave: false
+                                            });
+                                            return;
+                                        }
+
                                         setPendingReschedule({
                                             id: woId,
                                             start_date: targetDate,
@@ -1308,7 +1388,7 @@ export default function ShortWorksCalendar({
                                             const res = await apiClient.put(`${apiBasePath}/${woId}`, {
                                                 start_date: targetDate,
                                                 start_time: targetTime,
-                                                send_notification: isDayChanged,
+                                                send_notification: false,
                                                 ...(wo?.status === 'draft' ? { status: 'planning' } : {})
                                             });
                                             if (onOrderRescheduled) {
@@ -1533,6 +1613,23 @@ export default function ShortWorksCalendar({
                                             const targetDateClean = (targetDate || '').split('T')[0];
                                             const isDayChanged = Boolean(oldDateStr && oldDateStr !== targetDateClean);
 
+                                            if (isDayChanged) {
+                                                setPlanningTime(targetTime);
+                                                setPlanningNotify(true);
+                                                setPendingReschedule({
+                                                    id: draggedWoId,
+                                                    wo: draggedWo,
+                                                    old_date: oldDateStr,
+                                                    start_date: targetDateClean,
+                                                    start_time: targetTime,
+                                                    status: draggedWo.status === 'draft' ? 'planning' : undefined,
+                                                    isDayChanged: true,
+                                                    hadConfirmation: getOrderReminderState(draggedWo).isConfirmed,
+                                                    instantSave: false
+                                                });
+                                                return;
+                                            }
+
                                             setPendingReschedule({
                                                 id: draggedWoId,
                                                 start_date: targetDate,
@@ -1545,7 +1642,7 @@ export default function ShortWorksCalendar({
                                                 const res = await apiClient.put(`${apiBasePath}/${draggedWoId}`, {
                                                     start_date: targetDate,
                                                     start_time: targetTime,
-                                                    send_notification: isDayChanged,
+                                                    send_notification: false,
                                                     ...(draggedWo.status === 'draft' ? { status: 'planning' } : {})
                                                 });
                                                 if (onOrderRescheduled) {
@@ -1758,14 +1855,31 @@ export default function ShortWorksCalendar({
             {/* Planning Modal — Apple HIG Sheet / Alert */}
             {pendingReschedule && !pendingReschedule.instantSave && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => setPendingReschedule(null)}>
-                    <div className="w-full max-w-[390px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                    <div className="w-full max-w-[420px] rounded-[24px] bg-[#F2F4F8] dark:bg-slate-900 text-slate-900 dark:text-white backdrop-blur-3xl saturate-150 border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.38),0_8px_24px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] p-3.5 overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         <div className="rounded-[16px] bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/85 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5">
-                            <div className="w-12 h-12 rounded-full bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/25 flex items-center justify-center mx-auto mb-3.5">
+                            <div className="w-12 h-12 rounded-full bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/25 flex items-center justify-center mx-auto mb-3">
                                 <CalendarIcon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
                             </div>
-                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white text-center mb-4">{t('planning.modal_title', 'Détails de Planification')}</h3>
+                            <h3 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white text-center">
+                                {pendingReschedule.isDayChanged
+                                    ? t('planning.reschedule_modal_title', 'Mutare Lucrare pe Altă Zi')
+                                    : t('planning.modal_title', 'Détails de Planification')}
+                            </h3>
+                            {pendingReschedule.wo && (
+                                <p className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 text-center mt-0.5 truncate">
+                                    {(pendingReschedule.wo.client_name && pendingReschedule.wo.client_name !== 'None') ? pendingReschedule.wo.client_name : pendingReschedule.wo.title}
+                                    {pendingReschedule.wo.quote_number ? ` • ${pendingReschedule.wo.quote_number}` : ''}
+                                </p>
+                            )}
+                            {pendingReschedule.isDayChanged && pendingReschedule.old_date && (
+                                <div className="flex items-center justify-center gap-2 mt-2.5">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-bold bg-sky-500/15 text-sky-800 dark:text-sky-300 border border-sky-500/25 tabular-nums">
+                                        📅 {pendingReschedule.old_date.split('-').reverse().join('/')} ➔ {(pendingReschedule.start_date || '').split('-').reverse().join('/')}
+                                    </span>
+                                </div>
+                            )}
                             
-                            <div className="space-y-3.5">
+                            <div className="space-y-3.5 mt-4">
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">{t('planning.arrival_date', 'Date d\'arrivée')}</label>
@@ -1786,6 +1900,14 @@ export default function ShortWorksCalendar({
                                         />
                                     </div>
                                 </div>
+                                {pendingReschedule.isDayChanged && (
+                                    <div className="flex items-start gap-2.5 p-3 bg-amber-500/15 border border-amber-500/30 rounded-[12px]">
+                                        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                                        <span className="text-[11.5px] font-semibold text-amber-900 dark:text-amber-200 leading-snug">
+                                            {t('planning.reconfirm_reset_notice', 'Confirmarea anterioară se resetează. Clientul va trebui să reconfirme noua dată pentru ca bifa verde (✓✓) să reapară.')}
+                                        </span>
+                                    </div>
+                                )}
                                 {(() => {
                                     const holiday = PUBLIC_HOLIDAYS_BE.find(h => h.date === pendingReschedule.start_date);
                                     if (holiday) {
@@ -1809,7 +1931,7 @@ export default function ShortWorksCalendar({
                                     onClick={() => setPlanningNotify(!planningNotify)}
                                     className={`flex items-start gap-3 p-3 rounded-[12px] cursor-pointer transition-colors border ${
                                         planningNotify 
-                                            ? 'bg-sky-500/10 border-sky-500/25 dark:bg-sky-500/15 dark:border-sky-500/30' 
+                                            ? 'bg-emerald-500/15 border-emerald-500/30 dark:bg-emerald-500/15 dark:border-emerald-500/30' 
                                             : 'bg-slate-50 border-slate-200/80 hover:border-slate-300 dark:bg-slate-900/50 dark:border-slate-700'
                                     }`}
                                 >
@@ -1818,15 +1940,15 @@ export default function ShortWorksCalendar({
                                             type="checkbox"
                                             checked={planningNotify}
                                             readOnly
-                                            className="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 pointer-events-none"
+                                            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 pointer-events-none"
                                         />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className={`text-[13px] font-semibold leading-5 ${planningNotify ? 'text-sky-900 dark:text-sky-100' : 'text-slate-900 dark:text-white'}`}>
-                                            {isPartner ? 'Envoyer une notification à Davide Chape' : t('planning.send_notification', 'Envoyer une notification au client')}
+                                        <span className={`text-[13px] font-bold leading-5 ${planningNotify ? 'text-emerald-900 dark:text-emerald-100' : 'text-slate-900 dark:text-white'}`}>
+                                            {isPartner ? 'Envoyer une notification à Davide Chape' : t('planning.send_notification', 'Trimite mesaj clientului pe WhatsApp și Email')}
                                         </span>
-                                        <span className={`text-[11.5px] ${planningNotify ? 'text-sky-700 dark:text-sky-300' : 'text-slate-500 dark:text-slate-400'}`}>
-                                            {isPartner ? 'Un email sera envoyé avec les détails de la modification' : t('planning.notification_desc', 'Email et WhatsApp avec les détails du rendez-vous')}
+                                        <span className={`text-[11.5px] leading-snug ${planningNotify ? 'text-emerald-800 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                                            {isPartner ? 'Un email sera envoyé avec les détails de la modification' : t('planning.notification_desc', 'Anunță noua dată pe WhatsApp & Email și cere reconfirmarea (OK / REPORT / ANNULER)')}
                                         </span>
                                     </div>
                                 </div>
@@ -1847,7 +1969,7 @@ export default function ShortWorksCalendar({
                                     if (!pendingReschedule) return;
                                     if (syncing) return;
                                     
-                                    const { id, start_date, status } = pendingReschedule;
+                                    const { id, start_date, deadline_date, status, isDayChanged } = pendingReschedule;
                                     setSyncing(true);
                                     
                                     try {
@@ -1855,9 +1977,26 @@ export default function ShortWorksCalendar({
                                             start_date,
                                             start_time: planningTime,
                                             send_notification: planningNotify,
+                                            ...(deadline_date ? { deadline_date } : {}),
                                             ...(status ? { status } : {})
                                         };
                                         const res = await apiClient.put(`${apiBasePath}/${id}`, updatePayload);
+                                        if (isDayChanged) {
+                                            setConfirmedOrderIds(prev => {
+                                                const next = new Set(prev);
+                                                next.delete(id);
+                                                return next;
+                                            });
+                                            if (planningNotify) {
+                                                setRemindedOrderIds(prev => new Set(prev).add(id));
+                                            } else {
+                                                setRemindedOrderIds(prev => {
+                                                    const next = new Set(prev);
+                                                    next.delete(id);
+                                                    return next;
+                                                });
+                                            }
+                                        }
                                         if (onOrderRescheduled) {
                                             onOrderRescheduled(id, start_date, planningTime, false, undefined, res.data);
                                         } else {

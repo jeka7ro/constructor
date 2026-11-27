@@ -237,11 +237,19 @@ function TimesheetsReports() {
     ]
 
     return (
-        <div className="p-4 md:p-8 w-full min-h-screen">
+        <div className="w-full space-y-5">
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('reports.title')}</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{t('reports.subtitle')}</p>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight">{t('reports.title')}</h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15px] font-semibold text-slate-500 mt-0.5">{t('reports.subtitle')}</p>
+                </div>
             </div>
 
             {/* Filters Card */}

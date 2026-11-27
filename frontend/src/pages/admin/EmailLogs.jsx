@@ -125,34 +125,31 @@ const EmailLogs = () => {
     ], [t])
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 relative">
-            <div className="flex-none bg-white border-b border-slate-200 px-6 py-4">
-                <div className="flex items-center justify-between">
+        <div className="w-full space-y-5 relative">
+            <div className="flex items-center justify-between">
+                <div>
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                            <Mail className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-slate-800 tracking-tight">{t('emails.title', 'Journaux d\'E-mails')}</h1>
-                            <p className="text-sm text-slate-500">{t('emails.subtitle', 'Historique des e-mails envoyés depuis l\'application')}</p>
-                        </div>
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">{t('emails.title', 'Journaux d\'E-mails')}</h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
                     </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">{t('emails.subtitle', 'Historique des e-mails envoyés depuis l\'application')}</p>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-6">
-                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                    <DataTable
-                        columns={columns}
-                        data={logs}
-                        loading={loading}
-                        searchable
-                        searchPlaceholder={t('common.search', 'Rechercher...')}
-                        emptyText={t('emails.no_data', 'Aucun e-mail enregistré.')}
-                        defaultSortKey="sent_at"
-                        defaultSortDir="desc"
-                    />
-                </div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col">
+                <DataTable
+                    columns={columns}
+                    data={logs}
+                    loading={loading}
+                    searchable
+                    searchPlaceholder={t('common.search', 'Rechercher...')}
+                    emptyText={t('emails.no_data', 'Aucun e-mail enregistré.')}
+                    defaultSortKey="sent_at"
+                    defaultSortDir="desc"
+                />
             </div>
 
             {/* Email Viewer Modal — Apple HIG System Sheet */}

@@ -927,10 +927,56 @@ export default function WarehouseManagement() {
                 </div>
             </div>
             ) : (
-        <div className="p-4 md:p-8 w-full">
+        <div className="w-full space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                            {t('nav.warehouse', 'Magasin & Stocks')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                        {t('warehouse.subtitle', 'Gestion des outils, matériaux, consommables et carburant')}
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    <select 
+                        value={selectedSite}
+                        onChange={(e) => setSelectedSite(e.target.value)}
+                        className="h-10 px-4 rounded-full border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-900 text-[15px] font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">{t('common.all_sites', 'Toate Șantierele')}</option>
+                        {allSites.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                    </select>
+
+                    <button
+                        onClick={handleExportExcel}
+                        className="flex items-center gap-2 px-4 h-10 rounded-full bg-white hover:bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[15px] font-bold shadow-2xs transition-all whitespace-nowrap cursor-pointer"
+                    >
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                        <span className="hidden sm:inline">{t('common.export', 'Export')}</span>
+                    </button>
+
+                    <button
+                        onClick={() => { setItemForm({ name: '', unit: activeTab === 'COMBUSTIBIL' ? 'L' : (activeTab === 'SCULE' ? 'buc' : ''), model: '', inventory_code: '', site_id: selectedSite || '' }); setSelectedItem(null); setShowItemModal(true); }}
+                        className="flex items-center gap-2 px-5 h-10 rounded-full bg-[color:var(--tenant-bg)] hover:brightness-95 text-white text-[15px] font-bold shadow-sm transition-all whitespace-nowrap cursor-pointer"
+                    >
+                        <Plus className="w-4 h-4 stroke-[2.5]" />
+                        {t('warehouse.item', 'Articol')}
+                    </button>
+                </div>
+            </div>
+
             {/* ── Returnări în așteptare ─────────────────────────────────────── */}
             {pendingReturns.length > 0 && (
-                <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-3xl overflow-hidden">
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-[24px] overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-3 bg-amber-400">
                         <h3 className="font-black text-white text-sm uppercase tracking-wider">
                             {t('warehouse.pending_return_count', '{{count}} Sculă în așteptare confirmare', { count: pendingReturns.length })}
@@ -978,10 +1024,8 @@ export default function WarehouseManagement() {
                 </div>
             )}
 
-
-
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
-                <div className="p-4 sm:p-5 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden flex flex-col">
+                <div className="px-6 py-4 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800">
                     <div className="relative group flex items-center w-full sm:w-auto">
                         <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
                             <Search className="w-4 h-4" />
@@ -991,16 +1035,16 @@ export default function WarehouseManagement() {
                             placeholder={t('warehouse.search_item', 'Rechercher un article...')}
                             value={searchQuery}
                             onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                            className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                            className="w-full sm:w-72 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-[15px] font-medium text-slate-800 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                         />
                         {searchQuery && (
-                            <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
-                                <span className="text-[10px] font-bold text-white">
+                            <div className="absolute right-1.5 flex items-center gap-1 bg-[color:var(--tenant-bg)] px-2.5 py-1 rounded-full shadow-sm">
+                                <span className="text-[11px] font-bold text-white tabular-nums">
                                     {filteredItems.length}/{items.length}
                                 </span>
                                 <button
                                     onClick={() => { setSearchQuery(''); setCurrentPage(1); }}
-                                    className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5"
+                                    className="p-0.5 hover:brightness-90 rounded-full transition-colors ml-0.5"
                                 >
                                     <X className="w-3 h-3 text-white/80 hover:text-white" />
                                 </button>
@@ -1008,66 +1052,37 @@ export default function WarehouseManagement() {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
-                        <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-full shadow-inner mr-2 shrink-0">
-                            {getCategories(t).map(cat => (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => { setActiveTab(cat.id); setCurrentPage(1); }}
-                                    className={`flex items-center justify-center gap-1.5 px-4 h-8 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
-                                        activeTab === cat.id
-                                            ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm ring-1 ring-slate-900/5 dark:ring-slate-100/10'
-                                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
-                                    }`}
-                                >
-                                    <cat.icon className="w-4 h-4 shrink-0" />
-                                    <span>{cat.label}</span>
-                                </button>
-                            ))}
-                        </div>
-
-                        <select 
-                            value={selectedSite}
-                            onChange={(e) => setSelectedSite(e.target.value)}
-                            className="h-10 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">{t('common.all_sites', 'Toate Șantierele')}</option>
-                            {allSites.map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                        </select>
-
-                        <button
-                            onClick={handleExportExcel}
-                            className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
-                        >
-                            <FileSpreadsheet className="w-4 h-4" />
-                            <span className="hidden sm:inline">{t('common.export', 'Export')}</span>
-                        </button>
-
-                        <button
-                            onClick={() => { setItemForm({ name: '', unit: activeTab === 'COMBUSTIBIL' ? 'L' : (activeTab === 'SCULE' ? 'buc' : ''), model: '', inventory_code: '', site_id: selectedSite || '' }); setSelectedItem(null); setShowItemModal(true); }}
-                            className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
-                        >
-                            <Plus className="w-4 h-4" />
-                            {t('warehouse.item', 'Articol')}
-                        </button>
+                    <div className="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 shrink-0 overflow-x-auto">
+                        {getCategories(t).map(cat => (
+                            <button
+                                key={cat.id}
+                                onClick={() => { setActiveTab(cat.id); setCurrentPage(1); }}
+                                className={`flex items-center justify-center gap-1.5 px-4 h-9.5 rounded-full text-[15px] font-bold transition-all whitespace-nowrap cursor-pointer ${
+                                    activeTab === cat.id
+                                        ? 'bg-[color:var(--tenant-bg)] text-white shadow-sm'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                                }`}
+                            >
+                                <cat.icon className="w-4 h-4 shrink-0" />
+                                <span>{cat.label}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
                 <div>
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                    <table className="w-full text-left text-[16px]">
+                        <thead className="bg-slate-50/90 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-700 text-[15px] font-bold">
                             <tr>
-                                <th className="px-3 py-3 w-10 text-center">{t('common.no', 'Nr.')}</th>
-                                <th className="px-3 py-3">{t('warehouse.item', 'Articol')}</th>
-                                <th className="px-3 py-3 text-center">{t('warehouse.um', 'UM')}</th>
-                                <th className="px-3 py-3 text-center">{t('warehouse.in_abbr', 'Intr.')}</th>
-                                <th className="px-3 py-3 text-center">{t('warehouse.out_abbr', 'Ieș.')}</th>
-                                <th className="px-3 py-3 text-center">{t('warehouse.total', 'Total')}</th>
-                                <th className="px-3 py-3 text-center text-amber-600 dark:text-amber-500">{t('warehouse.reserved', 'Rezervat')}</th>
-                                <th className="px-3 py-3 text-center text-emerald-600 dark:text-emerald-500">{t('warehouse.available', 'Disponibil')}</th>
-                                <th className="px-3 py-3 text-center">{t('warehouse.site', 'Șantier')}</th>
-                                <th className="px-3 py-3 text-right">{t('warehouse.actions', 'Acțiuni')}</th>
+                                <th className="px-4 py-3.5 w-12 text-center">№</th>
+                                <th className="px-4 py-3.5">{t('warehouse.item', 'Articol')}</th>
+                                <th className="px-4 py-3.5 text-center">{t('warehouse.um', 'UM')}</th>
+                                <th className="px-4 py-3.5 text-center">{t('warehouse.in_abbr', 'Intr.')}</th>
+                                <th className="px-4 py-3.5 text-center">{t('warehouse.out_abbr', 'Ieș.')}</th>
+                                <th className="px-4 py-3.5 text-center">{t('warehouse.total', 'Total')}</th>
+                                <th className="px-4 py-3.5 text-center text-amber-600 dark:text-amber-500">{t('warehouse.reserved', 'Rezervat')}</th>
+                                <th className="px-4 py-3.5 text-center text-emerald-600 dark:text-emerald-500">{t('warehouse.available', 'Disponibil')}</th>
+                                <th className="px-4 py-3.5 text-center">{t('warehouse.site', 'Șantier')}</th>
+                                <th className="px-4 py-3.5 text-right">{t('warehouse.actions', 'Acțiuni')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

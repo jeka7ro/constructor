@@ -225,18 +225,54 @@ export default function TeamsManagement() {
     const filteredTeams = teams.filter(t => !globalSearch || t.name.toLowerCase().includes(globalSearch.toLowerCase()) || (t.team_leader_name && t.team_leader_name.toLowerCase().includes(globalSearch.toLowerCase())))
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 w-full">
-            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="w-full space-y-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <Users className="w-7 h-7 text-blue-600 dark:text-blue-400" />
-                        {t('teams.title')}
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                            {t('teams.title', 'Équipes')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                        {t('teams.subtitle', 'Gestion des équipes de chantier et chefs d\'équipe')}
+                    </p>
                 </div>
+                <button
+                    onClick={() => { 
+                        setEditingTeamId(null); 
+                        setNewName(''); 
+                        setNewLeader(''); 
+                        setNewSite(''); 
+                        setNewColor('#94a3b8'); 
+                        setNewRobawsEmail('');
+                        setNewRobawsPassword('');
+                        setNewMembers([]); 
+                        setShowModal(true) 
+                    }}
+                    className="flex items-center gap-2 px-5 h-10 rounded-full bg-[color:var(--tenant-bg)] hover:brightness-95 text-white text-[15px] font-bold shadow-sm transition-all whitespace-nowrap cursor-pointer"
+                >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    {t('teams.new_team')}
+                </button>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
-                <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] overflow-hidden rounded-[24px]">
+                <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[color:var(--tenant-bg)]">
+                            <Users className="w-5 h-5" />
+                        </div>
+                        <span className="text-[19px] font-extrabold text-slate-900 dark:text-white tracking-tight">
+                            {t('teams.title', 'Équipes')}
+                        </span>
+                        <span className="px-3 py-1 rounded-full text-[14.5px] font-extrabold bg-blue-500/10 text-[color:var(--tenant-bg)] border border-blue-500/20 tabular-nums">
+                            {filteredTeams.length}
+                        </span>
+                    </div>
                     <div className="relative group flex items-center w-full sm:w-auto">
                         <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
                             <Search className="w-4 h-4" />
@@ -246,37 +282,19 @@ export default function TeamsManagement() {
                             value={globalSearch}
                             onChange={e => setGlobalSearch(e.target.value)}
                             placeholder={t('teams.search_placeholder', 'Rechercher une équipe...')}
-                            className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                            className="w-full sm:w-72 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-[15px] font-medium text-slate-800 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                         />
                         {globalSearch && (
-                            <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
-                                <span className="text-[10px] font-bold text-white">
+                            <div className="absolute right-1.5 flex items-center gap-1 bg-[color:var(--tenant-bg)] px-2.5 py-1 rounded-full shadow-sm">
+                                <span className="text-[11px] font-bold text-white tabular-nums">
                                     {filteredTeams.length}/{teams.length}
                                 </span>
-                                <button onClick={() => setGlobalSearch('')} className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5">
+                                <button onClick={() => setGlobalSearch('')} className="p-0.5 hover:brightness-90 rounded-full transition-colors ml-0.5">
                                     <X className="w-3 h-3 text-white/80 hover:text-white" />
                                 </button>
                             </div>
                         )}
                     </div>
-                    
-                    <button
-                        onClick={() => { 
-                            setEditingTeamId(null); 
-                            setNewName(''); 
-                            setNewLeader(''); 
-                            setNewSite(''); 
-                            setNewColor('#94a3b8'); 
-                            setNewRobawsEmail('');
-                            setNewRobawsPassword('');
-                            setNewMembers([]); 
-                            setShowModal(true) 
-                        }}
-                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
-                    >
-                        <Plus className="w-4 h-4" />
-                        {t('teams.new_team')}
-                    </button>
                 </div>
 
                 <DataTable columns={columns} data={filteredTeams} loading={loading} />

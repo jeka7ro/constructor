@@ -573,50 +573,53 @@ export default function FleetManagement() {
     ]
 
     return (
-        <div className="p-4 md:p-8 w-full">
-            {/* Page Title */}
-            <div className="mb-6 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center shadow-md">
-                    <Truck className="w-6 h-6 text-white" />
-                </div>
+        <div className="w-full space-y-5">
+            {/* Page Title & Tabs */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                        {t('fleet.title', 'Gestion de la flotte')}
-                    </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                            {t('fleet.title', 'Gestion de la flotte')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
                         {t('fleet.subtitle', 'Véhicules, équipements et rapports de consommation')}
                     </p>
                 </div>
-            </div>
 
-            {/* Main Tabs */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-fit shadow-inner border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full mb-6">
+                {/* Main Tabs */}
+                <div className="inline-flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800 rounded-full border border-slate-200/80 dark:border-slate-700 overflow-x-auto max-w-full">
                     <button
                         onClick={() => setMainTab('cars')}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'cars' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                        className={`h-9.5 px-4 rounded-full text-[15px] font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${mainTab === 'cars' ? 'bg-[color:var(--tenant-bg)] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
                     >
                         {t('fleet.tab_cars', 'Voitures (Flotte)')}
                     </button>
                     <button
                         onClick={() => setMainTab('equipment')}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'equipment' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                        className={`h-9.5 px-4 rounded-full text-[15px] font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${mainTab === 'equipment' ? 'bg-[color:var(--tenant-bg)] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
                     >
                         {t('fleet.tab_equipment', 'Équipements')}
                     </button>
                     <button
                         onClick={() => { setMainTab('report'); fetchReport(); }}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'report' ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                        className={`h-9.5 px-4 rounded-full text-[15px] font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${mainTab === 'report' ? 'bg-[color:var(--tenant-bg)] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
                     >
                         <BarChart2 className="w-4 h-4" />
                         {t('fleet.tab_report', 'Rapport de consommation')}
                     </button>
                     <button
                         onClick={() => setMainTab('categories')}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'categories' ? 'bg-white dark:bg-slate-700 text-pink-600 dark:text-pink-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                        className={`h-9.5 px-4 rounded-full text-[15px] font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${mainTab === 'categories' ? 'bg-[color:var(--tenant-bg)] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
                     >
                         {t('fleet.tab_categories', 'Catégories / Types')}
                     </button>
                 </div>
+            </div>
 
 
             {error && (

@@ -3,6 +3,21 @@
 Acest fișier reprezintă istoricul modificărilor și acțiunilor întreprinse de asistentul AI pe acest proiect. 
 Scopul este asigurarea trasabilității depline: cine a modificat, când a modificat, de ce a modificat și dacă acțiunea a avut sau nu aprobarea utilizatorului.
 
+## 2026-11-27 (Fix Crash `React is not defined`, Eliminare Flash-uri `Une erreur de navigation est survenue`, Unificare Înălțimi Bare Filtre `42px`/`32px` & Pre-Warming Global Cache `0ms`)
+**Agent:** Antigravity (AI)
+**Status Aprobare:** Cerut direct de Utilizator (rezolvare crash `React is not defined`, viteza de încărcare a paginilor `/admin/chats`, `/admin/isoflex-history`, `/admin/reports` și uniformizarea înălțimii filtrelor și cardurilor KPI).
+
+### Modificări Aplicate & Verificate:
+1. **Cauza tehnică a erorii `Une erreur de navigation est survenue — React is not defined`:**
+   - În `AdminDashboard.jsx` (linia 1037) fusese adăugat `<React.Suspense>` fără ca `React` să fie importat explicit pe linia 1 (`import { useState, ... } from 'react'`). De asemenea, aparițiile scurte anterioare ale aceluiași modal (care apăreau și dispăreau) proveneau din rutele admin încărcate cu `lazy(() => import(...))` în `App.jsx`, unde `GlobalErrorBoundary` randa pentru o fracțiune de secundă modalul de eroare înainte de `window.location.reload()`.
+   - Rezolvat prin importul explicit `import React, { ..., Suspense } from 'react'` în `AdminDashboard.jsx`, setarea globală `window.React = React` în `main.jsx`, trecerea tuturor paginilor din `/admin/*` pe `eager import` în `App.jsx` și suprimarea afișării modalului în timpul auto-reload-ului pentru erorile tranzitorii de chunk.
+2. **Pre-Warming Cache Global & Viteză `0ms` pe `/admin/chats`, `/admin/isoflex-history`, `/admin/reports`, `/admin/invoicing`, `/admin/quotes`:**
+   - Eliminat N+1 queries din `GET /api/admin/chats` (71 queries → 2 queries `GROUP BY`), eliminat apelul HTTP extern sincron de traducere din `GET /api/admin/work-orders/{id}/messages`, derivat sincron `activeWo` din `activeWoId` în `AdminChats.jsx` (pentru ca panoul din dreapta să se deschidă în `0ms` fără a mai rămâne pe `"Niciun chat selectat"`) și adăugat pre-warming global în `AdminDashboard.jsx`.
+3. **Unificare Înălțimi Bare Filtre (`42px` exterior / `32px` pastile `h-8` / `40px` butoane header) & Padding Carduri KPI (`20px` `p-5`, fără chenar albastru implicit pe primul card):**
+   - Adăugat valorile fracționare `4.5`, `8.5`, `9.5` în `tailwind.config.js` și `index.css`, eliminat `* { padding: 0; }` din `@layer base` și verificat cu Playwright (`verify_tahoe_theme.py`) geometria identică pe `/admin/reports`, `/admin/quotes` și `/admin/invoicing`.
+
+---
+
 ## 2026-11-25 (Flux Complet Reminder WhatsApp cu 3 Opțiuni `OK` / `REPORT + dată naturală` / `ANNULER` + Răspuns Automat Client + Alertă Roșie `⚠️`)
 **Agent:** Antigravity (AI)
 **Status Aprobare:** Plan prezentat și aprobat explicit de Utilizator ("Ok. Hai si asa").

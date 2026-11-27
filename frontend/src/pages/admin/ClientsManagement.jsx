@@ -304,63 +304,86 @@ export default function ClientsManagement() {
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6 w-full">
+        <div className="space-y-5 w-full">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight">
+                            {t('nav.clients', 'Clients')}
+                        </h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15px] font-semibold text-slate-500 mt-0.5">{t('clients.subtitle', 'Gestion de la base de données clients et partenaires')}</p>
+                </div>
+                <button
+                    onClick={() => handleOpenModal()}
+                    className="flex items-center gap-2 px-6 h-11 rounded-full bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-[15px] font-extrabold shadow-xs transition-all whitespace-nowrap cursor-pointer"
+                >
+                    <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
+                    {t('clients.add_btn', 'Nouveau Client')}
+                </button>
+            </div>
 
             {/* Main Content Wrapper */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden flex flex-col">
                 
                 {/* Search & Actions Bar */}
-                <div className="p-4 sm:p-5 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">
-                    <div className="relative group flex items-center w-full sm:w-auto">
-                        <div className="absolute left-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-                            <Search className="w-4 h-4" />
+                <div className="px-6 py-5 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-700/50">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center text-[color:var(--tenant-bg)] shrink-0">
+                            <Building className="w-5 h-5" />
+                        </div>
+                        <span className="text-[21px] font-black text-slate-900 dark:text-white tracking-tight">
+                            {t('nav.clients', 'Clients')}
+                        </span>
+                        <span className="px-3.5 py-1.5 rounded-full text-[14.5px] font-extrabold bg-sky-500/15 text-[color:var(--tenant-bg)] border border-sky-500/25 tabular-nums">
+                            {filteredClients.length}
+                        </span>
+                    </div>
+
+                    <div className="relative group flex items-center w-full sm:w-[420px]">
+                        <div className="absolute left-4 text-slate-400 group-focus-within:text-[color:var(--tenant-bg)] transition-colors">
+                            <Search className="w-5 h-5" />
                         </div>
                         <input
                             type="text"
                             placeholder={t('clients.search_placeholder', 'Rechercher un client...')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
+                            className="w-full h-11 pl-11 pr-[72px] bg-slate-50/90 dark:bg-slate-800 text-[15px] font-medium text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-slate-700 rounded-full focus:bg-white focus:border-[color:var(--tenant-bg)] focus:ring-2 focus:ring-sky-500/20 outline-none transition-all"
                         />
                         {searchQuery && (
-                            <div className="absolute right-1.5 flex items-center gap-1 bg-orange-600 px-2 py-1 rounded-full shadow-sm">
-                                <span className="text-[10px] font-bold text-white">
+                            <div className="absolute right-2 flex items-center gap-1 bg-[color:var(--tenant-bg)] px-2.5 py-1 rounded-full shadow-sm">
+                                <span className="text-xs font-bold text-white">
                                     {filteredClients.length}/{clients.length}
                                 </span>
                                 <button
                                     onClick={() => setSearchQuery('')}
-                                    className="p-0.5 hover:bg-orange-700 rounded-full transition-colors ml-0.5 cursor-pointer"
+                                    className="p-0.5 hover:opacity-80 rounded-full transition-colors ml-0.5 cursor-pointer"
                                 >
-                                    <X className="w-3 h-3 text-white/80 hover:text-white" />
+                                    <X className="w-3.5 h-3.5 text-white" />
                                 </button>
                             </div>
                         )}
-                    </div>
-
-                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
-                        <button
-                            onClick={() => handleOpenModal()}
-                            className="flex items-center gap-1.5 px-5 h-10 rounded-full text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap hover:shadow-md hover:brightness-110"
-                            style={{ backgroundColor: tenant?.primary_color || '#4f46e5' }}
-                        >
-                            <Plus className="w-4 h-4" />
-                            {t('clients.add_btn', 'Nouveau Client')}
-                        </button>
                     </div>
                 </div>
 
                 {/* Table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                    <table className="w-full text-left text-[16px] whitespace-nowrap tabular-nums">
+                        <thead className="bg-slate-50/90 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-b border-slate-200/90 dark:border-slate-700 text-[15px] font-bold">
                             <tr>
-                                <th className="px-6 py-4 w-12 text-center">{t('common.col_nr', 'NR.')}</th>
-                                <th className="px-6 py-4">{t('clients.col_client', 'CLIENT')}</th>
-                                <th className="px-6 py-4">{t('clients.col_cui', 'TVA / BCE')}</th>
-                                <th className="px-6 py-4">{t('clients.col_contact', 'CONTACT')}</th>
-                                <th className="px-6 py-4">{t('clients.col_phone_email', 'TÉLÉPHONE / EMAIL')}</th>
-                                <th className="px-6 py-4 text-center">{t('common.col_status', 'STATUT')}</th>
-                                <th className="px-6 py-4 text-right">{t('common.col_actions', 'ACTIONS')}</th>
+                                <th className="px-5 py-4 w-14 text-center">№</th>
+                                <th className="px-5 py-4">{t('clients.col_client', 'Client')}</th>
+                                <th className="px-5 py-4">{t('clients.col_cui', 'TVA / BCE')}</th>
+                                <th className="px-5 py-4">{t('clients.col_contact', 'Contact')}</th>
+                                <th className="px-5 py-4">{t('clients.col_phone_email', 'Téléphone / Email')}</th>
+                                <th className="px-5 py-4 text-center">{t('common.col_status', 'Statut')}</th>
+                                <th className="px-5 py-4 text-right">{t('common.col_actions', 'Actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

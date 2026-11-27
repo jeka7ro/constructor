@@ -15,53 +15,123 @@ def generate_efff_xml(work_order, client):
     def safe_str(val):
         return str(val) if val is not None else ""
 
-    invoice_number = safe_str(work_order.invoice_number or work_order.id[:8])
-    issue_date = work_order.invoiced_at.strftime('%Y-%m-%d') if work_order.invoiced_at else datetime.now().strftime('%Y-%m-%d')
-    due_date = work_order.invoiced_at.strftime('%Y-%m-%d') if work_order.invoiced_at else datetime.now().strftime('%Y-%m-%d')
+    invoice_number = safe_str(work_order.invoice_number or work_order.quote_number or work_order.id[:8].upper())
+    issue_date = work_order.invoiced_at.strftime('%Y-%m-%d') if getattr(work_order, 'invoiced_at', None) else datetime.now().strftime('%Y-%m-%d')
+    due_date = work_order.invoiced_at.strftime('%Y-%m-%d') if getattr(work_order, 'invoiced_at', None) else datetime.now().strftime('%Y-%m-%d')
     
-    client_name = safe_str(client.name if client else work_order.client_name)
-    client_email = safe_str(client.email if client else work_order.client_email)
-    client_cui_raw = safe_str(client.cui if client else "")
-    client_country = safe_str(client.country if client else "BE")
+    pdata = getattr(work_order, 'proforma_data', None) or {}
+    if not isinstance(pdata, dict):
+        pdata = {}
+
+    client_name = safe_str(
+        pdata.get('clientName')
+        or (client.name if client else None)
+        or work_order.client_name
+        or "Client"
+    )
+    client_email = safe_str(
+        pdata.get('client_email')
+        or (client.email if client else None)
+        or work_order.client_email
+    )
+    client_cui_raw = safe_str(
+        pdata.get('client_company_vat')
+        or (getattr(client, 'company_vat', None) if client else None)
+        or (getattr(client, 'cui', None) if client else None)
+        or getattr(work_order, 'client_company_vat', None)
+        or ""
+    ).strip()
+    client_country = safe_str(
+        pdata.get('client_country')
+        or (getattr(client, 'country', None) if client else None)
+        or "BE"
+    ).upper()
     
     # Auto-detect BE country if CUI starts with BE
     if client_cui_raw.upper().startswith("BE"):
         client_country = "BE"
         
-    client_cui_clean = client_cui_raw.replace("BE", "").replace("RO", "").replace(" ", "").replace(".", "") if client_cui_raw else ""
-    client_address = safe_str(client.address if client else work_order.site_address)
+    import re
+    client_cui_clean = re.sub(r'[^0-9A-Za-z]', '', client_cui_raw.upper().replace("BE", "").replace("RO", "")) if client_cui_raw else ""
+    client_address = safe_str(
+        pdata.get('client_address')
+        or (client.address if client else None)
+        or work_order.site_address
+        or ""
+    )
     
-    # Select schemeID based on country
-    scheme_id = "9956" if client_country == "BE" else "9925"
+    # Select Peppol EAS schemeID based on country (0208 = Belgian CBE/BCE enterprise number, 9956 = Belgian VAT)
+    scheme_id = "0208" if (client_country == "BE" and len(client_cui_clean) == 10) else ("9956" if client_country == "BE" else "9925")
     
-    # Calculate totals
+    # Calculate totals and invoice lines from proforma_data.items -> volumes -> estimated_price
     volumes = getattr(work_order, 'volumes', []) or []
     prices = getattr(work_order, 'prices', {}) or {}
     
+    invoice_lines = []
     total_net = 0.0
-    
-    for vol in volumes:
-        qty = float(vol.get('quantity', 0) or 0)
-        price = float(vol.get('price', 0) or 0)
-        total_net += qty * price
+    p_items = pdata.get('items', []) if isinstance(pdata, dict) else []
+    if isinstance(p_items, list) and len(p_items) > 0:
+        for idx, it in enumerate(p_items):
+            if not isinstance(it, dict) or it.get('isHeader') or it.get('isSubtotal'):
+                continue
+            q = float(it.get('qty', 1) or 1)
+            pr = float(it.get('price', 0) or 0)
+            line_tot = round(q * pr, 2)
+            total_net += line_tot
+            invoice_lines.append({
+                "id": idx + 1,
+                "name": safe_str(it.get('desc') or 'Travaux de chape'),
+                "qty": q,
+                "price": pr,
+                "total": line_tot
+            })
 
-    if total_net == 0.0:
-        # Fallback to estimated_price if no valid volumes
+    if total_net <= 0.0:
+        for idx, vol in enumerate(volumes):
+            qty = float(vol.get('actual_quantity') or vol.get('quantity') or 0)
+            price = float(vol.get('price') or prices.get('base') or 12.5)
+            if qty > 0:
+                line_tot = round(qty * price, 2)
+                total_net += line_tot
+                invoice_lines.append({
+                    "id": idx + 1,
+                    "name": safe_str(vol.get('label') or 'Chape fluide / chapes'),
+                    "qty": qty,
+                    "price": price,
+                    "total": line_tot
+                })
+
+    if total_net <= 0.0:
         est_price_str = str(getattr(work_order, 'estimated_price', '') or '0')
-        import re
         total_net = float(re.sub(r'[^0-9.]', '', est_price_str) or 0)
+        invoice_lines = [{
+            "id": 1,
+            "name": safe_str(getattr(work_order, 'title', None) or 'Travaux selon devis'),
+            "qty": 1.0,
+            "price": total_net,
+            "total": total_net
+        }]
         
-    vat_percent = 21.0 # Default
-    if 'vat_type' in prices:
+    vat_percent = 21.0
+    if pdata.get('useVat') is False or prices.get('useVat') is False:
+        vat_percent = 0.0
+    elif pdata.get('vatRate') is not None:
         try:
-            vat_percent = float(prices['vat_type'] or 21)
-        except:
+            vat_percent = float(pdata['vatRate'])
+        except Exception:
             pass
+    elif 'vat_type' in prices and prices['vat_type'] is not None:
+        try:
+            vat_percent = float(prices['vat_type'])
+        except Exception:
+            pass
+    elif (getattr(client, 'client_type', None) if client else None) in ('pj', 'juridica'):
+        vat_percent = 0.0
             
-    tax_category = "S" if vat_percent > 0 else "Z"
+    tax_category = "S" if vat_percent > 0 else "AE"
         
-    total_vat = total_net * (vat_percent / 100)
-    total_gross = total_net + total_vat
+    total_vat = round(total_net * (vat_percent / 100), 2)
+    total_gross = round(total_net + total_vat, 2)
 
     # XML Template (Peppol BIS 3.0 / e-FFF)
     # Customer tags

@@ -99,16 +99,23 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="p-4 md:p-8 w-full">
+        <div className="w-full space-y-5">
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">Setări</h1>
-                <p className="text-slate-600">Configurează aplicația</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">{t('nav.settings', 'Paramètres')}</h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">{t('settings.subtitle', 'Configuration générale de l\'application')}</p>
+                </div>
             </div>
 
             {/* Tabs */}
-            <div className="mb-6 border-b border-slate-200">
-                <div className="flex gap-4">
+            <div className="inline-flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800 rounded-full border border-slate-200/80 dark:border-slate-700">
                     <TabButton
                         active={activeTab === 'organization'}
                         onClick={() => setActiveTab('organization')}
@@ -147,11 +154,10 @@ export default function SettingsPage() {
                         icon={ClipboardCheck}
                         label={t('settings.terms', 'Termes & Conditions')}
                     />
-                </div>
             </div>
 
             {/* Content */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200/90 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] p-6">
                 {activeTab === 'organization' && (
                     <div className="space-y-6">
                         <h2 className="text-xl font-bold text-slate-900 mb-4">Informații Organizație</h2>
@@ -479,13 +485,13 @@ function TabButton({ active, onClick, icon: Icon, label }) {
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${active
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
+            className={`flex items-center gap-2 px-4 h-9.5 rounded-full text-[15px] font-bold transition-all cursor-pointer ${active
+                ? 'bg-[color:var(--tenant-bg)] text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
                 }`}
         >
-            <Icon className="w-5 h-5" />
-            <span className="font-medium">{label}</span>
+            <Icon className="w-4 h-4" />
+            <span>{label}</span>
         </button>
     )
 }

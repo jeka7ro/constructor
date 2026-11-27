@@ -715,7 +715,7 @@ export default function TransportManagement() {
   const setFilter = (k, v) => setFilters(f => ({ ...f, [k]: v }));
 
   return (
-    <div className="p-4 md:p-8 w-full space-y-6">
+    <div className="w-full space-y-5">
       {/* Leaflet CSS */}
       {!document.getElementById('leaflet-css') && (() => {
         const link = document.createElement('link');
@@ -729,30 +729,47 @@ export default function TransportManagement() {
         return null;
       })()}
 
-      {/* Main Tab Switch */}
-      <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl w-fit">
-        {!isDavideChape && (
-            <button
-              onClick={() => setActiveMainTab('trips')}
-              className={`px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                activeMainTab === 'trips'
-                  ? 'bg-white dark:bg-slate-700 text-blue-700 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <Route className="w-4 h-4" /> {t('transport.route_sheets', 'Feuilles de Route')}
-            </button>
-        )}
-        <button
-          onClick={() => setActiveMainTab('gps_history')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-            activeMainTab === 'gps_history'
-              ? 'bg-white dark:bg-slate-700 text-blue-700 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Navigation className="w-4 h-4" /> {t('transport.gps_history_tab', 'Historique GPS')}
-        </button>
+      {/* Header + Main Tab Switch */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+              {t('nav.transport', 'Transport & GPS')}
+            </h1>
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </span>
+          </div>
+          <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+            {t('transport.subtitle', 'Feuilles de route et historique de géolocalisation GPS')}
+          </p>
+        </div>
+
+        <div className="inline-flex items-center gap-1.5 bg-slate-100/90 dark:bg-slate-800 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 w-fit">
+          {!isDavideChape && (
+              <button
+                onClick={() => setActiveMainTab('trips')}
+                className={`h-9.5 px-4 rounded-full text-[15px] font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                  activeMainTab === 'trips'
+                    ? 'bg-[color:var(--tenant-bg)] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                }`}
+              >
+                <Route className="w-4 h-4" /> {t('transport.route_sheets', 'Feuilles de Route')}
+              </button>
+          )}
+          <button
+            onClick={() => setActiveMainTab('gps_history')}
+            className={`h-9.5 px-4 rounded-full text-[15px] font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeMainTab === 'gps_history'
+                ? 'bg-[color:var(--tenant-bg)] text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
+            }`}
+          >
+            <Navigation className="w-4 h-4" /> {t('transport.gps_history_tab', 'Historique GPS')}
+          </button>
+        </div>
       </div>
 
       {activeMainTab === 'gps_history' && (

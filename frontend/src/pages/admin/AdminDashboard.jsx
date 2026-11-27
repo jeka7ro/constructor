@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, Outlet, NavLink, useLocation, Navigate } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
@@ -34,6 +34,61 @@ export default function AdminDashboard() {
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000)
         return () => clearInterval(timer)
+    }, [])
+
+    // Background cache pre-warmer so navigating to Chats, Isoflex, Reports, Invoicing, or Quotes is 0ms instant
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const tId = setTimeout(() => {
+            if (!window.__adminChatsCache) {
+                api.get('/admin/chats').then(res => {
+                    const list = Array.isArray(res.data) ? res.data : []
+                    window.__adminChatsCache = list
+                    if (!window.__adminChatMessagesCache) window.__adminChatMessagesCache = new Map()
+                    list.slice(0, 6).forEach(c => {
+                        const wid = String(c.work_order_id)
+                        if (wid && !window.__adminChatMessagesCache.has(wid)) {
+                            api.get(`/admin/work-orders/${wid}/messages`)
+                                .then(mRes => {
+                                    const arr = Array.isArray(mRes.data) ? mRes.data : (mRes.data?.data || mRes.data?.messages || [])
+                                    window.__adminChatMessagesCache.set(wid, arr)
+                                })
+                                .catch(() => {})
+                        }
+                    })
+                }).catch(() => {})
+            }
+            if (!window.__adminIsoflexCache) {
+                api.get('/admin/robaws-history', { params: { page: 0, limit: 200 } }).then(res => {
+                    window.__adminIsoflexCache = { items: res.data?.items || [], teams: res.data?.teams || [] }
+                }).catch(() => {})
+            }
+            if (!window.__adminInvoiceOrdersCache) {
+                api.get('/admin/work-orders?limit=1000&invoice_mode=true').then(res => {
+                    const wos = (Array.isArray(res.data) ? res.data : (res.data?.items || [])).filter(w => w.status !== 'deleted')
+                    window.__adminInvoiceOrdersCache = wos
+                }).catch(() => {})
+            }
+            if (!window.__adminPricingSettingsCache) {
+                api.get('/admin/pricing-settings').then(res => {
+                    if (res.data) window.__adminPricingSettingsCache = res.data
+                }).catch(() => {})
+            }
+            if (!window.__adminTeamsCache) {
+                api.get('/admin/teams').then(res => {
+                    const data = res.data
+                    const tms = Array.isArray(data) ? data : (data?.teams || data?.items || [])
+                    if (tms.length > 0) window.__adminTeamsCache = tms
+                }).catch(() => {})
+            }
+            if (!window.__adminQuotesCache) {
+                api.get('/admin/work-orders?is_quote=true&slim=true').then(res => {
+                    const list = Array.isArray(res.data) ? res.data.filter(q => q.status !== 'cancelled') : []
+                    window.__adminQuotesCache = list
+                }).catch(() => {})
+            }
+        }, 120)
+        return () => clearTimeout(tId)
     }, [])
 
     // Live weather + timezone for the user's current location (auto-detected via geolocation/IP, cached in localStorage + MET Norway fallback so it never disappears on Open-Meteo 429)
@@ -392,12 +447,9 @@ export default function AdminDashboard() {
                 { path: '/admin/quotes', icon: FileText, label: t('nav.quotes', 'Devis / Offres') },
                 { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistique') },
                 { path: '/admin/client-analytics', icon: BarChart3, label: t('nav.client_analytics', 'Analyse Clients') },
-                { path: '/admin/pricing-analytics', icon: Calculator, label: t('nav.pricing_analytics', 'Analyse Devis') },
                 { path: '/admin/invoicing', icon: FileText, label: t('nav.invoicing', 'Facturation') },
-                { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Commandes') },
                 { path: '/admin/chats', icon: MessageSquare, label: t('nav.chats', 'Messages Clients') },
                 { path: '/admin/isoflex-history', icon: History, label: t('nav.isoflex_history', 'Historique Isoflex') },
-                { path: '/admin/screed-analytics', icon: Activity, label: t('nav.screed_analytics', 'Tableau de calcul') },
                 { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets', 'Pointages') },
                 { path: '/admin/reports', icon: FileText, label: t('nav.reports', 'Rapports') },
             ]
@@ -615,18 +667,25 @@ export default function AdminDashboard() {
     })();
 
     return (
-        <div className={`h-[100dvh] w-full ${darkMode ? 'bg-slate-950' : 'bg-slate-50'} flex flex-col font-sans text-slate-800 transition-colors duration-300 overflow-hidden`}>
+        <div
+            className={`h-[100dvh] w-full ${darkMode ? 'bg-[#0C0C0E] text-[#F5F5F7]' : 'bg-[color:var(--ui-canvas)] text-[#1D1D1F]'} flex flex-col font-sans transition-colors duration-300 overflow-hidden`}
+        >
             
                 {/* Header Bar */}
                 <header 
-                    className="apple-header-glass relative h-16 md:h-16 px-6 flex items-center justify-between z-40 text-white shadow-md transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 bg-[color:var(--tenant-bg)] dark:border dark:border-sky-400/20"
-                    style={{ '--tenant-bg': darkMode ? '#0f243c' : (tenant?.primary_color || '#2563EB') }}
+                    className={`apple-header-glass relative h-16 md:h-16 px-6 flex items-center justify-between z-40 shadow-md transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 ${
+                        darkMode
+                            ? 'bg-[#1C1C1E] text-[#F5F5F7] border border-white/10'
+                            : 'bg-[color:var(--tenant-accent)] text-[color:var(--tenant-accent-fg)]'
+                    }`}
                 >
                     <div className="flex items-center gap-4">
                          <button 
+                             type="button"
                              onClick={() => setSidebarOpen(!sidebarOpen)}
-                             className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors hidden md:block"
+                             className="p-1.5 rounded-lg opacity-85 hover:opacity-100 hover:bg-black/10 transition-colors hidden md:block"
                              title={sidebarOpen ? t('admin.collapse_menu', 'Réduire le menu') : t('admin.expand_menu', 'Agrandir le menu')}
+                             aria-label={sidebarOpen ? t('admin.collapse_menu', 'Réduire le menu') : t('admin.expand_menu', 'Agrandir le menu')}
                          >
                              <Menu className="w-5 h-5" />
                          </button>
@@ -634,6 +693,7 @@ export default function AdminDashboard() {
                          {/* Mobile Back Button */}
                          {location.pathname !== '/admin/planning' && location.pathname !== '/admin' && (
                              <button
+                                 type="button"
                                  onClick={() => {
                                      if (location.pathname.startsWith('/admin/chats/') && location.pathname !== '/admin/chats') {
                                          navigate('/admin/chats');
@@ -641,7 +701,8 @@ export default function AdminDashboard() {
                                          navigate(-1);
                                      }
                                  }}
-                                 className="md:hidden p-1 -ml-2 text-white/90 hover:text-white transition-colors"
+                                 aria-label={t('common.back', 'Retour')}
+                                 className="md:hidden p-1 -ml-2 opacity-90 hover:opacity-100 transition-colors"
                              >
                                  <ChevronLeft className="w-7 h-7" />
                              </button>
@@ -791,11 +852,13 @@ export default function AdminDashboard() {
                            {!(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && (
                                <>
                                    <button
+                                       type="button"
                                        onClick={() => setShowGlobalSearch(true)}
                                        title={t('search.placeholder', 'Rechercher (Cmd+K)')}
-                                       className="w-9 h-9 rounded-full flex items-center justify-center border border-white/30 bg-white/10 text-white/90 hover:text-white hover:bg-white/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
+                                       aria-label={t('search.placeholder', 'Rechercher (Cmd+K)')}
+                                       className="w-9 h-9 rounded-full flex items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
                                    >
-                                       <Search className="w-4 h-4 text-white shrink-0" aria-hidden="true" />
+                                       <Search className="w-4 h-4 shrink-0" aria-hidden="true" />
                                    </button>
                                </>
                            )}
@@ -808,27 +871,35 @@ export default function AdminDashboard() {
                                aria-label={isAppFullscreen ? t('admin.exit_fullscreen', 'Quitter le mode Plein écran') : t('admin.enter_fullscreen', 'Plein écran')}
                                className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0 ${
                                    isAppFullscreen
-                                       ? 'bg-white text-blue-700 border-white shadow-md'
-                                       : 'border-white/30 bg-white/10 text-white/90 hover:text-white hover:bg-white/20'
+                                       ? 'bg-white text-[#111113] border-white shadow-md'
+                                       : 'border-current/25 bg-black/10 hover:bg-black/20'
                                }`}
                            >
                                {isAppFullscreen ? <Minimize2 className="w-4 h-4 shrink-0" aria-hidden="true" /> : <Maximize2 className="w-4 h-4 shrink-0" aria-hidden="true" />}
                            </button>
 
                            <button
+                               type="button"
                                onClick={() => setDarkMode(!darkMode)}
                                title={darkMode ? t('admin.light_mode', 'Mode Clair') : t('admin.dark_mode', 'Mode Sombre')}
-                               className="w-9 h-9 rounded-full flex items-center justify-center border border-white/30 bg-white/10 text-white/90 hover:text-white hover:bg-white/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
+                               aria-label={darkMode ? t('admin.light_mode', 'Mode Clair') : t('admin.dark_mode', 'Mode Sombre')}
+                               className="w-9 h-9 rounded-full flex items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
                            >
                                {darkMode
-                                   ? <Moon className="w-4 h-4 text-white shrink-0" aria-hidden="true" />
-                                   : <Sun className="w-4 h-4 text-white shrink-0" aria-hidden="true" />
+                                   ? <Moon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                                   : <Sun className="w-4 h-4 shrink-0" aria-hidden="true" />
                                }
                            </button>
 
                            {!(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && !isScreeds && (
                                <>
-                                   <button onClick={() => navigate('/admin/complaints')} className="w-9 h-9 flex items-center justify-center rounded-full border border-white/30 bg-white/10 transition-colors relative text-white/90 hover:text-white hover:bg-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0" title={t('admin.new_complaints', 'Nouvelles plaintes')}>
+                                   <button
+                                       type="button"
+                                       onClick={() => navigate('/admin/complaints')}
+                                       className="w-9 h-9 flex items-center justify-center rounded-full border border-current/25 bg-black/10 transition-colors relative hover:bg-black/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
+                                       title={t('admin.new_complaints', 'Nouvelles plaintes')}
+                                       aria-label={t('admin.new_complaints', 'Nouvelles plaintes')}
+                                   >
                                        <MessageSquareWarning className="w-4 h-4 shrink-0" aria-hidden="true" />
                                        {openComplaintsCount > 0 && (
                                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900 tabular-nums">
@@ -844,13 +915,13 @@ export default function AdminDashboard() {
                            )}
                         </div>
                         
-                        <div className="w-[1px] h-8 bg-white/20 hidden sm:block"></div>
+                        <div className="w-[1px] h-8 bg-current/20 hidden sm:block"></div>
 
                         {/* User Profile */}
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block">
                                 <p className="text-sm font-bold leading-none">{admin?.full_name}</p>
-                                <button onClick={handleLogout} className="text-xs text-red-200 hover:text-white font-medium flex items-center justify-end w-full gap-1 mt-1 cursor-pointer hover:underline group">
+                                <button type="button" onClick={handleLogout} className="text-xs opacity-85 hover:opacity-100 font-semibold flex items-center justify-end w-full gap-1 mt-1 cursor-pointer hover:underline group">
                                     <LogOut className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform"/> {t('admin.logout', 'Déconnexion')}
                                 </button>
                             </div>
@@ -858,19 +929,21 @@ export default function AdminDashboard() {
                                 <img 
                                     src={admin.avatar_path.startsWith('http') ? admin.avatar_path : `${API_BASE}${admin.avatar_path}`}
                                     alt={admin.full_name}
-                                    className="hidden sm:block w-9 h-11 rounded-lg object-cover object-[center_20%] ring-2 ring-white/20 shadow-md hover:ring-blue-400/50 transition-all cursor-pointer hover:scale-105"
+                                    className="hidden sm:block w-9 h-11 rounded-lg object-cover object-[center_20%] ring-2 ring-white/20 shadow-md transition-all cursor-pointer hover:scale-105"
                                     onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
                                 />
                             ) : null}
-                            <div className={`w-9 h-9 bg-white/20 rounded-full items-center justify-center font-bold text-white shadow-sm cursor-pointer hover:bg-white/30 transition-all border border-white/30 ${admin?.avatar_path ? 'hidden' : 'hidden sm:flex'}`}>
+                            <div className={`w-9 h-9 bg-black/15 rounded-full items-center justify-center font-bold shadow-sm cursor-pointer hover:bg-black/25 transition-all border border-current/25 ${admin?.avatar_path ? 'hidden' : 'hidden sm:flex'}`}>
                                 {admin?.full_name?.charAt(0)}
                             </div>
                             
                             {/* Mobile Logout Button */}
                             <button 
+                                type="button"
                                 onClick={handleLogout} 
-                                className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-white/30 bg-white/10 text-white hover:bg-red-500/80 transition-colors shadow-sm ml-0.5" 
+                                className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-current/25 bg-black/10 hover:bg-red-500/80 transition-colors shadow-sm ml-0.5" 
                                 title={t('admin.logout', 'Déconnexion')}
+                                aria-label={t('admin.logout', 'Déconnexion')}
                             >
                                 <LogOut className="w-4 h-4" />
                             </button>
@@ -884,7 +957,7 @@ export default function AdminDashboard() {
             {/* Mobile Sidebar Overlay */}
             {sidebarOpen && (
                 <div 
-                    className="md:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[75] transition-opacity" 
+                    className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[75] transition-opacity" 
                     onClick={() => setSidebarOpen(false)} 
                 />
             )}
@@ -893,13 +966,12 @@ export default function AdminDashboard() {
             <aside className={`
                 ${sidebarOpen ? 'w-56 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
-                ${darkMode ? 'bg-slate-900/95 border-slate-800 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
-                md:mb-3 md:ml-4 md:h-[calc(100dvh-100px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
-            `}
-            style={{ 
-                '--tenant-bg': darkMode ? '#133152' : (tenant?.primary_color || '#2563EB'),
-                '--tenant-border': tenant?.primary_color ? 'rgba(255,255,255,0.1)' : '#1D4ED8'
-            }}>
+                ${darkMode
+                    ? 'bg-[#1C1C1E] border border-white/10 text-[#F5F5F7]'
+                    : 'bg-[color:var(--tenant-accent)] text-[color:var(--tenant-accent-fg)]'
+                } shadow-2xl
+                md:mb-3 md:ml-4 md:h-[calc(100dvh-100px)] md:rounded-[24px] max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
+            `}>
                 
                 {/* Navigation */}
                 <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -911,10 +983,10 @@ export default function AdminDashboard() {
                                     onClick={() => toggleCategory(cat.id)}
                                     className="flex items-center justify-between px-2 py-1.5 mb-1 cursor-pointer group select-none"
                                 >
-                                    <span className={`text-[11px] font-bold uppercase tracking-widest tracking-wider transition-colors ${darkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-blue-200 group-hover:text-white'}`}>
+                                    <span className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${darkMode ? 'text-[#8E8E93] group-hover:text-[#F5F5F7]' : 'opacity-75 group-hover:opacity-100'}`}>
                                         {cat.label}
                                     </span>
-                                    <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''} ${darkMode ? 'text-slate-600 group-hover:text-slate-400' : 'text-blue-300 group-hover:text-blue-100'}`} />
+                                    <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''} ${darkMode ? 'text-[#8E8E93] group-hover:text-[#F5F5F7]' : 'opacity-75 group-hover:opacity-100'}`} />
                                 </div>
                             )}
 
@@ -931,11 +1003,16 @@ export default function AdminDashboard() {
                                                 if (item.path === '/admin/work-orders') finalIsActive = false;
                                             }
                                             return `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${finalIsActive
-                                                ? (darkMode ? 'bg-[#143456] text-sky-100 border border-sky-400/25 font-semibold shadow-[inset_0_1px_0_rgba(125,211,252,0.22),0_4px_12px_rgba(2,6,23,0.4)]' : 'bg-white text-[color:var(--tenant-bg)] font-bold shadow-md')
-                                                : (darkMode ? 'text-slate-400 font-medium hover:bg-white/10 hover:text-white' : 'text-blue-100 font-medium hover:bg-white/10 hover:text-white')
+                                                ? (darkMode
+                                                    ? 'ui-segment-active font-bold'
+                                                    : 'bg-white !text-[#111113] font-bold shadow-md')
+                                                : (darkMode
+                                                    ? 'text-[#AEAEB2] font-medium hover:bg-white/10 hover:text-white'
+                                                    : 'opacity-90 font-medium hover:bg-black/10 hover:opacity-100')
                                             }`
                                         }}
                                         title={!sidebarOpen ? item.label : undefined}
+                                        aria-label={item.label}
                                     >
                                         <item.icon className="w-5 h-5 shrink-0" />
                                         {sidebarOpen && <span className="text-sm truncate flex-1">{item.label}</span>}
@@ -955,14 +1032,14 @@ export default function AdminDashboard() {
 
                             {/* Separator when collapsed */}
                             {!sidebarOpen && index < filteredCategories.length - 1 && (
-                                <div className={`h-px my-3 mx-2 ${darkMode ? 'bg-slate-700' : 'bg-[color:var(--tenant-border)]'}`} />
+                                <div className={`h-px my-3 mx-2 ${darkMode ? 'bg-white/10' : 'bg-current/15'}`} />
                             )}
                         </div>
                     ))}
                 </nav>
 
                 {/* Footer Brand */}
-                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-2 w-full overflow-hidden ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
+                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-2 w-full overflow-hidden ${darkMode ? 'border-white/10' : 'border-current/15'}`}>
                     <div 
                         className="flex items-center justify-center w-full"
                         title="Smart Timesheet"
@@ -1002,9 +1079,19 @@ export default function AdminDashboard() {
                                 from { opacity: 0; }
                                 to   { opacity: 1; }
                             }
+                            .tps-main-inner > div:not(.bg-white):not([class*="rounded-"]) {
+                                max-width: 100% !important;
+                                margin-left: 0 !important;
+                                margin-right: 0 !important;
+                                padding-left: 0 !important;
+                                padding-right: 0 !important;
+                                padding-top: 0 !important;
+                            }
                         `}</style>
-                        <div className="tps-main-inner p-4 md:p-4 md:pt-0 pb-24">
-                            <Outlet />
+                        <div className="tps-main-inner p-4 md:p-4 md:pt-0 pb-24 w-full">
+                            <Suspense fallback={<div className="py-16 flex items-center justify-center"><div className="w-7 h-7 border-2 border-[color:var(--tenant-bg)] border-t-transparent rounded-full animate-spin" /></div>}>
+                                <Outlet />
+                            </Suspense>
                         </div>
                     </div>
                 </main>

@@ -190,15 +190,21 @@ export default function LogisticsReport() {
     )
 
     return (
-        <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
+        <div className="w-full space-y-5">
             {/* Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <BarChart3 className="w-7 h-7 text-blue-600" />
-                        {t('logistics.report_title', 'Raport Logistică')}
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                            <BarChart3 className="w-7 h-7 text-[color:var(--tenant-bg)]" />
+                            {t('logistics.report_title', 'Raport Logistică')}
+                        </h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 text-[15px] font-semibold mt-0.5">
                         {t('logistics.report_subtitle', 'Trasee, volume și materiale pe perioadă')}
                     </p>
                 </div>
@@ -209,7 +215,7 @@ export default function LogisticsReport() {
                         <Link to="/admin/logistica" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
                             <MapPin className="w-4 h-4" /> {t('logistics.map', 'Hartă')}
                         </Link>
-                        <Link to="/admin/logistica/raport" className="px-4 h-9 flex items-center gap-2 rounded-full bg-white dark:bg-slate-700 text-sm font-bold text-blue-600 dark:text-blue-400 shadow-sm transition-colors">
+                        <Link to="/admin/logistica/raport" className="px-4 h-9 flex items-center gap-2 rounded-full bg-[color:var(--tenant-bg)] text-sm font-bold text-white shadow-sm transition-colors">
                             <BarChart3 className="w-4 h-4" /> {t('logistics.report', 'Raport')}
                         </Link>
                         <Link to="/admin/logistica/bases" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">

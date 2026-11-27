@@ -549,12 +549,51 @@ export default function EmployeesManagement() {
     }
 
     return (
-        <div className="p-4 md:p-8 space-y-6 w-full">
+        <div className="space-y-5 w-full">
+            {!detailUser && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                                {t('nav.employees', 'Employés')}
+                            </h1>
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Live
+                            </span>
+                        </div>
+                        <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                            {t('users.subtitle', 'Gestion du personnel, documents et affectations')}
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <input type="file" ref={importInputRef} accept=".xlsx,.xls" onChange={handleImportExcel} className="hidden" />
+                        <button 
+                            onClick={handleExportExcel} 
+                            className="flex items-center gap-2 px-4 h-10 rounded-full bg-white hover:bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[15px] font-bold shadow-2xs transition-all whitespace-nowrap cursor-pointer"
+                            title="Exportă"
+                        >
+                            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                            <span className="hidden sm:inline">{t('common.export_excel', 'Export Excel')}</span>
+                        </button>
+                        {selectedUserIds.length > 0 && (
+                            <button onClick={handleBulkDelete} className="flex items-center gap-2 px-5 h-10 rounded-full bg-red-600 hover:bg-red-700 text-white text-[15px] font-bold shadow-sm transition-all whitespace-nowrap cursor-pointer">
+                                <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">{t('common.delete')} ({selectedUserIds.length})</span>
+                            </button>
+                        )}
+                        <button 
+                            onClick={handleAddUser} 
+                            className="flex items-center gap-2 px-5 h-10 rounded-full bg-[color:var(--tenant-bg)] hover:brightness-95 text-white text-[15px] font-bold shadow-sm transition-all whitespace-nowrap cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4 stroke-[2.5]" /> {t('common.add')}
+                        </button>
+                    </div>
+                </div>
+            )}
 
-
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] overflow-hidden rounded-[24px]">
                 {!detailUser && (
-                <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">
+                <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800">
                     <div className="relative group flex items-center w-full sm:w-auto">
                             <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                 <Search className="w-4 h-4" />
@@ -564,16 +603,16 @@ export default function EmployeesManagement() {
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
                                 placeholder={t('users.search_placeholder')}
-                                className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                className="w-full sm:w-72 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-[15px] font-medium text-slate-800 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                             />
                             {search && (
-                                <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
-                                    <span className="text-[10px] font-bold text-white">
+                                <div className="absolute right-1.5 flex items-center gap-1 bg-[color:var(--tenant-bg)] px-2.5 py-1 rounded-full shadow-sm">
+                                    <span className="text-[11px] font-bold text-white tabular-nums">
                                         {users.length}/{totalUsers || 0}
                                     </span>
                                     <button 
                                         onClick={() => { setSearch(''); setCurrentPage(PAGE_ID, 1) }}
-                                        className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5"
+                                        className="p-0.5 hover:brightness-90 rounded-full transition-colors ml-0.5"
                                     >
                                         <X className="w-3 h-3 text-white/80 hover:text-white" />
                                     </button>
@@ -586,7 +625,7 @@ export default function EmployeesManagement() {
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                                    className="h-10 pl-4 pr-8 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                    className="h-10 pl-4 pr-8 text-[15px] rounded-full border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
                                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em 1em' }}
                                 >
                                     <option value="true">{t('users.active_tab')}</option>
@@ -597,10 +636,10 @@ export default function EmployeesManagement() {
                                 <select
                                     value={roleFilter}
                                     onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                                    className="h-10 pl-4 pr-8 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                    className="h-10 pl-4 pr-8 text-[15px] rounded-full border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
                                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em 1em' }}
                                 >
-                                    <option value="">Toate Rolurile</option>
+                                    <option value="">{t('users.all_roles', 'Tous les rôles')}</option>
                                     {roles.map(role => (
                                         <option key={role.id} value={role.id}>{role.name}</option>
                                     ))}
@@ -611,33 +650,6 @@ export default function EmployeesManagement() {
                                     onViewModeChange={(mode) => setViewMode(PAGE_ID, mode)}
                                 />
                             </>
-                        )}
-
-                        {/* Actions */}
-                        <input type="file" ref={importInputRef} accept=".xlsx,.xls" onChange={handleImportExcel} className="hidden" />
-                        
-                        <button 
-                            onClick={handleExportExcel} 
-                            className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
-                            title="Exportă"
-                        >
-                            <FileSpreadsheet className="w-4 h-4" />
-                            <span className="hidden sm:inline">{t('common.export_excel', 'Export Excel')}</span>
-                        </button>
-
-                        {!detailUser && selectedUserIds.length > 0 && (
-                            <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap">
-                                <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">{t('common.delete')} ({selectedUserIds.length})</span>
-                            </button>
-                        )}
-
-                        {!detailUser && (
-                            <button 
-                                onClick={handleAddUser} 
-                                className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
-                            >
-                                <Plus className="w-4 h-4" /> {t('common.add')}
-                            </button>
                         )}
                     </div>
                 </div>

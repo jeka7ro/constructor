@@ -2,18 +2,165 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+   Apple Tahoe (macOS 26) Multi-Tenant Neutral Design System
+   Zero hardcoded brand colors — 100% driven by --tenant-accent
+   ============================================================================ */
+
+:root {
+  color-scheme: light;
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+
+  /* ── Tenant Runtime Defaults (overwritten at runtime by applyTenantTheme) ── */
+  --tenant-accent: #007EA7;
+  --tenant-accent-fg: #FFFFFF;
+  --tenant-accent-on-light: #007EA7;
+  --tenant-bg: var(--tenant-accent);
+  --primary-tenant: var(--tenant-accent);
+
+  /* ── Derived Tenant Scale (Pure CSS oklch — zero JS math needed) ── */
+  --tenant-accent-hover: color-mix(in oklch, var(--tenant-accent) 86%, black);
+  --tenant-accent-soft: color-mix(in oklch, var(--tenant-accent) 10%, transparent);
+  --tenant-accent-soft-hover: color-mix(in oklch, var(--tenant-accent) 16%, transparent);
+  --tenant-accent-border: color-mix(in oklch, var(--tenant-accent) 28%, transparent);
+  --tenant-accent-gradient: linear-gradient(180deg,
+      color-mix(in oklch, var(--tenant-accent) 90%, white) 0%,
+      var(--tenant-accent) 100%);
+  --tenant-accent-shadow: color-mix(in oklch, var(--tenant-accent) 32%, transparent);
+  --tenant-focus-ring: var(--tenant-accent);
+
+  /* ── True Neutral Light Surfaces (ZERO bluish slate cast) ── */
+  --ui-canvas: #F2F2F4;
+  --ui-canvas-mesh:
+    radial-gradient(ellipse 75% 55% at 12% 0%, color-mix(in oklch, var(--tenant-accent) 6%, transparent), transparent 58%),
+    radial-gradient(ellipse 65% 50% at 88% 100%, color-mix(in oklch, var(--tenant-accent) 4.5%, transparent), transparent 58%),
+    #F2F2F4;
+  --ui-surface: #FFFFFF;
+  --ui-surface-subtle: #F6F6F8;
+  --ui-label: #1D1D1F;
+  --ui-label-secondary: #48484A;
+  --ui-label-tertiary: #636366;
+  --ui-separator: rgba(0, 0, 0, 0.075);
+  --ui-separator-strong: rgba(0, 0, 0, 0.13);
+
+  /* ── Functional Layer — Liquid Glass (Sidebar / Toolbar / Popovers ONLY) ── */
+  --ui-glass-bar: rgba(255, 255, 255, 0.74);
+  --ui-glass-sidebar: rgba(255, 255, 255, 0.78);
+  --ui-glass-popover: rgba(255, 255, 255, 0.88);
+  --ui-sheet-header-bg: rgba(255, 255, 255, 0.84);
+  --ui-glass-specular: rgba(255, 255, 255, 0.92);
+  --ui-glass-border: rgba(0, 0, 0, 0.085);
+
+  --ui-card-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.075),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px -14px rgba(0, 0, 0, 0.10);
+  --ui-sidebar-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.08),
+    0 10px 30px -12px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --ui-toolbar-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.075),
+    0 6px 20px -10px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+  /* ── Segmented Controls & Tables ── */
+  --ui-seg-track: #F4F4F6;
+  --ui-seg-border: rgba(0, 0, 0, 0.09);
+  --ui-thead-bg: rgba(246, 246, 248, 0.95);
+  --ui-row-alt: rgba(0, 0, 0, 0.018);
+  --ui-row-hover: color-mix(in oklch, var(--tenant-accent) 6%, transparent);
+
+  /* ── Semantic Status (Independent of Tenant Brand Color) ── */
+  --status-ok: #15803D;
+  --status-warn: #B45309;
+  --status-danger: #BE123C;
+}
+
+html.dark,
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --tenant-accent-text: color-mix(in oklch, var(--tenant-accent) 78%, white);
+  --tenant-accent-hover: color-mix(in oklch, var(--tenant-accent) 84%, white);
+  --tenant-accent-soft: color-mix(in oklch, var(--tenant-accent) 16%, transparent);
+  --tenant-accent-soft-hover: color-mix(in oklch, var(--tenant-accent) 24%, transparent);
+  --tenant-accent-border: color-mix(in oklch, var(--tenant-accent) 36%, transparent);
+
+  /* ── Pure Apple Charcoal Dark Surfaces (ZERO blue/slate tint!) ── */
+  --ui-canvas: #0C0C0E;
+  --ui-canvas-mesh:
+    radial-gradient(ellipse 70% 50% at 15% 0%, color-mix(in oklch, var(--tenant-accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 60% 45% at 88% 100%, color-mix(in oklch, var(--tenant-accent) 6%, transparent), transparent 55%),
+    #0C0C0E;
+  --ui-surface: #1C1C1E;
+  --ui-surface-subtle: #262629;
+  --ui-label: #F5F5F7;
+  --ui-label-secondary: #AEAEB2;
+  --ui-label-tertiary: #8E8E93;
+  --ui-separator: rgba(255, 255, 255, 0.085);
+  --ui-separator-strong: rgba(255, 255, 255, 0.16);
+
+  --ui-glass-bar: rgba(26, 26, 28, 0.78);
+  --ui-glass-sidebar: rgba(24, 24, 26, 0.82);
+  --ui-glass-popover: rgba(30, 30, 32, 0.92);
+  --ui-sheet-header-bg: rgba(28, 28, 30, 0.86);
+  --ui-glass-specular: rgba(255, 255, 255, 0.12);
+  --ui-glass-border: rgba(255, 255, 255, 0.11);
+
+  --ui-card-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.095),
+    0 2px 10px rgba(0, 0, 0, 0.34),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  --ui-sidebar-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.11),
+    0 12px 36px -10px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  --ui-toolbar-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.11),
+    0 8px 24px -8px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+
+  --ui-seg-track: rgba(255, 255, 255, 0.065);
+  --ui-seg-border: rgba(255, 255, 255, 0.11);
+  --ui-thead-bg: rgba(28, 28, 30, 0.96);
+  --ui-row-alt: rgba(255, 255, 255, 0.022);
+  --ui-row-hover: color-mix(in oklch, var(--tenant-accent) 12%, transparent);
+
+  /* Neutralize Tailwind bluish slate scales into true neutral charcoal */
+  --color-slate-950: #111113;
+  --color-slate-900: #1C1C1E;
+  --color-slate-800: #262629;
+  --color-slate-700: #36363A;
+  --color-slate-600: #48484A;
+  --color-slate-500: #8E8E93;
+  --color-slate-400: #9E9EA4;
+  --color-slate-300: #C7C7CC;
+  --color-slate-200: #E5E5EA;
+  --color-slate-100: #F2F2F7;
+  --color-slate-50: #F5F5F7;
+
+  --status-ok: #34D399;
+  --status-warn: #FBBF24;
+  --status-danger: #FB7185;
+}
+
 @layer base {
-  * {
-    margin: 0;
-    padding: 0;
+  *, *::before, *::after {
     box-sizing: border-box;
   }
 
+  html,
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    margin: 0;
+    max-width: 100vw;
+    overflow-x: hidden;
+    background: var(--ui-canvas);
+    color: var(--ui-label);
+    font-family: var(--font-system);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #f8fafc;
+    text-rendering: optimizeLegibility;
   }
 
   html {
@@ -26,33 +173,311 @@
     pointer-events: auto !important;
   }
 
+  :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--tenant-focus-ring);
+    outline-offset: 2px;
+  }
+
   /* Hide number input arrows */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
+
   input[type="number"] {
     -moz-appearance: textfield;
   }
 
-  /* ─── Dark Mode: Global text color overrides ─── */
-  /* Only text colors — backgrounds are handled per-component with dark: classes */
-  .dark .text-slate-900 { color: #f1f5f9; }
-  .dark .text-slate-800 { color: #e2e8f0; }
+  /* ─── Dark Mode Purity: Neutralize Tailwind v3 bluish slate into True Apple Charcoal ─── */
+  .dark .bg-slate-950,
+  .dark .dark\:bg-slate-950 {
+    background-color: #0C0C0E !important;
+  }
+
+  .dark .bg-slate-900,
+  .dark .dark\:bg-slate-900,
+  .dark .dark\:bg-slate-900\/95,
+  .dark .dark\:bg-slate-900\/90 {
+    background-color: #1C1C1E !important;
+  }
+
+  .dark .bg-slate-800,
+  .dark .dark\:bg-slate-800,
+  .dark .dark\:bg-slate-800\/80,
+  .dark .dark\:bg-slate-800\/60 {
+    background-color: #262629 !important;
+  }
+
+  .dark .border-slate-800,
+  .dark .dark\:border-slate-800 {
+    border-color: rgba(255, 255, 255, 0.085) !important;
+  }
+
+  .dark .border-slate-700,
+  .dark .dark\:border-slate-700 {
+    border-color: rgba(255, 255, 255, 0.13) !important;
+  }
+
+  .dark .text-slate-900 {
+    color: #F5F5F7;
+  }
+
+  .dark .text-slate-800 {
+    color: #E5E5EA;
+  }
+
   .dark .text-slate-700,
-  .dark .text-slate-700\/90 { color: #cbd5e1; }
+  .dark .text-slate-700\/90 {
+    color: #C7C7CC;
+  }
+
   .dark .text-slate-600,
   .dark .text-slate-600\/80,
-  .dark .text-slate-600\/70 { color: #94a3b8; }
-  .dark .text-slate-500 { color: #64748b; }
+  .dark .text-slate-600\/70 {
+    color: #AEAEB2;
+  }
+
+  .dark .text-slate-500 {
+    color: #8E8E93;
+  }
 
   /* Dark dividers */
-  .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #334155 !important; }
+  .dark .divide-slate-100> :not([hidden])~ :not([hidden]),
+  .dark .dark\:divide-slate-800> :not([hidden])~ :not([hidden]) {
+    border-color: rgba(255, 255, 255, 0.085) !important;
+  }
 
-  /* Dark table row hover */
-  .dark .hover\:bg-blue-50\/50:hover { background-color: rgba(30, 58, 92, 0.4) !important; }
-  .dark .hover\:bg-slate-50:hover { background-color: #1e293b !important; }
+  /* Dark table row hover — tenant accent tint, zero hardcoded blue */
+  .dark .hover\:bg-blue-50\/50:hover,
+  .dark .hover\:bg-slate-50:hover,
+  .dark .dark\:hover\:bg-slate-800\/60:hover,
+  .dark .dark\:hover\:bg-slate-800\/50:hover {
+    background-color: var(--ui-row-hover) !important;
+  }
+
+  /* Light Mode True Neutral Alabaster Canvas */
+  html:not(.dark) .bg-slate-50 {
+    background-color: var(--ui-canvas);
+  }
+}
+
+/* ── Apple Tahoe Multi-Tenant Component Primitives ── */
+.ui-glass-sidebar {
+  background-color: var(--ui-glass-sidebar);
+  backdrop-filter: blur(36px) saturate(195%);
+  -webkit-backdrop-filter: blur(36px) saturate(195%);
+  box-shadow: var(--ui-sidebar-shadow);
+}
+
+.ui-glass-toolbar {
+  background-color: var(--ui-glass-bar);
+  backdrop-filter: blur(28px) saturate(195%);
+  -webkit-backdrop-filter: blur(28px) saturate(195%);
+  box-shadow: var(--ui-toolbar-shadow);
+}
+
+.ui-card {
+  background-color: var(--ui-surface);
+  color: var(--ui-label);
+  border: 0.5px solid var(--ui-separator);
+  border-radius: 16px;
+  box-shadow: var(--ui-card-shadow);
+}
+
+.ui-inset-card {
+  background-color: var(--ui-surface-subtle);
+  border: 0.5px solid var(--ui-separator);
+  border-radius: 14px;
+}
+
+html.dark .ui-inset-card {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.ui-sheet-backdrop {
+  background-color: rgba(12, 12, 14, 0.44);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html.dark .ui-sheet-backdrop {
+  background-color: rgba(0, 0, 0, 0.62);
+}
+
+.ui-sheet {
+  background-color: var(--ui-surface);
+  color: var(--ui-label);
+  border-radius: 22px;
+  border: 0.5px solid var(--ui-separator-strong);
+  overscroll-behavior: contain;
+  box-shadow: 0 28px 72px -18px rgba(0, 0, 0, 0.36);
+}
+
+.ui-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tenant-accent-fg) !important;
+  background: var(--tenant-accent-gradient) !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px var(--tenant-accent-shadow), inset 0 0.5px 0 rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 120ms ease, transform 80ms ease;
+}
+
+.ui-btn-primary:hover {
+  filter: brightness(1.06);
+}
+
+.ui-btn-primary:active {
+  transform: scale(0.985);
+}
+
+.ui-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ui-label);
+  background-color: var(--ui-surface);
+  border: 0.5px solid var(--ui-separator-strong);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 120ms ease, transform 80ms ease;
+}
+
+.ui-btn-secondary:hover {
+  background-color: var(--ui-surface-subtle);
+}
+
+.ui-btn-secondary:active {
+  transform: scale(0.985);
+}
+
+.ui-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  background-color: var(--ui-seg-track);
+  border: 1px solid var(--ui-seg-border);
+}
+
+.ui-segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ui-label-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.ui-segment:hover {
+  color: var(--ui-label);
+}
+
+.ui-segment-active {
+  background: var(--tenant-accent-gradient) !important;
+  color: var(--tenant-accent-fg) !important;
+  font-weight: 700;
+  box-shadow: 0 1px 4px var(--tenant-accent-shadow), inset 0 0.5px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* Explicit fractional spacing utilities for instant Vite HMR compatibility */
+.p-4\.5 {
+  padding: 1.125rem;
+}
+
+.px-4\.5 {
+  padding-left: 1.125rem;
+  padding-right: 1.125rem;
+}
+
+.py-4\.5 {
+  padding-top: 1.125rem;
+  padding-bottom: 1.125rem;
+}
+
+.h-8\.5 {
+  height: 2.125rem;
+}
+
+.w-8\.5 {
+  width: 2.125rem;
+}
+
+.h-9\.5 {
+  height: 2.375rem;
+}
+
+.w-9\.5 {
+  width: 2.375rem;
+}
+
+.h-4\.5 {
+  height: 1.125rem;
+}
+
+.w-4\.5 {
+  width: 1.125rem;
+}
+
+/* Hide duplicate native calendar picker indicator when inside custom calendar pill */
+.ui-date-input::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+/* Automatic WCAG AA contrast enforcement on all tenant-accent filled buttons, pills & headers */
+.bg-\[color\:var\(--tenant-bg\)\],
+.bg-\[color\:var\(--tenant-accent\)\] {
+  background-color: var(--tenant-accent) !important;
+  color: var(--tenant-accent-fg) !important;
+}
+
+.bg-\[color\:var\(--tenant-bg\)\]>span,
+.bg-\[color\:var\(--tenant-bg\)\]>svg,
+.bg-\[color\:var\(--tenant-accent\)\]>span,
+.bg-\[color\:var\(--tenant-accent\)\]>svg,
+.ui-btn-primary>span,
+.ui-btn-primary>svg,
+.ui-segment-active>span,
+.ui-segment-active>svg {
+  color: var(--tenant-accent-fg) !important;
+}
+
+html:not(.dark) .text-\[color\:var\(--tenant-bg\)\],
+html:not(.dark) .text-\[color\:var\(--tenant-accent\)\] {
+  color: var(--tenant-accent-on-light, var(--tenant-accent)) !important;
+}
+
+html.dark .text-\[color\:var\(--tenant-bg\)\],
+html.dark .text-\[color\:var\(--tenant-accent\)\] {
+  color: var(--tenant-accent-text, var(--tenant-accent)) !important;
 }
 
 @layer components {
@@ -130,11 +555,13 @@
     transform: scale(1);
   }
 }
+
 @layer utilities {
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -144,20 +571,25 @@
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
   }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
     height: 4px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: #cbd5e1;
     border-radius: 9999px;
   }
+
   .dark .custom-scrollbar {
     scrollbar-color: #334155 transparent;
   }
+
   .dark .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: #334155;
   }
@@ -176,6 +608,7 @@ body.modal-scroll-locked {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
+
 .leaflet-container .tms-doppler-radar-tile {
   filter: saturate(1.25) contrast(1.05);
 }
@@ -195,6 +628,7 @@ body.modal-scroll-locked {
 .dark .tms-map-fullscreen .leaflet-top.leaflet-left .leaflet-control-zoom {
   border-color: rgba(51, 65, 85, 0.9) !important;
 }
+
 .dark .tms-map-fullscreen .leaflet-control-zoom a {
   background-color: rgba(15, 23, 42, 0.95) !important;
   color: #f8fafc !important;
@@ -202,7 +636,9 @@ body.modal-scroll-locked {
 }
 
 /* Tier 1: Screens >= 2050px or 21:9 aspect ratio */
-@media (min-width: 2050px), (min-width: 1700px) and (min-aspect-ratio: 21/10) {
+@media (min-width: 2050px),
+(min-width: 1700px) and (min-aspect-ratio: 21/10) {
+
   .tps-main-workspace,
   .tps-main-workspace .tps-main-inner,
   .tps-main-workspace .max-w-7xl,
@@ -225,7 +661,8 @@ body.modal-scroll-locked {
 }
 
 /* Tier 2: Screens >= 2480px or >= 2350px at 25:10 aspect ratio (Ultra-Wide / 4K / 5K) */
-@media (min-width: 2480px), (min-width: 2350px) and (min-aspect-ratio: 25/10) {
+@media (min-width: 2480px),
+(min-width: 2350px) and (min-aspect-ratio: 25/10) {
   .tps-planning-split-grid {
     grid-template-columns: 1fr 340px !important;
     gap: 1.1rem !important;
@@ -238,7 +675,7 @@ body.modal-scroll-locked {
     align-items: start !important;
   }
 
-  .tps-orders-ultrawide-split > :last-child {
+  .tps-orders-ultrawide-split> :last-child {
     position: sticky;
     top: 1rem;
     max-height: calc(100dvh - 110px);
@@ -250,7 +687,8 @@ body.modal-scroll-locked {
     grid-template-columns: repeat(auto-fill, minmax(1020px, 1fr));
     gap: 0.75rem;
   }
-  .tps-uw-fleet-cards-grid > .tps-uw-grid-span-full {
+
+  .tps-uw-fleet-cards-grid>.tps-uw-grid-span-full {
     grid-column: 1 / -1;
   }
 
@@ -268,7 +706,8 @@ body.modal-scroll-locked {
 }
 
 /* Tier 3: 32:9 / 5K (>= 2900px) */
-@media (min-width: 2900px), (min-width: 2350px) and (min-aspect-ratio: 25/10) {
+@media (min-width: 2900px),
+(min-width: 2350px) and (min-aspect-ratio: 25/10) {
   .tps-main-workspace .tps-main-inner {
     padding-left: 1rem;
     padding-right: 1rem;
@@ -285,7 +724,13 @@ body.modal-scroll-locked {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* 1. Typography & Tabular Numbers (Inter + Zero Ligatures) */
-html, body, #root, button, input, select, textarea {
+html,
+body,
+#root,
+button,
+input,
+select,
+textarea {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-feature-settings: "liga" 0, "clig" 0, "calt" 0;
   -webkit-font-smoothing: antialiased;
@@ -388,10 +833,12 @@ html:not(.dark) .tahoe-card-inner {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 20px -4px rgba(0, 122, 255, 0.50);
   transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
+
 .tahoe-btn-primary:hover:not(:disabled) {
   filter: brightness(1.06);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 24px -4px rgba(0, 122, 255, 0.62);
 }
+
 .tahoe-btn-primary:active:not(:disabled) {
   transform: scale(0.98);
 }
@@ -405,6 +852,7 @@ html:not(.dark) .tahoe-card-inner {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
+
 html[data-theme="light"] .tahoe-btn-secondary,
 html:not(.dark) .tahoe-btn-secondary {
   background: #f1f5f9;
@@ -435,11 +883,13 @@ button[class*="bg-red-600"] {
   border-radius: 9999px !important;
   outline: none;
 }
+
 [role="tab"][aria-selected="true"] {
   transition: none !important;
   outline: none;
   position: relative;
 }
+
 [role="tab"]:focus-visible {
   outline: 2px solid #0a84ff;
   outline-offset: 2px;
@@ -453,9 +903,11 @@ button[class*="bg-red-600"] {
   backdrop-filter: blur(18px) saturate(180%);
   -webkit-backdrop-filter: blur(18px) saturate(180%);
 }
+
 .tahoe-table-row {
   height: 48px;
 }
+
 .tahoe-table-row:nth-child(even) {
   background-color: rgba(148, 163, 184, 0.045);
 }
@@ -481,66 +933,50 @@ button[class*="bg-red-600"] {
 
 .dark .apple-liquid-glass,
 html[data-theme="dark"] .apple-liquid-glass {
-  background: linear-gradient(160deg, rgba(15, 23, 42, 0.82) 0%, rgba(9, 19, 38, 0.88) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  box-shadow:
-    0 20px 44px -10px rgba(2, 6, 23, 0.7),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.24);
+  background: var(--ui-glass-popover);
+  border: 1px solid var(--ui-glass-border);
+  box-shadow: var(--ui-toolbar-shadow);
 }
 
 /* Apple Specular Glass Finish for Colored Section Header Bars (Calendar, Pending Quotes, Trucks, Recent Orders) */
 .apple-header-glass {
-  background-image: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(255, 255, 255, 0.04) 48%,
-    rgba(0, 0, 0, 0.12) 100%
-  ) !important;
+  background-image: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.16) 0%,
+      rgba(255, 255, 255, 0.03) 48%,
+      rgba(0, 0, 0, 0.08) 100%) !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.18),
-    0 4px 12px -2px rgba(15, 23, 42, 0.12) !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.14),
+    0 4px 12px -2px rgba(0, 0, 0, 0.10) !important;
 }
 
-/* Dark Mode: Deep Midnight Navy Glass for all Tenant-Colored Header Bars */
+/* Dark Mode: Pure Apple Charcoal Glass for Header Bars (ZERO blue/slate tint) */
 .dark .apple-header-glass,
 html[data-theme="dark"] .apple-header-glass {
-  background-color: #0f243c !important;
-  background-image: linear-gradient(
-    135deg,
-    rgba(20, 52, 86, 0.94) 0%,
-    rgba(14, 35, 59, 0.96) 52%,
-    rgba(10, 24, 42, 0.98) 100%
-  ) !important;
-  border-bottom-color: rgba(56, 189, 248, 0.20) !important;
-  box-shadow:
-    inset 0 1px 0 0 rgba(125, 211, 252, 0.22),
-    inset 0 -1px 0 0 rgba(2, 6, 23, 0.55),
-    0 6px 16px -4px rgba(2, 6, 23, 0.50) !important;
+  background-color: #1C1C1E !important;
+  background-image: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.01) 100%) !important;
+  color: #F5F5F7 !important;
+  border-color: rgba(255, 255, 255, 0.11) !important;
+  box-shadow: var(--ui-toolbar-shadow) !important;
 }
 
 /* Apple Craft Card (Pending Quotes & Truck Cards) */
 .apple-craft-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow:
-    0 2px 5px -1px rgba(15, 23, 42, 0.06),
-    0 1px 2px 0 rgba(15, 23, 42, 0.04),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-card-shadow);
   transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease, border-color 0.16s ease;
 }
+
 .apple-craft-card:hover {
   transform: translateY(-1px);
-  box-shadow:
-    0 8px 18px -4px rgba(15, 23, 42, 0.12),
-    0 2px 6px -1px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 0 rgba(255, 255, 255, 1);
 }
+
 .dark .apple-craft-card,
 html[data-theme="dark"] .apple-craft-card {
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
-  box-shadow:
-    0 4px 10px -2px rgba(2, 6, 23, 0.45),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-card-shadow);
 }
 
 /* Scroll-edge separation for scrollable functional lists (Pending Quotes, Legend) */
@@ -551,6 +987,10 @@ html[data-theme="dark"] .apple-craft-card {
 
 /* Apple Accessibility Floor: Respect Reduce Transparency & Increased Contrast */
 @media (prefers-reduced-transparency: reduce) {
+
+  .ui-glass-sidebar,
+  .ui-glass-toolbar,
+  .ui-sheet-backdrop,
   .apple-liquid-glass,
   .tahoe-glass,
   .tahoe-glass-elevated,
@@ -558,17 +998,30 @@ html[data-theme="dark"] .apple-craft-card {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
-  html:not(.dark) .apple-liquid-glass {
-    background: #ffffff !important;
-    border-color: #cbd5e1 !important;
+
+  :root {
+    --ui-glass-bar: #FFFFFF;
+    --ui-glass-sidebar: #F6F6F8;
   }
+
+  html.dark {
+    --ui-glass-bar: #1C1C1E;
+    --ui-glass-sidebar: #18181A;
+  }
+
+  html:not(.dark) .apple-liquid-glass {
+    background: #FFFFFF !important;
+    border-color: rgba(0, 0, 0, 0.13) !important;
+  }
+
   .dark .apple-liquid-glass {
-    background: #0f172a !important;
-    border-color: #334155 !important;
+    background: #1C1C1E !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -581,6 +1034,7 @@ html[data-theme="dark"] .apple-craft-card {
 
 /* iPadOS & iOS Multi-Touch Ergonomics — applies ONLY on touch screens (zero desktop impact) */
 @media (pointer: coarse) {
+
   /* Comfortable touch targets for map zoom (+ / -) controls on iPad */
   .leaflet-touch .leaflet-control-zoom a {
     width: 38px !important;
@@ -603,5 +1057,76 @@ html[data-theme="dark"] .apple-craft-card {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. Vercel Web Interface Guidelines + Apple HIG + Anthropic Frontend Design
+   Global Hardening for iOS Safari, Multi-Language Overflow (RO/FR/NL/EN/DE),
+   Touch Latency, Modal Overscroll Containment & Keyboard Accessibility
+   ═══════════════════════════════════════════════════════════════════════════ */
 
+/* 7.1 Zero 300ms Tap Delay & Clean Tap Highlight on iOS / iPadOS */
+a,
+button,
+input,
+select,
+textarea,
+label,
+summary,
+[role="button"],
+[role="tab"],
+[role="menuitem"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
 
+/* 7.2 Prevent iOS Safari Auto-Zoom on Input Focus (< 16px triggers zoom on iPhone) */
+@media (max-width: 767px) {
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* 7.3 Modal, Sheet, Sidebar & Scrollable Panel Overscroll Containment */
+[class*="fixed"][class*="inset-0"],
+[class*="overflow-y-auto"],
+[class*="overflow-auto"],
+.custom-scrollbar,
+.tps-main-workspace,
+aside nav {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 7.4 Multi-Language Grid Overflow Protection (FR / NL / DE long words) */
+.grid>* {
+  min-width: 0;
+}
+
+/* 7.5 Balanced Headings & Pretty Body Copy */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* 7.6 Crisp Keyboard Focus Ring (:focus-visible) without mouse click outline flash */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--tenant-bg, #2563EB);
+  outline-offset: 2px;
+}

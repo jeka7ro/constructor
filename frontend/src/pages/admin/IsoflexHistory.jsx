@@ -126,12 +126,14 @@ function InfoRow({ icon, label, value }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
+let _isoflexMemoryCache = (typeof window !== 'undefined' && window.__adminIsoflexCache) || { items: null, teams: null }
+
 export default function IsoflexHistory() {
     const navigate = useNavigate()
     const { t } = useTranslation()
-    const [items, setItems] = useState([])
-    const [teamsMeta, setTeamsMeta] = useState([])
-    const [loading, setLoading] = useState(false)
+    const [items, setItems] = useState(() => (typeof window !== 'undefined' && window.__adminIsoflexCache?.items) || _isoflexMemoryCache.items || [])
+    const [teamsMeta, setTeamsMeta] = useState(() => (typeof window !== 'undefined' && window.__adminIsoflexCache?.teams) || _isoflexMemoryCache.teams || [])
+    const [loading, setLoading] = useState(() => !((typeof window !== 'undefined' && window.__adminIsoflexCache?.items) || _isoflexMemoryCache.items))
     const [syncing, setSyncing] = useState(false)
     const [error, setError] = useState(null)
     const [page, setPage] = useState(0)
@@ -144,14 +146,21 @@ export default function IsoflexHistory() {
 
     // Citește din cache (instant)
     const load = useCallback(async (p = 0, teamId = 'all') => {
-        setLoading(true)
+        const cached = (typeof window !== 'undefined' && window.__adminIsoflexCache?.items) || _isoflexMemoryCache.items
+        if (!cached || p !== 0 || teamId !== 'all') setLoading(true)
         setError(null)
         try {
             const params = { page: p, limit: LIMIT }
             if (teamId !== 'all') params.team_id = teamId
             const res = await api.get('/admin/robaws-history', { params })
-            setItems(res.data.items || [])
-            setTeamsMeta(res.data.teams || [])
+            const nextItems = res.data.items || []
+            const nextTeams = res.data.teams || []
+            if (p === 0 && teamId === 'all') {
+                _isoflexMemoryCache = { items: nextItems, teams: nextTeams }
+                if (typeof window !== 'undefined') window.__adminIsoflexCache = _isoflexMemoryCache
+            }
+            setItems(nextItems)
+            setTeamsMeta(nextTeams)
             setPage(p)
         } catch (e) {
             setError(e.response?.data?.detail || t('isoflex.load_error', 'Eroare la încărcare'))
@@ -174,26 +183,34 @@ export default function IsoflexHistory() {
         }
     }, [filterTeam, load])
 
-    // Prima încărcare: citește din cache. Dacă e gol, sync automat.
+    // Prima încărcare: citește din cache fără spinner dacă există deja în memorie; revalidează în fundal.
     useEffect(() => {
         (async () => {
-            setLoading(true)
+            const hasCache = Boolean((typeof window !== 'undefined' && window.__adminIsoflexCache?.items) || _isoflexMemoryCache.items)
+            if (!hasCache) setLoading(true)
             try {
                 const res = await api.get('/admin/robaws-history', { params: { page: 0, limit: LIMIT } })
-                const items = res.data.items || []
-                setItems(items)
-                setTeamsMeta(res.data.teams || [])
+                const nextItems = res.data.items || []
+                const nextTeams = res.data.teams || []
+                _isoflexMemoryCache = { items: nextItems, teams: nextTeams }
+                if (typeof window !== 'undefined') window.__adminIsoflexCache = _isoflexMemoryCache
+                setItems(nextItems)
+                setTeamsMeta(nextTeams)
                 // Cache gol → sync automat
-                if (items.length === 0) {
+                if (nextItems.length === 0) {
                     setSyncing(true)
                     await api.post('/admin/sync-robaws')
                     const res2 = await api.get('/admin/robaws-history', { params: { page: 0, limit: LIMIT } })
-                    setItems(res2.data.items || [])
-                    setTeamsMeta(res2.data.teams || [])
+                    const syncedItems = res2.data.items || []
+                    const syncedTeams = res2.data.teams || []
+                    _isoflexMemoryCache = { items: syncedItems, teams: syncedTeams }
+                    if (typeof window !== 'undefined') window.__adminIsoflexCache = _isoflexMemoryCache
+                    setItems(syncedItems)
+                    setTeamsMeta(syncedTeams)
                     setSyncing(false)
                 }
             } catch (e) {
-                setError(e.response?.data?.detail || t('isoflex.error', 'Eroare'))
+                if (!hasCache) setError(e.response?.data?.detail || t('isoflex.error', 'Eroare'))
             } finally {
                 setLoading(false)
                 setSyncing(false)
@@ -293,81 +310,28 @@ export default function IsoflexHistory() {
     ]
 
     return (
-        <div className="p-4 md:p-6 space-y-4">
-            {/* Single compact filter bar: teams + search + filters + refresh */}
-            <div className="flex flex-wrap items-center gap-2">
-                {/* Team badge filters */}
-                {teamsMeta.length > 0 && (
-                    <>
-                        <button
-                            onClick={() => handleTeamChange('all')}
-                            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border cursor-pointer transition-colors ${filterTeam === 'all'
-                                ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-600 dark:text-indigo-300 ring-1 ring-indigo-400/30'
-                                : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                            }`}
-                        >
-                            <span className="font-medium">{t('isoflex.all', 'Toate')}</span>
-                            <span className="text-slate-400 dark:text-slate-500">• {totalInRobaws}</span>
-                        </button>
-                        {teamsMeta.map(t => (
-                            <button
-                                key={t.team_id}
-                                onClick={() => handleTeamChange(t.team_id)}
-                                className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border cursor-pointer transition-colors ${filterTeam === String(t.team_id)
-                                    ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-600 dark:text-indigo-300 ring-1 ring-indigo-400/30'
-                                    : t.error
-                                        ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400'
-                                        : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                }`}
-                            >
-                                {t.error ? <AlertCircle size={11} /> : <CheckCircle2 size={11} className="text-emerald-500" />}
-                                <span className="font-medium">{t.team_name}</span>
-                                {!t.error && <span className="text-slate-400 dark:text-slate-500">• {t.total}</span>}
-                            </button>
-                        ))}
-                    </>
-                )}
-
-                {/* Spacer */}
-                <div className="flex-1 min-w-[8px]" />
-
-                {/* Search */}
-                <div className="relative min-w-[180px] max-w-[260px]">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder={t('isoflex.search_placeholder', 'Rechercher titre, client, adresse...')}
-                        className="w-full pl-8 pr-8 py-1.5 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
-                    />
-                    {search && (
-                        <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                            <X size={13} />
-                        </button>
-                    )}
+        <div className="w-full space-y-5">
+            {/* Top Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight">
+                            {t('nav.isoflex_history', 'Historique Isoflex')}
+                        </h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Robaws
+                        </span>
+                    </div>
                 </div>
-
-                {/* Only new filter */}
-                <button
-                    onClick={() => setShowOnlyNew(v => !v)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-colors ${showOnlyNew
-                        ? 'bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-300'
-                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                    }`}
-                >
-                    <Clock size={13} />
-                    {t('isoflex.not_imported', 'Neimportate')}
-                </button>
-
-                {/* Sync from Robaws */}
                 <button
                     onClick={syncFromRobaws}
                     disabled={syncing || loading}
                     title={t('isoflex.sync_title', 'Sincronizează din Robaws')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    className="h-11 px-5 text-[15px] font-extrabold rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-50 inline-flex items-center gap-2 shadow-2xs cursor-pointer"
                 >
-                    <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-                    {syncing ? t('isoflex.syncing', 'Sync...') : ''}
+                    <RefreshCw size={16} className={syncing ? 'animate-spin text-emerald-600' : ''} />
+                    <span>{syncing ? t('isoflex.syncing', 'Sync...') : t('common.refresh', 'Sincronizează')}</span>
                 </button>
             </div>
 
@@ -379,25 +343,88 @@ export default function IsoflexHistory() {
                 </div>
             )}
 
-            {/* Table */}
-            <DataTable
-                columns={columns}
-                data={filtered}
-                loading={loading}
-                defaultPageSize={25}
-                defaultSortKey="date"
-                defaultSortDir="desc"
-                searchable={false}
-                emptyText={loading ? t('isoflex.loading', 'Se încarcă...') : t('isoflex.no_results', 'Nu s-au găsit lucrări.')}
-                onRowClick={(row) => {
-                    if (row.local_id) {
-                        navigate(`/admin/work-orders/${row.local_id}`)
-                    } else {
-                        window.open(`https://app.robaws.com/#/work-orders/${row.ext_id}`, '_blank')
-                    }
-                }}
-                rowClassName={() => 'cursor-pointer hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors'}
-            />
+            {/* Apple HIG Table Container */}
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200/90 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col">
+                <div className="px-6 py-5 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <div className="inline-flex flex-wrap items-center gap-1.5 bg-slate-50/90 dark:bg-slate-800/80 p-1.5 rounded-full border border-slate-200/90 dark:border-slate-700">
+                        {teamsMeta.length > 0 && (
+                            <>
+                                <button
+                                    onClick={() => handleTeamChange('all')}
+                                    className={`inline-flex items-center gap-2 text-[15px] h-9.5 px-4 rounded-full cursor-pointer font-bold transition-colors ${filterTeam === 'all'
+                                        ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
+                                        : 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-white'
+                                    }`}
+                                >
+                                    <span>{t('isoflex.all', 'Toate')}</span>
+                                    <span className={filterTeam === 'all' ? 'text-white/90 font-extrabold tabular-nums' : 'text-slate-400 font-semibold tabular-nums'}>{totalInRobaws}</span>
+                                </button>
+                                {teamsMeta.map(tm => (
+                                    <button
+                                        key={tm.team_id}
+                                        onClick={() => handleTeamChange(tm.team_id)}
+                                        className={`inline-flex items-center gap-2 text-[15px] h-9.5 px-4 rounded-full cursor-pointer font-bold transition-colors ${filterTeam === String(tm.team_id)
+                                            ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
+                                            : tm.error
+                                                ? 'bg-red-50 text-red-600'
+                                                : 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-white'
+                                        }`}
+                                    >
+                                        {tm.error ? <AlertCircle size={15} /> : <CheckCircle2 size={15} className={filterTeam === String(tm.team_id) ? 'text-white' : 'text-emerald-500'} />}
+                                        <span>{tm.team_name}</span>
+                                        {!tm.error && <span className={filterTeam === String(tm.team_id) ? 'text-white/90 font-extrabold tabular-nums' : 'text-slate-400 font-semibold tabular-nums'}>{tm.total}</span>}
+                                    </button>
+                                ))}
+                            </>
+                        )}
+                        <button
+                            onClick={() => setShowOnlyNew(v => !v)}
+                            className={`inline-flex items-center gap-1.5 h-7 px-3 text-xs font-bold rounded-full border transition-colors cursor-pointer ${showOnlyNew
+                                ? 'bg-amber-500/15 border-amber-500/30 text-amber-800'
+                                : 'bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50'
+                            }`}
+                        >
+                            <Clock size={12} />
+                            {t('isoflex.not_imported', 'Neimportate')}
+                        </button>
+                    </div>
+
+                    {/* Search */}
+                    <div className="relative w-full sm:w-[280px]">
+                        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder={t('isoflex.search_placeholder', 'Rechercher titre, client, adresse...')}
+                            className="w-full pl-9 pr-8 h-9 text-xs font-medium rounded-full border border-slate-200/90 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500"
+                        />
+                        {search && (
+                            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <X size={13} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <DataTable
+                    columns={columns}
+                    data={filtered}
+                    loading={loading}
+                    defaultPageSize={25}
+                    defaultSortKey="date"
+                    defaultSortDir="desc"
+                    searchable={false}
+                    emptyText={loading ? t('isoflex.loading', 'Se încarcă...') : t('isoflex.no_results', 'Nu s-au găsit lucrări.')}
+                    onRowClick={(row) => {
+                        if (row.local_id) {
+                            navigate(`/admin/work-orders/${row.local_id}`)
+                        } else {
+                            window.open(`https://app.robaws.com/#/work-orders/${row.ext_id}`, '_blank')
+                        }
+                    }}
+                    rowClassName={() => 'cursor-pointer hover:bg-slate-50/90 dark:hover:bg-slate-800/60 transition-colors'}
+                />
+            </div>
 
             {/* Pagination between Robaws pages */}
             {teamsMeta.some(t => (t.total_pages || 1) > 1) && (

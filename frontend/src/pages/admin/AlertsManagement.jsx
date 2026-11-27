@@ -73,23 +73,29 @@ export default function AlertsManagement() {
     };
 
     return (
-        <div className="p-4 md:p-8 w-full">
-            <div className="flex justify-between items-center mb-6">
+        <div className="w-full space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">{t('alerts.digital_noticeboard', 'Panneau d\'Affichage Numérique (Alertes)')}</h1>
-                    <p className="text-slate-500">{t('alerts.subtitle', 'Envoyer des messages et alertes instantanés aux travailleurs')}</p>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">{t('alerts.digital_noticeboard', 'Panneau d\'Affichage Numérique (Alertes)')}</h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">{t('alerts.subtitle', 'Envoyer des messages et alertes instantanés aux travailleurs')}</p>
                 </div>
                 <button
                     onClick={() => setIsCreating(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
+                    className="bg-[color:var(--tenant-bg)] hover:brightness-95 text-white px-5 h-10 rounded-full text-[15px] font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
                 >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
                     {t('alerts.new_message_btn', 'Nouveau Message')}
                 </button>
             </div>
 
             {isCreating && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 animate-fade-in-up">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 animate-fade-in-up">
                     <h2 className="text-lg font-bold mb-4">{t('alerts.compose_new_message', 'Composer un Nouveau Message')}</h2>
                     <form onSubmit={handleCreate} className="space-y-4">
                         <div>

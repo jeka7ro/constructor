@@ -266,51 +266,51 @@ export default function ClientDetail() {
     ]
 
     return (
-        <div className="space-y-6 pb-24">
+        <div className="space-y-5 pb-24 w-full">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                    <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm text-slate-500 dark:text-slate-400">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                    <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-2xs text-slate-600 dark:text-slate-300 cursor-pointer">
                         <ChevronLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                            <Building className="w-6 h-6 text-blue-600" />
-                            Profil Client: {client.name}
-                        </h1>
-                        <p className="text-sm text-slate-500">Toate documentele și istoricul centralizate</p>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                <Building className="w-6 h-6 text-[color:var(--tenant-bg)]" />
+                                Profil Client: {client.name}
+                            </h1>
+                            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Live
+                            </span>
+                        </div>
+                        <p className="text-[15px] font-semibold text-slate-500 mt-0.5">Toate documentele și istoricul centralizate</p>
                     </div>
                 </div>
             </div>
 
             {/* Top Section - Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                        <FileText className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200/90 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-[16.5px] font-bold text-slate-700 dark:text-slate-200">Total Devize</p>
+                        <FileText className="w-5 h-5 text-[color:var(--tenant-bg)]" />
                     </div>
-                    <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Total Devize</p>
-                        <p className="text-3xl font-black text-slate-800 dark:text-white leading-tight">{stats.total_quotes}</p>
-                    </div>
+                    <p className="text-[34px] font-black text-slate-950 dark:text-white leading-tight tabular-nums">{stats.total_quotes}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
-                        <FileCheck className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200/90 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-[16.5px] font-bold text-slate-700 dark:text-slate-200">Total Facturi</p>
+                        <FileCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     </div>
-                    <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Total Facturi</p>
-                        <p className="text-3xl font-black text-slate-800 dark:text-white leading-tight">{stats.total_invoices}</p>
-                    </div>
+                    <p className="text-[34px] font-black text-slate-950 dark:text-white leading-tight tabular-nums">{stats.total_invoices}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-                        <TrendingUp className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200/90 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-[16.5px] font-bold text-slate-700 dark:text-slate-200">Valoare Est.</p>
+                        <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
-                    <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Valoare Est.</p>
-                        <p className="text-3xl font-black text-slate-800 dark:text-white leading-tight">{new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(stats.total_value)}</p>
-                    </div>
+                    <p className="text-[34px] font-black text-slate-950 dark:text-white leading-tight tabular-nums">{new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(stats.total_value)}</p>
                 </div>
             </div>
 

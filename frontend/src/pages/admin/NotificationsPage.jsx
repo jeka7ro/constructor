@@ -93,21 +93,29 @@ export default function NotificationsPage() {
     const today = new Date().toLocaleDateString('fr-FR', { timeZone: 'Europe/Berlin',  day: 'numeric', month: 'long', year: 'numeric' })
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-            <div className="max-w-6xl mx-auto">
+        <div className="w-full space-y-5">
+            <div className="w-full space-y-5">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center">
-                            <Bell className="w-5 h-5 text-white" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                                {t('nav.notifications', 'Notifications')}
+                            </h1>
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Live
+                            </span>
+                            <span className="text-[15px] font-bold text-slate-500 tabular-nums">({total} {t('notifications.events', 'événements')})</span>
                         </div>
-                        {t('nav.notifications', 'Notifications')}
-                        <span className="text-base font-normal text-slate-400">({total} {t('notifications.events', 'événements')})</span>
-                    </h1>
+                        <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                            {t('notifications.subtitle', 'Flux des événements et pointages en temps réel')}
+                        </p>
+                    </div>
                     <button
                         onClick={fetchEvents}
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                        className="flex items-center gap-2 px-4 h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-full text-[15px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         {t('common.refresh', 'Actualiser')}
@@ -115,7 +123,7 @@ export default function NotificationsPage() {
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white rounded-2xl shadow-sm p-4 mb-6">
+                <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(15,23,42,0.05)] p-4">
                     <div className="flex items-center gap-4 flex-wrap">
                         {/* Search */}
                         <div className="relative flex-1 min-w-[200px]">

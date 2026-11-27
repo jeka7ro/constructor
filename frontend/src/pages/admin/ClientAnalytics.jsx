@@ -155,20 +155,25 @@ export default function ClientAnalytics() {
     ]
 
     return (
-        <div className="space-y-6 pb-24 max-w-7xl mx-auto">
+        <div className="w-full space-y-5 pb-10">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                        <BarChart3 className="w-6 h-6 text-blue-600" />
-                        {t('nav.client_analytics', 'Analyse Clients')}
-                    </h1>
-                    <p className="text-sm text-slate-500">{t('client_analytics.subtitle', 'Statistici și rapoarte despre clienți')}</p>
+                    <div className="flex items-center gap-3.5">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight">
+                            {t('nav.client_analytics', 'Analyse Clients')}
+                        </h1>
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15px] font-semibold text-slate-500 mt-0.5">{t('client_analytics.subtitle', 'Statistici și rapoarte despre clienți')}</p>
                 </div>
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <KPICard 
                     label="Total Valoare (Toate)" 
                     value={new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(totalValue)} 
@@ -189,39 +194,34 @@ export default function ClientAnalytics() {
                 />
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200/90 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col">
                 
                 {/* Custom Filter Bar */}
-                <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-2">
-                        <Filter className="w-4 h-4 text-slate-400" />
-                        <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Filtre Rapide:</span>
-                        
-                        <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-1 gap-1">
-                            {[
-                                { id: 'all', label: 'Toate', count: groupedClients.length },
-                                { id: 'invoices', label: 'Facturi', count: groupedClients.filter(c => c.invoices_count > 0).length },
-                                { id: 'quotes', label: 'Devize', count: groupedClients.filter(c => c.quotes_count > 0).length },
-                                { id: 'orders', label: 'Comenzi', count: groupedClients.filter(c => c.orders_count > 0).length },
-                            ].map(f => (
-                                <button
-                                    key={f.id}
-                                    onClick={() => setFilterType(f.id)}
-                                    className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors flex items-center gap-2 ${
-                                        filterType === f.id 
-                                            ? 'bg-blue-600 text-white shadow-sm' 
-                                            : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                    }`}
-                                >
-                                    {f.label}
-                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                                        filterType === f.id ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                                    }`}>
-                                        {f.count}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
+                <div className="px-6 py-5 border-b border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="inline-flex items-center gap-1.5 bg-slate-50/90 dark:bg-slate-800/80 p-1.5 rounded-full border border-slate-200/90 dark:border-slate-700 flex-wrap">
+                        {[
+                            { id: 'all', label: 'Toate', count: groupedClients.length },
+                            { id: 'invoices', label: 'Facturi', count: groupedClients.filter(c => c.invoices_count > 0).length },
+                            { id: 'quotes', label: 'Devize', count: groupedClients.filter(c => c.quotes_count > 0).length },
+                            { id: 'orders', label: 'Comenzi', count: groupedClients.filter(c => c.orders_count > 0).length },
+                        ].map(f => (
+                            <button
+                                key={f.id}
+                                onClick={() => setFilterType(f.id)}
+                                className={`h-9.5 px-4 py-1.5 text-[15px] font-bold rounded-full transition-all flex items-center gap-2 cursor-pointer ${
+                                    filterType === f.id 
+                                        ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs' 
+                                        : 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-white'
+                                }`}
+                            >
+                                <span>{f.label}</span>
+                                <span className={`text-[14.5px] tabular-nums ${
+                                    filterType === f.id ? 'text-white/90 font-extrabold' : 'text-slate-400 font-semibold'
+                                }`}>
+                                    {f.count}
+                                </span>
+                            </button>
+                        ))}
                     </div>
                 </div>
 

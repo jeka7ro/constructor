@@ -177,39 +177,43 @@ export default function PartnersManagement() {
     ]
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6 w-full">
+        <div className="space-y-5 w-full">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <Handshake className="w-7 h-7 text-blue-600" />
-                        {t('partners.title', 'Partenaires')}
-                    </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                            {t('partners.title', 'Partenaires')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
                         {t('partners.subtitle', 'Gérer les comptes partenaires externes')}
                     </p>
                 </div>
                 <button
                     onClick={() => { setEditingPartner(null); setShowModal(true) }}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all active:scale-95 hover:brightness-110"
-                    style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
+                    className="flex items-center gap-2 px-5 h-10 rounded-full text-white font-bold text-[15px] shadow-sm transition-all active:scale-95 hover:brightness-95 bg-[color:var(--tenant-bg)] cursor-pointer"
                 >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
                     {t('partners.add', 'Ajouter un partenaire')}
                 </button>
             </div>
 
             {/* Partner URL info */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6 flex items-center justify-between">
+            <div className="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200/90 dark:border-blue-800 rounded-[20px] p-4 flex items-center justify-between">
                 <div>
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                    <p className="text-[14px] font-bold text-blue-900 dark:text-blue-300">
                         {t('partners.login_url_label', 'Lien de connexion partenaire :')}
                     </p>
-                    <code className="text-sm text-blue-600 dark:text-blue-400 mt-1 tabular-nums">{getPartnerUrl()}</code>
+                    <code className="text-[15px] font-semibold text-[color:var(--tenant-bg)] dark:text-blue-400 mt-0.5 tabular-nums">{getPartnerUrl()}</code>
                 </div>
                 <button
                     onClick={() => navigator.clipboard.writeText(getPartnerUrl())}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-300 text-sm font-medium transition-colors"
+                    className="flex items-center gap-1.5 px-4 h-9.5 rounded-full bg-white hover:bg-blue-50 border border-blue-200 text-[color:var(--tenant-bg)] text-[14px] font-bold transition-colors shadow-2xs cursor-pointer"
                 >
                     <Copy className="w-4 h-4" />
                     {t('partners.copy_link', 'Copier')}
@@ -217,7 +221,7 @@ export default function PartnersManagement() {
             </div>
 
             {/* Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden">
                 <DataTable
                     data={partners}
                     columns={columns}

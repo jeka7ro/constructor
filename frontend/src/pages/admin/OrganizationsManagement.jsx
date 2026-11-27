@@ -312,35 +312,49 @@ export default function OrganizationsManagement() {
     ]
 
     return (
-        <div className="p-4 md:p-8 w-full space-y-6">
+        <div className="w-full space-y-5">
             {/* Header Actions */}
-            <div className="flex flex-col sm:flex-row justify-end items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                            {t('nav.organizations', 'Entreprises & Tenants')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                        {t('orgs.subtitle', 'Gestion des entreprises clientes, sous-domaines et forfaits')}
+                    </p>
+                </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-64">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" />
+                    <div className="relative flex-1 sm:w-72">
+                        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
                             placeholder={t("orgs.search_placeholder", "Rechercher une entreprise...")}
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-10 px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                            className="w-full pl-10 px-4 h-10 text-[15px] font-medium rounded-full border border-slate-200/90 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none transition-all shadow-2xs"
                         />
                     </div>
                     <button 
                         onClick={() => openModal()}
-                        className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all flex items-center gap-2 whitespace-nowrap"
+                        className="px-5 h-10 rounded-full bg-[color:var(--tenant-bg)] hover:brightness-95 text-white text-[15px] font-bold shadow-sm transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer"
                     >
-                        <Plus className="w-4 h-4" /> Ajouter
+                        <Plus className="w-4 h-4 stroke-[2.5]" /> Ajouter
                     </button>
                 </div>
             </div>
 
             {/* Table Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse text-[16px]">
                         <thead>
-                            <tr className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-[11px] font-extrabold uppercase tracking-widest">
+                            <tr className="bg-slate-50/90 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 text-[15px] font-bold">
                                 <th className="px-6 py-4">Companie</th>
                                 <th className="px-6 py-4">Domeniu / Slug</th>
                                 <th className="px-6 py-4">Forfait</th>

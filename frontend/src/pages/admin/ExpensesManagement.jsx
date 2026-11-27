@@ -136,10 +136,25 @@ export default function ExpensesManagement() {
     const totalAmount = (Array.isArray(expenses) ? expenses : []).reduce((acc, curr) => acc + (curr.amount || 0), 0)
 
     return (
-        <div className="p-4 md:p-8 w-full">
+        <div className="w-full space-y-5">
             {/* Header Actions */}
-            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-end gap-4 mb-6 w-full">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                            {t('nav.expenses', 'Dépenses')}
+                        </h1>
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                        </span>
+                    </div>
+                    <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                        {t('expenses.subtitle', 'Suivi des dépenses et justificatifs financiers')}
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-2.5">
                     <input 
                         type="file" 
                         id="expenses-import-upload" 
@@ -156,54 +171,54 @@ export default function ExpensesManagement() {
                     />
                     <button
                         onClick={() => document.getElementById('expenses-import-upload').click()}
-                        className="flex items-center gap-2 px-4 h-10 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-full transition-colors shadow-sm"
+                        className="flex items-center gap-2 px-4 h-10 border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[15px] font-bold rounded-full transition-colors shadow-2xs cursor-pointer"
                     >
                         <FileText className="w-4 h-4 text-slate-500" />
                         {t('expenses.import_invoice', 'Importer Facture')}
                     </button>
                     <button
                         onClick={() => setShowModal(true)}
-                        className="flex items-center gap-2 px-4 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors shadow-sm"
+                        className="flex items-center gap-2 px-5 h-10 bg-[color:var(--tenant-bg)] hover:brightness-95 text-white text-[15px] font-bold rounded-full transition-colors shadow-sm cursor-pointer"
                     >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4 h-4 stroke-[2.5]" />
                         {t('expenses.add_expense', 'Ajouter Dépense')}
                     </button>
                 </div>
             </div>
 
             {/* Total Indicator */}
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                <div className="bg-white dark:bg-slate-900 rounded-[22px] p-6 border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(15,23,42,0.05)] flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('expenses.total_expenses', 'Total Dépenses')}</p>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
-                            {totalAmount.toLocaleString('fr-FR')} <span className="text-sm font-normal text-slate-500">{currency}</span>
+                        <p className="text-[16.5px] font-bold text-slate-700 dark:text-slate-300">{t('expenses.total_expenses', 'Total Dépenses')}</p>
+                        <h3 className="text-[32px] font-black text-slate-900 dark:text-white mt-2 tabular-nums leading-none">
+                            {totalAmount.toLocaleString('fr-FR')} <span className="text-[18px] font-semibold text-slate-500">{currency}</span>
                         </h3>
                     </div>
                     <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-                        <TrendingDown className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        <TrendingDown className="w-6 h-6 text-[color:var(--tenant-bg)]" />
                     </div>
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden flex flex-col">
                 {/* Filters */}
-                <div className="p-4 sm:p-5 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">
-                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="px-6 py-4 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800">
+                    <div className="flex flex-col sm:flex-row gap-3">
                     {hasSites && (
                         <div className="relative flex-1 sm:max-w-xs">
-                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <select className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none" value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)}>
+                            <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <select className="w-full h-10 pl-10 pr-8 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 rounded-full text-[15px] font-bold focus:ring-2 focus:ring-blue-500 outline-none appearance-none" value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)}>
                                 <option value="">{t('expenses.all_sites', 'Tous les Chantiers')}</option>
                                 {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
                     )}
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <select 
-                                className="h-10 pl-9 pr-8 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-200"
+                                className="h-10 pl-10 pr-8 text-[15px] font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-full outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-200"
                                 value={selectedCategory}
                                 onChange={(e) => setSelectedCategory(e.target.value)}
                             >
@@ -216,17 +231,17 @@ export default function ExpensesManagement() {
 
                 {/* Table */}
                 <div className="overflow-x-auto custom-scrollbar flex-1 bg-slate-50/30 dark:bg-slate-900/50">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-white dark:bg-slate-900 sticky top-0 z-10 shadow-sm border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <table className="w-full text-left text-[16px] whitespace-nowrap">
+                        <thead className="bg-slate-50/90 dark:bg-slate-900 sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-700 text-[15px] font-bold text-slate-600 dark:text-slate-400">
                             <tr>
-                                <th className="px-4 py-3 w-12 text-center font-bold">{t('expenses.col_nr', 'NR.')}</th>
-                                <th className="px-4 py-3 font-bold">{t('expenses.col_date', 'Date')}</th>
-                                <th className="px-4 py-3 font-bold">{t('expenses.col_category', 'Catégorie')}</th>
-                                <th className="px-4 py-3 font-bold">{t('expenses.col_details', 'Détails')}</th>
-                                {hasSites && <th className="px-4 py-3 font-bold">{t('expenses.col_site', 'Chantier')}</th>}
-                                <th className="px-4 py-3 font-bold">{t('expenses.col_amount', 'Montant')} ({currency})</th>
-                                <th className="px-4 py-3 font-bold">{t('expenses.col_document', 'Document')}</th>
-                                <th className="px-4 py-3 font-bold text-right">{t('expenses.col_actions', 'Actions')}</th>
+                                <th className="px-4 py-3.5 w-12 text-center font-bold">№</th>
+                                <th className="px-4 py-3.5 font-bold">{t('expenses.col_date', 'Date')}</th>
+                                <th className="px-4 py-3.5 font-bold">{t('expenses.col_category', 'Catégorie')}</th>
+                                <th className="px-4 py-3.5 font-bold">{t('expenses.col_details', 'Détails')}</th>
+                                {hasSites && <th className="px-4 py-3.5 font-bold">{t('expenses.col_site', 'Chantier')}</th>}
+                                <th className="px-4 py-3.5 font-bold">{t('expenses.col_amount', 'Montant')} ({currency})</th>
+                                <th className="px-4 py-3.5 font-bold">{t('expenses.col_document', 'Document')}</th>
+                                <th className="px-4 py-3.5 font-bold text-right">{t('expenses.col_actions', 'Actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

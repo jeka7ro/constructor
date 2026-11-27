@@ -1,5 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+
+if (typeof window !== 'undefined') {
+    window.React = React
+    globalThis.React = React
+}
 import { polyfill } from "mobile-drag-drop";
 import "mobile-drag-drop/default.css";
 import App from './App'

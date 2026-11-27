@@ -403,62 +403,88 @@ export default function AccommodationsManagement() {
     // ─── LIST VIEW ─────────────────────────────────────────────────────────────
     return (
         <>
-            <div className="p-4 md:p-8 w-full">
+            <div className="w-full space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                                {t('nav.accommodations', 'Hébergements')}
+                            </h1>
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Live
+                            </span>
+                        </div>
+                        <p className="text-[15.5px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                            {t('accommodations.subtitle', 'Gestion des logements et capacités d\'occupation')}
+                        </p>
+                    </div>
+                    <button onClick={() => { setEditingAcc(null); setForm({ name: '', address: '', capacity: '', notes: '' }); setShowFormModal(true) }}
+                        className="flex items-center gap-2 px-5 h-10 rounded-full bg-[color:var(--tenant-bg)] hover:brightness-95 text-white text-[15px] font-bold shadow-sm transition-all whitespace-nowrap cursor-pointer">
+                        <Plus className="w-4 h-4 stroke-[2.5]" /> {t('accommodations.new_acc_btn', 'Cazare Nouă')}
+                    </button>
+                </div>
 
-
-                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+                <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden flex flex-col">
                     {/* Toolbar */}
-                    <div className="p-4 sm:p-5 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">
+                    <div className="px-6 py-4 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[color:var(--tenant-bg)]">
+                                <BedDouble className="w-5 h-5" />
+                            </div>
+                            <span className="text-[19px] font-extrabold text-slate-900 dark:text-white tracking-tight">
+                                {t('nav.accommodations', 'Hébergements')}
+                            </span>
+                            <span className="px-3 py-1 rounded-full text-[14.5px] font-extrabold bg-blue-500/10 text-[color:var(--tenant-bg)] border border-blue-500/20 tabular-nums">
+                                {filtered.length}
+                            </span>
+                        </div>
                         <div className="relative group flex items-center w-full sm:w-auto">
                             <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                 <Search className="w-4 h-4" />
                             </div>
                             <input type="text" placeholder={t('accommodations.search')} value={searchQuery}
                                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1) }}
-                                className="w-full sm:w-72 h-10 pl-10 pr-10 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                className="w-full sm:w-72 h-10 pl-10 pr-10 bg-slate-50 dark:bg-slate-900 text-[15px] font-medium text-slate-800 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                             />
                             {searchQuery && (
-                                <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
-                                    <span className="text-[10px] font-bold text-white">{filtered.length}/{accommodations.length}</span>
-                                    <button onClick={() => { setSearchQuery(''); setCurrentPage(1) }} className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5">
+                                <div className="absolute right-1.5 flex items-center gap-1 bg-[color:var(--tenant-bg)] px-2.5 py-1 rounded-full shadow-sm">
+                                    <span className="text-[11px] font-bold text-white tabular-nums">{filtered.length}/{accommodations.length}</span>
+                                    <button onClick={() => { setSearchQuery(''); setCurrentPage(1) }} className="p-0.5 hover:brightness-90 rounded-full transition-colors ml-0.5">
                                         <X className="w-3 h-3 text-white/80 hover:text-white" />
                                     </button>
                                 </div>
                             )}
                         </div>
-                        <button onClick={() => { setEditingAcc(null); setForm({ name: '', address: '', capacity: '', notes: '' }); setShowFormModal(true) }}
-                            className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap">
-                            <Plus className="w-4 h-4" /> {t('accommodations.new_acc_btn', 'Cazare Nouă')}
-                        </button>
                     </div>
 
                     {/* Batch delete bar */}
                     {selectedIds.length > 0 && (
-                        <div className="bg-rose-50 border-b border-rose-100 px-4 py-2 flex items-center justify-between dark:bg-rose-900/20 dark:border-rose-900/50">
-                            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} {t('accommodations.selected', 'sélectionnés')}</span>
+                        <div className="bg-rose-50 border-b border-rose-100 px-6 py-2.5 flex items-center justify-between dark:bg-rose-900/20 dark:border-rose-900/50">
+                            <span className="text-[15px] font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} {t('accommodations.selected', 'sélectionnés')}</span>
                             <button onClick={() => setConfirmModal({
                                 isOpen: true, title: t('accommodations.batch_delete_title', 'Supprimerre multiplă'),
                                 message: t('accommodations.batch_delete_msg', 'Ștergi {{count}} cazări?', { count: selectedIds.length }),
                                 onConfirm: async () => { for (const id of selectedIds) await api.delete(`/admin/accommodations/${id}`); fetchAll() }
-                            })} className="text-sm px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-medium transition-colors">{t('accommodations.delete_selected', 'Supprimer Selectatele')}</button>
+                            })} className="text-[14px] px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full font-bold transition-colors">{t('accommodations.delete_selected', 'Supprimer Selectatele')}</button>
                         </div>
                     )}
 
                     {/* Table */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                        <table className="w-full text-left text-[16px] whitespace-nowrap">
+                            <thead className="bg-slate-50/90 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-700 text-[15px] font-bold">
                                 <tr>
                                     <th className="px-4 py-4 w-10 text-center">
                                         <input type="checkbox" checked={paginated.length > 0 && paginated.every(a => selectedIds.includes(a.id))} onChange={toggleAll}
                                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                                     </th>
-                                    <th className="px-6 py-4">{t('accommodations.col_nr', 'Nr.')}</th>
-                                    <th className="px-6 py-4">{t('accommodations.col_name', 'Denumire')}</th>
-                                    <th className="px-6 py-4">{t('accommodations.address', 'Adresă')}</th>
-                                    <th className="px-6 py-4 text-center">{t('accommodations.col_capacity', 'Capacitate')}</th>
-                                    <th className="px-6 py-4 text-center">{t('accommodations.col_occupants', 'Ocupanți')}</th>
-                                    <th className="px-6 py-4 text-right">{t('accommodations.col_actions', 'Acțiuni')}</th>
+                                    <th className="px-5 py-4">№</th>
+                                    <th className="px-5 py-4">{t('accommodations.col_name', 'Denumire')}</th>
+                                    <th className="px-5 py-4">{t('accommodations.address', 'Adresă')}</th>
+                                    <th className="px-5 py-4 text-center">{t('accommodations.col_capacity', 'Capacitate')}</th>
+                                    <th className="px-5 py-4 text-center">{t('accommodations.col_occupants', 'Ocupanți')}</th>
+                                    <th className="px-5 py-4 text-right">{t('accommodations.col_actions', 'Acțiuni')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

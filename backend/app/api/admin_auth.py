@@ -87,6 +87,8 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
+_tenant_slug_to_id_cache: dict = {}
+
 def get_current_admin(request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """Get current authenticated admin from JWT token"""
     credentials_exception = HTTPException(
@@ -134,9 +136,16 @@ def get_current_admin(request: Request, token: str = Depends(oauth2_scheme), db:
                 
         # Avoid looking up master domain or local if they don't map to a tenant
         if subdomain and subdomain not in ["localhost", "127", "pontaj", "www", "app", "admin", "master"]:
-            tenant = db.query(Organization).filter(Organization.slug == subdomain).first()
-            if tenant:
-                admin.organization_id = tenant.id
+            import time as _time
+            now_ts = _time.time()
+            cached_org = _tenant_slug_to_id_cache.get(subdomain)
+            if cached_org and (now_ts - cached_org[0]) < 60.0:
+                admin.organization_id = cached_org[1]
+            else:
+                tenant = db.query(Organization).filter(Organization.slug == subdomain).first()
+                if tenant:
+                    _tenant_slug_to_id_cache[subdomain] = (now_ts, tenant.id)
+                    admin.organization_id = tenant.id
                 
     # Store IP for audit logs - check proxy headers first (Netlify, Cloudflare, etc.)
     ip = request.headers.get("cf-connecting-ip") or \

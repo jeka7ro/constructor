@@ -484,16 +484,16 @@ export default function WorkOrders() {
             sortValue: (wo) => wo.title?.toLowerCase() || '',
             render: (wo) => (
                 <div>
-                    <div className="font-bold text-slate-900 dark:text-white text-sm">
+                    <div className="font-extrabold text-slate-950 dark:text-white text-[17px]">
                         {wo.title}
                     </div>
                     {wo.site_name && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{wo.site_name}</div>
+                        <div className="text-[14px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">{wo.site_name}</div>
                     )}
                     {wo.site_address && !wo.site_name && (
-                        <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
-                            <MapPin className="w-3 h-3" />
-                            <span className="truncate max-w-[200px]" title={wo.site_address}>{wo.site_address}</span>
+                        <div className="flex items-center gap-1.5 mt-1 text-[14px] font-semibold text-slate-500">
+                            <MapPin className="w-4 h-4 shrink-0" />
+                            <span className="truncate max-w-[260px]" title={wo.site_address}>{wo.site_address}</span>
                         </div>
                     )}
                 </div>
@@ -504,9 +504,9 @@ export default function WorkOrders() {
             sortValue: (wo) => wo.client_name?.toLowerCase() || '',
             render: (wo) => (
                 <div>
-                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <div className="text-[17px] font-extrabold text-slate-900 dark:text-slate-100">
                         {wo.client_id ? (
-                            <RouterLink onClick={(e) => e.stopPropagation()} to={`/admin/clients/${wo.client_id}`} className="hover:text-indigo-600 transition-colors">
+                            <RouterLink onClick={(e) => e.stopPropagation()} to={`/admin/clients/${wo.client_id}`} className="hover:text-emerald-600 transition-colors">
                                 {wo.client_name || '—'}
                             </RouterLink>
                         ) : (
@@ -514,7 +514,7 @@ export default function WorkOrders() {
                         )}
                     </div>
                     {wo.client_email && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{wo.client_email}</div>
+                        <div className="text-[14px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{wo.client_email}</div>
                     )}
                 </div>
             )
@@ -525,11 +525,11 @@ export default function WorkOrders() {
             render: (wo) => (
                 <div>
                     {wo.start_date && (
-                        <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        <div className="text-[16px] font-bold text-slate-800 dark:text-slate-200 tabular-nums">
                             {formatDate(wo.start_date)}
                         </div>
                     )}
-                    {!wo.start_date && <div className="text-sm text-slate-400">—</div>}
+                    {!wo.start_date && <div className="text-[16px] text-slate-400">—</div>}
                 </div>
             )
         },
@@ -552,20 +552,20 @@ export default function WorkOrders() {
                 }
 
                 if (!surfaceText && !sandText && !thicknessText) {
-                    return <span className="text-xs text-slate-400">—</span>
+                    return <span className="text-[15px] text-slate-400">—</span>
                 }
 
                 return (
-                    <div className="flex flex-col gap-0.5 max-w-[200px]">
+                    <div className="flex flex-col gap-0.5 max-w-[240px]">
                         {(surfaceText || thicknessText) && (
-                            <div className="flex items-center gap-1.5 text-sm font-bold text-slate-700 dark:text-slate-300 truncate">
+                            <div className="flex items-center gap-1.5 text-[16px] font-extrabold text-slate-800 dark:text-slate-200 truncate">
                                 {surfaceText && <span>{surfaceText}</span>}
                                 {surfaceText && thicknessText && <span className="text-slate-300 dark:text-slate-600">|</span>}
-                                {thicknessText && <span className="text-xs text-slate-500">{thicknessText}</span>}
+                                {thicknessText && <span className="text-[14.5px] font-bold text-slate-500">{thicknessText}</span>}
                             </div>
                         )}
                         {sandText && (
-                            <div className="text-xs font-semibold text-slate-500 truncate">
+                            <div className="text-[14px] font-semibold text-slate-500 truncate">
                                 {sandText}
                             </div>
                         )}
@@ -587,14 +587,14 @@ export default function WorkOrders() {
                 }
 
                 return (
-                    <div className="flex flex-col items-start gap-1">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${badgeColor}`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                    <div className="flex flex-col items-start gap-1.5">
+                        <span className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[14px] font-extrabold ${badgeColor}`}>
+                            <div className={`w-2 h-2 rounded-full ${dotColor}`} />
                             {t(`status.${wo.status}`, cfg.label)}
                         </span>
                         {wo.status === 'confirmed' && (
-                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1 font-bold">
-                                <CheckCircle2 className="w-3 h-3" />
+                            <div className="text-[13px] text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1 font-bold">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
                                 {formatDate(wo.confirmed_at)}
                                 {wo.client_signature && (
                                     <button
@@ -603,34 +603,34 @@ export default function WorkOrders() {
                                             setSigModal({ name: wo.confirmed_by_name, sig: wo.client_signature });
                                         }}
                                         title={t('work_orders.view_signature', 'Voir la signature numérique')}
-                                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-emerald-600 ml-1"
+                                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-emerald-600 ml-1"
                                     >
-                                        <Pen className="w-3 h-3" />
+                                        <Pen className="w-3.5 h-3.5" />
                                     </button>
                                 )}
                             </div>
                         )}
                         {wo.assigned_team_name && (
                             <span 
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mt-1 whitespace-nowrap" 
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12.5px] font-bold mt-1 whitespace-nowrap" 
                                 style={{ 
                                     backgroundColor: `${wo.assigned_team_color}15`, 
                                     color: wo.assigned_team_color, 
                                     border: `1px solid ${wo.assigned_team_color}30` 
                                 }}
                             >
-                                <User className="w-2.5 h-2.5" />
+                                <User className="w-3.5 h-3.5" />
                                 {wo.assigned_team_name}
                             </span>
                         )}
                         {wo.is_invoiced ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider whitespace-nowrap">
-                                <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block"></span>
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 whitespace-nowrap">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
                                 {wo.invoice_number ? `${wo.invoice_number}` : t('work_order_detail.invoicing.invoiced', 'Facturé')}
                             </span>
                         ) : wo.status === 'completed' ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider whitespace-nowrap animate-pulse">
-                                <span className="w-1 h-1 rounded-full bg-red-500 inline-block"></span>
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 whitespace-nowrap animate-pulse">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
                                 {t('work_order_detail.invoicing.not_invoiced', 'Non facturé')}
                             </span>
                         ) : null}
@@ -645,15 +645,24 @@ export default function WorkOrders() {
     ]
 
     return (
-        <div className="p-4 md:p-8 w-full space-y-6">
-            {/* Header Actions */}
-            <div className="flex flex-col sm:flex-row justify-end items-center gap-4 w-full">
+        <div className="w-full space-y-5">
+            {/* Header Bar (Apple HIG / Dispatch Live style) */}
+            <div className="flex flex-wrap justify-between items-center gap-4 w-full">
+                <div className="flex items-center gap-3.5">
+                    <h2 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight">
+                        {t('nav.work_orders', 'Comenzi de Lucru')}
+                    </h2>
+                    <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live
+                    </span>
+                </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="relative">
                         <select
                             value={filterPeriod}
                             onChange={(e) => setFilterPeriod(e.target.value)}
-                            className="appearance-none pl-4 pr-10 h-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm text-sm font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer hover:border-blue-300 transition-colors"
+                            className="appearance-none pl-4 pr-10 h-11 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 rounded-full shadow-2xs text-[15px] font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500/25 outline-none cursor-pointer transition-colors"
                         >
                             <option value="today">{t('filters.today', "Aujourd'hui")}</option>
                             <option value="current_week">{t('filters.current_week', 'Semaine Courante')}</option>
@@ -663,14 +672,14 @@ export default function WorkOrders() {
                             <option value="current_year">{t('filters.current_year', 'Année Courante')}</option>
                             <option value="all">{t('filters.all', 'Toutes les Périodes')}</option>
                         </select>
-                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <ChevronDown className="w-4.5 h-4.5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
 
                     <button
                         onClick={() => navigate('/admin/work-orders/new')}
-                        className="flex items-center gap-2 px-5 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all hover:scale-105"
+                        className="flex items-center gap-2 px-6 h-11 bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-[15px] font-extrabold rounded-full shadow-xs transition-all cursor-pointer"
                     >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
                         {t('work_orders.new_order', 'Nouvelle Commande')}
                     </button>
                 </div>
@@ -743,53 +752,61 @@ export default function WorkOrders() {
                 </button>
             </div>
 
-            {/* Table */}
-            <div className="bg-white dark:bg-slate-800 md:rounded-2xl border-y md:border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden -mx-4 md:mx-0">
-                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-blue-600 dark:bg-slate-800" style={{ backgroundColor: 'var(--tenant-bg, #2563EB)' }}>
-                    <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
-                        <ClipboardList className="w-4 h-4 text-white" /> {t('work_orders.table_title', 'Tableau des Commandes de Travail')}
-                    </h2>
+            {/* Table — Apple HIG / Screen 2 White Container */}
+            <div className="bg-white dark:bg-slate-900 rounded-[20px] border border-slate-200/90 dark:border-slate-800 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06)] overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <ClipboardList className="w-4 h-4" />
+                        </div>
+                        <h2 className="font-extrabold text-slate-900 dark:text-white text-[15px] tracking-tight">
+                            {t('work_orders.table_title', 'Tableau des Commandes de Travail')}
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 tabular-nums">
+                            {workOrders.length}
+                        </span>
+                    </div>
                     
                     {selectedIds.length > 0 && (
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={() => handleBulkMarkStatus(true)}
-                                className="bg-white/20 text-white hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-white/10"
+                                className="bg-slate-50 text-slate-700 hover:bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors border border-slate-200/90"
                                 title="Marchează ca citite"
                             >
-                                <Eye className="w-4 h-4" />
+                                <Eye className="w-3.5 h-3.5" />
                             </button>
                             <button 
                                 onClick={() => handleBulkMarkStatus(false)}
-                                className="bg-white/20 text-white hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-white/10"
+                                className="bg-slate-50 text-slate-700 hover:bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors border border-slate-200/90"
                                 title="Marchează ca noi (necitite)"
                             >
-                                <EyeOff className="w-4 h-4" />
+                                <EyeOff className="w-3.5 h-3.5" />
                             </button>
-                            <span className="text-white text-sm font-bold ml-2">({selectedIds.length} selectate)</span>
+                            <span className="text-slate-600 text-xs font-bold ml-1">({selectedIds.length} selectate)</span>
                         </div>
                     )}
                     
-                    <div className="flex bg-white/20 p-1 rounded-xl w-full sm:w-auto">
+                    <div className="flex items-center gap-1.5">
                         <button
                             onClick={() => setViewMode('active')}
-                            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                            className={`h-7 px-3 rounded-full text-xs font-bold transition-all cursor-pointer border ${
                                 viewMode === 'active' 
-                                ? 'bg-white text-blue-800 shadow-sm' 
-                                : 'text-blue-100 hover:text-white'
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' 
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/90 dark:border-slate-700 hover:bg-slate-50'
                             }`}
                         >
                             {t('quotes.active_tab', 'Actifs')}
                         </button>
                         <button
                             onClick={() => setViewMode('archived')}
-                            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                            className={`h-7 px-3 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
                                 viewMode === 'archived' 
-                                ? 'bg-white text-blue-800 shadow-sm' 
-                                : 'text-blue-100 hover:text-white'
+                                ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900' 
+                                : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200/90 dark:border-slate-700 hover:bg-slate-50'
                             }`}
                         >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3 h-3" />
                             {t('quotes.archived_tab', 'Corbeille')}
                         </button>
                     </div>
@@ -805,10 +822,6 @@ export default function WorkOrders() {
                     defaultSortDir="desc"
                     searchPlaceholder={t('work_orders.search', 'Rechercher une commande...')}
                     emptyText={filterStatus ? t('work_orders.no_orders_status', `Aucune commande avec ce statut`) : t('work_orders.no_orders', 'Aucune commande de travail')}
-                    rowStyle={(wo) => wo.assigned_team_color ? {
-                        backgroundColor: `${wo.assigned_team_color}08`,
-                        boxShadow: `inset 4px 0 0 ${wo.assigned_team_color}`
-                    } : undefined}
                     onRowClick={(wo) => navigate(`/admin/work-orders/${wo.id}`)}
                     mobileCard={(wo) => (
                         <AdminMobileWorkOrderCard

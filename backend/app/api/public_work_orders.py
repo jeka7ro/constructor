@@ -139,6 +139,8 @@ def get_user_work_orders(
 
 def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
     """Serializează un WorkOrder pentru pagina publică a clientului."""
+    from app.api.admin_work_orders import _extract_reminder_timestamps
+    _rem_sent_at, _rem_confirmed_at = _extract_reminder_timestamps(wo)
     site_name = None
     site_address = wo.site_address
     if wo.site:
@@ -200,15 +202,8 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "estimated_price": wo.estimated_price,
         "prices": wo.prices,
         "date_history": wo.date_history or [],
-        "reminder_sent_at": (wo.prices or {}).get("reminder_sent_at") if isinstance(wo.prices, dict) else None,
-        "reminder_confirmed_at": (
-            (wo.prices or {}).get("reminder_confirmed_at")
-            if isinstance(wo.prices, dict) and (wo.prices or {}).get("reminder_confirmed_at")
-            else next(
-                (h.get("timestamp") for h in reversed(wo.date_history or []) if isinstance(h, dict) and h.get("action") in ("confirmed_by_client", "confirmed_by_client_message", "confirmed_manually")),
-                None
-            )
-        ),
+        "reminder_sent_at": _rem_sent_at,
+        "reminder_confirmed_at": _rem_confirmed_at,
         "quote_number": wo.quote_number,
         "final_invoice_path": get_file_url(wo.final_invoice_path) if wo.final_invoice_path else None,
         "completion_photos": [

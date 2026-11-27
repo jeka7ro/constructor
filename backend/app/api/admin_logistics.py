@@ -100,7 +100,9 @@ def geocode_address(address: str):
                 return result
     except Exception:
         pass
-        
+
+    # Negative cache: nu mai re-apelăm Google Geocoding la fiecare refresh dacă adresa nu există
+    _geocode_cache[key] = None
     return None
 
 router = APIRouter(prefix="/admin/logistics", tags=["admin-logistics"])
@@ -499,11 +501,10 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                     geocoded = geocode_address(effective_addr)
                     if geocoded:
                         w_lat, w_lng = geocoded
-                        # Persist coords so next load is instant
-                        if not is_past:
-                            w.site_latitude = w_lat
-                            w.site_longitude = w_lng
-                            db.add(w)
+                        # Persist coords so next load is instant (și pentru zilele din trecut, ca să nu re-geocodăm la restart)
+                        w.site_latitude = w_lat
+                        w.site_longitude = w_lng
+                        db.add(w)
 
                 if w_lat and w_lng:
                     dist_from_prev = 0
