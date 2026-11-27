@@ -775,9 +775,9 @@ export default function AdminDashboard() {
 
                     </div>
 
-                    {/* Apple Dynamic Island — Geometrically centered at 50% of the Header Bar */}
+                    {/* Apple Dynamic Island — Centered in the available header space between Logo and Clock so it never overlaps */}
                     {(isScreeds || currentSubdomain) && (
-                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
+                        <div className="flex-1 flex items-center justify-center px-2 md:px-4 min-w-0 z-50">
                             <HeaderDynamicIsland />
                         </div>
                     )}

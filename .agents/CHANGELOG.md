@@ -1,5 +1,12 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-27 19:12 — Fix Suprapunere Dynamic Island peste Ceas în Header (`flex-1 justify-center` între Logo și Ceas)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - În `AdminDashboard.jsx`, înlocuit poziționarea `absolute left-1/2 -translate-x-1/2` a componentei `HeaderDynamicIsland` (care pe ecrane medii se suprapunea peste ceasul din dreapta) cu un container flex `flex-1 flex items-center justify-center px-2 md:px-4 min-w-0` între logo-ul din stânga și blocul ceas/vreme din dreapta, garantând că Dynamic Island nu se poate suprapune niciodată peste oră.
+- **Fișiere:** `frontend/src/pages/admin/AdminDashboard.jsx`, `frontend/src/components/HeaderDynamicIsland.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Apple Tahoe Verification 🟢 10/10 PASS, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
 ### 2026-11-27 18:36 — Adăugare Kilometri Estimați Astăzi (`Traseu azi: X km estimați`) în Rotația de 5 Secunde a Dynamic Island
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

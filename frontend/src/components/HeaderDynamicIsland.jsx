@@ -464,7 +464,7 @@ export default function HeaderDynamicIsland() {
                         ? 'transform 170ms cubic-bezier(0.22, 1, 0.36, 1), background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease'
                         : 'transform 520ms cubic-bezier(0.22, 1.28, 0.36, 1), background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
                 }}
-                className={`relative z-20 h-[34px] min-w-[224px] max-w-[290px] px-3.5 rounded-full bg-white hover:bg-slate-50/95 dark:bg-[#1C1C1E] dark:hover:bg-[#242426] border border-slate-200/90 dark:border-white/15 text-slate-900 dark:text-white flex items-center justify-between cursor-pointer overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] transition-all duration-300 ${
+                className={`relative z-20 h-[34px] min-w-[180px] sm:min-w-[210px] max-w-[265px] px-3.5 rounded-full bg-white hover:bg-slate-50/95 dark:bg-[#1C1C1E] dark:hover:bg-[#242426] border border-slate-200/90 dark:border-white/15 text-slate-900 dark:text-white flex items-center justify-between cursor-pointer overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] transition-all duration-300 ${
                     isAlertVisible ? 'ring-2 ring-emerald-400/70' : isOpen ? 'ring-2 ring-white/50' : ''
                 }`}
             >
