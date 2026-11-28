@@ -33,38 +33,79 @@ export default function AdminDashboard() {
     const [now, setNow] = useState(new Date())
     const [isMobileNavCompact, setIsMobileNavCompact] = useState(false)
     const lastScrollYRef = useRef(0)
+    const touchStartYRef = useRef(null)
+    const scrollPosMapRef = useRef(typeof WeakMap !== 'undefined' ? new WeakMap() : null)
+
+    // Always restore bottom navigation bar when navigating to a new route
+    useEffect(() => {
+        setIsMobileNavCompact(false)
+    }, [location.pathname])
 
     const handleWorkspaceScroll = useCallback((e) => {
         if (typeof window !== 'undefined' && window.innerWidth >= 768) return
         const el = e.currentTarget
-        const currentY = el ? el.scrollTop : (window.scrollY || 0)
+        if (!el) return
+        const currentY = el.scrollTop || 0
         const delta = currentY - lastScrollYRef.current
-        if (currentY < 16) {
+        if (currentY < 14) {
             setIsMobileNavCompact(false)
-        } else if (delta > 7) {
+        } else if (delta > 6) {
             setIsMobileNavCompact(true)
-        } else if (delta < -7) {
+        } else if (delta < -5) {
             setIsMobileNavCompact(false)
         }
         lastScrollYRef.current = currentY
     }, [])
 
     useEffect(() => {
-        const onWinScroll = () => {
+        const onCapturedScroll = (e) => {
             if (window.innerWidth >= 768) return
-            const currentY = window.scrollY || document.documentElement.scrollTop || 0
-            const delta = currentY - lastScrollYRef.current
-            if (currentY < 16) {
+            if (window.location.pathname.startsWith('/admin/chats')) {
                 setIsMobileNavCompact(false)
-            } else if (delta > 7) {
+                return
+            }
+            const target = e.target === document ? document.documentElement : e.target
+            if (!target || typeof target.scrollTop !== 'number') return
+            if (target.closest?.('[data-no-nav-hide="true"]')) return
+            // Skip horizontal-only scrollbars or tiny elements
+            if (target.scrollHeight <= target.clientHeight + 8) return
+            const currentY = target.scrollTop
+            const prevY = scrollPosMapRef.current?.get(target) ?? currentY
+            const delta = currentY - prevY
+            scrollPosMapRef.current?.set(target, currentY)
+            if (currentY < 14) {
+                setIsMobileNavCompact(false)
+            } else if (delta > 6) {
                 setIsMobileNavCompact(true)
-            } else if (delta < -7) {
+            } else if (delta < -5) {
                 setIsMobileNavCompact(false)
             }
-            lastScrollYRef.current = currentY
         }
-        window.addEventListener('scroll', onWinScroll, { passive: true, capture: true })
-        return () => window.removeEventListener('scroll', onWinScroll, { capture: true })
+        const onTouchStart = (e) => {
+            if (window.innerWidth >= 768) return
+            if (e.touches && e.touches.length === 1) {
+                touchStartYRef.current = e.touches[0].clientY
+            }
+        }
+        const onTouchMove = (e) => {
+            if (window.innerWidth >= 768 || touchStartYRef.current === null) return
+            if (e.touches && e.touches.length === 1) {
+                const dy = e.touches[0].clientY - touchStartYRef.current
+                // Swiping finger down (scrolling up) > 18px immediately restores the bottom bar
+                if (dy > 18) {
+                    setIsMobileNavCompact(false)
+                    touchStartYRef.current = e.touches[0].clientY
+                }
+            }
+        }
+        window.addEventListener('scroll', onCapturedScroll, { passive: true, capture: true })
+        window.addEventListener('touchstart', onTouchStart, { passive: true })
+        window.addEventListener('touchmove', onTouchMove, { passive: true })
+        return () => {
+            window.removeEventListener('scroll', onCapturedScroll, { capture: true })
+            window.removeEventListener('touchstart', onTouchStart)
+            window.removeEventListener('touchmove', onTouchMove)
+        }
     }, [])
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000)
@@ -72,43 +113,11 @@ export default function AdminDashboard() {
     }, [])
 
     // Background cache pre-warmer so navigating to Chats, Isoflex, Reports, Invoicing, or Quotes is 0ms instant
+    // Delayed to 3500ms so it NEVER competes with Planning calendar initial load on Safari's 6-connection pool
     useEffect(() => {
         if (typeof window === 'undefined') return
+        const isMobile = window.innerWidth < 768
         const tId = setTimeout(() => {
-            if (!window.__adminChatsCache) {
-                api.get('/admin/chats').then(res => {
-                    const list = Array.isArray(res.data) ? res.data : []
-                    window.__adminChatsCache = list
-                    if (!window.__adminChatMessagesCache) window.__adminChatMessagesCache = new Map()
-                    list.slice(0, 6).forEach(c => {
-                        const wid = String(c.work_order_id)
-                        if (wid && !window.__adminChatMessagesCache.has(wid)) {
-                            api.get(`/admin/work-orders/${wid}/messages`)
-                                .then(mRes => {
-                                    const arr = Array.isArray(mRes.data) ? mRes.data : (mRes.data?.data || mRes.data?.messages || [])
-                                    window.__adminChatMessagesCache.set(wid, arr)
-                                })
-                                .catch(() => {})
-                        }
-                    })
-                }).catch(() => {})
-            }
-            if (!window.__adminIsoflexCache) {
-                api.get('/admin/robaws-history', { params: { page: 0, limit: 200 } }).then(res => {
-                    window.__adminIsoflexCache = { items: res.data?.items || [], teams: res.data?.teams || [] }
-                }).catch(() => {})
-            }
-            if (!window.__adminInvoiceOrdersCache) {
-                api.get('/admin/work-orders?limit=1000&invoice_mode=true').then(res => {
-                    const wos = (Array.isArray(res.data) ? res.data : (res.data?.items || [])).filter(w => w.status !== 'deleted')
-                    window.__adminInvoiceOrdersCache = wos
-                }).catch(() => {})
-            }
-            if (!window.__adminPricingSettingsCache) {
-                api.get('/admin/pricing-settings').then(res => {
-                    if (res.data) window.__adminPricingSettingsCache = res.data
-                }).catch(() => {})
-            }
             if (!window.__adminTeamsCache) {
                 api.get('/admin/teams').then(res => {
                     const data = res.data
@@ -122,7 +131,43 @@ export default function AdminDashboard() {
                     window.__adminQuotesCache = list
                 }).catch(() => {})
             }
-        }, 120)
+            if (!window.__adminChatsCache) {
+                api.get('/admin/chats').then(res => {
+                    const list = Array.isArray(res.data) ? res.data : []
+                    window.__adminChatsCache = list
+                    if (!isMobile) {
+                        if (!window.__adminChatMessagesCache) window.__adminChatMessagesCache = new Map()
+                        list.slice(0, 4).forEach(c => {
+                            const wid = String(c.work_order_id)
+                            if (wid && !window.__adminChatMessagesCache.has(wid)) {
+                                api.get(`/admin/work-orders/${wid}/messages`)
+                                    .then(mRes => {
+                                        const arr = Array.isArray(mRes.data) ? mRes.data : (mRes.data?.data || mRes.data?.messages || [])
+                                        window.__adminChatMessagesCache.set(wid, arr)
+                                    })
+                                    .catch(() => {})
+                            }
+                        })
+                    }
+                }).catch(() => {})
+            }
+            if (!isMobile && !window.__adminIsoflexCache) {
+                api.get('/admin/robaws-history', { params: { page: 0, limit: 200 } }).then(res => {
+                    window.__adminIsoflexCache = { items: res.data?.items || [], teams: res.data?.teams || [] }
+                }).catch(() => {})
+            }
+            if (!isMobile && !window.__adminInvoiceOrdersCache) {
+                api.get('/admin/work-orders?limit=1000&invoice_mode=true').then(res => {
+                    const wos = (Array.isArray(res.data) ? res.data : (res.data?.items || [])).filter(w => w.status !== 'deleted')
+                    window.__adminInvoiceOrdersCache = wos
+                }).catch(() => {})
+            }
+            if (!window.__adminPricingSettingsCache) {
+                api.get('/admin/pricing-settings').then(res => {
+                    if (res.data) window.__adminPricingSettingsCache = res.data
+                }).catch(() => {})
+            }
+        }, 3500)
         return () => clearTimeout(tId)
     }, [])
 
@@ -278,15 +323,17 @@ export default function AdminDashboard() {
     })
     const [showGlobalSearch, setShowGlobalSearch] = useState(false)
 
-    // Global Fullscreen state synced with browser & Esc key (including Safari webkit fallback)
-    const [isAppFullscreen, setIsAppFullscreen] = useState(() => {
+    // Global Fullscreen state synced with browser & Esc key (including Safari webkit fallback + iOS Chrome/Safari in-app fullscreen fallback)
+    const [isSimulatedFullscreen, setIsSimulatedFullscreen] = useState(false)
+    const [isNativeFullscreen, setIsNativeFullscreen] = useState(() => {
         if (typeof document === 'undefined') return false
         return Boolean(document.fullscreenElement || document.webkitFullscreenElement)
     })
+    const isAppFullscreen = isNativeFullscreen || isSimulatedFullscreen
 
     useEffect(() => {
         const syncFsState = () => {
-            setIsAppFullscreen(Boolean(document.fullscreenElement || document.webkitFullscreenElement))
+            setIsNativeFullscreen(Boolean(document.fullscreenElement || document.webkitFullscreenElement))
             setTimeout(() => window.dispatchEvent(new Event('resize')), 80)
             setTimeout(() => window.dispatchEvent(new Event('resize')), 250)
         }
@@ -301,17 +348,32 @@ export default function AdminDashboard() {
     const handleToggleFullscreen = async () => {
         const rootEl = document.documentElement
         const activeEl = document.fullscreenElement || document.webkitFullscreenElement
+        if (isSimulatedFullscreen) {
+            setIsSimulatedFullscreen(false)
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 80)
+            return
+        }
         try {
             if (activeEl) {
                 if (document.exitFullscreen) await document.exitFullscreen()
                 else if (document.webkitExitFullscreen) await document.webkitExitFullscreen()
-            } else if (rootEl.requestFullscreen) {
-                await rootEl.requestFullscreen()
-            } else if (rootEl.webkitRequestFullscreen) {
-                await rootEl.webkitRequestFullscreen()
+                return
             }
+            if (rootEl.requestFullscreen) {
+                await rootEl.requestFullscreen()
+                return
+            }
+            if (rootEl.webkitRequestFullscreen) {
+                await rootEl.webkitRequestFullscreen()
+                return
+            }
+            // Fallback for Chrome/Safari on iOS where requestFullscreen is undefined
+            setIsSimulatedFullscreen(true)
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 80)
         } catch {
-            // Fullscreen unavailable or blocked by browser
+            // Fallback for Chrome/Safari on iOS where requestFullscreen throws or is blocked
+            setIsSimulatedFullscreen(prev => !prev)
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 80)
         }
     }
 
@@ -706,9 +768,22 @@ export default function AdminDashboard() {
             className={`h-[100dvh] w-full ${darkMode ? 'bg-[#0C0C0E] text-[#F5F5F7]' : 'bg-[color:var(--ui-canvas)] text-[#1D1D1F]'} flex flex-col font-sans transition-colors duration-300 overflow-hidden`}
         >
             
+                {/* Floating Exit Fullscreen Button when in iOS Chrome/Safari Simulated Fullscreen Mode */}
+                {isSimulatedFullscreen && (
+                    <button
+                        type="button"
+                        onClick={() => { void handleToggleFullscreen() }}
+                        title={t('admin.exit_fullscreen', 'Quitter le mode Plein écran')}
+                        aria-label={t('admin.exit_fullscreen', 'Quitter le mode Plein écran')}
+                        className="hidden md:flex fixed top-2.5 right-2.5 z-[9990] w-9 h-9 rounded-full bg-slate-900/75 text-white backdrop-blur-xl border border-white/25 shadow-lg items-center justify-center cursor-pointer"
+                    >
+                        <Minimize2 className="w-4 h-4" />
+                    </button>
+                )}
+
                 {/* Header Bar */}
                 <header 
-                    className={`apple-header-glass relative h-12 md:h-16 px-2.5 md:px-6 flex items-center justify-between z-40 shadow-md transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 ${
+                    className={`apple-header-glass relative h-12 md:h-16 px-2.5 md:px-6 ${isSimulatedFullscreen ? 'hidden' : 'flex'} items-center justify-between z-40 shadow-md transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 ${
                         darkMode
                             ? 'bg-[#1C1C1E] text-[#F5F5F7] border border-white/10'
                             : 'bg-[color:var(--tenant-accent)] text-[color:var(--tenant-accent-fg)]'
@@ -743,24 +818,33 @@ export default function AdminDashboard() {
                              </button>
                          )}
 
-                     {/* Desktop Logo — Animated SVG for Davide Chape */}
-                     <div
-                         onClick={() => navigate('/admin/planning')}
-                         className="hidden md:flex items-center justify-center mr-2 cursor-pointer group"
-                         title="Davide Chape — Planning"
+                     {/* Desktop Logo — Animated SVG for Davide Chape (Click from any page goes Home to Planning Today) */}
+                     <button
+                         type="button"
+                         onClick={() => {
+                             setSidebarOpen(false)
+                             setIsMobileNavCompact(false)
+                             window.dispatchEvent(new CustomEvent('jump-to-calendar-date', { detail: { date: new Date().toISOString() } }))
+                             const mainEl = document.querySelector('.tps-main-workspace')
+                             if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' })
+                             navigate('/admin/planning')
+                         }}
+                         className="hidden md:flex items-center justify-center mr-2 cursor-pointer group bg-transparent border-0 p-0 outline-none"
+                         title="Davide Chape — Planning (Acasă)"
+                         aria-label="Davide Chape — Planning"
                      >
                          {tenant ? (
                              (tenant.slug?.toLowerCase().includes('davide') || tenant.name?.toLowerCase().includes('davide') || (tenant.logo_url && tenant.logo_url.includes('davide_logo'))) ? (
                                  <img
                                      src="/davide_logo.svg?v=anim30s"
                                      alt={tenant.name || 'Davide Chape'}
-                                     className="h-10 max-h-12 w-auto object-contain bg-transparent transition-transform duration-300 group-hover:scale-[1.03]"
+                                     className="h-10 max-h-12 w-auto object-contain bg-transparent transition-transform duration-300 group-hover:scale-[1.03] pointer-events-none select-none"
                                  />
                              ) : tenant.logo_url ? (
                                  <img 
                                      src={getImageUrl(tenant.logo_url)} 
                                      alt={tenant.name || 'Logo'} 
-                                     className="h-10 max-h-12 w-auto object-contain bg-transparent transition-transform duration-300 group-hover:scale-[1.03]"
+                                     className="h-10 max-h-12 w-auto object-contain bg-transparent transition-transform duration-300 group-hover:scale-[1.03] pointer-events-none select-none"
                                      onError={(e) => {
                                          if (!e.currentTarget.dataset.failedOnce) {
                                              e.currentTarget.dataset.failedOnce = 'true';
@@ -772,27 +856,36 @@ export default function AdminDashboard() {
                                  <div className="font-extrabold text-xl text-white px-2">{tenant.name || 'Tenant'}</div>
                              )
                          ) : (
-                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-10 object-contain opacity-70" />
+                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-10 object-contain opacity-70 pointer-events-none select-none" />
                          )}
-                     </div>
+                     </button>
 
-                     {/* Mobile Logo Only */}
-                     <div
-                         onClick={() => navigate('/admin/planning')}
-                         className="md:hidden flex items-center justify-center mr-1 cursor-pointer shrink-0"
+                     {/* Mobile Logo — Tap from ANY page goes Home to Planning Today */}
+                     <button
+                         type="button"
+                         onClick={() => {
+                             setSidebarOpen(false)
+                             setIsMobileNavCompact(false)
+                             window.dispatchEvent(new CustomEvent('jump-to-calendar-date', { detail: { date: new Date().toISOString() } }))
+                             const mainEl = document.querySelector('.tps-main-workspace')
+                             if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' })
+                             navigate('/admin/planning')
+                         }}
+                         aria-label="Davide Chape — Planning"
+                         className="md:hidden flex items-center justify-center mr-1 py-1 px-1 cursor-pointer shrink-0 bg-transparent border-0 outline-none active:scale-95 transition-transform"
                      >
                          {tenant ? (
                              (tenant.slug?.toLowerCase().includes('davide') || tenant.name?.toLowerCase().includes('davide') || (tenant.logo_url && tenant.logo_url.includes('davide_logo'))) ? (
                                  <img
                                      src="/davide_logo.svg?v=anim30s"
                                      alt={tenant.name || 'Davide Chape'}
-                                     className="h-6 max-h-7 w-auto object-contain bg-transparent"
+                                     className="h-6 max-h-7 w-auto object-contain bg-transparent pointer-events-none select-none"
                                  />
                              ) : tenant.logo_url ? (
                                  <img 
                                      src={getImageUrl(tenant.logo_url)} 
                                      alt={tenant.name || 'Logo'} 
-                                     className="h-6 max-h-7 w-auto object-contain bg-transparent"
+                                     className="h-6 max-h-7 w-auto object-contain bg-transparent pointer-events-none select-none"
                                      onError={(e) => {
                                          if (!e.currentTarget.dataset.failedOnce) {
                                              e.currentTarget.dataset.failedOnce = 'true';
@@ -804,15 +897,15 @@ export default function AdminDashboard() {
                                  <div className="font-extrabold text-[13px] leading-tight tracking-tighter text-white truncate max-w-[90px]">{tenant.name || 'Tenant'}</div>
                              )
                          ) : (
-                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-6 object-contain opacity-70" />
+                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-6 object-contain opacity-70 pointer-events-none select-none" />
                          )}
-                     </div>
+                     </button>
 
                     </div>
 
-                    {/* Apple Dynamic Island — Centered in the available header space between Logo and Clock so it never overlaps */}
+                    {/* Apple Dynamic Island — Starts as compact icon, expands to broadcast latest notifications, then retracts back to icon */}
                     {(isScreeds || currentSubdomain) && (
-                        <div className="flex-1 flex items-center justify-center px-1.5 md:px-4 min-w-0 z-50">
+                        <div className="flex flex-1 items-center justify-center px-1.5 md:px-4 min-w-0 z-50">
                             <HeaderDynamicIsland />
                         </div>
                     )}
@@ -880,7 +973,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Right side items: Language, Theme, Notifications */}
-                        <div className="flex items-center gap-1.5 md:gap-2">
+                        <div className="flex items-center gap-2.5 md:gap-2">
                            <div className="hidden md:block">
                                <LanguageSelector variant="dark" className="!text-white !border-white/30 !bg-white/10 hover:!bg-white/20" />
                            </div>
@@ -893,9 +986,9 @@ export default function AdminDashboard() {
                                        onClick={() => setShowGlobalSearch(true)}
                                        title={t('search.placeholder', 'Rechercher (Cmd+K)')}
                                        aria-label={t('search.placeholder', 'Rechercher (Cmd+K)')}
-                                       className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
+                                       className="hidden md:flex w-9 h-9 rounded-full items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
                                    >
-                                       <Search className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" aria-hidden="true" />
+                                       <Search className="w-4 h-4 shrink-0" aria-hidden="true" />
                                    </button>
                                </>
                            )}
@@ -920,11 +1013,11 @@ export default function AdminDashboard() {
                                onClick={() => setDarkMode(!darkMode)}
                                title={darkMode ? t('admin.light_mode', 'Mode Clair') : t('admin.dark_mode', 'Mode Sombre')}
                                aria-label={darkMode ? t('admin.light_mode', 'Mode Clair') : t('admin.dark_mode', 'Mode Sombre')}
-                               className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
+                               className="w-9 h-9 rounded-full flex items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
                            >
                                {darkMode
-                                   ? <Moon className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" aria-hidden="true" />
-                                   : <Sun className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" aria-hidden="true" />
+                                   ? <Moon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                                   : <Sun className="w-4 h-4 shrink-0" aria-hidden="true" />
                                }
                            </button>
 
@@ -947,7 +1040,7 @@ export default function AdminDashboard() {
                                </>
                            )}
 
-                           {!(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && (
+                           {!(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && !(isScreeds || currentSubdomain) && (
                                <HeaderNotifications />
                            )}
                         </div>
@@ -1130,7 +1223,7 @@ export default function AdminDashboard() {
                                 padding-top: 0 !important;
                             }
                         `}</style>
-                        <div className="tps-main-inner p-2.5 md:p-4 md:pt-0 pb-16 md:pb-24 w-full">
+                        <div className="tps-main-inner px-2.5 pt-2 pb-20 md:p-4 md:pt-0 md:pb-24 w-full">
                             <Suspense fallback={<div className="py-16 flex items-center justify-center"><div className="w-7 h-7 border-2 border-[color:var(--tenant-bg)] border-t-transparent rounded-full animate-spin" /></div>}>
                                 <Outlet />
                             </Suspense>
@@ -1139,29 +1232,25 @@ export default function AdminDashboard() {
                 </main>
             </div>
 
-            {/* Bottom Navigation Bar (Admin Mobile — Slim Borderless Translucent Apple Liquid Glass + Scroll Minimization) */}
+            {/* Bottom Navigation Bar (Admin Mobile — Same Color & Opacity as Header in Normal Mode; Hides Completely on Scroll Down, Reappears on Scroll Up) */}
             <nav 
-                onClick={() => { if (isMobileNavCompact) setIsMobileNavCompact(false) }}
-                className={`md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl saturate-180 border-0 px-3 flex justify-between items-center z-[70] rounded-t-[20px] transition-all duration-300 shadow-[0_-4px_20px_rgba(15,23,42,0.12)] ${
+                className={`apple-header-glass md:hidden fixed left-3 right-3 bottom-[calc(env(safe-area-inset-bottom)+10px)] py-1.5 px-2 rounded-full flex justify-between items-center z-[70] shadow-[0_14px_34px_rgba(15,23,42,0.28)] transition-all duration-300 ${
+                    darkMode
+                        ? 'bg-[#1C1C1E] text-[#F5F5F7] border border-white/10'
+                        : 'bg-[color:var(--tenant-accent)] text-[color:var(--tenant-accent-fg)] border-0'
+                } ${
                     isMobileNavCompact
-                        ? 'pt-1 pb-[calc(env(safe-area-inset-bottom)+3px)]'
-                        : 'pt-1.5 pb-[calc(env(safe-area-inset-bottom)+6px)]'
+                        ? 'translate-y-[145%] opacity-0 pointer-events-none'
+                        : 'translate-y-0 opacity-100 pointer-events-auto'
                 }`}
-                style={{
-                    backgroundColor: darkMode
-                        ? (isMobileNavCompact ? 'rgba(18, 18, 20, 0.54)' : 'rgba(22, 22, 24, 0.72)')
-                        : (isMobileNavCompact
-                            ? 'color-mix(in srgb, var(--tenant-accent) 56%, transparent)'
-                            : 'color-mix(in srgb, var(--tenant-accent) 72%, transparent)'),
-                }}
             >
                 {/* 1. Harta (Live Fleet) */}
                 <NavLink
                     to="/admin/tracking"
-                    className={({isActive}) => `flex flex-col items-center justify-center py-1 flex-1 transition-all duration-300 ${isActive ? 'text-white' : 'text-white/65'}`}
+                    className={({isActive}) => `flex flex-col items-center justify-center py-1 rounded-full flex-1 transition-all duration-200 ${isActive ? 'bg-white/20 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]' : 'text-white/80 hover:text-white'}`}
                 >
-                    <MapIcon className={`transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                    <span className={`text-[10px] font-semibold text-center leading-tight transition-all duration-300 overflow-hidden ${isMobileNavCompact ? 'max-h-0 opacity-0 mt-0' : 'max-h-4 opacity-100 mt-0.5'}`}>
+                    <MapIcon className="w-5 h-5" />
+                    <span className="text-[10px] font-semibold text-center leading-tight mt-0.5">
                         {t('live.fleet_map_short', 'Carte')}
                     </span>
                 </NavLink>
@@ -1169,62 +1258,56 @@ export default function AdminDashboard() {
                 {/* 2. Devize */}
                 <NavLink
                     to="/admin/quotes"
-                    className={({isActive}) => `flex flex-col items-center justify-center py-1 flex-1 transition-all duration-300 ${isActive ? 'text-white' : 'text-white/65'}`}
+                    className={({isActive}) => `flex flex-col items-center justify-center py-1 rounded-full flex-1 transition-all duration-200 ${isActive ? 'bg-white/20 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]' : 'text-white/80 hover:text-white'}`}
                 >
-                    <Calculator className={`transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                    <span className={`text-[10px] font-semibold text-center leading-tight transition-all duration-300 overflow-hidden ${isMobileNavCompact ? 'max-h-0 opacity-0 mt-0' : 'max-h-4 opacity-100 mt-0.5'}`}>
-                        {t('nav.quotes', 'Devis')}
+                    <Calculator className="w-5 h-5" />
+                    <span className="text-[10px] font-semibold text-center leading-tight mt-0.5">
+                        {i18n.language?.startsWith('ro') ? 'Devize' : 'Devis'}
                     </span>
                 </NavLink>
 
-                {/* 3. Center Dashboard Button (Sleek Borderless Translucent Pill) */}
-                <div className="relative flex justify-center flex-1">
-                    <button
-                        type="button"
-                        onClick={() => navigate('/admin/planning')}
-                        aria-label={t('nav.planning', 'Planning')}
-                        style={{
-                            backgroundColor: darkMode
-                                ? 'rgba(36, 36, 40, 0.85)'
-                                : 'color-mix(in srgb, var(--tenant-accent) 88%, black 12%)',
-                        }}
-                        className={`flex items-center justify-center text-white rounded-full transition-all duration-300 active:scale-95 border-0 backdrop-blur-xl shadow-[0_4px_14px_rgba(15,23,42,0.22)] ${
-                            isMobileNavCompact
-                                ? 'w-7 h-7 relative top-0'
-                                : 'w-11 h-11 -mt-4'
-                        }`}
-                    >
-                        {tenant?.favicon_url ? (
-                            <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className={`object-contain rounded-lg transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-6 h-6'}`} />
-                        ) : tenant?.logo_url ? (
-                            <img src={getImageUrl(tenant.logo_url)} alt="Logo" className={`object-contain rounded-lg transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-6 h-6'}`} />
-                        ) : (
-                            <LayoutDashboard className={`text-white transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                        )}
-                    </button>
-                </div>
+                {/* 3. Planning */}
+                <NavLink
+                    to="/admin/planning"
+                    className={({isActive}) => `flex flex-col items-center justify-center py-1 rounded-full flex-1 transition-all duration-200 ${isActive ? 'bg-white/20 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]' : 'text-white/80 hover:text-white'}`}
+                >
+                    <CalendarDays className="w-5 h-5" />
+                    <span className="text-[10px] font-semibold text-center leading-tight mt-0.5">
+                        Planning
+                    </span>
+                </NavLink>
 
-                {/* 4. Chat */}
+                {/* 4. Logistique */}
+                <NavLink
+                    to="/admin/logistica"
+                    className={({isActive}) => `flex flex-col items-center justify-center py-1 rounded-full flex-1 transition-all duration-200 ${isActive ? 'bg-white/20 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]' : 'text-white/80 hover:text-white'}`}
+                >
+                    <Truck className="w-5 h-5" />
+                    <span className="text-[10px] font-semibold text-center leading-tight mt-0.5 truncate max-w-[60px]">
+                        {t('nav.logistics', 'Logistique')}
+                    </span>
+                </NavLink>
+
+                {/* 5. Chat */}
                 <NavLink
                     to="/admin/chats"
-                    className={({isActive}) => `flex flex-col items-center justify-center py-1 flex-1 transition-all duration-300 ${isActive ? 'text-white' : 'text-white/65'}`}
+                    className={({isActive}) => `flex flex-col items-center justify-center py-1 rounded-full flex-1 transition-all duration-200 ${isActive ? 'bg-white/20 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]' : 'text-white/80 hover:text-white'}`}
                 >
-                    <MessageSquare className={`transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                    <span className={`text-[10px] font-semibold text-center leading-tight transition-all duration-300 overflow-hidden ${isMobileNavCompact ? 'max-h-0 opacity-0 mt-0' : 'max-h-4 opacity-100 mt-0.5'}`}>
+                    <MessageSquare className="w-5 h-5" />
+                    <span className="text-[10px] font-semibold text-center leading-tight mt-0.5">
                         Chat
                     </span>
                 </NavLink>
 
-                {/* 5. Menu */}
+                {/* 6. Menu — Burger Icon Only (Zero Text) */}
                 <button
                     type="button"
                     onClick={() => setSidebarOpen(true)}
-                    className="flex flex-col items-center justify-center py-1 flex-1 transition-all duration-300 text-white/65 hover:text-white"
+                    aria-label={t('nav.menu', 'Menu')}
+                    title={t('nav.menu', 'Menu')}
+                    className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-all duration-200 text-white/85 hover:text-white active:bg-white/20 cursor-pointer"
                 >
-                    <Menu className={`transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                    <span className={`text-[10px] font-semibold text-center leading-tight transition-all duration-300 overflow-hidden ${isMobileNavCompact ? 'max-h-0 opacity-0 mt-0' : 'max-h-4 opacity-100 mt-0.5'}`}>
-                        {t('nav.menu', 'Menu')}
-                    </span>
+                    <Menu className="w-5 h-5" />
                 </button>
 
             </nav>

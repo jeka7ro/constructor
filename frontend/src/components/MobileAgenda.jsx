@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Clock, MapPin, Truck, ChevronRight, Navigation, Map, CheckCircle2, Calculator, ChevronLeft, Package, Check, Calendar, LayoutGrid, CalendarDays, Layers, Wind, Thermometer } from 'lucide-react';
+import { Clock, MapPin, Truck, ChevronRight, Navigation, Map, CheckCircle2, Calculator, ChevronLeft, Package, Check, CheckCheck, Send, AlertTriangle, Calendar, LayoutGrid, CalendarDays, Layers, Wind, Thermometer } from 'lucide-react';
 import StreetViewPhotos from './StreetViewPhotos';
 import WeatherWidget from './WeatherWidget';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek, subWeeks, addWeeks, parseISO } from 'date-fns';
@@ -54,7 +54,7 @@ function OsrmDistance({ lat1, lon1, lat2, lon2, label }) {
     return <span>• {distance} km {label}</span>;
 }
 
-export default function MobileAgenda({ orders, onOrderClick, currentDate, setCurrentDate, isHistory = false, showTeamName = true }) {
+export default function MobileAgenda({ orders, onOrderClick, currentDate, setCurrentDate, isHistory = false, showTeamName = true, isPartner = false, getOrderReminderState, onOpenReminderModal }) {
     const { t, i18n } = useTranslation();
     const isFrench = i18n.language === 'fr';
     const locale = isFrench ? fr : ro;
@@ -134,42 +134,71 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
         }
     };
 
+    const calcOrderSandTons = (wo) => {
+        if (wo.actual_sand_quantity && parseFloat(wo.actual_sand_quantity) > 0) {
+            const v = parseFloat(wo.actual_sand_quantity);
+            return v > 200 ? v / 1000 : v;
+        }
+        if (wo.route_sand_kg && parseFloat(wo.route_sand_kg) > 0) {
+            return parseFloat(wo.route_sand_kg) / 1000;
+        }
+        let totalKg = 0;
+        (wo.volumes || []).forEach(vol => {
+            const s = parseFloat(vol.quantity) || 0;
+            const th = parseFloat(vol.thickness) || 0;
+            const lbl = String(vol.label || '').toLowerCase();
+            if (s > 0 && th > 0 && !lbl.includes('pur') && !lbl.includes('eps')) {
+                totalKg += s * th * 16;
+            }
+        });
+        return totalKg / 1000;
+    };
+
+    const selectedDateStr = format(currentDate, 'yyyy-MM-dd');
+    const selectedDayOrders = ordersByDay[selectedDateStr] || [];
+    const selectedDaySandTons = selectedDayOrders.reduce((sum, wo) => sum + calcOrderSandTons(wo), 0);
+
     return (
-        <div className="flex flex-col pb-10">
-            {/* Header: LUNA, ANUL și Navigare Săptămâni */}
-            <div className="flex items-center justify-between px-4 pt-2 pb-3">
-                <button 
-                    onClick={() => setCurrentDate(d => addWeeks(d, -1))}
-                    className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0"
-                >
-                    <ChevronLeft className="w-5 h-5" />
-                </button>
-                
-                <div className="flex flex-col items-center">
-                    <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
-                        {format(currentDate, 'yyyy', { locale })}
-                    </span>
-                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100 capitalize">
-                        {format(currentDate, 'MMMM', { locale })}
-                    </span>
+        <div className="flex flex-col pb-8">
+            {/* Row 1: Apple HIG Calendar Header — Month/Year Navigation on Left, Jour/Semaine Segmented Control on Right */}
+            <div className="flex items-center justify-between px-3.5 pt-2.5 pb-2 gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                    <button 
+                        type="button"
+                        onClick={() => setCurrentDate(d => addWeeks(d, -1))}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100/90 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0"
+                        aria-label="Semaine précédente"
+                    >
+                        <ChevronLeft className="w-4.5 h-4.5" />
+                    </button>
+                    
+                    <div className="flex flex-col px-1 min-w-0">
+                        <span className="text-[9.5px] font-black tracking-widest text-slate-400 uppercase leading-none">
+                            {format(currentDate, 'yyyy', { locale })}
+                        </span>
+                        <span className="text-[15px] font-black text-slate-900 dark:text-slate-100 capitalize tracking-tight leading-tight truncate">
+                            {format(currentDate, 'MMMM', { locale })}
+                        </span>
+                    </div>
+
+                    <button 
+                        type="button"
+                        onClick={() => setCurrentDate(d => addWeeks(d, 1))}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100/90 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0"
+                        aria-label="Semaine suivante"
+                    >
+                        <ChevronRight className="w-4.5 h-4.5" />
+                    </button>
                 </div>
 
-                <button 
-                    onClick={() => setCurrentDate(d => addWeeks(d, 1))}
-                    className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0"
-                >
-                    <ChevronRight className="w-5 h-5" />
-                </button>
-            </div>
-
-            {/* Toggle Jour / Semaine — iOS style */}
-            <div className="flex items-center justify-center px-4 pb-3">
-                <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 gap-0.5">
+                {/* Apple Segmented Control: Jour / Semaine */}
+                <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 gap-0.5 shrink-0">
                     <button
+                        type="button"
                         onClick={() => toggleView('jour')}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-xs font-bold transition-all duration-200 ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all duration-200 ${
                             viewMode === 'jour'
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
                         }`}
                     >
@@ -177,10 +206,11 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                         {t('mobile_agenda.day', 'Jour')}
                     </button>
                     <button
+                        type="button"
                         onClick={() => toggleView('semaine')}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-xs font-bold transition-all duration-200 ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all duration-200 ${
                             viewMode === 'semaine'
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
                         }`}
                     >
@@ -193,31 +223,38 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
             {/* ============ MODE: JOUR ============ */}
             {viewMode === 'jour' && (
             <>
-            {/* Apple Style Week Strip */}
-            <div className="flex items-center justify-between px-4 pb-4 mb-4">
+            {/* Row 2: Apple Style Week Strip with Daily Sand Tonnage under each day */}
+            <div className="flex items-center justify-between px-3 py-2 mb-2 border-y border-slate-100 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/40">
                 {weekDays.map((d, i) => {
                     const isSelected = isSameDay(d, currentDate);
                     const isToday = isSameDay(d, new Date());
                     const dateStr = format(d, 'yyyy-MM-dd');
-                    const hasOrders = (ordersByDay[dateStr] || []).length > 0;
+                    const dOrders = ordersByDay[dateStr] || [];
+                    const hasOrders = dOrders.length > 0;
+                    const daySand = dOrders.reduce((s, wo) => s + calcOrderSandTons(wo), 0);
                     
                     return (
                         <button 
+                            type="button"
                             key={i}
                             onClick={() => setCurrentDate(d)}
-                            className="flex flex-col items-center justify-center gap-1.5 group w-10 outline-none"
+                            className="flex flex-col items-center justify-center gap-1 group flex-1 outline-none"
                         >
-                            <span className={`text-[10px] font-bold uppercase ${isSelected ? 'text-blue-600 dark:text-blue-400' : isToday ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}`}>
+                            <span className={`text-[10px] font-bold uppercase leading-none ${isSelected ? 'text-[color:var(--tenant-accent)]' : isToday ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}`}>
                                 {format(d, 'EEEEE', { locale })}
                             </span>
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${isSelected ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : isToday ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold tabular-nums transition-all ${isSelected ? 'bg-[color:var(--tenant-accent)] text-white shadow-md shadow-blue-500/25' : isToday ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                                 {format(d, 'd')}
                             </div>
-                            {/* Dot for events */}
-                            <div className="h-1 flex items-center justify-center">
-                                {hasOrders && (
-                                    <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-blue-600 dark:bg-blue-400' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                                )}
+                            {/* Daily Sand Tonnage or Event Dot */}
+                            <div className="h-3.5 flex items-center justify-center">
+                                {daySand > 0 ? (
+                                    <span className={`text-[9.5px] font-extrabold tabular-nums leading-none ${isSelected ? 'text-amber-600 dark:text-amber-400' : 'text-amber-600/85 dark:text-amber-400/85'}`}>
+                                        {daySand.toFixed(0)}T
+                                    </span>
+                                ) : hasOrders ? (
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-[color:var(--tenant-accent)]' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                                ) : null}
                             </div>
                         </button>
                     );
@@ -225,7 +262,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
             </div>
 
             {/* Zilele Saptamanii */}
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {days.map(day => {
                     const dateStr = format(day, 'yyyy-MM-dd');
                     const dayOrders = ordersByDay[dateStr] || [];
@@ -233,17 +270,23 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
 
                     return (
                         <div key={dateStr} className="flex flex-col gap-2">
-                            {/* Header Zi */}
-                            <div className="flex items-center gap-2 px-4 mb-2 mt-1">
-                                {isTodayFlag && <div className="w-2 h-2 rounded-full bg-blue-500" />}
-                                <h3 className={`text-xs font-bold uppercase tracking-widest ${isTodayFlag ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                            {/* Header Zi + Cantitate Totală de Nisip & Număr Șantiere */}
+                            <div className="flex items-center gap-2 px-3.5 mb-0.5">
+                                {isTodayFlag && <div className="w-2 h-2 rounded-full bg-[color:var(--tenant-accent)]" />}
+                                <h3 className={`text-xs font-extrabold uppercase tracking-wider ${isTodayFlag ? 'text-[color:var(--tenant-accent)]' : 'text-slate-700 dark:text-slate-300'}`}>
                                     {isTodayFlag ? t("general.today", "Aujourd'hui") : format(day, 'EEEE, d MMM', { locale })}
                                 </h3>
-                                <span className="ml-auto text-xs font-semibold text-slate-400 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
-                                    {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
-                                </span>
+                                <div className="ml-auto flex items-center gap-1.5 tabular-nums">
+                                    {selectedDaySandTons > 0 && (
+                                        <span className="text-xs font-extrabold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/25 px-2.5 py-0.5 rounded-full">
+                                            {selectedDaySandTons.toFixed(1)} t {t('dynamic_island.sand_short', 'sable')}
+                                        </span>
+                                    )}
+                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full">
+                                        {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
+                                    </span>
+                                </div>
                             </div>
-
 
                             {/* Lista Comenzi pt Zi */}
                             {dayOrders.length > 0 ? (
@@ -257,10 +300,11 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                     });
 
                                     return (
-                                        <div className="space-y-3">
+                                        <div className="space-y-2 px-3.5">
                                             {dayOrders.map((wo, index) => {
                                                 const legNumber = teamIndices[index] + 1;
-                                                const teamName = wo.team?.name || wo.assigned_team_name || 'Echipă Neasignată';
+                                                const rawTeamName = wo.team?.name || wo.assigned_team_name || t('common.unassigned', 'Non assigné');
+                                                const teamName = rawTeamName.replace(/^echip[aă]\s*/i, '');
                                                 
                                                 let sandTons = 0;
                                                 let totalSurface = 0;
@@ -313,10 +357,12 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                 const staticMapLoc = (lat && lng) ? `${lat},${lng}` : (address ? encodeURIComponent(address) : null);
 
                                                 return (
-                                                    <button
+                                                    <div
                                                         key={wo.id}
+                                                        draggable={false}
+                                                        onDragStart={(e) => e.preventDefault()}
                                                         onClick={() => onOrderClick(wo, prevLat, prevLng, prevAddress)}
-                                                        className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99] relative text-slate-800 dark:text-slate-100"
+                                                        className="w-full text-left rounded-2xl shadow-xs border overflow-hidden transition-colors relative text-slate-800 dark:text-slate-100 touch-pan-y select-none cursor-pointer"
                                                         style={bgStyle}
                                                     >
                                                         {staticMapLoc && (
@@ -327,25 +373,26 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                 <img 
                                                                     src={`https://static-maps.yandex.ru/1.x/?ll=${lng},${lat}&size=400,300&z=14&l=map`} 
                                                                     alt="Map" 
-                                                                    className="w-full h-full object-cover" 
+                                                                    draggable={false}
+                                                                    className="w-full h-full object-cover pointer-events-none select-none" 
                                                                     onError={(e) => { e.target.style.display = 'none'; }}
                                                                 />
                                                             </div>
                                                         )}
-                                                        <div className="p-3.5 flex flex-col gap-2.5 relative z-10">
+                                                        <div className="px-3 py-2.5 flex flex-col gap-1.5 relative z-10">
                                                             <div className="flex items-center justify-between w-full gap-1">
                                                                 {showTeamName ? (
-                                                                    <div className="flex items-center gap-1 px-2 py-1 rounded-md shrink-0" style={{ backgroundColor: color + '26' }}>
-                                                                        <span className="text-xs font-extrabold text-slate-900 truncate max-w-[120px] drop-shadow-sm">#{legNumber} {teamName}</span>
+                                                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-md shrink-0" style={{ backgroundColor: color + '26' }}>
+                                                                        <span className="text-[11.5px] font-extrabold text-slate-900 dark:text-white truncate max-w-[120px] drop-shadow-sm">#{legNumber} {teamName}</span>
                                                                     </div>
                                                                 ) : (
-                                                                    <h4 className="font-bold text-[16px] leading-tight opacity-90 truncate flex-1">
-                                                                        {wo.client?.name || wo.client_name || 'Client Necunoscut'}
+                                                                    <h4 className="font-bold text-[15px] leading-tight opacity-90 truncate flex-1">
+                                                                        {wo.client?.name || wo.client_name || 'Client Inconnu'}
                                                                     </h4>
                                                                 )}
                                                                 <div className={`flex items-center justify-center ${showTeamName ? 'flex-1' : 'shrink-0'}`}>
-                                                                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/70 dark:bg-slate-800/70 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
-                                                                        <div className="text-[11px] font-bold shrink-0">
+                                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/70 dark:bg-slate-800/70 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
+                                                                        <div className="text-[10.5px] font-bold shrink-0">
                                                                             {prevWo ? (
                                                                                 <OsrmDistance 
                                                                                     lat1={prevLat} lon1={prevLng} 
@@ -362,98 +409,141 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                         </div>
                                                                         {wo.route_sand_kg > 0 && (
                                                                             <>
-                                                                                <div className="w-px h-3 bg-slate-300 dark:bg-slate-600 mx-0.5"></div>
-                                                                                <div className="text-[11px] font-bold text-amber-600 dark:text-amber-500 shrink-0">
+                                                                                <div className="w-px h-2.5 bg-slate-300 dark:bg-slate-600 mx-0.5"></div>
+                                                                                <div className="text-[10.5px] font-bold text-amber-600 dark:text-amber-500 shrink-0">
                                                                                     {(wo.route_sand_kg / 1000).toFixed(1)} t
                                                                                 </div>
                                                                             </>
                                                                         )}
-                                                                        {/* Removed materials and quantities as per user request */}
                                                                     </div>
                                                                 </div>
                                                                 <div className="shrink-0 flex items-center justify-end">
                                                                     {(lat && lng) && (
-                                                                        <div className="scale-125 origin-right pr-2">
+                                                                        <div className="scale-110 origin-right pr-1">
                                                                             <WeatherWidget lat={lat} lon={lng} dateStr={wo.start_date || dateStr} />
                                                                         </div>
                                                                     )}
                                                                 </div>
                                                             </div>
 
-                                                            {showTeamName && (
-                                                                <div className="space-y-1 mt-1">
-                                                                    <h4 className="font-bold text-[16px] leading-tight opacity-90">
-                                                                        {wo.client?.name || wo.client_name || 'Client Necunoscut'}
-                                                                    </h4>
+                                                            {/* Middle Row: Client Name + Volumes on Left, WhatsApp Rappel Button on Right (directly above Google Maps direction icon) */}
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <div className="min-w-0 flex-1 flex flex-col gap-1">
+                                                                    {showTeamName && (
+                                                                        <h4 className="font-bold text-[15px] leading-tight opacity-90 truncate">
+                                                                            {wo.client?.name || wo.client_name || 'Client Inconnu'}
+                                                                        </h4>
+                                                                    )}
+
+                                                                    {/* Display Surface and Thickness from Volumes */}
+                                                                    {wo.volumes && wo.volumes.some(v => parseFloat(v.quantity) > 0) && (
+                                                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                                                                            {wo.volumes.map((v, idx) => {
+                                                                                const sq = parseFloat(v.quantity);
+                                                                                const th = parseFloat(v.thickness);
+                                                                                if (!sq && !th) return null;
+                                                                                
+                                                                                let shortLabel = (v.label || `Chape ${idx === 0 ? '' : idx + 1}`).trim();
+                                                                                if (/izola/i.test(shortLabel)) {
+                                                                                    shortLabel = t('work_order_detail.insulation', 'Isolation');
+                                                                                } else {
+                                                                                    shortLabel = shortLabel
+                                                                                        .replace(/[sșş]ap[aăâ]/gi, 'Chape')
+                                                                                        .replace(/surface/i, 'Chape')
+                                                                                        .replace(/volum/i, 'Chape')
+                                                                                        .trim();
+                                                                                    if (shortLabel.toLowerCase() === 'chape 1') shortLabel = 'Chape';
+                                                                                }
+
+                                                                                const isPur = (v.label || '').toLowerCase().includes('pur');
+                                                                                const isEps = (v.label || '').toLowerCase().includes('eps');
+                                                                                const Icon = isPur ? Wind : (isEps ? Thermometer : Layers);
+                                                                                const iconColor = isPur ? 'text-indigo-500' : (isEps ? 'text-emerald-500' : 'text-slate-500');
+
+                                                                                return (
+                                                                                    <div key={idx} className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                                                                                        <Icon className={`w-3.5 h-3.5 ${iconColor} shrink-0`} />
+                                                                                        <span className="truncate max-w-[80px] opacity-80">{shortLabel}:</span>
+                                                                                        <span>
+                                                                                            {sq > 0 ? `${sq} m²` : ''} 
+                                                                                            {sq > 0 && th > 0 ? ' × ' : ''} 
+                                                                                            {th > 0 ? `${th} cm` : ''}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )
+                                                                            })}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                            )}
-                                                            
-                                                            <div className="space-y-1 mt-1">
-                                                                {/* Display Surface and Thickness from Volumes */}
-                                                                {wo.volumes && wo.volumes.some(v => parseFloat(v.quantity) > 0) && (
-                                                                    <div className="flex flex-col gap-0.5 mt-1">
-                                                                        {wo.volumes.map((v, idx) => {
-                                                                            const sq = parseFloat(v.quantity);
-                                                                            const th = parseFloat(v.thickness);
-                                                                            if (!sq && !th) return null;
-                                                                            
-                                                                            let shortLabel = (v.label || `Chape ${idx === 0 ? '' : idx + 1}`).trim();
-                                                                            if (shortLabel.toLowerCase().includes('izola')) {
-                                                                                shortLabel = 'Izolație';
-                                                                            } else {
-                                                                                shortLabel = shortLabel.replace(/surface/i, 'Chape').replace(/volum/i, 'Chape').trim();
-                                                                                if (shortLabel.toLowerCase() === 'chape 1') shortLabel = 'Chape';
-                                                                            }
 
-                                                                            const isPur = (v.label || '').toLowerCase().includes('pur');
-                                                                            const isEps = (v.label || '').toLowerCase().includes('eps');
-                                                                            const Icon = isPur ? Wind : (isEps ? Thermometer : Layers);
-                                                                            const iconColor = isPur ? 'text-indigo-500' : (isEps ? 'text-emerald-500' : 'text-slate-500');
-
-                                                                            return (
-                                                                                <div key={idx} className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200">
-                                                                                    <Icon className={`w-3.5 h-3.5 ${iconColor} shrink-0`} />
-                                                                                    <span className="truncate max-w-[80px] opacity-80">{shortLabel}:</span>
-                                                                                    <span>
-                                                                                        {sq > 0 ? `${sq} m²` : ''} 
-                                                                                        {sq > 0 && th > 0 ? ' × ' : ''} 
-                                                                                        {th > 0 ? `${th} cm` : ''}
+                                                                {!isPartner && wo.status !== 'completed' && wo.status !== 'done' && getOrderReminderState && onOpenReminderModal && (() => {
+                                                                    const { isConfirmed, isSent, issueType } = getOrderReminderState(wo);
+                                                                    return (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => onOpenReminderModal(wo, e)}
+                                                                            className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all shadow-2xs border shrink-0 cursor-pointer ${
+                                                                                issueType
+                                                                                    ? 'bg-rose-600 text-white border-rose-700 animate-pulse'
+                                                                                    : isConfirmed
+                                                                                        ? 'bg-emerald-600 text-white border-emerald-700'
+                                                                                        : isSent
+                                                                                            ? 'bg-sky-500 text-white border-sky-600'
+                                                                                            : 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 border-emerald-500'
+                                                                            }`}
+                                                                            title="Rappel WhatsApp & Email"
+                                                                        >
+                                                                            {issueType ? (
+                                                                                <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
+                                                                            ) : isConfirmed ? (
+                                                                                <CheckCheck className="w-4 h-4 stroke-[2.8]" />
+                                                                            ) : isSent ? (
+                                                                                <div className="relative flex items-center justify-center">
+                                                                                    <Send className="w-3.5 h-3.5 stroke-[2.5] -ml-0.5" />
+                                                                                    <span className="absolute -bottom-1.5 -right-1.5 w-3 h-3 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center border border-white">
+                                                                                        <Check className="w-2 h-2 stroke-[3.5]" />
                                                                                     </span>
                                                                                 </div>
-                                                                            )
-                                                                        })}
-                                                                    </div>
-                                                                )}
+                                                                            ) : (
+                                                                                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                                                                                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.126.556 4.122 1.532 5.854l-1.532 5.596 5.736-1.505c1.694.922 3.633 1.447 5.698 1.447 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z"/>
+                                                                                </svg>
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })()}
                                                             </div>
 
-                                                            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: color + '26' }}>
-                                                                <MapPin className="w-4 h-4 shrink-0 opacity-70" />
-                                                                <div className="flex flex-col flex-1">
-                                                                    <span className="text-xs font-medium leading-tight opacity-80">
+                                                            <div className="flex items-center gap-1.5 mt-0.5 pt-1.5 border-t" style={{ borderColor: color + '26' }}>
+                                                                <MapPin className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                                                                <div className="flex flex-col flex-1 min-w-0">
+                                                                    <span className="text-[11.5px] font-medium leading-tight opacity-80 truncate">
                                                                         {address || 'Fără adresă'}
                                                                     </span>
                                                                 </div>
-                                                                {wo.status === 'completed' || wo.status === 'done' ? (
-                                                                    <div 
-                                                                        className="ml-auto w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"
-                                                                        title={t('status.completed', 'Terminé')}
-                                                                    >
-                                                                        <CheckCircle2 className="w-5 h-5" />
-                                                                    </div>
-                                                                ) : (
-                                                                    <a 
-                                                                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wo.site_address || wo.site?.address || wo.address || '')}`}
-                                                                        target="_blank" 
-                                                                        rel="noopener noreferrer"
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                        className="ml-auto w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors shrink-0"
-                                                                    >
-                                                                        <Navigation className="w-4 h-4" />
-                                                                    </a>
-                                                                )}
+                                                                <div className="ml-auto flex items-center shrink-0">
+                                                                    {wo.status === 'completed' || wo.status === 'done' ? (
+                                                                        <div 
+                                                                            className="w-8.5 h-8.5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"
+                                                                            title={t('status.completed', 'Terminé')}
+                                                                        >
+                                                                            <CheckCircle2 className="w-4.5 h-4.5" />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <a 
+                                                                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wo.site_address || wo.site?.address || wo.address || '')}`}
+                                                                            target="_blank" 
+                                                                            rel="noopener noreferrer"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            className="w-8.5 h-8.5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors shrink-0"
+                                                                        >
+                                                                            <Navigation className="w-4 h-4" />
+                                                                        </a>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </button>
+                                                    </div>
                                                 );
                                             })}
                                         </div>

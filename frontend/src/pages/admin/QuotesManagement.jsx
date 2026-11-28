@@ -314,6 +314,7 @@ export default function QuotesManagement() {
     const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'pending' | 'planning' | 'confirmed' | 'unread'
     const [sourceFilter, setSourceFilter] = useState('all') // 'all' | 'devis_online' | 'we-r' | 'partner' | 'manual'
     const [searchQuery, setSearchQuery] = useState('')
+    const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
     const [lastUpdatedTime, setLastUpdatedTime] = useState(() => new Date())
 
     const handleSelectAll = (e) => {
@@ -1235,34 +1236,48 @@ export default function QuotesManagement() {
     });
 
     return (
-        <div className="w-full flex flex-col min-h-[calc(100vh-100px)] space-y-4">
-            {/* ── Top Header Bar (Apple HIG / Dispatch Live style — uniform heights) ───── */}
-            <div className="flex flex-wrap justify-between items-center gap-3">
-                <div className="flex items-center gap-3">
-                    <div>
-                        <div className="flex items-center gap-2.5">
-                            <h2 className="text-[24px] font-black text-slate-900 dark:text-white tracking-tight">
+        <div className="w-full flex flex-col min-h-[calc(100vh-100px)] space-y-1.5 sm:space-y-4">
+            {/* ── Top Header Bar (Apple HIG / Dispatch Live style — uniform heights, compact on mobile) ───── */}
+            <div className="flex flex-nowrap justify-between items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                            <h2 className="text-[17px] sm:text-[24px] font-black text-slate-900 dark:text-white tracking-tight truncate">
                                 {t('quotes.title_main', 'Devize / Oferte')}
                             </h2>
-                            <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[13px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="inline-flex items-center gap-1.5 h-5.5 sm:h-7 px-2 sm:px-3 rounded-full text-[11px] sm:text-[13px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0">
+                                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
                                 Live
                             </span>
                         </div>
-                        <p className="text-slate-500 dark:text-slate-400 text-[13.5px] font-semibold mt-0.5">
+                        <p className="hidden sm:block text-slate-500 dark:text-slate-400 text-[13.5px] font-semibold mt-0.5">
                             {t('quotes.subtitle', 'Gérer les demandes de devis avant la planification')}
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-2.5 sm:gap-2.5 shrink-0">
                     <span className="text-[13px] font-semibold text-slate-400 dark:text-slate-400 tabular-nums hidden sm:inline mr-1">
                         {t('common.updated', 'Actualizat')}: {lastUpdatedTime.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>
+                    {/* Mobile Search Icon Toggle Button (< 640px) */}
+                    <button
+                        type="button"
+                        onClick={() => setMobileSearchOpen(prev => !prev)}
+                        aria-label={t('common.search', 'Caută')}
+                        className={`sm:hidden w-9.5 h-9.5 rounded-full border inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                            mobileSearchOpen || searchQuery
+                                ? 'bg-[color:var(--tenant-bg)] text-white border-transparent shadow-xs'
+                                : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs'
+                        }`}
+                    >
+                        <Search className="w-4 h-4" />
+                    </button>
+                    {/* Desktop-only Refresh Button (hidden on mobile per user request) */}
                     <button
                         type="button"
                         onClick={() => fetchQuotes(false)}
-                        className="h-10 px-4 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-[13.5px] font-bold inline-flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
+                        className="hidden sm:inline-flex h-10 px-4 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-[13.5px] font-bold items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
                     >
                         <RefreshCw className={`w-4 h-4 shrink-0 ${loading ? 'animate-spin text-[color:var(--tenant-bg)]' : 'text-slate-600'}`} />
                         <span>{t('common.refresh', 'Reîncarcă')}</span>
@@ -1271,18 +1286,80 @@ export default function QuotesManagement() {
                         <button 
                             type="button"
                             onClick={() => setShowQuickAdd(true)}
-                            className="h-10 px-4 bg-[color:var(--tenant-bg)] hover:opacity-95 text-white font-bold rounded-full text-[13.5px] shadow-xs inline-flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap"
+                            aria-label={t('quotes.quick_add', 'Ajout Rapide Devis')}
+                            title={t('quotes.quick_add', 'Ajout Rapide Devis')}
+                            className="w-9.5 h-9.5 sm:w-auto sm:h-10 px-0 sm:px-4 bg-[color:var(--tenant-bg)] hover:opacity-95 text-white font-bold rounded-full text-[12px] sm:text-[13.5px] shadow-xs inline-flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0"
                         >
-                            <Plus className="w-4 h-4 stroke-[2.5] shrink-0" />
-                            <span>{t('quotes.quick_add', 'Ajout Rapide Devis')}</span>
+                            <Plus className="w-4.5 h-4.5 stroke-[2.5] shrink-0" />
+                            <span className="hidden sm:inline">{t('quotes.quick_add', 'Ajout Rapide Devis')}</span>
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* ── Apple HIG KPI Summary Cards Row (5 Clean White Cards, p-5 rounded-[20px], zero default selection border) ── */}
+            {/* Mobile Expandable Search Input (only shown when Search icon is tapped on mobile) */}
+            {(mobileSearchOpen || searchQuery) && (
+                <div className="sm:hidden relative w-full">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                    <input
+                        type="text"
+                        autoFocus
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={t('quotes.search', 'Caută deviz, client, adresă...')}
+                        className="w-full h-9 pl-9 pr-8 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 rounded-full text-[13px] font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[color:var(--tenant-bg)] shadow-2xs"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => { setSearchQuery(''); setMobileSearchOpen(false); }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-200 flex items-center justify-center"
+                    >
+                        <X className="w-3 h-3" />
+                    </button>
+                </div>
+            )}
+
+            {/* ── Mobile Ultra-Compact KPI Strip (< 640px) — replaces 5 giant stacked cards on phones ── */}
             {viewMode === 'active' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                <div className="sm:hidden grid grid-cols-4 divide-x divide-slate-100 dark:divide-slate-800 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 px-1 py-1.5 shadow-2xs text-center tabular-nums">
+                    <button
+                        type="button"
+                        onClick={() => { setStatusFilter('all'); setSourceFilter('all'); }}
+                        className={`px-1 min-w-0 flex flex-col items-center ${statusFilter === 'all' ? 'opacity-100' : 'opacity-75'}`}
+                    >
+                        <span className="text-[9.5px] font-bold text-slate-400 uppercase truncate">Total ({quotes.length})</span>
+                        <span className="text-[12px] font-black text-slate-950 dark:text-white truncate mt-0.5">{Math.round(kpiStats.totalValue).toLocaleString('de-DE')} €</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+                        className={`px-1 min-w-0 flex flex-col items-center ${statusFilter === 'pending' ? 'text-amber-600' : ''}`}
+                    >
+                        <span className="text-[9.5px] font-bold text-slate-400 uppercase truncate">{t('status.pending', 'Attente')}</span>
+                        <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 truncate mt-0.5">{kpiStats.pendingCount} dev.</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setStatusFilter(statusFilter === 'planning' ? 'all' : 'planning')}
+                        className={`px-1 min-w-0 flex flex-col items-center ${statusFilter === 'planning' ? 'text-sky-600' : ''}`}
+                    >
+                        <span className="text-[9.5px] font-bold text-slate-400 uppercase truncate">Planning</span>
+                        <span className="text-[12px] font-black text-sky-600 dark:text-sky-400 truncate mt-0.5">{kpiStats.planningCount} ({kpiStats.planningSqm}m²)</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setStatusFilter(statusFilter === 'confirmed' ? 'all' : 'confirmed')}
+                        className={`px-1 min-w-0 flex flex-col items-center ${statusFilter === 'confirmed' ? 'text-emerald-600' : ''}`}
+                    >
+                        <span className="text-[9.5px] font-bold text-slate-400 uppercase truncate">{t('status.confirmed', 'Confirmé')}</span>
+                        <span className="text-[12px] font-black text-emerald-600 dark:text-emerald-400 truncate mt-0.5">{kpiStats.confirmedCount} ({kpiStats.totalSqm}m²)</span>
+                    </button>
+                </div>
+            )}
+
+            {/* ── Desktop Apple HIG KPI Summary Cards Row (5 Clean White Cards, p-5 rounded-[20px]) ── */}
+            {viewMode === 'active' && (
+                <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
                     {/* Card 1: Total Value — Neutral border like all other cards */}
                     <div
                         onClick={() => { setStatusFilter('all'); setSourceFilter('all'); }}
@@ -1439,10 +1516,10 @@ export default function QuotesManagement() {
             )}
 
             {/* ── Main Apple HIG Table Container (1:1 Dispatch Live Layout) ─────────────── */}
-            <div className="flex-1 bg-white dark:bg-slate-900 rounded-[20px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden flex flex-col min-h-[300px]">
-                {/* Row 1: Title + Count Pill on Left, Search Input + Bulk Actions on Right */}
-                <div className="px-5 pt-4 pb-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[20px] shadow-[0_4px_16px_-4px_rgba(15,23,42,0.06)] border border-slate-200/90 dark:border-slate-800 overflow-hidden flex flex-col min-h-[300px]">
+                {/* Desktop Row 1: Title + Count Pill on Left, Search Input + Bulk Actions on Right (hidden on mobile to save space) */}
+                <div className="hidden sm:flex px-5 pt-4 pb-3 flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <div className="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center text-[color:var(--tenant-bg)] dark:text-sky-400 shrink-0">
                             <FileText className="w-4 h-4" />
                         </div>
@@ -1516,10 +1593,10 @@ export default function QuotesManagement() {
                     </div>
                 </div>
 
-                {/* Row 2: Filter Pills Bar (BOTH Left Status Pills and Right Source Pills have identical p-1 + h-8 = 42px outer height) */}
-                <div className="px-5 pb-3.5 pt-0.5 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
-                    {/* Left: Status Filter Pills */}
-                    <div className="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 flex-wrap">
+                {/* Filter Pills Bar — Single Unified Horizontal Row on Mobile (< 640px), Split Status/Source on Desktop */}
+                <div className="px-2 sm:px-5 py-2 sm:pb-3.5 sm:pt-0.5 border-b border-slate-200/80 dark:border-slate-800 flex flex-row sm:flex-wrap items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
+                    {/* Left: Status Filter Pills (on mobile, also includes source pills inline on the same single row) */}
+                    <div className="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 flex-nowrap sm:flex-wrap shrink-0">
                         {[
                             { id: 'all',       label: t('common.all', 'Toate'),                 count: quotes.length,          icon: null },
                             { id: 'pending',   label: t('status.pending', 'În așteptare'),      count: kpiStats.pendingCount,  icon: Clock },
@@ -1537,15 +1614,15 @@ export default function QuotesManagement() {
                                         if (viewMode !== 'active') setViewMode('active');
                                         setStatusFilter(tab.id);
                                     }}
-                                    className={`h-8 px-3.5 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                                    className={`h-7 sm:h-8 px-2.5 sm:px-3.5 rounded-full text-[11.5px] sm:text-[13px] font-bold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                                         isActive
                                             ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
                                             : 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                                 >
-                                    {TabIcon && <TabIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />}
+                                    {TabIcon && <TabIcon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />}
                                     <span>{tab.label}</span>
-                                    <span className={`tabular-nums text-[12.5px] ${isActive ? 'text-white/90 font-extrabold' : 'text-slate-400 font-semibold'}`}>
+                                    <span className={`tabular-nums text-[11px] sm:text-[12.5px] ${isActive ? 'text-white/90 font-extrabold' : 'text-slate-400 font-semibold'}`}>
                                         {tab.count}
                                     </span>
                                 </button>
@@ -1555,20 +1632,20 @@ export default function QuotesManagement() {
                         <button
                             type="button"
                             onClick={() => setViewMode(viewMode === 'archived' ? 'active' : 'archived')}
-                            className={`h-8 px-3.5 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                            className={`h-7 sm:h-8 px-2.5 sm:px-3.5 rounded-full text-[11.5px] sm:text-[13px] font-bold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                                 viewMode === 'archived'
                                     ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
                                     : 'bg-transparent text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'
                             }`}
                         >
-                            <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                            <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                             <span>{t('quotes.archived_tab', 'Arhivă')}</span>
                         </button>
                     </div>
 
-                    {/* Right: Source Channel Pills (identical p-1 container and h-8 buttons = 42px outer height) */}
+                    {/* Right: Source Channel Pills (inline on the same single scrollable row on mobile, right-aligned on desktop) */}
                     {viewMode === 'active' && (
-                        <div className="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 flex-wrap">
+                        <div className="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-full border border-slate-200/80 dark:border-slate-700 flex-nowrap sm:flex-wrap shrink-0">
                             {[
                                 { id: 'devis_online', label: t('source.devis', 'Devis Online'), count: kpiStats.srcDevisOnline },
                                 { id: 'we-r',         label: t('source.we_r', 'WE-R'),          count: kpiStats.srcWeR },
@@ -1581,14 +1658,14 @@ export default function QuotesManagement() {
                                         key={src.id}
                                         type="button"
                                         onClick={() => setSourceFilter(isAct ? 'all' : src.id)}
-                                        className={`h-8 px-3.5 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                                        className={`h-7 sm:h-8 px-2.5 sm:px-3.5 rounded-full text-[11.5px] sm:text-[13px] font-bold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                                             isAct
                                                 ? 'bg-[color:var(--tenant-bg)] text-white shadow-xs'
                                                 : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
                                         }`}
                                     >
                                         <span>{src.label}</span>
-                                        <span className={`tabular-nums text-[12.5px] ${isAct ? 'text-white/90 font-extrabold' : 'text-slate-400 font-semibold'}`}>{src.count}</span>
+                                        <span className={`tabular-nums text-[11px] sm:text-[12.5px] ${isAct ? 'text-white/90 font-extrabold' : 'text-slate-400 font-semibold'}`}>{src.count}</span>
                                     </button>
                                 );
                             })}
@@ -1608,69 +1685,87 @@ export default function QuotesManagement() {
                     emptyText={t('quotes.empty', 'Aucun devis en attente.')}
                     onRowClick={(row, filtered) => navigate(`/admin/work-orders/${row.id}`, { state: { from: '/admin/quotes', quoteIds: filtered?.map(q => q.id) || [] } })}
                     rowClassName={(row) => `cursor-pointer transition-colors hover:bg-slate-50/90 dark:hover:bg-slate-800/60 ${!row.read_by_admins?.map(String).includes(String(admin?.id)) ? 'font-bold' : 'font-normal text-slate-700'}`}
-                    mobileCard={(row, index) => (
-                        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col gap-3 relative mb-2">
-                            <div className="flex justify-between items-start">
-                                <div className="max-w-[70%]">
-                                    <h4 className="font-bold text-slate-800 dark:text-white text-[15px] leading-tight break-words">
-                                        {row.client_name || row.client?.name || 'Client Inconnu'}
-                                    </h4>
-                                    <div className="text-[11px] text-slate-500 font-medium mt-1 flex items-center gap-1 opacity-80">
-                                        <MapPin className="w-3 h-3 shrink-0" />
-                                        <span className="line-clamp-2">{row.address || 'Pas d\'adresse'}</span>
-                                    </div>
-                                </div>
-                                <div className="text-right flex flex-col items-end">
-                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider mb-1 ${row.status === 'planning' ? 'bg-emerald-100 text-emerald-700' : row.status === 'archived' ? 'bg-slate-200 text-slate-600' : 'bg-amber-100 text-amber-700'}`}>
-                                        {row.status === 'planning' ? 'En Planification' : row.status === 'archived' ? 'Archivé' : 'En Attente'}
-                                    </span>
-                                    <span className="text-[11px] tabular-nums text-slate-500 tracking-wider">
+                    mobileCard={(row) => {
+                        const rowPrice = getRowPrice(row);
+                        const isUnread = !isRowRead(row);
+                        return (
+                        <div className="bg-white dark:bg-slate-800/90 mx-2.5 my-1.5 px-3 py-2.5 rounded-2xl shadow-2xs border border-slate-200/85 dark:border-slate-700/80 flex flex-col gap-1.5 relative">
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    {isUnread && <span className="w-2 h-2 rounded-full bg-[color:var(--tenant-bg)] shrink-0" />}
+                                    <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-[10.5px] font-black text-slate-700 dark:text-slate-200 tabular-nums shrink-0">
                                         {row.quote_number || `DEV${String(row.id).padStart(4, '0')}`}
                                     </span>
+                                    <h4 className={`text-[14px] text-slate-900 dark:text-white truncate ${isUnread ? 'font-black' : 'font-bold'}`}>
+                                        {row.client_name || row.client?.name || 'Client Inconnu'}
+                                    </h4>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0 tabular-nums">
+                                    {rowPrice > 0 && (
+                                        <span className="text-[13.5px] font-black text-slate-950 dark:text-white whitespace-nowrap">
+                                            {fmtEur(rowPrice)} €
+                                        </span>
+                                    )}
+                                    <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wide ${row.status === 'planning' ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300' : row.status === 'confirmed' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>
+                                        {row.status === 'planning' ? 'Planning' : row.status === 'confirmed' ? 'Confirmé' : 'Attente'}
+                                    </span>
                                 </div>
                             </div>
-                            
-                            <div className="flex flex-wrap gap-1.5 text-xs font-semibold mt-1">
-                                {row.volumes && row.volumes.length > 0 ? (
-                                    row.volumes.map((v, i) => (
-                                        <span key={i} className="bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-lg flex items-center gap-1">
-                                            {v.label} <span className="text-blue-600 dark:text-blue-400">{v.quantity}m²</span>
-                                        </span>
-                                    ))
-                                ) : (
-                                    <span className="bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-lg">Aucun volume</span>
-                                )}
-                            </div>
 
-                            <div className="flex gap-2 mt-2 pt-3 border-t border-slate-100 dark:border-slate-700 justify-end">
-                                {row.token && (
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0 flex-1 text-[11.5px] text-slate-500 dark:text-slate-400">
+                                    {(row.site_address || row.address) && (
+                                        <span className="flex items-center gap-0.5 truncate max-w-[140px]">
+                                            <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+                                            <span className="truncate">{row.site_address || row.address}</span>
+                                        </span>
+                                    )}
+                                    {row.volumes && row.volumes.length > 0 && (
+                                        <div className="flex items-center gap-1 shrink-0 tabular-nums">
+                                            {row.volumes.slice(0, 2).map((v, i) => (
+                                                <span key={i} className="bg-slate-100 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 px-1.5 py-0.5 rounded text-[10.5px] font-extrabold">
+                                                    {v.quantity}m²{v.thickness ? `×${v.thickness}cm` : ''}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                    {row.token && (
+                                        <button 
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`); showToast(t('quotes.link_copied', 'Lien copié!'), 'success'); }}
+                                            className="w-7.5 h-7.5 flex items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full transition-colors shrink-0"
+                                            title="Copier le lien"
+                                        >
+                                            <Link className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
                                     <button 
-                                        onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`); showToast(t('quotes.link_copied', 'Lien copié!'), 'success'); }}
-                                        className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-colors shrink-0"
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setPreviewPdfId(row.id); }}
+                                        className="h-7.5 px-2.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 rounded-full text-[11px] font-extrabold transition-colors inline-flex items-center gap-1"
                                     >
-                                        <Link className="w-4 h-4" />
+                                        <FileText className="w-3 h-3" /> PDF
                                     </button>
-                                )}
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); setPreviewPdfId(row.id); }}
-                                    className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 h-9 rounded-full text-xs font-bold transition-colors flex justify-center items-center gap-1.5"
-                                >
-                                    <FileText className="w-4 h-4" /> PDF
-                                </button>
-                                <button
-                                    onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        const todayStr = new Date().toISOString().split('T')[0];
-                                        setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' }); 
-                                        setPlanningModal(row); 
-                                    }}
-                                    className="flex-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 h-9 rounded-full text-xs font-bold transition-colors flex justify-center items-center gap-1.5"
-                                >
-                                    <CalendarDays className="w-4 h-4" /> Planifier
-                                </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            const todayStr = new Date().toISOString().split('T')[0];
+                                            setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' }); 
+                                            setPlanningModal(row); 
+                                        }}
+                                        className="h-7.5 px-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 rounded-full text-[11px] font-extrabold transition-colors inline-flex items-center gap-1"
+                                    >
+                                        <CalendarDays className="w-3 h-3" /> Plan
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    )}
+                        );
+                    }}
                 />
             </div>
 
@@ -2032,20 +2127,21 @@ export default function QuotesManagement() {
             
             {/* Inline PDF Preview Modal */}
             {previewPdfId && createPortal(
-                <div className="fixed inset-0 bg-slate-950/60 z-[99999] flex items-center justify-center p-2 sm:p-6 backdrop-blur-md">
-                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 w-full max-w-5xl h-[95vh] flex flex-col overflow-hidden relative shadow-[0_28px_64px_-12px_rgba(15,23,42,0.45)] animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 bg-slate-950/60 z-[99999] flex items-center justify-center p-2.5 sm:p-6 backdrop-blur-md">
+                    <div className="bg-white dark:bg-slate-900 backdrop-blur-3xl saturate-150 rounded-[20px] sm:rounded-[24px] border-[1.5px] border-slate-300/95 dark:border-slate-600/85 ring-1 ring-slate-900/10 w-full max-w-5xl h-[calc(100dvh-24px)] max-h-[calc(100dvh-24px)] sm:h-[88dvh] sm:max-h-[88dvh] flex flex-col overflow-hidden relative shadow-[0_28px_64px_-12px_rgba(15,23,42,0.45)] animate-in zoom-in-95 duration-200">
                         {/* Header */}
-                        <div className="flex items-center justify-between px-5 py-3.5 bg-[#F2F4F8] dark:bg-slate-800 border-b border-slate-200/85 dark:border-slate-700">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 border border-purple-200/80 flex items-center justify-center shadow-2xs">
-                                    <FileText className="w-4 h-4" />
+                        <div className="flex items-center justify-between px-3.5 py-2.5 sm:px-5 sm:py-3.5 bg-[#F2F4F8] dark:bg-slate-800 border-b border-slate-200/85 dark:border-slate-700 shrink-0">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-full bg-purple-100 text-purple-600 border border-purple-200/80 flex items-center justify-center shadow-2xs shrink-0">
+                                    <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-slate-900 dark:text-slate-200 text-[16px] tracking-tight">Devis PDF</h3>
+                                    <h3 className="font-black text-slate-900 dark:text-slate-200 text-[15px] sm:text-[16px] tracking-tight">Devis PDF</h3>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button 
+                                    type="button"
                                     onClick={() => window.open(`/admin/quotes/${previewPdfId}/pdf`, '_blank')}
                                     className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-[11px] transition-colors hidden sm:flex items-center gap-2 text-xs font-bold shadow-2xs"
                                     title="Ouvrir dans un nouvel onglet"
@@ -2053,10 +2149,12 @@ export default function QuotesManagement() {
                                     <Link className="w-3.5 h-3.5" /> Nouvel onglet
                                 </button>
                                 <button 
+                                    type="button"
                                     onClick={() => setPreviewPdfId(null)}
-                                    className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 dark:bg-slate-700 text-slate-500 flex items-center justify-center transition-colors shadow-2xs"
+                                    aria-label={t('common.close', 'Fermer')}
+                                    className="w-9.5 h-9.5 rounded-full bg-white hover:bg-slate-100 border border-slate-300/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
                                 >
-                                    <X className="w-4 h-4" />
+                                    <X className="w-4.5 h-4.5" />
                                 </button>
                             </div>
                         </div>
@@ -2068,6 +2166,7 @@ export default function QuotesManagement() {
                             </div>
                             <iframe 
                                 src={`/admin/quotes/${previewPdfId}/pdf`}
+                                allow="web-share; clipboard-write"
                                 className="w-full h-full relative z-10"
                                 frameBorder="0"
                                 title="Previzualizare Deviz"

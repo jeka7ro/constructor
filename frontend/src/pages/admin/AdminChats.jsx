@@ -39,25 +39,36 @@ export default function AdminChats() {
 
     // Active chat state — auto-open the first conversation from the top if no wo_id is in the URL
     const urlWoId = searchParams.get('wo_id')
+    const [mobileShowList, setMobileShowList] = useState(false)
     const [activeWoId, setActiveWoId] = useState(() => urlWoId || initialChats[0]?.work_order_id || null)
+
+    const handleCloseMobileChat = () => {
+        setMobileShowList(true)
+        setActiveWoId(null)
+        setActiveWo(null)
+        if (searchParams.has('wo_id')) {
+            setSearchParams({}, { replace: true })
+        }
+    }
 
     useEffect(() => {
         if (urlWoId && urlWoId !== activeWoId) {
+            setMobileShowList(false)
             setActiveWoId(urlWoId)
         }
     }, [urlWoId])
 
     useEffect(() => {
-        if (!activeWoId && chats.length > 0) {
+        if (!activeWoId && chats.length > 0 && !mobileShowList) {
             const firstChat = chats[0]
             setActiveWoId(firstChat.work_order_id)
             setActiveWo({ ...firstChat, id: firstChat.work_order_id })
         }
-    }, [chats, activeWoId])
+    }, [chats, activeWoId, mobileShowList])
 
     const [activeWoState, setActiveWo] = useState(null)
     const activeWo = (() => {
-        const effId = activeWoId || chats[0]?.work_order_id || null
+        const effId = activeWoId || (!mobileShowList ? chats[0]?.work_order_id : null) || null
         if (activeWoState && String(activeWoState.id || activeWoState.work_order_id) === String(effId)) {
             return { ...activeWoState, id: activeWoState.id || activeWoState.work_order_id }
         }
@@ -107,13 +118,13 @@ export default function AdminChats() {
             _chatsMemoryCache = list
             if (typeof window !== 'undefined') window.__adminChatsCache = list
             setChats(list)
-            const targetId = activeWoId || searchParams.get('wo_id') || (list.length > 0 ? list[0].work_order_id : null)
+            const targetId = activeWoId || searchParams.get('wo_id') || (!mobileShowList && list.length > 0 ? list[0].work_order_id : null)
             if (targetId) {
-                if (!activeWoId) {
+                if (!activeWoId && !mobileShowList) {
                     setActiveWoId(targetId)
                 }
                 const matched = list.find(c => String(c.work_order_id) === String(targetId))
-                if (matched) {
+                if (matched && !mobileShowList) {
                     setActiveWo(prev => (prev && String(prev.id) === String(targetId)) ? prev : { ...matched, id: matched.work_order_id })
                 }
             }
@@ -459,31 +470,31 @@ export default function AdminChats() {
     )
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-160px)] md:h-[calc(100vh-104px)] bg-white dark:bg-[#1C1C1E] md:rounded-[20px] md:shadow-[0_1px_3px_rgba(15,23,42,0.04)] md:border border-slate-200/90 dark:border-white/10 overflow-hidden relative -mx-4 md:mx-0 -mb-24 md:mb-0">
+        <div className="flex flex-col h-[calc(100dvh-130px)] md:h-[calc(100vh-104px)] bg-white dark:bg-[#1C1C1E] rounded-2xl md:rounded-[20px] shadow-xs md:shadow-[0_1px_3px_rgba(15,23,42,0.04)] border border-slate-200/90 dark:border-white/10 overflow-hidden relative mx-0 -mb-16 md:mb-0">
             <div className="flex h-full min-h-0 w-full overflow-hidden">
 
                 {/* LEFT SIDEBAR - CHATS LIST (Apple Tahoe Messages Sidebar) */}
-                <div className={`w-full md:w-[380px] lg:w-[400px] flex-shrink-0 border-r border-slate-200/85 dark:border-white/10 bg-[#F9F9FB] dark:bg-[#161618] flex flex-col absolute md:relative inset-0 z-10 transition-transform duration-300 ${activeWoId ? '-translate-x-full md:translate-x-0 md:flex hidden' : 'translate-x-0 flex'}`}>
+                <div className={`w-full md:w-[380px] lg:w-[400px] flex-shrink-0 border-r border-slate-200/85 dark:border-white/10 bg-[#F9F9FB] dark:bg-[#161618] flex flex-col absolute md:relative inset-0 z-10 transition-transform duration-300 ${activeWo ? '-translate-x-full md:translate-x-0 md:flex hidden' : 'translate-x-0 flex'}`}>
 
                     {/* Header Sidebar */}
-                    <div className="h-[64px] px-5 border-b border-slate-200/80 dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#1C1C1E] shrink-0">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                            <MessageSquare className="w-5 h-5 text-[color:var(--tenant-accent)] shrink-0" />
-                            <h2 className="text-[18px] font-black text-slate-900 dark:text-white tracking-tight truncate">
+                    <div className="h-[52px] md:h-[64px] px-3.5 md:px-5 border-b border-slate-200/80 dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#1C1C1E] shrink-0">
+                        <div className="flex items-center gap-2 md:gap-2.5 min-w-0">
+                            <MessageSquare className="w-4.5 h-4.5 md:w-5 md:h-5 text-[color:var(--tenant-accent)] shrink-0" />
+                            <h2 className="text-[16px] md:text-[18px] font-black text-slate-900 dark:text-white tracking-tight truncate">
                                 {t('admin.client_messages', 'Messages Clients')}
                             </h2>
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                 Live
                             </span>
                         </div>
-                        <span className="text-[12px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/10 px-2.5 py-0.5 rounded-full tabular-nums">
+                        <span className="text-[11.5px] md:text-[12px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/10 px-2.5 py-0.5 rounded-full tabular-nums">
                             {filteredChats.length}
                         </span>
                     </div>
 
                     {/* Search Bar — 42px Apple Tahoe Filter Pill */}
-                    <div className="p-3 border-b border-slate-200/80 dark:border-white/10 bg-white/60 dark:bg-[#1C1C1E]/60 shrink-0">
+                    <div className="p-2.5 md:p-3 border-b border-slate-200/80 dark:border-white/10 bg-white/60 dark:bg-[#1C1C1E]/60 shrink-0">
                         <div className="relative">
                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
@@ -497,7 +508,7 @@ export default function AdminChats() {
                     </div>
 
                     {/* Conversation List — Inset Rounded Selection Rows */}
-                    <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+                    <div data-no-nav-hide="true" className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
                         {loading ? (
                             <div className="p-8 text-center text-slate-500 flex flex-col items-center">
                                 <div className="w-6 h-6 border-2 border-[color:var(--tenant-accent)] border-t-transparent rounded-full animate-spin mb-2"></div>
@@ -519,6 +530,7 @@ export default function AdminChats() {
                                         key={chat.work_order_id}
                                         type="button"
                                         onClick={() => {
+                                            setMobileShowList(false)
                                             setActiveWo({ ...chat, id: chat.work_order_id })
                                             setActiveWoId(chat.work_order_id)
                                             if (window.location.pathname === '/admin/chats') {
@@ -594,37 +606,44 @@ export default function AdminChats() {
                 <div className={`flex-1 flex flex-col bg-white dark:bg-[#1C1C1E] w-full absolute md:relative inset-0 z-20 transition-transform duration-300 ${!activeWo ? 'translate-x-full md:translate-x-0 md:flex hidden' : 'translate-x-0 flex'}`}>
                     {activeWo ? (
                         <>
-                            {/* Chat Header — 64px Apple Tahoe Toolbar */}
-                            <div className="h-[64px] px-5 border-b border-slate-200/85 dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#1C1C1E] flex-shrink-0 gap-3">
-                                <div className="flex items-center gap-3 min-w-0">
+                            {/* Chat Header — Compact 54px Mobile / 64px Desktop Apple Tahoe Toolbar */}
+                            <div className="h-[54px] md:h-[64px] px-2.5 md:px-5 border-b border-slate-200/85 dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#1C1C1E] flex-shrink-0 gap-2 md:gap-3">
+                                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
                                     <button
                                         type="button"
-                                        onClick={() => setActiveWoId(null)}
+                                        onClick={handleCloseMobileChat}
                                         aria-label={t('common.back', 'Retour')}
-                                        className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-700"
+                                        className="md:hidden w-8 h-8 -ml-1 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 shrink-0"
                                     >
-                                        <ArrowLeft className="w-5 h-5" />
+                                        <ArrowLeft className="w-4.5 h-4.5" />
                                     </button>
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-lg font-bold shadow-2xs ${getAvatarColor(activeWo.source_system)}`}>
+                                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm md:text-lg font-bold shadow-2xs ${getAvatarColor(activeWo.source_system)}`}>
                                         {getFlagEmoji(activeWo.client_language)}
                                     </div>
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="text-[15.5px] font-black text-slate-900 dark:text-white truncate tracking-tight">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <h3 className="text-[14px] md:text-[15.5px] font-black text-slate-900 dark:text-white truncate tracking-tight leading-tight">
                                                 {activeWo.client_name || activeWo.title || t('admin.client', 'Client')}
                                             </h3>
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[12px] font-extrabold bg-[color:var(--tenant-accent-subtle)] text-[color:var(--tenant-accent)] border border-[color:var(--tenant-accent-border)] tabular-nums shrink-0">
+                                            <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-md text-[12px] font-extrabold bg-[color:var(--tenant-accent-subtle)] text-[color:var(--tenant-accent)] border border-[color:var(--tenant-accent-border)] tabular-nums shrink-0">
                                                 {activeWo.is_quote 
                                                     ? (activeWo.quote_number || t('common.quote', 'Devis'))
                                                     : (activeWo.invoice_number || t('common.order', 'Commande'))}
                                             </span>
                                         </div>
-                                        <p className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 truncate">
-                                            {activeWo.title || t('common.quote', 'Devis')}
-                                        </p>
+                                        <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
+                                            <span className="md:hidden inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-[color:var(--tenant-accent-subtle)] text-[color:var(--tenant-accent)] border border-[color:var(--tenant-accent-border)] tabular-nums shrink-0">
+                                                {activeWo.is_quote 
+                                                    ? (activeWo.quote_number || t('common.quote', 'Devis'))
+                                                    : (activeWo.invoice_number || t('common.order', 'Commande'))}
+                                            </span>
+                                            <p className="text-[11px] md:text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                                                {activeWo.title || t('common.quote', 'Devis')}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex items-center gap-2.5 md:gap-2.5 shrink-0">
                                     <button 
                                         type="button"
                                         onClick={() => setPreviewAttachment({ 
@@ -633,7 +652,7 @@ export default function AdminChats() {
                                             isPdf: true,
                                             isInternalUrl: true
                                         })}
-                                        className="h-9 px-3.5 text-[13px] font-bold rounded-[10px] border bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50 dark:bg-[#2C2C2E] dark:border-white/10 dark:text-slate-200 dark:hover:bg-[#3A3A3C] transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                        className="w-9 h-9 md:w-auto md:h-9 px-0 md:px-3.5 justify-center text-[13px] font-bold rounded-[10px] border bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50 dark:bg-[#2C2C2E] dark:border-white/10 dark:text-slate-200 dark:hover:bg-[#3A3A3C] transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
                                         title={t('nav.quotes', 'Devis / Offres')}
                                     >
                                         <FileText className="w-4 h-4 text-slate-500 dark:text-slate-300" />
@@ -642,7 +661,7 @@ export default function AdminChats() {
                                     <button
                                         type="button"
                                         onClick={() => navigate(`/admin/work-orders/${activeWo.id}`)}
-                                        className="h-9 px-3.5 text-[13px] font-bold rounded-[10px] border bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50 dark:bg-[#2C2C2E] dark:border-white/10 dark:text-slate-200 dark:hover:bg-[#3A3A3C] transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                        className="w-9 h-9 md:w-auto md:h-9 px-0 md:px-3.5 justify-center text-[13px] font-bold rounded-[10px] border bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50 dark:bg-[#2C2C2E] dark:border-white/10 dark:text-slate-200 dark:hover:bg-[#3A3A3C] transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
                                         title={t('nav.work_orders', 'Commandes')}
                                     >
                                         <ClipboardList className="w-4 h-4 text-slate-500 dark:text-slate-300" />
@@ -651,7 +670,7 @@ export default function AdminChats() {
                                     <button
                                         type="button"
                                         onClick={() => handleToggleChatStatus(activeWo.is_chat_closed)}
-                                        className={`h-9 px-3.5 text-[13px] font-bold rounded-[10px] transition-colors inline-flex items-center gap-1.5 border cursor-pointer shadow-2xs ${
+                                        className={`w-9 h-9 md:w-auto md:h-9 px-0 md:px-3.5 justify-center text-[13px] font-bold rounded-[10px] transition-colors inline-flex items-center gap-1.5 border cursor-pointer shadow-2xs ${
                                             activeWo.is_chat_closed 
                                                 ? 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 dark:bg-[#2C2C2E] dark:text-slate-200 dark:border-white/10' 
                                                 : 'bg-rose-500/10 text-rose-700 border-rose-500/25 hover:bg-rose-500/15 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800'
@@ -664,7 +683,7 @@ export default function AdminChats() {
                             </div>
 
                             {/* Messages Area — Full Width Apple Messages Canvas (no max-w-3xl mx-auto) */}
-                            <div className="flex-1 overflow-y-auto px-5 py-5 bg-[#F2F2F4]/70 dark:bg-[#0C0C0E] pb-20">
+                            <div data-no-nav-hide="true" className="flex-1 overflow-y-auto px-3 py-3 md:px-5 md:py-5 bg-[#F2F2F4]/70 dark:bg-[#0C0C0E]">
                                 {loadingMessages ? (
                                     <div className="h-full flex items-center justify-center">
                                         <div className="w-6 h-6 border-2 border-[color:var(--tenant-accent)] border-t-transparent rounded-full animate-spin"></div>
@@ -674,13 +693,13 @@ export default function AdminChats() {
                                         {t('admin.no_messages_in_chat', 'Il n\'y a aucun message dans cette conversation.')}
                                     </div>
                                 ) : (
-                                    <div className="space-y-3.5 w-full">
+                                    <div className="space-y-3 w-full">
                                         {(messages || []).filter(msg => msg.message !== '[reaction]').map(msg => {
                                             const isSystem = msg.sender === 'system' || msg.is_hidden;
                                             const isOwn = !isSystem && msg.sender !== 'client';
                                             return (
                                             <div key={msg.id} className="group relative w-full">
-                                                <div className={`w-fit min-w-[160px] max-w-[82%] lg:max-w-[68%] px-4 py-3 relative ${
+                                                <div className={`w-fit min-w-[140px] max-w-[88%] md:max-w-[82%] lg:max-w-[68%] px-3.5 py-2.5 md:px-4 md:py-3 relative ${
                                                     isOwn && !isSystem
                                                         ? 'bg-[color:var(--tenant-accent)] text-[color:var(--tenant-accent-fg)] rounded-[20px] rounded-br-[6px] ml-auto shadow-xs'
                                                         : isSystem
@@ -939,10 +958,10 @@ export default function AdminChats() {
                             </div>
 
                             {/* Input Area — Full-Width Apple Tahoe Composer Bar */}
-                            <div className="px-5 py-3.5 bg-white dark:bg-[#1C1C1E] border-t border-slate-200/85 dark:border-white/10 flex-shrink-0 pb-[calc(env(safe-area-inset-bottom,0px)+80px)] md:pb-3.5">
+                            <div className="px-2.5 py-2.5 md:px-5 md:py-3.5 bg-white dark:bg-[#1C1C1E] border-t border-slate-200/85 dark:border-white/10 flex-shrink-0">
                                 {activeWo.is_chat_closed ? (
-                                    <div className="text-center p-2.5 bg-[#F2F2F4] dark:bg-[#2C2C2E] rounded-[12px] text-slate-500 text-[13.5px] font-semibold flex items-center justify-center gap-2">
-                                        <Clock className="w-4 h-4" />
+                                    <div className="text-center p-2 md:p-2.5 bg-[#F2F2F4] dark:bg-[#2C2C2E] rounded-[12px] text-slate-500 text-[12.5px] md:text-[13.5px] font-semibold flex items-center justify-center gap-2">
+                                        <Clock className="w-4 h-4 shrink-0" />
                                         {t('admin.chat_is_closed_cannot_send', 'Cette conversation est fermée. Vous ne pouvez plus envoyer de messages.')}
                                     </div>
                                 ) : (
@@ -961,7 +980,7 @@ export default function AdminChats() {
                                             </div>
                                         )}
 
-                                        <div className="flex gap-2.5 w-full items-center">
+                                        <div className="flex gap-1.5 md:gap-2.5 w-full items-center">
                                             <input
                                                 type="file"
                                                 multiple
@@ -978,7 +997,7 @@ export default function AdminChats() {
                                                 type="button"
                                                 onClick={() => fileInputRef.current?.click()}
                                                 aria-label={t('chat.add_attachment', 'Ajouter une pièce jointe')}
-                                                className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-[color:var(--tenant-accent)] bg-[#F2F2F4] hover:bg-slate-200/70 dark:bg-[#2C2C2E] dark:hover:bg-[#3A3A3C] rounded-[12px] transition-colors shrink-0 cursor-pointer"
+                                                className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center text-slate-500 hover:text-[color:var(--tenant-accent)] bg-[#F2F2F4] hover:bg-slate-200/70 dark:bg-[#2C2C2E] dark:hover:bg-[#3A3A3C] rounded-[12px] transition-colors shrink-0 cursor-pointer"
                                                 title={t('chat.add_attachment', 'Ajouter une pièce jointe')}
                                             >
                                                 <Paperclip className="w-4 h-4" />
@@ -990,13 +1009,30 @@ export default function AdminChats() {
                                                 onChange={e => setChatMessage(e.target.value)}
                                                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                                                 placeholder={t('admin.type_message', 'Tapez votre message...')}
-                                                className="flex-1 min-w-[100px] h-10 bg-[#F2F2F4] dark:bg-[#2C2C2E] border border-slate-200/90 dark:border-white/10 rounded-[12px] px-4 text-[14px] font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:bg-white dark:focus:bg-[#1C1C1E] focus:outline-none focus:border-[color:var(--tenant-accent)] transition-all"
+                                                className="flex-1 min-w-0 h-9 md:h-10 bg-[#F2F2F4] dark:bg-[#2C2C2E] border border-slate-200/90 dark:border-white/10 rounded-[12px] px-3.5 md:px-4 text-[15px] md:text-[14px] font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:bg-white dark:focus:bg-[#1C1C1E] focus:outline-none focus:border-[color:var(--tenant-accent)] transition-all"
                                             />
+
+                                            {/* Mobile compact language pill (54px wide instead of 155px) + Desktop full select */}
+                                            <div className="relative shrink-0 md:hidden h-9 px-2.5 rounded-full bg-[#F2F2F4] dark:bg-[#2C2C2E] border border-slate-200/90 dark:border-white/10 inline-flex items-center gap-1 text-[11.5px] font-extrabold text-slate-700 dark:text-slate-200">
+                                                <Globe className="w-3.5 h-3.5 text-[color:var(--tenant-accent)] shrink-0" />
+                                                <span>{targetLang === 'none' ? '—' : targetLang.toUpperCase()}</span>
+                                                <select
+                                                    value={targetLang}
+                                                    onChange={e => setTargetLang(e.target.value)}
+                                                    aria-label={t('chat.select_language', 'Langue de traduction')}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                >
+                                                    <option value="none">{t('chat.no_translation', 'Sans trad.')}</option>
+                                                    <option value="fr">FR (Français)</option>
+                                                    <option value="en">EN (English)</option>
+                                                    <option value="nl">NL (Nederlands)</option>
+                                                </select>
+                                            </div>
                                             <select
                                                 value={targetLang}
                                                 onChange={e => setTargetLang(e.target.value)}
                                                 aria-label={t('chat.select_language', 'Langue de traduction')}
-                                                className="h-10 bg-[#F2F2F4] dark:bg-[#2C2C2E] border border-slate-200/90 dark:border-white/10 rounded-[12px] px-3 text-[13px] font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-[color:var(--tenant-accent)] cursor-pointer shrink-0"
+                                                className="hidden md:block h-10 bg-[#F2F2F4] dark:bg-[#2C2C2E] border border-slate-200/90 dark:border-white/10 rounded-[12px] px-3 text-[13px] font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-[color:var(--tenant-accent)] cursor-pointer shrink-0"
                                                 title={t('chat.select_language', 'Langue de traduction')}
                                             >
                                                 <option value="none">{t('chat.no_translation', 'Sans trad.')}</option>
@@ -1004,11 +1040,12 @@ export default function AdminChats() {
                                                 <option value="en">EN (English)</option>
                                                 <option value="nl">NL (Nederlands)</option>
                                             </select>
+
                                             <button
                                                 type="submit"
                                                 aria-label={t('common.send', 'Envoyer')}
                                                 disabled={(!chatMessage.trim() && selectedFiles.length === 0) || isSending || isUploading}
-                                                className="h-10 px-4 bg-[color:var(--tenant-accent)] hover:bg-[color:var(--tenant-accent-hover)] disabled:opacity-45 text-[color:var(--tenant-accent-fg)] rounded-[12px] flex items-center justify-center transition-all shadow-xs cursor-pointer shrink-0"
+                                                className="w-9 h-9 md:w-auto md:h-10 px-0 md:px-4 bg-[color:var(--tenant-accent)] hover:bg-[color:var(--tenant-accent-hover)] disabled:opacity-45 text-[color:var(--tenant-accent-fg)] rounded-[12px] flex items-center justify-center transition-all shadow-xs cursor-pointer shrink-0"
                                             >
                                                 {isSending || isUploading ? (
                                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

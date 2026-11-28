@@ -1,5 +1,184 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-28 13:16 — Restaurare Buton Fullscreen pe Harta din Logistică pe Mobil (`LogisticsDashboard.jsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Restaurat vizibilitatea (`flex`) butonului de fullscreen de pe harta din `LogisticsDashboard.jsx` pe mobil.
+- **Fișiere:** `frontend/src/pages/admin/logistics/LogisticsDashboard.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Audit Gatekeeper 🟢 VERDE
+
+### 2026-11-28 13:15 — Poziționare Iconiță WhatsApp Rappel pe Cardurile Mobile din Planning Deasupra Iconiței Google Maps / Direcție (Aliniată Dreapta-Mijloc Card) (`MobileAgenda.jsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - În `MobileAgenda.jsx`, mutat butonul cu 4 stări de Rappel WhatsApp din rândul adresei de jos în secțiunea din mijloc-dreapta a cardului, exact **deasupra** iconiței de direcție Google Maps (`<Navigation />`).
+  - Această așezare aliniază vertical acțiunile pe marginea dreaptă a cardului (Vreme sus-dreapta -> WhatsApp mijloc-dreapta -> Direcție Google Maps jos-dreapta), separă clar țintele tactile și oferă adresei șantierului mai mult spațiu pe rândul de jos.
+- **Fișiere:** `frontend/src/components/MobileAgenda.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 13:13 — Motor Smart A4 1-Pagină / 2-Pagini pentru Devis PDF pe Mobil și Desktop + Afișare `CLIENT` & `CHANTIER / ADRESSE` pe 2 Coloane Alăturate (`DevisView.jsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Eliminare spațiu gol la `CLIENT` și `CHANTIER / ADRESSE`:** Setat `grid grid-cols-2 gap-2.5 sm:gap-5` permanent (inclusiv când PDF-ul este generat de pe un ecran mobil `< 640px`), astfel încât caseta `CLIENT` și caseta `CHANTIER / ADRESSE` stau mereu una lângă alta pe 2 coloane, fără spațiu gol în dreapta.
+  - **Motor Smart A4 1-Pagină vs 2-Pagini (`buildSmartDevisPdf` în `DevisView.jsx`):**
+    - Clonează `#devis-print-sheet` într-un container A4 offscreen (`780px`, `windowWidth: 960`) și măsoară înălțimea reală.
+    - Dacă devizul este standard (până la ~12–13 rânduri / `<= 1380px`), ajustează proporțional raportul A4 și elimină orice pagină 2 reziduală (`pdf.deletePage`), garantând că întregul deviz + semnăturile încap **100% pe o singură pagină A4**.
+    - Dacă devizul are multe poziții (`> 1380px`), paginează curat pe **2+ pagini** cu `break-inside-avoid` / `pdf-avoid-break` pe rânduri, totaluri și blocul de condiții + semnături.
+- **Fișiere:** `frontend/src/pages/admin/DevisView.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 13:09 — Optimizare Mobilă Pagini Logistică (`< 768px`), Adăugare Tab `Logistique` în Bara de Jos, Buton Meniu Doar cu Iconiță Burger și Eliminare Iconiță Fullscreen de Sus pe Mobil
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Antet & Bara de Jos pe Mobil (`AdminDashboard.jsx`):**
+    - Eliminat complet de pe mobil (`hidden md:flex`) butonul de Fullscreen (`Maximize2` / `Minimize2`) din antetul de sus.
+    - Adăugat tabul **`Logistique`** (`Truck` + `Logistique`, `/admin/logistica`) în bara suspendată de jos pe mobil.
+    - Transformat butonul de Meniu din bara de jos pe mobil în **doar semnul de iconiță burger (`<Menu />`, `40×40px`, fără textul "Menu")**.
+  - **Optimizare Mobilă Logistică & Subpagini (`LogisticsDashboard.jsx`, `BasesPage.jsx`, `SandStationsPage.jsx`, `LogisticsReport.jsx`, `GpsVerificationPage.jsx`):**
+    - În `LogisticsDashboard.jsx`, unificat pe mobil titlul `Logistique • Live` și selectorul compact de dată `[ < | ZZ/LL/AAAA | > ]` pe **un singur rând de sus**; sub-navigația (`Bases`, `Sablières`, `Rapport`, `Vérif. GPS`) pe un singur rând compact.
+    - Adăugat bară mobilă de filtrare rapidă a echipelor (`Toutes` + pastile colorate per echipă cu tonajul `t`) imediat sub hartă, carduri KPI compacte pe un singur rând, desfășurător GPS pliabil (`Détails GPS du trajet ▾`) pe mobil și portal `z-[99999]` pentru drawer-ul de detalii lucrare.
+    - Optimizat antetele, butoanele `+` (doar iconiță pe mobil), cardurile mobile `DataTable` (`BasesPage.jsx`, `SandStationsPage.jsx`) și filtrele de perioadă/viteză (`LogisticsReport.jsx`, `GpsVerificationPage.jsx`) strict pentru `< 768px`, fără nicio modificare pe desktop.
+- **Fișiere:** `frontend/src/pages/admin/AdminDashboard.jsx`, `frontend/src/pages/admin/logistics/LogisticsDashboard.jsx`, `frontend/src/pages/admin/logistics/BasesPage.jsx`, `frontend/src/pages/admin/logistics/SandStationsPage.jsx`, `frontend/src/pages/admin/logistics/LogisticsReport.jsx`, `frontend/src/pages/admin/logistics/GpsVerificationPage.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 12:57 — Două Butoane Clare în Meniul Devis PDF: Partajare Directă PDF de pe Telefonul Utilizatorului (`Mon WhatsApp`) + Trimitere Automată din Sistem la Client (`WhatsApp Auto`) (`DevisView.jsx`, `admin_work_orders.py`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - În meniul de acțiuni (`Actions · DEVxxxx`) din `DevisView.jsx`, adăugat la vârf două opțiuni clare și distincte pentru trimiterea fișierului `.pdf` real pe WhatsApp:
+    1. **`Partager le PDF (Mon WhatsApp)`** (`Share2` verde) — întotdeauna vizibil: permite utilizatorului să trimită direct fișierul `.pdf` (`DEV1077_Eugeniu_Cazmal.pdf`) de pe propriul telefon/WhatsApp către orice contact (prin iOS Share Sheet cu `files: [readyPdfFile]` pe HTTPS sau prin vizualizatorul nativ PDF iOS `/api/admin/work-orders/{id}/raw-pdf/{filename}` pe conexiunea locală HTTP LAN).
+    2. **`Envoyer au client (WhatsApp Auto)`** (`MessageCircle` teal) — trimite automat fișierul `.pdf` atașat din sistem (prin WhatsApp API) direct pe numărul de telefon al clientului.
+- **Fișiere:** `frontend/src/pages/admin/DevisView.jsx`, `backend/app/api/admin_work_orders.py`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`) și FastAPI (`:8000`)
+
+### 2026-11-28 12:44 — Trimitere Fișier PDF Real pe WhatsApp (Nu Link Text) din Meniul Devis PDF (`DevisView.jsx`, `admin_work_orders.py`, `whatsapp_service.py`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Backend (`admin_work_orders.py` & `whatsapp_service.py`):**
+    - Adăugat ruta `POST /api/admin/work-orders/{id}/send-whatsapp-pdf` care primește PDF-ul generat (`pdf_base64`), îl încarcă în storage (`pdfs/Devis_DEVxxxx.pdf`) și îl trimite ca **document PDF atașat (`Devis_DEVxxxx.pdf`)** direct pe WhatsApp-ul clientului.
+    - În `whatsapp_service.py` (`send_quote_whatsapp`), actualizat ramura UltraMsg să trimită **documentul PDF real** prin `/messages/document` (nu doar link text prin `/messages/chat`) atunci când există un PDF generat.
+  - **Frontend (`DevisView.jsx`):**
+    - Pre-generat fișierul `File` (`readyPdfFile`) și `readyPdfBase64` automat în fundal la încărcarea `DevisView`.
+    - Înlocuit linkul text `wa.me/?text=...` cu trimiterea **fișierului PDF real pe WhatsApp** (`POST /api/admin/work-orders/{id}/send-whatsapp-pdf`) + partajare directă de fișier `navigator.share({ files: [readyPdfFile] })` pe iOS.
+- **Fișiere:** `frontend/src/pages/admin/DevisView.jsx`, `backend/app/api/admin_work_orders.py`, `backend/app/services/whatsapp_service.py`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`) și FastAPI (`:8000`)
+
+### 2026-11-28 12:35 — Unificare Butoane Devis PDF pe Mobil într-un Singur Buton de Acțiuni cu Meniu Apple HIG și Iconițe Clare (`DevisView.jsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - În `DevisView.jsx`, înlocuit cele 4 butoane separate din antetul mobil cu **un singur buton rotund de acțiuni (`Share2`, `40×40px`)** ca bara să fie complet aerisită.
+  - La apăsarea butonului se deschide meniul **Apple HIG Action Sheet** cu 5 acțiuni clare cu ecusoane colorate și iconițe vectoriale:
+    1. **Envoyer par e-mail** (`Mail` — trimite emailul oficial din sistem către client)
+    2. **Partager sur WhatsApp** (`MessageCircle` — deschide WhatsApp cu linkul devizului)
+    3. **Télécharger le PDF** (`Download` — descarcă fișierul `.pdf` pe telefon)
+    4. **Imprimer / PDF** (`Printer` — deschide fereastra de printare)
+    5. **Copier le lien du devis** (`Copy` — copiază linkul clientului în clipboard)
+- **Fișiere:** `frontend/src/pages/admin/DevisView.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 12:32 — Spațiere Tactilă Mărită (`gap-2.5` / `10px`) și Ținte Tactile `38–40px` (`w-9.5 h-9.5` / `w-10 h-10`) între Iconițe pe Mobil (Apple HIG Ergonomics)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Mărit distanța dintre butoanele cu iconiță pe mobil la `gap-2.5` (`10px`) și dimensiunea țintelor tactile la `38×38px` / `40×40px` (`w-9.5 h-9.5` / `w-10 h-10`) în `DevisView.jsx`, `QuotesManagement.jsx`, `WorkOrderDetail.jsx`, `AdminChats.jsx` și `AdminDashboard.jsx` pentru apăsare confortabilă și precisă cu degetul.
+- **Fișiere:** `frontend/src/pages/admin/DevisView.jsx`, `frontend/src/pages/admin/QuotesManagement.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `frontend/src/pages/admin/AdminChats.jsx`, `frontend/src/pages/admin/AdminDashboard.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 12:30 — Fix Buton Share PDF pe iOS Safari/Chrome (HTTP LAN & HTTPS) cu Apel Sincron `navigator.share` + Apple HIG Share Action Sheet (`DevisView.jsx`, `WorkOrderDetail.jsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Cauza:** Pe iOS WebKit, apelarea asincronă `html2pdf().outputPdf('blob')` (~2 secunde) înainte de `navigator.share()` expira gestul de utilizator (`NotAllowedError`), iar pe conexiunea locală `http://davidechape.192.168.2.57.nip.io:5678` (context non-HTTPS), iOS dezactivează atât `navigator.share` cât și `navigator.clipboard.writeText`.
+  - **Fix:**
+    - Pe HTTPS (`davidechape.pontaj.app`), `window.top.navigator.share({ title, text, url })` este apelat **instantaneu în 0ms** la atingerea butonului Share (fără a pierde gestul WebKit) și s-a adăugat `allow="web-share; clipboard-write"` pe iframe.
+    - Pe HTTP LAN (`http://192.168.2.57:5678`) sau când `navigator.share` nu e disponibil, butonul Share deschide instant un **Apple HIG Share Action Sheet** cu acțiuni rapide: **Partager sur WhatsApp**, **Copier le lien du devis** (cu fallback `execCommand('copy')` funcțional pe HTTP), **Télécharger le fichier PDF** și **Envoyer via Mail**.
+- **Fișiere:** `frontend/src/pages/admin/DevisView.jsx`, `frontend/src/pages/admin/QuotesManagement.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 12:23 — Adăugat Butoane cu Iconiță Download (`⬇️`) & Share (`📤`) pentru PDF pe Mobil în `DevisView.jsx` și `WorkOrderDetail.jsx`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **`DevisView.jsx` (`/admin/quotes/:id/pdf`):** Adăugat butoanele rotunde cu iconițe **`Download` (`⬇️`)** (descărcare directă fișier PDF `DEVxxxx_Client.pdf` prin `html2pdf.js`) și **`Share` (`📤`)** (deschide iOS Share Sheet nativ cu fișierul PDF atașat pentru WhatsApp / Mail / AirDrop / Files) în bara de sus a documentului.
+  - **`WorkOrderDetail.jsx` (Secțiunea `Facturation`):** Adăugat butonul **`Partager PDF` (`Share2`)** lângă `Télécharger PDF` și transformat butoanele pe mobil în iconițe rotunde compacte (`w-9 h-9 rounded-full`).
+- **Fișiere:** `frontend/src/pages/admin/DevisView.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 12:19 — Fix Suprapunere Antet Modal `Devis PDF` sub Bara de Adresă Chrome/Safari pe iPhone (`h-[95vh]` → `100dvh - 24px` în `QuotesManagement.jsx` & Global `index.css`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Cauza:** În `QuotesManagement.jsx` (linia 2131), modalul `Devis PDF` avea `h-[95vh]` centrat cu `items-center` în `fixed inset-0`. Pe iOS Chrome/Safari, `95vh` este calculat față de *large viewport* (`100lvh` ≈ `703px`), care este cu ~67px mai înalt decât spațiul vizibil real (`100dvh` ≈ `636px`) când bara de adresă este afișată, împingând primii `33.5px` din antetul modalului (`Devis PDF` și butonul `X`) sub bara de adresă a browserului.
+  - **Fix:** Înlocuit `h-[95vh]` cu `h-[calc(100dvh-24px)] max-h-[calc(100dvh-24px)] sm:h-[88dvh]` în `QuotesManagement.jsx` și adăugat protecție globală în `frontend/src/index.css` pe mobil (`@media (max-width: 767px)`) pentru toate modalele `h-[95vh]`, `h-[90vh]`, `max-h-[95vh]` și `max-h-[90vh]` ca niciun modal să nu mai intre sub bara de adresă pe iOS.
+- **Fișiere:** `frontend/src/pages/admin/QuotesManagement.jsx`, `frontend/src/index.css`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 12:15 — Butoane Compacte Doar cu Iconițe pe Mobil în `DevisView.jsx` & `InvoiceDetails.jsx` + Layout Curat Carduri Client/Șantier (Apple HIG)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **`DevisView.jsx` (`/admin/quotes/:id/pdf`):**
+    - Transformat butoanele din bara superioară (`Retour`, `Envoyer par e-mail`, `Imprimer / PDF`) pe mobil (`< 640px`) în butoane rotunde compacte doar cu iconiță (`w-8.5 h-8.5 rounded-full`, fără text pe 3 rânduri), și ascuns `← Retour` când documentul este încorporat în iframe-ul din `WorkOrderDetail`.
+    - Aliniat antetul `Logo` (stânga) + `DEVIS N° DEVxxxx` (dreapta) pe același rând pe mobil și trecut cardurile `CLIENT` / `CHANTIER / ADRESSE` pe o coloană pe mobil (`grid-cols-1 sm:grid-cols-2 print:grid-cols-2`) ca adresele și emailurile să nu mai fie rupte pe mai multe rânduri înguste.
+  - **`InvoiceDetails.jsx`:** Transformat butoanele de acțiune (`Copier le lien client`, `Devis PDF`, `Imprimer le PDF`, `Émettre la Facture`, `Envoyer à Billtobox`) în butoane rotunde doar cu iconiță pe mobil (`w-9 h-9 rounded-full`).
+- **Fișiere:** `frontend/src/pages/admin/DevisView.jsx`, `frontend/src/pages/admin/InvoiceDetails.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 11:59 — Navigare Instantanee Acasă (`/admin/planning` + Reset la Ziua de Azi) la Apăsarea pe Logo de pe Orice Pagină (`AdminDashboard.jsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - În `AdminDashboard.jsx`, transformat containerul logo-ului (`DC Davide Chape`) pe mobil și desktop în `<button type="button">` nativ cu `pointer-events-none` pe imaginea SVG (pentru compatibilitate 100% cu touch-ul din iOS Safari), care de pe orice pagină închide meniul lateral dacă e deschis, readuce bara de jos, resetează data calendarului la ziua curentă, derulează pagina sus și navighează instant la `/admin/planning`.
+- **Fișiere:** `frontend/src/pages/admin/AdminDashboard.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 11:57 — Fix Încărcare Instantanee (0ms) a Lucrărilor în Planning pe Mobil (`AdminOverview.jsx`, `AdminDashboard.jsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **Cauza:** La comutarea pe `/admin/planning` pe iPhone, `allWorkOrders` pornea de la `[]` (fără cache în memorie), în timp ce pre-warmer-ul din `AdminDashboard.jsx` lansa la `120ms` 14 cereri grele concurente (`limit=1000&invoice_mode=true`, `robaws-history`, 6× mesaje chat) care blocau pool-ul de 6 conexiuni HTTP/1.1 din Safari iOS timp de 8–12 secunde înainte ca interogarea de 18 luni (`848` comenzi) din `AdminOverview.jsx` să primească răspuns.
+  - **Fix în `AdminOverview.jsx`:**
+    - Adăugat cache instantaneu (`window.__adminPlanningOrdersCache` + `localStorage.getItem('pontaj_planning_fast_cache_v1')`) pentru `allWorkOrders` și `teams`, astfel încât lucrările apar în `0ms` la deschiderea Planning-ului.
+    - Adăugat `getFastDateParams()` (`-14 zile .. +35 zile`, ~25 lucrări, `< 30ms`) ca prim pas în `fetchWorkOrdersStats()` înaintea interogării istorice complete de 18 luni.
+  - **Fix în `AdminDashboard.jsx`:** Amânat pre-warmer-ul de fundal la `3500ms` și dezactivat pe mobil (`< 768px`) pre-încărcarea grea a celor 1000 de facturi și a istoricului Isoflex la startup.
+- **Fișiere:** `frontend/src/pages/admin/AdminOverview.jsx`, `frontend/src/pages/admin/AdminDashboard.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 11:44 — Rafinare Proporții Carduri Șantiere în Planning Mobil (`MobileAgenda.jsx` — Apple HIG)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **`MobileAgenda.jsx`:** Păstrat designul complet al cardurilor de șantier, cu proporții mai suple pe mobil (`px-3 py-2.5 gap-1.5`, spațiere listă `space-y-2 px-3.5`, volume `flex-wrap`, separatoare compacte `mt-0.5 pt-1.5`), astfel încât să încapă comod mai multe șantiere pe ecranul telefonului.
+- **Fișiere:** `frontend/src/components/MobileAgenda.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 11:41 — Compactare Maximă Antet & Filtre în `QuotesManagement.jsx` pe Mobil (Fără Refresh, `+` Fără Text, Căutare ca Iconiță `🔍`, Filtre pe Un Singur Rând)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **`QuotesManagement.jsx` (`/admin/quotes` pe Mobil `< 640px`):**
+    - Eliminat butonul de Refresh (`🔄`) pe mobil (`hidden sm:inline-flex`).
+    - Eliminat textul `"Adăugare rapidă deviz"` de pe butonul `+` pe mobil (`w-8 h-8` doar cu iconița `+`), plasat pe același rând cu titlul `Devize / Oferte • Live`.
+    - Transformarea barei mari de căutare într-un buton compact cu iconiță `🔍` (`w-8 h-8 rounded-full`) lângă butonul `+` în antetul de sus (care deschide câmpul de căutare doar la apăsare).
+    - Eliminat titlul redundant `Tabel Operativ Devize` pe mobil și unificat toate pastilele de filtrare (Status + Sursă) pe **un singur rând orizontal compact (`h-7 text-[11.5px]`)**, economisind peste `230px` de spațiu vertical pe telefon.
+- **Fișiere:** `frontend/src/pages/admin/QuotesManagement.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 11:37 — Optimizare Mobilă `AdminChats.jsx` (Antet Client Complet, Câmp Mesaj Larg + Pastilă Limbă Compactă, Zero Spațiu Alb Gol Jos), Fix `formatCityOnly` în `QuotesManagement.jsx` & Cantitate Nisip în Antetul Calendarului (`MobileAgenda.jsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **`AdminChats.jsx` & `AdminDashboard.jsx` (Chat pe Mobil `< 768px`):**
+    - **Antet conversație pe mobil:** Numele clientului (`Eugeniu Cazmal`) este acum afișat integral pe primul rând (nu mai este tăiat la `"Eu..."`), iar ecusonul `DEV1077` este plasat pe rândul 2 lângă subtitlu; butoanele de acțiune din dreapta sunt compacte (`w-8 h-8` pe mobil).
+    - **Butonul Înapoi (`<`) din conversație pe mobil:** Adăugat `mobileShowList` / `handleCloseMobileChat` astfel încât apăsarea săgeții `<` din antetul chatului să revină la lista de conversații (`Messages Clients`) fără a fi suprascrisă automat de `chats[0]`.
+    - **Bara de scriere mesaj (Composer Bar) pe mobil:** Înlocuit dropdown-ul lat `NL (Nederlands)` (`155px`) pe mobil cu o pastilă compactă `[🌐 NL]` (`54px`) care deschide selectorul nativ iOS la atingere, mărind lățimea câmpului `"Tapez votre message..."` de aproape 4 ori (`~226px`).
+    - **Eliminat spațiul alb gol de jos (~140px):** Eliminat `pb-[calc(env(safe-area-inset-bottom,0px)+80px)]` și `pb-20` redundante din interiorul `AdminChats.jsx` și blocat ascunderea automată a barei inferioare la `scrollIntoView` în `/admin/chats`.
+  - **`QuotesManagement.jsx`:** Rezolvat `ReferenceError: formatCityOnly` pe mobil prin folosirea `row.site_address || row.address`.
+  - **`MobileAgenda.jsx`:** Păstrat cardurile de șantier exact în forma lor originală (`p-3.5 gap-2.5 rounded-2xl`) și adăugat cantitatea de nisip (`T`) în partea de sus a calendarului, sub fiecare zi din banda săptămânii și în pastila de lângă numărul de șantiere.
+- **Fișiere:** `frontend/src/pages/admin/AdminChats.jsx`, `frontend/src/pages/admin/AdminDashboard.jsx`, `frontend/src/pages/admin/QuotesManagement.jsx`, `frontend/src/components/MobileAgenda.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK (`✓ built in 6.92s`), Live pe Vite HMR (`:5678`)
+
+### 2026-11-28 11:24 — Compactare Maximă Antet Dată & Carduri în Planning Mobil (`MobileAgenda.jsx` — Apple iOS Calendar HIG) + Bara Inferioară Suspendată care Dispare la Scroll
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **`MobileAgenda.jsx` (Planning pe Mobil — Apple HIG Calendar):**
+    - Comprimat cele 4 rânduri separate din antetul calendarului (`< 2026 Novembre >`, `[Jour | Semaine]`, banda zilelor cu `pb-4 mb-4`, și rândul `AUJOURD'HUI 4 chantiers` — ~212px înălțime) în **2 rânduri ultra-compacte (~76px înălțime, economisind ~135px)**:
+      - **Rândul 1:** `[<] Nov. 2026 [>]` + pastila `4 chantiers` în stânga, și Segmented Control-ul Apple `[Jour | Semaine]` în dreapta, pe aceeași linie.
+      - **Rândul 2:** Banda compactă a celor 7 zile (`L..D`) cu punctul de eveniment integrat direct pe cerc.
+    - Compactat interiorul cardurilor de șantier (`p-2.5 gap-1.5`): `#1 Echipa` + `Nume Client` + `[km | t]` + `Meteo` pe primul rând, iar `Chape m²×cm` + `Adresa` în stânga și butoanele `WhatsApp (4 stări)` + `Navigație GPS` în dreapta pe rândul 2.
+  - **Bara inferioară suspendată (`AdminDashboard.jsx`):** în mod normal are exact aceeași culoare și opacitate ca header-ul de sus (`apple-header-glass bg-[color:var(--tenant-accent)]` / `bg-[#1C1C1E]`), iar la scroll în jos dispare complet (`translate-y-[145%] opacity-0`) și reapare instant în forma normală la scroll în sus.
+  - **Optimizare Mobilă (`WorkOrderDetail.jsx`, `QuotesManagement.jsx`, `LogisticsDashboard.jsx`, `SandStationsPage.jsx`) & Fallback Fullscreen Chrome iOS.**
+- **Fișiere:** `frontend/src/components/MobileAgenda.jsx`, `frontend/src/pages/admin/WorkOrderDetail.jsx`, `frontend/src/components/ShortWorksCalendar.jsx`, `frontend/src/pages/admin/QuotesManagement.jsx`, `frontend/src/components/DataTable.jsx`, `frontend/src/pages/admin/logistics/LogisticsDashboard.jsx`, `frontend/src/pages/admin/logistics/SandStationsPage.jsx`, `frontend/src/pages/admin/AdminDashboard.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** Live pe Vite HMR (`:5678`)
+
 ### 2026-11-28 10:26 — Optimizare Maximă exclusiv pe Mobil (`< 768px`): Bară Inferioară Fină, Fără Margini, Semitransparentă cu Minimizare la Scroll + Decongestionare Header & Harta Live pe Mobil
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

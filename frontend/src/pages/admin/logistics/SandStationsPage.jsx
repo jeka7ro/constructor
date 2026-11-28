@@ -156,34 +156,41 @@ export default function SandStationsPage() {
     }
 
     return (
-        <div className="w-full space-y-5">
-            <div className="flex flex-wrap items-center gap-4">
-                <Link to="/admin/logistica" className="w-10 h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs">
-                    <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+        <div className="w-full space-y-3 md:space-y-5">
+            <div className="flex items-center gap-2 md:gap-4">
+                <Link to="/admin/logistica" className="w-8.5 h-8.5 md:w-10 md:h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs shrink-0">
+                    <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-300" />
                 </Link>
-                <div>
-                    <div className="flex items-center gap-3.5">
-                        <h1 className="text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
-                            <Beaker className="w-6 h-6 text-[color:var(--tenant-bg)]" /> Stații de Nisip
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 md:gap-3.5">
+                        <h1 className="text-[17px] md:text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-1.5 md:gap-2 truncate">
+                            <Beaker className="w-4.5 h-4.5 md:w-6 md:h-6 text-[color:var(--tenant-bg)] shrink-0" /> Sablières
                         </h1>
-                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 md:px-3.5 md:py-1.5 rounded-full text-[11px] md:text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 shrink-0">
+                            <span className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                             Live
                         </span>
                     </div>
-                    <p className="text-slate-500 text-[15px] font-semibold mt-0.5">Gestionează stațiile de la care se încarcă nisip/agregate.</p>
+                    <p className="hidden md:block text-slate-500 text-[15px] font-semibold mt-0.5">Gérez les sablières et leurs tarifs à la tonne.</p>
                 </div>
-                <div className="ml-auto flex items-center gap-3">
+                <div className="ml-auto flex items-center gap-2 md:gap-3 shrink-0">
                     <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200/90 dark:border-slate-700">
-                        <button onClick={() => setViewMode('table')} className={`px-4 h-9.5 flex items-center gap-2 rounded-full text-[14.5px] font-bold transition-colors cursor-pointer ${viewMode === 'table' ? 'bg-[color:var(--tenant-bg)] shadow-xs text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                            <List className="w-4 h-4" /> Tabel
+                        <button type="button" onClick={() => setViewMode('table')} className={`px-2.5 md:px-4 h-7.5 md:h-9.5 flex items-center gap-1 md:gap-2 rounded-full text-xs md:text-[14.5px] font-bold transition-colors cursor-pointer ${viewMode === 'table' ? 'bg-[color:var(--tenant-bg)] shadow-xs text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                            <List className="w-3.5 h-3.5 md:w-4 md:h-4" /> Liste
                         </button>
-                        <button onClick={() => setViewMode('map')} className={`px-4 h-9.5 flex items-center gap-2 rounded-full text-[14.5px] font-bold transition-colors cursor-pointer ${viewMode === 'map' ? 'bg-[color:var(--tenant-bg)] shadow-xs text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                            <MapIcon className="w-4 h-4" /> Hartă
+                        <button type="button" onClick={() => setViewMode('map')} className={`px-2.5 md:px-4 h-7.5 md:h-9.5 flex items-center gap-1 md:gap-2 rounded-full text-xs md:text-[14.5px] font-bold transition-colors cursor-pointer ${viewMode === 'map' ? 'bg-[color:var(--tenant-bg)] shadow-xs text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                            <MapIcon className="w-3.5 h-3.5 md:w-4 md:h-4" /> Carte
                         </button>
                     </div>
-                    <button onClick={() => openModal()} className="px-6 h-11 rounded-full bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-[15px] font-extrabold flex items-center gap-2 shadow-xs transition-all cursor-pointer">
-                        <Plus className="w-4.5 h-4.5" /> Ajouter Stație
+                    <button
+                        type="button"
+                        onClick={() => openModal()}
+                        aria-label="Ajouter une sablière"
+                        title="Ajouter une sablière"
+                        className="w-9 h-9 md:w-auto md:px-6 md:h-11 rounded-full bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-xs md:text-[15px] font-extrabold flex items-center justify-center gap-1.5 md:gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                    >
+                        <Plus className="w-4.5 h-4.5 shrink-0" />
+                        <span className="hidden md:inline">Ajouter</span>
                     </button>
                 </div>
             </div>
@@ -285,14 +292,45 @@ export default function SandStationsPage() {
                                 searchable
                                 searchPlaceholder="Rechercher une station..."
                                 defaultPageSize={50}
+                                mobileCard={(row) => {
+                                    const color = getPriceColor(row.price_per_ton);
+                                    return (
+                                        <div className="bg-white dark:bg-slate-800/90 mx-2.5 my-1 px-3 py-2.5 rounded-2xl border border-slate-200/85 dark:border-slate-700/80 shadow-2xs flex items-center justify-between gap-2">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                                    <span className="text-[13.5px] font-extrabold text-slate-900 dark:text-white truncate">{row.name}</span>
+                                                </div>
+                                                {row.address && (
+                                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 pl-4">{row.address}</div>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {row.price_per_ton !== null && row.price_per_ton !== undefined && row.price_per_ton !== '' ? (
+                                                    <span className="font-bold px-2 py-0.5 rounded-lg text-[11px] text-white whitespace-nowrap tabular-nums" style={{ backgroundColor: color }}>
+                                                        {row.price_per_ton} €
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 text-[11px] italic">Sans prix</span>
+                                                )}
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); openModal(row); }} className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-blue-600 bg-slate-100 dark:bg-slate-700 rounded-full cursor-pointer">
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }} className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-red-600 bg-slate-100 dark:bg-slate-700 rounded-full cursor-pointer">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                }}
                             />
                         </div>
                     )
                 }
 
                 return (
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[700px]">
-                        <div className="col-span-1 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-full overflow-hidden">
+                    <div className="flex flex-col lg:grid lg:grid-cols-4 gap-3 lg:gap-6 h-[calc(100dvh-180px)] lg:h-[700px]">
+                        <div className="col-span-1 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col max-h-[190px] lg:max-h-none lg:h-full overflow-hidden shrink-0">
                             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3">
                                 <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2"><MapPin className="w-4 h-4 text-red-500" /> Legendă Stații</h3>
                                 <div className="relative">

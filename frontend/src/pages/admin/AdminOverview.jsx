@@ -88,9 +88,33 @@ export default function AdminOverview() {
     const [lastRefresh, setLastRefresh] = useState(null)
     const refreshTimer = useRef(null)
     const [workOrdersStats, setWorkOrdersStats] = useState({ total: 0, active: 0, draft: 0 })
-    const [allWorkOrders, setAllWorkOrders] = useState([])
-    const [recentWorkOrders, setRecentWorkOrders] = useState([])
-    const [teams, setTeams] = useState([])
+    const [allWorkOrders, setAllWorkOrders] = useState(() => {
+        if (typeof window !== 'undefined' && Array.isArray(window.__adminPlanningOrdersCache) && window.__adminPlanningOrdersCache.length > 0) {
+            return window.__adminPlanningOrdersCache
+        }
+        try {
+            const cached = localStorage.getItem('pontaj_planning_fast_cache_v1')
+            if (cached) {
+                const parsed = JSON.parse(cached)
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed
+            }
+        } catch (_) {}
+        return []
+    })
+    const [recentWorkOrders, setRecentWorkOrders] = useState(() => (typeof window !== 'undefined' && Array.isArray(window.__adminPlanningOrdersCache)) ? window.__adminPlanningOrdersCache.slice(0, 50) : [])
+    const [teams, setTeams] = useState(() => {
+        if (typeof window !== 'undefined' && Array.isArray(window.__adminTeamsCache) && window.__adminTeamsCache.length > 0) {
+            return window.__adminTeamsCache
+        }
+        try {
+            const cached = localStorage.getItem('pontaj_planning_teams_cache_v1')
+            if (cached) {
+                const parsed = JSON.parse(cached)
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed
+            }
+        } catch (_) {}
+        return []
+    })
     const [bases, setBases] = useState([])
     const [swipingQuote, setSwipingQuote] = useState({ id: null, dx: 0 })
     const quoteGestureRef = useRef({ id: null, quote: null, startX: 0, startY: 0, mode: null, dx: 0 })
@@ -155,7 +179,7 @@ export default function AdminOverview() {
     // Feature flags
     const tenantFeatures = tenant?.features || []
     const isLongTerm = tenant?.has_long_term_sites !== false
-    const isShortTerm = tenant?.has_short_term_interventions === true
+    const isShortTerm = tenant ? tenant.has_short_term_interventions === true : true
     const hasWarehouse = tenant?.features?.includes('warehouse') || tenant?.has_warehouse === true
 
     const [isScreeds, setIsScreeds] = useState(() => {
@@ -536,6 +560,15 @@ export default function AdminOverview() {
         finally { setStatsLoading(false) }
     }
 
+    const getFastDateParams = () => {
+        const now = new Date();
+        const start = new Date(now);
+        start.setDate(now.getDate() - 14);
+        const end = new Date(now);
+        end.setDate(now.getDate() + 35);
+        return `?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}&slim=true&_t=${Date.now()}`;
+    }
+
     const getDateParams = () => {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth() - 6, 1);
@@ -546,7 +579,21 @@ export default function AdminOverview() {
 
     const fetchWorkOrdersStats = async () => {
         try {
-            // O singura cerere cu limit mare (evita doua cereri secventiale)
+            // Fast path: fetch current active 7-week window first (~25 orders, < 30ms) so Planning renders instantaneously
+            if (!window.__adminPlanningOrdersCache || window.__adminPlanningOrdersCache.length === 0) {
+                try {
+                    const fastRes = await api.get(`/admin/work-orders${getFastDateParams()}`)
+                    const fastItems = fastRes.data?.items || fastRes.data || []
+                    if (Array.isArray(fastItems) && fastItems.length > 0 && Date.now() - lastMutationTime.current >= 5000) {
+                        setAllWorkOrders(prev => prev.length > fastItems.length ? prev : fastItems)
+                        try {
+                            localStorage.setItem('pontaj_planning_fast_cache_v1', JSON.stringify(fastItems))
+                        } catch (_) {}
+                    }
+                } catch (_) {}
+            }
+
+            // Full 18-month historical range in background
             const res = await api.get(`/admin/work-orders${getDateParams()}`)
             
             // Daca s-a facut o mutare/editare in ultimele 5 secunde, ignoram polling-ul pentru a nu suprascrie UI-ul cu date vechi
@@ -579,6 +626,22 @@ export default function AdminOverview() {
                     setRescheduleAlerts(prev => [...prev, ...newlyFoundReschedules])
                 }
 
+                if (typeof window !== 'undefined') {
+                    window.__adminPlanningOrdersCache = all
+                }
+                try {
+                    const now = new Date()
+                    const minStr = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14).toISOString().split('T')[0]
+                    const maxStr = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 35).toISOString().split('T')[0]
+                    const fastSlice = all.filter(w => {
+                        const ds = (w.start_date || w.deadline_date || '').split('T')[0]
+                        return ds >= minStr && ds <= maxStr
+                    })
+                    if (fastSlice.length > 0) {
+                        localStorage.setItem('pontaj_planning_fast_cache_v1', JSON.stringify(fastSlice))
+                    }
+                } catch (_) {}
+
                 setAllWorkOrders(all)
                 // Recentele = primele 50 din aceeasi lista (sortate desc)
                 setRecentWorkOrders(all.slice(0, 50))
@@ -589,7 +652,12 @@ export default function AdminOverview() {
     const fetchTeams = async () => {
         try {
             const res = await api.get('/admin/teams/')
-            setTeams(res.data?.teams || res.data || [])
+            const tms = res.data?.teams || res.data || []
+            setTeams(tms)
+            if (typeof window !== 'undefined' && Array.isArray(tms) && tms.length > 0) {
+                window.__adminTeamsCache = tms
+                try { localStorage.setItem('pontaj_planning_teams_cache_v1', JSON.stringify(tms)) } catch (_) {}
+            }
         } catch (e) { console.error(e) }
     }
 
@@ -1317,7 +1385,7 @@ export default function AdminOverview() {
                         </CalendarErrorBoundary>
                     </div>
                     {!isCalendarFull && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:flex-col gap-2.5 md:h-[420px] lg:h-[calc(100vh-76px)] lg:min-h-[780px]">
+                    <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:flex lg:flex-col gap-2.5 md:h-[420px] lg:h-[calc(100vh-76px)] lg:min-h-[780px]">
                             {/* Panel DEVIS — draggable pe calendar si invers */}
                             <div 
                                 className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0 max-h-[360px] md:max-h-[420px] lg:max-h-none"
@@ -2451,7 +2519,7 @@ export default function AdminOverview() {
 
             )}
 
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
+            <div className="hidden md:grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
             {/* Recent Work Orders */}
             {dashboardLayout.recent_work_orders?.visible && (
                 <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg flex flex-col overflow-hidden">

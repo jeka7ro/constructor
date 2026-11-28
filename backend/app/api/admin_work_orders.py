@@ -4176,6 +4176,140 @@ from pydantic import BaseModel
 class SendEmailPayload(BaseModel):
     proforma_url: str
 
+class SendWhatsappPdfPayload(BaseModel):
+    pdf_base64: Optional[str] = None
+    filename: Optional[str] = None
+    signing_url: Optional[str] = None
+
+@router.post("/work-orders/{id}/cache-raw-pdf")
+async def cache_work_order_raw_pdf_route(
+    id: str,
+    payload: SendWhatsappPdfPayload,
+    db: Session = Depends(get_db)
+):
+    import base64
+    wo = db.query(WorkOrder).filter(WorkOrder.id == id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work order not found")
+
+    quote_no = wo.quote_number or wo.invoice_number or "Devis"
+    clean_filename = re.sub(r"[^a-zA-Z0-9_.-]", "_", payload.filename or f"Devis_{quote_no}.pdf")
+    if not clean_filename.lower().endswith(".pdf"):
+        clean_filename += ".pdf"
+
+    os.makedirs("uploads/pdfs", exist_ok=True)
+    local_path = os.path.join("uploads/pdfs", clean_filename)
+
+    if payload.pdf_base64:
+        raw_b64 = payload.pdf_base64.split(",")[-1] if "," in payload.pdf_base64 else payload.pdf_base64
+        pdf_bytes = base64.b64decode(raw_b64)
+        with open(local_path, "wb") as f:
+            f.write(pdf_bytes)
+    elif not os.path.exists(local_path):
+        from app.services.pdf_generator import generate_quote_pdf
+        client = db.query(Client).filter(Client.id == wo.client_id).first() if wo.client_id else None
+        gen_path = await generate_quote_pdf(wo, client)
+        if gen_path and os.path.exists(str(gen_path)):
+            local_path = str(gen_path)
+            clean_filename = os.path.basename(local_path)
+
+    return {
+        "status": "ok",
+        "filename": clean_filename,
+        "raw_pdf_url": f"/api/admin/work-orders/{id}/raw-pdf/{clean_filename}"
+    }
+
+@router.get("/work-orders/{id}/raw-pdf/{filename}")
+async def get_work_order_raw_pdf_route(
+    id: str,
+    filename: str,
+    db: Session = Depends(get_db)
+):
+    clean_filename = re.sub(r"[^a-zA-Z0-9_.-]", "_", filename)
+    if not clean_filename.lower().endswith(".pdf"):
+        clean_filename += ".pdf"
+    local_path = os.path.join("uploads/pdfs", clean_filename)
+    if not os.path.exists(local_path):
+        wo = db.query(WorkOrder).filter(WorkOrder.id == id).first()
+        if not wo:
+            raise HTTPException(status_code=404, detail="PDF not found")
+        from app.services.pdf_generator import generate_quote_pdf
+        client = db.query(Client).filter(Client.id == wo.client_id).first() if wo.client_id else None
+        gen_path = await generate_quote_pdf(wo, client)
+        if gen_path and os.path.exists(str(gen_path)):
+            local_path = str(gen_path)
+        else:
+            raise HTTPException(status_code=404, detail="PDF file could not be generated")
+
+    return FileResponse(
+        local_path,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{clean_filename}"',
+            "Cache-Control": "no-cache"
+        }
+    )
+
+@router.post("/work-orders/{id}/send-whatsapp-pdf")
+async def send_work_order_whatsapp_pdf_route(
+    id: str,
+    payload: SendWhatsappPdfPayload,
+    db: Session = Depends(get_db)
+):
+    import base64
+    from app.storage import upload_file
+    from app.services.whatsapp_service import send_quote_whatsapp
+    from app.services.pdf_generator import generate_quote_pdf
+
+    wo = db.query(WorkOrder).filter(WorkOrder.id == id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work order not found")
+
+    client = db.query(Client).filter(Client.id == wo.client_id).first() if wo.client_id else None
+    phone = wo.client_phone or (client.phone if client else None)
+    if not phone:
+        raise HTTPException(status_code=400, detail="Le client n'a pas de numéro de téléphone configuré.")
+
+    client_name = (client.name if client and client.name else wo.client_name) or "Client"
+    effective_lang = wo.client_language or (client.preferred_language if client else None) or "fr"
+    quote_no = wo.quote_number or wo.invoice_number or "Devis"
+    clean_filename = payload.filename or f"Devis_{quote_no}.pdf"
+    if not clean_filename.lower().endswith(".pdf"):
+        clean_filename += ".pdf"
+
+    pdf_public_url = None
+    if payload.pdf_base64:
+        try:
+            raw_b64 = payload.pdf_base64.split(",")[-1] if "," in payload.pdf_base64 else payload.pdf_base64
+            pdf_bytes = base64.b64decode(raw_b64)
+            os.makedirs("uploads/pdfs", exist_ok=True)
+            local_path = os.path.join("uploads/pdfs", clean_filename)
+            with open(local_path, "wb") as f:
+                f.write(pdf_bytes)
+            pdf_public_url = upload_file(pdf_bytes, f"pdfs/{clean_filename}", "application/pdf")
+        except Exception as e:
+            logger.error(f"Error decoding/uploading pdf_base64 for WhatsApp: {e}")
+
+    if not pdf_public_url:
+        pdf_path = getattr(wo, "pdf_path", None)
+        if not pdf_path or not os.path.exists(str(pdf_path)):
+            pdf_path = await generate_quote_pdf(wo, client)
+        pdf_public_url = pdf_path
+
+    signing_url = payload.signing_url or f"https://davidechape.pontaj.app/confirm/{wo.token}"
+    ok = send_quote_whatsapp(
+        phone_number=phone,
+        client_name=client_name,
+        client_language=effective_lang,
+        signing_url=signing_url,
+        pdf_path_or_url=pdf_public_url,
+        quote_number=quote_no
+    )
+    if not ok:
+        raise HTTPException(status_code=500, detail="Erreur lors de l'envoi du PDF sur WhatsApp.")
+
+    return {"status": "ok", "pdf_url": pdf_public_url}
+
 @router.post("/work-orders/{id}/send-email")
 def send_work_order_email_route(id: str, payload: SendEmailPayload, db: Session = Depends(get_db)):
     wo = db.query(WorkOrder).filter(WorkOrder.id == id).first()

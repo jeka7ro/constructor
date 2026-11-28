@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Layers, ChevronLeft, ChevronRight, Save, CheckCircle2, BarChart3, RefreshCw, X, ExternalLink, Package, Ruler, Maximize2, Minimize2, CloudRain } from 'lucide-react'
+import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Layers, ChevronLeft, ChevronRight, ChevronDown, Save, CheckCircle2, BarChart3, RefreshCw, X, ExternalLink, Package, Ruler, Maximize2, Minimize2, CloudRain } from 'lucide-react'
 import api from '../../../lib/api'
 import GpsVehicleCard from '../../../components/GpsVehicleCard'
 import { useTenantStore } from '../../../store/tenantStore'
@@ -336,6 +337,7 @@ export default function LogisticsDashboard() {
     })
     const [dbSandStations, setDbSandStations] = useState([])
     const [focusedTeamId, setFocusedTeamId] = useState(null)
+    const [expandedGpsTeams, setExpandedGpsTeams] = useState({})
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -439,39 +441,97 @@ export default function LogisticsDashboard() {
     }, [targetDate]);
 
     return (
-        <div className="w-full space-y-5 min-h-[calc(100vh-64px)] flex flex-col">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0">
-                <div>
-                    <div className="flex items-center gap-3.5">
-                        <h1 className="text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
-                            <Truck className="w-7 h-7 text-[color:var(--tenant-bg)]" /> {t('logistics.title', 'Logistică')}
+        <div className="w-full space-y-2.5 md:space-y-5 min-h-[calc(100vh-64px)] flex flex-col">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4 shrink-0">
+                {/* Row 1: Title + Live Badge on Left, Compact Mobile Date Stepper on Right */}
+                <div className="flex items-center justify-between w-full md:w-auto gap-2">
+                    <div className="flex items-center gap-2 md:gap-3.5 min-w-0">
+                        <h1 className="text-[18px] md:text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-1.5 md:gap-2 truncate">
+                            <Truck className="w-5 h-5 md:w-7 md:h-7 text-[color:var(--tenant-bg)] shrink-0" /> {t('logistics.title', 'Logistique')}
                         </h1>
-                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 md:px-3.5 md:py-1.5 rounded-full text-[11px] md:text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 shrink-0">
+                            <span className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                             Live
                         </span>
                     </div>
+
+                    {/* Mobile Compact Date Stepper + Recalculate Icon (md:hidden) */}
+                    <div className="flex md:hidden items-center gap-1.5 shrink-0">
+                        <div className="flex items-center bg-white dark:bg-slate-800 rounded-full border border-slate-200/90 dark:border-slate-700 shadow-2xs overflow-hidden h-8.5">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const d = new Date(targetDate)
+                                    d.setDate(d.getDate() - 1)
+                                    setTargetDate(d.toISOString().split('T')[0])
+                                }}
+                                aria-label="Jour précédent"
+                                className="w-7.5 h-full flex items-center justify-center text-slate-500 active:bg-slate-100 dark:active:bg-slate-700 border-r border-slate-100 dark:border-slate-700 cursor-pointer"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <div className="relative flex items-center justify-center px-2 h-full">
+                                <span className="text-[12px] font-extrabold text-slate-800 dark:text-white tabular-nums whitespace-nowrap pointer-events-none">
+                                    {targetDate.split('-').reverse().join('/')}
+                                </span>
+                                <input
+                                    type="date"
+                                    value={targetDate}
+                                    onChange={e => setTargetDate(e.target.value)}
+                                    aria-label="Date logistique"
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const d = new Date(targetDate)
+                                    d.setDate(d.getDate() + 1)
+                                    setTargetDate(d.toISOString().split('T')[0])
+                                }}
+                                aria-label="Jour suivant"
+                                className="w-7.5 h-full flex items-center justify-center text-slate-500 active:bg-slate-100 dark:active:bg-slate-700 border-l border-slate-100 dark:border-slate-700 cursor-pointer"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {(data?.is_archived || data?.archive_pending || (data && targetDate < new Date().toISOString().split('T')[0])) && (
+                            <button
+                                type="button"
+                                onClick={recalculate}
+                                disabled={loading}
+                                title={t('logistics.recalculate_tooltip', 'Recalculer les itinéraires')}
+                                aria-label={t('logistics.recalculate', 'Recalculer')}
+                                className="w-8.5 h-8.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-700 flex items-center justify-center shrink-0 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                            </button>
+                        )}
+                    </div>
                 </div>
                 
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
-                        <Link to="/admin/logistica/bases" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                            <MapPin className="w-4 h-4" /> {t('logistics.bases', 'Baze')}
+                {/* Row 2 on Mobile / Right Toolbar on Desktop */}
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar flex-nowrap w-full md:w-auto justify-between md:justify-start">
+                        <Link to="/admin/logistica/bases" className="px-2.5 md:px-4 h-7.5 md:h-9 flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-[11.5px] md:text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap">
+                            <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> {t('logistics.bases', 'Bases')}
                         </Link>
                         {isDavideChape && (
-                            <Link to="/admin/logistica/sand-stations" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                                <Beaker className="w-4 h-4" /> {t('logistics.sand_stations', 'Stații Nisip')}
+                            <Link to="/admin/logistica/sand-stations" className="px-2.5 md:px-4 h-7.5 md:h-9 flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-[11.5px] md:text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap">
+                                <Beaker className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> {t('logistics.sand_stations', 'Sablières')}
                             </Link>
                         )}
-                        <Link to="/admin/logistica/raport" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                            <BarChart3 className="w-4 h-4" /> {t('logistics.report', 'Raport')}
+                        <Link to="/admin/logistica/raport" className="px-2.5 md:px-4 h-7.5 md:h-9 flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-[11.5px] md:text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap">
+                            <BarChart3 className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> {t('logistics.report', 'Rapport')}
                         </Link>
-                        <Link to="/admin/logistica/gps-verification" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                            <Navigation className="w-4 h-4" /> Vérif. GPS
+                        <Link to="/admin/logistica/gps-verification" className="px-2.5 md:px-4 h-7.5 md:h-9 flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-[11.5px] md:text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap">
+                            <Navigation className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> Vérif. GPS
                         </Link>
                     </div>
                     
-                    <div className="flex items-center bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-11 shrink-0">
+                    {/* Desktop Date Picker (hidden on mobile because mobile has compact inline date stepper on Row 1) */}
+                    <div className="hidden md:flex items-center bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-11 shrink-0">
                         <button 
                             onClick={() => {
                                 const d = new Date(targetDate);
@@ -502,9 +562,10 @@ export default function LogisticsDashboard() {
                             <ChevronRight className="w-5 h-5" />
                         </button>
                     </div>
-                    {/* Archive Badge + Recalculează */}
+
+                    {/* Desktop Archive Badge + Recalculează */}
                     {(data?.is_archived || data?.archive_pending || (data && targetDate < new Date().toISOString().split('T')[0])) && (
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="hidden md:flex items-center gap-2 shrink-0">
                             {data?.is_archived && (
                                 <div className="flex items-center gap-1.5 px-3 h-11 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-full border border-emerald-200 dark:border-emerald-800">
                                     <CheckCircle2 className="w-4 h-4" /> {t('logistics.archived', 'Archivé')}
@@ -543,11 +604,11 @@ export default function LogisticsDashboard() {
             ) : !data ? (
                 <div className="flex-1 flex items-center justify-center text-slate-500">{t('logistics.error_loading_data', 'Impossible de charger les données.')}</div>
             ) : (
-                <div className="flex-1 flex flex-col gap-6">
+                <div className="flex-1 flex flex-col gap-2.5 md:gap-6">
                      {/* Top Area: Interactive Map */}
                     <div id="logistics-map-container" className={isMapFull
                         ? 'fixed inset-0 z-[9999] bg-black w-screen h-screen'
-                        : 'w-full h-[500px] lg:h-[700px] bg-slate-100 rounded-2xl shadow-inner border border-slate-200 overflow-hidden relative shrink-0'
+                        : 'w-full h-[260px] md:h-[500px] lg:h-[700px] bg-slate-100 rounded-2xl shadow-inner border border-slate-200 overflow-hidden relative shrink-0'
                     } style={{ isolation: 'isolate' }}>
                         {(() => {
                             const tenant = useTenantStore.getState().tenant;
@@ -719,7 +780,7 @@ export default function LogisticsDashboard() {
                                 })
                             })()}
                             {/* Sand Stations + Fullscreen — top controls row */}
-                            <div className="absolute top-4 left-14 z-[1000] flex items-center gap-2 pointer-events-auto">
+                            <div className="absolute top-2.5 left-12 md:top-4 md:left-14 z-[1000] flex items-center gap-1.5 md:gap-2 pointer-events-auto">
                                 {/* Fullscreen button */}
                                 <button
                                     onClick={() => {
@@ -734,7 +795,7 @@ export default function LogisticsDashboard() {
                                         }
                                     }}
                                     className="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center"
-                                    title={isMapFull ? 'Ieși fullscreen (ESC)' : 'Fullscreen hartă'}
+                                    title={isMapFull ? 'Quitter le plein écran (ESC)' : 'Carte plein écran'}
                                 >
                                     {isMapFull
                                         ? <Minimize2 className="w-4 h-4 text-slate-700 dark:text-slate-200" />
@@ -743,17 +804,17 @@ export default function LogisticsDashboard() {
                                 </button>
                                 {/* Sand Stations toggle */}
                                 {isDavideChape && (
-                                    <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-800 px-3 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                        <div className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                    <label className="flex items-center gap-1.5 md:gap-2 cursor-pointer bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-2.5 py-1.5 md:px-3 md:py-2 rounded-full md:rounded-xl shadow-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                        <div className={`relative inline-flex h-4.5 w-8 md:h-5 md:w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
                                             <input
                                                 type="checkbox"
                                                 className="sr-only"
                                                 checked={showSandStations}
                                                 onChange={(e) => setShowSandStations(e.target.checked)}
                                             />
-                                            <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            <span className={`pointer-events-none inline-block h-3.5 w-3.5 md:h-4 md:w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-3.5 md:translate-x-4' : 'translate-x-0'}`} />
                                         </div>
-                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('logistics.sand_stations', 'Staţii Nisip')}</span>
+                                        <span className="text-[11px] md:text-xs font-bold text-slate-700 dark:text-slate-300">{t('logistics.sand_stations', 'Sablières')}</span>
                                     </label>
                                 )}
                             </div>
@@ -761,8 +822,8 @@ export default function LogisticsDashboard() {
                         );
                     })()}
 
-                        {/* Map Overlay Stats & Teams */}
-                        <div className="absolute top-4 right-4 z-[400] pointer-events-none flex flex-col gap-3 max-h-[calc(100%-2rem)] overflow-y-auto no-scrollbar pb-4">
+                        {/* Map Overlay Stats & Teams — Hidden on mobile so they don't cover the map (Teams list is right below the map on mobile) */}
+                        <div className="hidden md:flex absolute top-4 right-4 z-[400] pointer-events-none flex-col gap-3 max-h-[calc(100%-2rem)] overflow-y-auto no-scrollbar pb-4">
                             
                             {/* Date Selector - Vizibil doar in Fullscreen pentru a evita dublarea */}
                             {isMapFull && (
@@ -901,63 +962,116 @@ export default function LogisticsDashboard() {
                         </div>
                     </div>
 
+                    {/* Mobile Quick Team Filter Pills Bar (md:hidden) */}
+                    {data?.routes?.length > 0 && (
+                        <div className="flex md:hidden items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-0.5 px-0.5">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setFocusedTeamId(null)
+                                    setActiveTeams(data.routes.map(r => r.team_id))
+                                }}
+                                className={`h-8 px-3 rounded-full text-[11.5px] font-extrabold whitespace-nowrap shrink-0 flex items-center gap-1.5 border transition-all cursor-pointer ${
+                                    activeTeams.length === data.routes.length && !focusedTeamId
+                                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs'
+                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/90 dark:border-slate-700'
+                                }`}
+                            >
+                                <span>Toutes ({data.routes.length})</span>
+                            </button>
+                            {data.routes.map(route => {
+                                const isIsolated = activeTeams.length === 1 && activeTeams[0] === route.team_id
+                                const tons = (route.total_sand_kg || 0) / 1000
+                                return (
+                                    <button
+                                        key={`mob-pill-${route.team_id}`}
+                                        type="button"
+                                        onClick={() => toggleTeam(route.team_id)}
+                                        className={`h-8 px-3 rounded-full text-[11.5px] font-bold whitespace-nowrap shrink-0 flex items-center gap-1.5 border transition-all cursor-pointer ${
+                                            isIsolated
+                                                ? 'text-white shadow-xs border-transparent'
+                                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700'
+                                        }`}
+                                        style={isIsolated ? { backgroundColor: route.team_color } : {}}
+                                    >
+                                        <span
+                                            className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/60"
+                                            style={{ backgroundColor: isIsolated ? '#ffffff' : route.team_color }}
+                                        />
+                                        <span className="truncate max-w-[110px]">{route.team_name}</span>
+                                        <span className={`text-[10.5px] font-extrabold tabular-nums ${isIsolated ? 'text-white/90' : 'text-slate-400'}`}>
+                                            · {tons.toFixed(1)}t
+                                        </span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
+
                     {/* Bottom Area: Stats & Teams */}
-                    <div className="w-full flex flex-col gap-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t('logistics.total_sand', 'Total Sable')}</span>
-                                <div className="text-2xl font-black text-amber-600 dark:text-amber-500">{(data.grand_total_sand_kg / 1000).toFixed(1)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('logistics.tons', 'tonnes')}</span></div>
+                    <div className="w-full flex flex-col gap-2.5 md:gap-6">
+                        <div className="grid grid-cols-2 gap-2 md:gap-4">
+                            <div className="bg-white dark:bg-slate-800 px-3 py-2.5 md:p-5 rounded-2xl shadow-2xs border border-slate-200/90 dark:border-slate-700 flex items-center justify-between md:flex-col md:items-start">
+                                <span className="text-[10px] md:text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider md:tracking-widest md:mb-1">{t('logistics.total_sand', 'Total Sable')}</span>
+                                <div className="text-[15px] md:text-2xl font-black text-amber-600 dark:text-amber-500 tabular-nums whitespace-nowrap">{(data.grand_total_sand_kg / 1000).toFixed(1)} <span className="text-[11px] md:text-sm font-bold text-slate-500 dark:text-slate-400">t</span></div>
                             </div>
-                            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t('logistics.est_distance', 'Distance Est.')}</span>
-                                <div className="text-2xl font-black text-blue-600 dark:text-blue-500">{Math.round(data.grand_total_distance_km)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">km</span></div>
+                            <div className="bg-white dark:bg-slate-800 px-3 py-2.5 md:p-5 rounded-2xl shadow-2xs border border-slate-200/90 dark:border-slate-700 flex items-center justify-between md:flex-col md:items-start">
+                                <span className="text-[10px] md:text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider md:tracking-widest md:mb-1">{t('logistics.est_distance', 'Distance Est.')}</span>
+                                <div className="text-[15px] md:text-2xl font-black text-blue-600 dark:text-blue-500 tabular-nums whitespace-nowrap">{Math.round(data.grand_total_distance_km)} <span className="text-[11px] md:text-sm font-bold text-slate-500 dark:text-slate-400">km</span></div>
                             </div>
                         </div>
 
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
-                            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-                                <h3 className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm uppercase tracking-wide">
-                                    <Filter className="w-4 h-4 text-slate-500" /> {t('logistics.team_routes', 'Trasee Echipe')}
+                            <div className="px-3.5 py-2.5 md:px-5 md:py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                                <h3 className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-xs md:text-sm uppercase tracking-wide">
+                                    <Filter className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-500" /> {t('logistics.team_routes', 'Itinéraires des Équipes')}
                                 </h3>
-                                <span className="text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-full">{data.routes.length} {t('common.teams_lowercase', 'équipes')}</span>
+                                <span className="text-[11px] md:text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2.5 py-0.5 md:py-1 rounded-full tabular-nums">{data.routes.length} {t('common.teams_lowercase', 'équipes')}</span>
                             </div>
-                            <div className="p-3 space-y-3">
+                            <div className="p-2.5 md:p-3 space-y-2.5 md:space-y-3">
                                 {data.routes.length === 0 ? (
                                     <div className="text-center py-6 text-slate-500 text-sm">{t('logistics.no_planned_works', 'Aucun travail planifié.')}</div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-4">
                                     {data.routes.map(route => {
                                         const isActive = activeTeams.includes(route.team_id)
+                                        const isGpsExpanded = !!expandedGpsTeams[route.team_id]
                                         return (
                                             <div 
                                                 key={route.team_id} 
                                                 onClick={() => toggleTeam(route.team_id)}
-                                                className={`rounded-xl border transition-all cursor-pointer flex flex-col h-full bg-white dark:bg-slate-800 overflow-hidden ${isActive ? 'border-slate-300 dark:border-slate-600 shadow-lg' : 'border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'}`}
+                                                className={`rounded-xl border transition-all cursor-pointer flex flex-col h-full bg-white dark:bg-slate-800 overflow-hidden ${isActive ? 'border-slate-300 dark:border-slate-600 shadow-md' : 'border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'}`}
                                             >
-                                                <div className="px-4 py-2.5 flex items-center justify-between shadow-sm" style={{ backgroundColor: route.team_color }}>
-                                                    <span className="font-bold text-white tracking-wide" style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.5)' }}>{route.team_name}</span>
+                                                <div className="px-3.5 py-2 md:px-4 md:py-2.5 flex items-center justify-between gap-2 shadow-2xs" style={{ backgroundColor: route.team_color }}>
+                                                    <span className="font-extrabold text-[13.5px] md:text-base text-white tracking-wide truncate" style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.45)' }}>{route.team_name}</span>
+                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                        <span className="px-2 py-0.5 rounded-full bg-black/25 text-white text-[11px] font-extrabold tabular-nums whitespace-nowrap">
+                                                            {(route.total_sand_kg / 1000).toFixed(1)} t
+                                                        </span>
+                                                        <span className="px-2 py-0.5 rounded-full bg-black/25 text-white text-[11px] font-extrabold tabular-nums whitespace-nowrap">
+                                                            {Math.round(route.total_distance_km)} km
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="p-4 flex flex-col flex-1">
+                                                <div className="p-3 md:p-4 flex flex-col flex-1">
 
-                                                <div className="grid grid-cols-2 gap-2 mb-4">
+                                                <div className="grid grid-cols-2 gap-2 mb-3 md:mb-4">
                                                     <div className="bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">{t('logistics.sand_needed', 'Necesar Nisip')}</div>
-                                                        <div className="font-bold text-slate-900 dark:text-white">{(route.total_sand_kg / 1000).toFixed(1)} t</div>
+                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">{t('logistics.sand_needed', 'Sable requis')}</div>
+                                                        <div className="font-bold text-slate-900 dark:text-white tabular-nums">{(route.total_sand_kg / 1000).toFixed(1)} t</div>
                                                     </div>
                                                     <div className="bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800 relative">
                                                         <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1 justify-end">
                                                             <TruckSVG color={route.team_color || '#64748b'} vehicleType={route.vehicle_type} className="w-3.5 h-3.5" />
-                                                            {t('logistics.distance', 'Distanţă')}
+                                                            {t('logistics.distance', 'Distance')}
                                                         </div>
-                                                        <div className="font-bold text-slate-900 dark:text-white" title="Estimare traseu ideal (OSRM)">
+                                                        <div className="font-bold text-slate-900 dark:text-white tabular-nums text-right" title="Estimation itinéraire (OSRM)">
                                                             {Math.round(route.total_distance_km)} <span className="text-[10px] font-normal text-slate-500">km est.</span>
                                                         </div>
                                                         
                                                         {(() => {
-                                                            // GPS distance — uses gps_trace from route (TripLog snapshot)
                                                             const gpsTrace = route.gps_trace;
                                                             if (!gpsTrace || gpsTrace.length === 0) return null;
-                                                            // Calculate approximate GPS distance from trace points
                                                             let gpsTotalKm = 0;
                                                             for (let i = 1; i < gpsTrace.length; i++) {
                                                                 const dx = (gpsTrace[i].lng - gpsTrace[i-1].lng) * Math.cos((gpsTrace[i].lat + gpsTrace[i-1].lat) * Math.PI / 360) * 111.32;
@@ -966,13 +1080,13 @@ export default function LogisticsDashboard() {
                                                             }
                                                             const devKm = gpsTotalKm - route.total_distance_km;
                                                             return (
-                                                                <div className="flex flex-col items-end mt-1">
-                                                                    <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400" title="Distanță reală parcursă (GPS)">
-                                                                        {Math.round(gpsTotalKm)} <span className="text-[10px] font-normal">km reali</span>
+                                                                <div className="flex flex-col items-end mt-0.5">
+                                                                    <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums" title="Distance réelle parcourue (GPS)">
+                                                                        {Math.round(gpsTotalKm)} <span className="text-[10px] font-normal">km GPS</span>
                                                                     </div>
                                                                     {devKm > 5 && (
-                                                                        <span className="text-[9px] font-bold text-red-600 bg-red-100 dark:bg-red-900/40 px-1 py-0.5 rounded border border-red-200 mt-1">
-                                                                            +{Math.round(devKm)} km Abatere
+                                                                        <span className="text-[9px] font-bold text-red-600 bg-red-100 dark:bg-red-900/40 px-1 py-0.5 rounded border border-red-200 mt-0.5 tabular-nums">
+                                                                            +{Math.round(devKm)} km écart
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -982,14 +1096,14 @@ export default function LogisticsDashboard() {
                                                 </div>
                                                 
                                                 {isActive && route.waypoints.length > 0 && (
-                                                    <div className="space-y-2 relative before:absolute before:inset-y-2 before:left-2.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+                                                    <div className="space-y-1.5 md:space-y-2 relative before:absolute before:inset-y-2 before:left-2.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                                                         {route.waypoints.map((wp, idx) => {
                                                             const isBase = wp.type === 'base' || wp.type === 'base_return';
                                                             const isReturn = wp.type === 'base_return';
                                                             return (
                                                             <div
                                                                 key={idx}
-                                                                className={`flex gap-3 relative z-10 text-xs ${!isBase ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg px-1 -mx-1 transition-colors' : ''}`}
+                                                                className={`flex gap-2.5 md:gap-3 relative z-10 text-xs ${!isBase ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 active:bg-slate-100 rounded-lg px-1 py-0.5 -mx-1 transition-colors' : ''}`}
                                                                 onClick={e => {
                                                                     e.stopPropagation()
                                                                     if (!isBase) setSelectedWork({ wp, route })
@@ -1001,16 +1115,16 @@ export default function LogisticsDashboard() {
                                                                 >
                                                                     {isReturn ? '↩' : isBase ? 'B' : idx}
                                                                 </div>
-                                                                <div className="flex-1 pt-0.5">
+                                                                <div className="flex-1 min-w-0 pt-0.5">
                                                                     <div className={`font-bold leading-tight ${isReturn ? 'text-slate-500 dark:text-slate-400 italic text-[10px]' : 'text-slate-800 dark:text-slate-200'}`}>
                                                                         {isReturn ? t('logistics.return_base', 'Retour à la base') : (wp.name === 'UNKNOWN_CLIENT_LOGISTICS' || wp.name === 'Client necunoscut' ? t('logistics.unknown_client', 'Client inconnu') : wp.name)}
                                                                         {wp.distance_from_prev_km > 0 && (
-                                                                            <span className="text-slate-500 dark:text-slate-400 ml-1.5 font-bold whitespace-nowrap">
+                                                                            <span className="text-slate-500 dark:text-slate-400 ml-1.5 font-bold whitespace-nowrap tabular-nums">
                                                                                 (+{Math.round(wp.distance_from_prev_km)} km)
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    {wp.sand_kg > 0 && <div className="text-slate-600 dark:text-slate-400 font-semibold mt-0.5">{t('logistics.sand', 'Sable')}: {(wp.sand_kg/1000).toFixed(1)} t</div>}
+                                                                    {wp.sand_kg > 0 && <div className="text-slate-600 dark:text-slate-400 font-semibold mt-0.5 tabular-nums">{t('logistics.sand', 'Sable')}: {(wp.sand_kg/1000).toFixed(1)} t</div>}
                                                                 </div>
                                                             </div>
                                                         )})}
@@ -1020,9 +1134,18 @@ export default function LogisticsDashboard() {
                                                     const gpsRes = gpsVerificationData.results.find(r => r.team_id === route.team_id)
                                                     if (!gpsRes) return null;
                                                     return (
-                                                        <div className="mt-4 -mx-2 border-t border-slate-200 dark:border-slate-700 pt-4">
-                                                            <div className="text-xs font-black uppercase text-slate-500 mb-2 px-2">Desfășurător Ziua Curentă (GPS)</div>
-                                                            <div className="px-2">
+                                                        <div className="mt-3 md:mt-4 -mx-2 border-t border-slate-200 dark:border-slate-700 pt-2.5 md:pt-4" onClick={e => e.stopPropagation()}>
+                                                            {/* Mobile Collapsible GPS Toggle */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setExpandedGpsTeams(prev => ({ ...prev, [route.team_id]: !prev[route.team_id] }))}
+                                                                className="md:hidden w-full px-2.5 py-1.5 flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 rounded-lg cursor-pointer"
+                                                            >
+                                                                <span>Détails GPS du trajet</span>
+                                                                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isGpsExpanded ? 'rotate-180' : ''}`} />
+                                                            </button>
+                                                            <div className="hidden md:block text-xs font-black uppercase text-slate-500 mb-2 px-2">Détails GPS de la journée</div>
+                                                            <div className={`${isGpsExpanded ? 'block mt-2' : 'hidden'} md:block px-1.5 md:px-2`}>
                                                                 <GpsVehicleCard result={gpsRes} />
                                                             </div>
                                                         </div>
@@ -1041,61 +1164,62 @@ export default function LogisticsDashboard() {
                 </div>
             )}
 
-            {/* Work Order Info Drawer */}
-            {selectedWork && (
-                <>
+            {/* Work Order Info Drawer — Rendered via Portal at z-[99999] so it appears above mobile bottom nav bar */}
+            {selectedWork && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-end md:items-end justify-center md:justify-end">
                     {/* Backdrop */}
                     <div
-                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+                        className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px]"
                         onClick={() => setSelectedWork(null)}
                     />
                     {/* Drawer */}
-                    <div className="fixed bottom-0 left-0 right-0 z-50 md:left-auto md:right-6 md:bottom-6 md:w-96 bg-white dark:bg-slate-800 rounded-t-2xl md:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+                    <div className="relative z-10 w-full md:w-96 md:mr-6 md:mb-6 bg-white dark:bg-slate-800 rounded-t-[24px] md:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden pb-[env(safe-area-inset-bottom,0px)] animate-in slide-in-from-bottom-4 duration-200">
                         {/* Header in team color */}
-                        <div className="px-5 py-3 flex items-center justify-between" style={{ backgroundColor: selectedWork.route.team_color }}>
-                            <div className="flex items-center gap-2">
-                                <TruckSVG color={selectedWork.route.team_color} vehicleType={selectedWork.route.vehicle_type} className="w-5 h-5 opacity-80" />
-                                <span className="font-bold text-white text-sm tracking-wide">{selectedWork.route.team_name}</span>
+                        <div className="px-5 py-3.5 flex items-center justify-between" style={{ backgroundColor: selectedWork.route.team_color }}>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <TruckSVG color="#ffffff" vehicleType={selectedWork.route.vehicle_type} className="w-5 h-5 shrink-0" />
+                                <span className="font-extrabold text-white text-sm tracking-wide truncate">{selectedWork.route.team_name}</span>
                             </div>
-                            <button onClick={() => setSelectedWork(null)} className="text-white/80 hover:text-white transition-colors">
-                                <X className="w-5 h-5" />
+                            <button type="button" onClick={() => setSelectedWork(null)} className="w-8 h-8 rounded-full bg-black/20 text-white flex items-center justify-center hover:bg-black/30 transition-colors cursor-pointer">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
                         {/* Content */}
-                        <div className="p-5 space-y-4">
+                        <div className="p-4 md:p-5 space-y-3.5 md:space-y-4">
                             <div>
-                                <h3 className="font-bold text-slate-900 dark:text-white text-base leading-tight">{selectedWork.wp.name}</h3>
+                                <h3 className="font-extrabold text-slate-900 dark:text-white text-[15px] md:text-base leading-tight">{selectedWork.wp.name}</h3>
                                 {selectedWork.wp.address && (
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                                    <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
                                         <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                        {selectedWork.wp.address}
+                                        <span>{selectedWork.wp.address}</span>
                                     </p>
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2.5 md:gap-3">
                                 {selectedWork.wp.sand_kg > 0 && (
-                                    <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-100 dark:border-amber-800">
+                                    <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-2.5 md:p-3 border border-amber-100 dark:border-amber-800">
                                         <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">{t('logistics.sand', 'Sable')}</div>
-                                        <div className="text-lg font-black text-amber-700 dark:text-amber-300 mt-0.5">
-                                            {(selectedWork.wp.sand_kg / 1000).toFixed(2)} <span className="text-sm font-normal text-amber-500">t</span>
+                                        <div className="text-base md:text-lg font-black text-amber-700 dark:text-amber-300 mt-0.5 tabular-nums">
+                                            {(selectedWork.wp.sand_kg / 1000).toFixed(2)} <span className="text-xs md:text-sm font-normal text-amber-500">t</span>
                                         </div>
                                     </div>
                                 )}
                                 {selectedWork.wp.distance_from_prev_km > 0 && (
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800">
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-2.5 md:p-3 border border-blue-100 dark:border-blue-800">
                                         <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">{t('logistics.distance', 'Distance')}</div>
-                                        <div className="text-lg font-black text-blue-700 dark:text-blue-300 mt-0.5">
-                                            +{Math.round(selectedWork.wp.distance_from_prev_km)} <span className="text-sm font-normal text-blue-500">km</span>
+                                        <div className="text-base md:text-lg font-black text-blue-700 dark:text-blue-300 mt-0.5 tabular-nums">
+                                            +{Math.round(selectedWork.wp.distance_from_prev_km)} <span className="text-xs md:text-sm font-normal text-blue-500">km</span>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
                             <button
+                                type="button"
                                 onClick={() => { setSelectedWork(null); navigate(`/admin/work-orders/${selectedWork.wp.id}`) }}
-                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white transition-all hover:brightness-110 active:scale-95"
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-extrabold text-sm text-white transition-all hover:brightness-110 active:scale-95 cursor-pointer"
                                 style={{ backgroundColor: selectedWork.route.team_color }}
                             >
                                 <ExternalLink className="w-4 h-4" />
@@ -1103,7 +1227,8 @@ export default function LogisticsDashboard() {
                             </button>
                         </div>
                     </div>
-                </>
+                </div>,
+                document.body
             )}
         </div>
     )

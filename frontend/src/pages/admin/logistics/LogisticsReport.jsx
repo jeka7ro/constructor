@@ -190,53 +190,53 @@ export default function LogisticsReport() {
     )
 
     return (
-        <div className="w-full space-y-5">
+        <div className="w-full space-y-3 md:space-y-5">
             {/* Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 md:gap-4">
                 <div>
-                    <div className="flex items-center gap-3.5">
-                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-                            <BarChart3 className="w-7 h-7 text-[color:var(--tenant-bg)]" />
-                            {t('logistics.report_title', 'Raport Logistică')}
+                    <div className="flex items-center gap-2 md:gap-3.5">
+                        <h1 className="text-[18px] md:text-[28px] font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 md:w-7 md:h-7 text-[color:var(--tenant-bg)] shrink-0" />
+                            {t('logistics.report_title', 'Rapport Logistique')}
                         </h1>
-                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 md:px-3.5 md:py-1.5 rounded-full text-[11.5px] md:text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 shrink-0">
+                            <span className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                             Live
                         </span>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-[15px] font-semibold mt-0.5">
-                        {t('logistics.report_subtitle', 'Trasee, volume și materiale pe perioadă')}
+                    <p className="hidden md:block text-slate-500 dark:text-slate-400 text-[15px] font-semibold mt-0.5">
+                        {t('logistics.report_subtitle', 'Itinéraires, volumes et matériaux par période')}
                     </p>
                 </div>
 
                 {/* Nav links */}
-                <div className="flex items-center gap-2">
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
-                        <Link to="/admin/logistica" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                            <MapPin className="w-4 h-4" /> {t('logistics.map', 'Hartă')}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar w-full md:w-auto justify-between md:justify-start">
+                        <Link to="/admin/logistica" className="px-3 md:px-4 h-8 md:h-9 flex-1 md:flex-initial flex items-center justify-center gap-1.5 md:gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-xs md:text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap">
+                            <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> {t('logistics.map', 'Carte')}
                         </Link>
-                        <Link to="/admin/logistica/raport" className="px-4 h-9 flex items-center gap-2 rounded-full bg-[color:var(--tenant-bg)] text-sm font-bold text-white shadow-sm transition-colors">
-                            <BarChart3 className="w-4 h-4" /> {t('logistics.report', 'Raport')}
+                        <Link to="/admin/logistica/raport" className="px-3 md:px-4 h-8 md:h-9 flex-1 md:flex-initial flex items-center justify-center gap-1.5 md:gap-2 rounded-full bg-[color:var(--tenant-bg)] text-xs md:text-sm font-bold text-white shadow-sm transition-colors whitespace-nowrap">
+                            <BarChart3 className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> {t('logistics.report', 'Rapport')}
                         </Link>
-                        <Link to="/admin/logistica/bases" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                            <MapPin className="w-4 h-4" /> {t('logistics.bases', 'Baze')}
+                        <Link to="/admin/logistica/bases" className="px-3 md:px-4 h-8 md:h-9 flex-1 md:flex-initial flex items-center justify-center gap-1.5 md:gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-xs md:text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap">
+                            <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> {t('logistics.bases', 'Bases')}
                         </Link>
                     </div>
                 </div>
             </div>
 
             {/* Filters Bar */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex flex-col md:flex-row flex-wrap gap-3 items-start md:items-center">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 md:p-4 flex flex-col md:flex-row flex-wrap gap-2.5 md:gap-3 items-start md:items-center">
                 {/* Period shortcuts */}
                 <div className="flex gap-1.5 flex-wrap">
                     {[
-                        { label: t('filters.current_week', 'Săptămâna'), fn: getWeekRange },
-                        { label: t('filters.current_month', 'Luna'), fn: getMonthRange },
+                        { label: t('filters.current_week', 'Semaine'), fn: getWeekRange },
+                        { label: t('filters.current_month', 'Mois'), fn: getMonthRange },
                     ].map(({ label, fn }) => (
                         <button
                             key={label}
                             onClick={() => { const [s, e] = fn(); setStartDate(s); setEndDate(e) }}
-                            className="px-3 h-8 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-colors"
+                            className="px-3 h-7.5 md:h-8 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-colors cursor-pointer"
                         >{label}</button>
                     ))}
                 </div>
@@ -244,13 +244,13 @@ export default function LogisticsReport() {
                 <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden md:block" />
 
                 {/* Date pickers */}
-                <div className="flex items-center gap-2">
-                    <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+                <div className="flex items-center gap-1.5 md:gap-2 w-full sm:w-auto">
+                    <CalendarDays className="w-4 h-4 text-slate-400 shrink-0 hidden sm:block" />
                     <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                        className="text-sm font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white dark:[color-scheme:dark]" />
-                    <span className="text-slate-400 text-sm">→</span>
+                        className="flex-1 sm:flex-initial min-w-0 text-xs md:text-sm font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white dark:[color-scheme:dark]" />
+                    <span className="text-slate-400 text-xs md:text-sm shrink-0">→</span>
                     <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                        className="text-sm font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white dark:[color-scheme:dark]" />
+                        className="flex-1 sm:flex-initial min-w-0 text-xs md:text-sm font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white dark:[color-scheme:dark]" />
                 </div>
 
                 <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden md:block" />

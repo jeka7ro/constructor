@@ -82,38 +82,14 @@ def send_quote_whatsapp(
         logger.warning("Empty or invalid phone number provided for WhatsApp.")
         return False
 
-    # 1. PRIMARY: UltraMsg (instant, no template restrictions or 24h limits)
-    instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
-    api_token = os.getenv("ULTRAMSG_API_TOKEN")
-    if instance_id and api_token and is_ultramsg_connected():
-        try:
-            success = send_whatsapp_message(formatted_phone, client_name, client_language, signing_url, quote_number)
-            if success:
-                logger.info(f"Quote WhatsApp successfully sent via UltraMsg to {formatted_phone}")
-                return True
-            else:
-                logger.warning(f"UltraMsg quote send failed for {formatted_phone}, trying Meta fallback...")
-        except Exception as e:
-            logger.error(f"UltraMsg exception for {formatted_phone}: {e}, trying Meta fallback...")
-    elif instance_id and api_token:
-        logger.warning(f"UltraMsg instance {instance_id} is not authenticated (standby/qr). Using Meta Cloud API fallback for {formatted_phone}.")
-
-    # 2. FALLBACK: Meta Cloud API
-    access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
-    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1285477127985012")
-
-    if not access_token or not phone_number_id:
-        logger.warning("WHATSAPP credentials not set in env.")
-        return False
-
-    # Normalize language for Meta template ('fr', 'nl', 'en')
+    # Normalize language ('fr', 'nl', 'en')
     lang_clean = (client_language or "fr").lower().split("-")[0].strip()
     if lang_clean not in ["fr", "nl", "en"]:
         lang_clean = "fr"
 
     meta_lang_code = lang_clean
 
-    # Determine public PDF URL
+    # Determine public PDF URL first so both UltraMsg and Meta Cloud API can attach the actual PDF file
     if pdf_path_or_url and (pdf_path_or_url.startswith("http://") or pdf_path_or_url.startswith("https://")):
         pdf_public_url = pdf_path_or_url
     elif pdf_path_or_url and os.path.exists(pdf_path_or_url):
@@ -135,6 +111,51 @@ def send_quote_whatsapp(
         pdf_public_url = signing_url
 
     clean_quote_no = str(quote_number or "Devis").replace("/", "_").replace(" ", "")
+
+    # 1. PRIMARY: UltraMsg (instant, sends the actual PDF document when pdf_public_url is available)
+    instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
+    api_token = os.getenv("ULTRAMSG_API_TOKEN")
+    if instance_id and api_token and is_ultramsg_connected():
+        try:
+            if pdf_public_url and pdf_public_url != signing_url:
+                q_line_fr = f"📄 Numéro de devis : {clean_quote_no}\n" if clean_quote_no else ""
+                q_line_nl = f"📄 Offertenummer : {clean_quote_no}\n" if clean_quote_no else ""
+                q_line_en = f"📄 Quote number : {clean_quote_no}\n" if clean_quote_no else ""
+                caption_text = f"Bonjour {client_name},\n\nMerci d'avoir demandé un devis chez Davide Chape.\n{q_line_fr}Vous trouverez ci-joint votre devis officiel (PDF).\n\nConsulter et valider en ligne :\n{signing_url}\n\nCordialement,\nL'équipe Davide Chape"
+                if lang_clean == "nl":
+                    caption_text = f"Hallo {client_name},\n\nBedankt voor uw offerteaanvraag bij Davide Chape.\n{q_line_nl}In de bijlage vindt u uw officiële offerte (PDF).\n\nBekijken en ondertekenen :\n{signing_url}\n\nMet vriendelijke groet,\nHet Davide Chape Team"
+                elif lang_clean == "en":
+                    caption_text = f"Hello {client_name},\n\nThank you for requesting a quote with Davide Chape.\n{q_line_en}Please find your official quote attached (PDF).\n\nReview and sign online :\n{signing_url}\n\nBest regards,\nDavide Chape Team"
+
+                doc_url = f"https://api.ultramsg.com/{instance_id}/messages/document"
+                doc_resp = httpx.post(doc_url, data={
+                    "token": api_token,
+                    "to": formatted_phone,
+                    "document": pdf_public_url,
+                    "filename": f"Devis_{clean_quote_no}.pdf",
+                    "caption": caption_text
+                }, timeout=15.0)
+                if doc_resp.status_code < 400:
+                    logger.info(f"Quote PDF document sent via UltraMsg to {formatted_phone}")
+                    return True
+            success = send_whatsapp_message(formatted_phone, client_name, client_language, signing_url, quote_number)
+            if success:
+                logger.info(f"Quote WhatsApp successfully sent via UltraMsg to {formatted_phone}")
+                return True
+            else:
+                logger.warning(f"UltraMsg quote send failed for {formatted_phone}, trying Meta fallback...")
+        except Exception as e:
+            logger.error(f"UltraMsg exception for {formatted_phone}: {e}, trying Meta fallback...")
+    elif instance_id and api_token:
+        logger.warning(f"UltraMsg instance {instance_id} is not authenticated (standby/qr). Using Meta Cloud API fallback for {formatted_phone}.")
+
+    # 2. FALLBACK: Meta Cloud API
+    access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
+    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1285477127985012")
+
+    if not access_token or not phone_number_id:
+        logger.warning("WHATSAPP credentials not set in env.")
+        return False
 
     url = f"https://graph.facebook.com/v21.0/{phone_number_id}/messages"
     headers = {

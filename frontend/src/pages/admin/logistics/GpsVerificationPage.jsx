@@ -159,119 +159,120 @@ export default function GpsVerificationPage() {
     const vehiclesWithData = filteredResults.filter(r => r.gps_points > 0).length
 
     return (
-        <div className="w-full space-y-5">
+        <div className="w-full space-y-3 md:space-y-5">
             {/* Header with tab navigation */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 md:gap-4">
+                <div className="flex items-center gap-2.5 md:gap-3 flex-wrap w-full sm:w-auto">
                     <button 
                         onClick={() => navigate('/admin/logistica')}
-                        className="w-10 h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 rounded-full flex items-center justify-center transition-colors text-slate-600 dark:text-slate-300 shadow-2xs cursor-pointer"
+                        className="w-8.5 h-8.5 md:w-10 md:h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 rounded-full flex items-center justify-center transition-colors text-slate-600 dark:text-slate-300 shadow-2xs cursor-pointer shrink-0"
                         title="Retour Logistique"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                     </button>
-                    <div className="flex items-center gap-3 mr-2">
-                        <h1 className="text-[28px] font-black text-slate-900 dark:text-white tracking-tight">Vérification GPS</h1>
-                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="flex items-center gap-2 md:gap-3 mr-auto sm:mr-2">
+                        <h1 className="text-[18px] md:text-[28px] font-black text-slate-900 dark:text-white tracking-tight">Vérification GPS</h1>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 md:px-3.5 md:py-1.5 rounded-full text-[11.5px] md:text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 shrink-0">
+                            <span className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                             Live
                         </span>
                     </div>
                     {/* Tab bar — same as LogisticsDashboard */}
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar w-full sm:w-auto justify-between sm:justify-start">
                         <Link
                             to="/admin/logistica/bases"
-                            className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors"
+                            className="px-2.5 md:px-4 h-7.5 md:h-9 flex-1 sm:flex-initial flex items-center justify-center gap-1 md:gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-[11.5px] md:text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap"
                         >
-                            <MapPin className="w-4 h-4" /> {t('logistics.bases', 'Bases')}
+                            <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> {t('logistics.bases', 'Bases')}
                         </Link>
                         <Link
                             to="/admin/logistica/sand-stations"
-                            className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors"
+                            className="px-2.5 md:px-4 h-7.5 md:h-9 flex-1 sm:flex-initial flex items-center justify-center gap-1 md:gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-[11.5px] md:text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap"
                         >
-                            <Beaker className="w-4 h-4" /> {t('logistics.sand_stations', 'Stations de Sable')}
+                            <Beaker className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> {t('logistics.sand_stations', 'Sablières')}
                         </Link>
                         <Link
                             to="/admin/logistica/raport"
-                            className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors"
+                            className="px-2.5 md:px-4 h-7.5 md:h-9 flex-1 sm:flex-initial flex items-center justify-center gap-1 md:gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-[11.5px] md:text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap"
                         >
-                            <BarChart3 className="w-4 h-4" /> {t('logistics.report', 'Rapport')}
+                            <BarChart3 className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> {t('logistics.report', 'Rapport')}
                         </Link>
                         {/* Active tab — GPS Verification */}
-                        <div className="px-4 h-9 flex items-center gap-2 rounded-full bg-[color:var(--tenant-bg)] shadow-sm text-sm font-bold text-white">
-                            <Navigation className="w-4 h-4" /> Vérif. GPS
+                        <div className="px-2.5 md:px-4 h-7.5 md:h-9 flex-1 sm:flex-initial flex items-center justify-center gap-1 md:gap-2 rounded-full bg-[color:var(--tenant-bg)] shadow-sm text-[11.5px] md:text-sm font-bold text-white whitespace-nowrap">
+                            <Navigation className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> Vérif. GPS
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-white px-3 h-10 rounded-xl border border-slate-200" title="Utilise quand la limite legale n'est pas trouvee">
-                        <span className="text-xs text-slate-500 mr-2 font-medium">Defaut/Autoroute:</span>
+                <div className="flex items-center gap-1.5 md:gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+                    <div className="flex items-center bg-white dark:bg-slate-800 px-2.5 md:px-3 h-9 md:h-10 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0" title="Utilisé quand la limite légale n'est pas trouvée">
+                        <span className="text-[11px] md:text-xs text-slate-500 mr-1.5 font-medium">Limite:</span>
                         <input
                             type="number"
                             value={speedLimit}
                             onChange={(e) => setSpeedLimit(Number(e.target.value))}
-                            className="w-12 text-sm font-bold bg-transparent outline-none text-right"
+                            className="w-10 md:w-12 text-xs md:text-sm font-bold bg-transparent outline-none text-right tabular-nums"
                             min="30" max="150"
                         />
-                        <span className="text-xs text-slate-500 ml-1">km/h</span>
+                        <span className="text-[11px] md:text-xs text-slate-500 ml-1">km/h</span>
                     </div>
-                    <button
-                        onClick={() => {
-                            // Timezone-safe: manipulate ISO string directly
-                            const [y, m, d] = date.split('-').map(Number);
-                            const dt = new Date(y, m - 1, d - 1);
-                            setDate(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`);
-                        }}
-                        className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
-                        title="Jour précédent"
-                    >
-                        <ChevronLeft className="w-4 h-4 text-slate-500" />
-                    </button>
-                    <input
-                        type="date"
-                        value={date}
-                        max={today}
-                        onChange={e => setDate(e.target.value)}
-                        className="px-4 h-10 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                    <button
-                        onClick={() => {
-                            const [y, m, d] = date.split('-').map(Number);
-                            const dt = new Date(y, m - 1, d + 1);
-                            const next = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-                            if (next <= today) setDate(next);
-                        }}
-                        className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
-                        title="Jour suivant"
-                    >
-                        <ChevronRight className="w-4 h-4 text-slate-500" />
-                    </button>
-                    <button
-                        onClick={load}
-                        disabled={loading}
-                        className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-1 sm:flex-initial justify-end">
+                        <button
+                            onClick={() => {
+                                const [y, m, d] = date.split('-').map(Number);
+                                const dt = new Date(y, m - 1, d - 1);
+                                setDate(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`);
+                            }}
+                            className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-50 transition-colors shrink-0 cursor-pointer"
+                            title="Jour précédent"
+                        >
+                            <ChevronLeft className="w-4 h-4 text-slate-500" />
+                        </button>
+                        <input
+                            type="date"
+                            value={date}
+                            max={today}
+                            onChange={e => setDate(e.target.value)}
+                            className="px-2.5 md:px-4 h-9 md:h-10 text-xs md:text-sm font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none min-w-0 flex-1 sm:flex-initial"
+                        />
+                        <button
+                            onClick={() => {
+                                const [y, m, d] = date.split('-').map(Number);
+                                const dt = new Date(y, m - 1, d + 1);
+                                const next = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+                                if (next <= today) setDate(next);
+                            }}
+                            className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-50 transition-colors shrink-0 cursor-pointer"
+                            title="Jour suivant"
+                        >
+                            <ChevronRight className="w-4 h-4 text-slate-500" />
+                        </button>
+                        <button
+                            onClick={load}
+                            disabled={loading}
+                            className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-colors shrink-0 cursor-pointer"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* KPIs */}
             {data && !loading && (
-                <div className="grid grid-cols-3 gap-5">
-                    <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center">
-                        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">{t('gps.active_vehicles', 'Vehicules actifs')}</p>
-                        <p className="text-2xl font-bold text-slate-700">{vehiclesWithData}</p>
+                <div className="grid grid-cols-3 gap-2 md:gap-5">
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-2.5 md:p-5 text-center">
+                        <p className="text-[10px] md:text-xs text-slate-400 font-semibold uppercase tracking-wider mb-0.5 md:mb-1 truncate">{t('gps.active_vehicles', 'Véhicules actifs')}</p>
+                        <p className="text-lg md:text-2xl font-bold text-slate-700 dark:text-white tabular-nums">{vehiclesWithData}</p>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center">
-                        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">{t('gps.total_km', 'KM total')}</p>
-                        <p className="text-2xl font-bold text-slate-700">{totalKm.toFixed(1)}</p>
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-2.5 md:p-5 text-center">
+                        <p className="text-[10px] md:text-xs text-slate-400 font-semibold uppercase tracking-wider mb-0.5 md:mb-1 truncate">{t('gps.total_km', 'KM total')}</p>
+                        <p className="text-lg md:text-2xl font-bold text-slate-700 dark:text-white tabular-nums">{totalKm.toFixed(1)}</p>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center">
-                        <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${totalViolations > 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                            {t('gps.speed_excess', 'Exces vitesse')}
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-2.5 md:p-5 text-center">
+                        <p className={`text-[10px] md:text-xs font-semibold uppercase tracking-wider mb-0.5 md:mb-1 truncate ${totalViolations > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                            {t('gps.speed_excess', 'Excès vitesse')}
                         </p>
-                        <p className={`text-2xl font-bold ${totalViolations > 0 ? 'text-red-600' : 'text-slate-700'}`}>{totalViolations}</p>
+                        <p className={`text-lg md:text-2xl font-bold tabular-nums ${totalViolations > 0 ? 'text-red-600' : 'text-slate-700 dark:text-white'}`}>{totalViolations}</p>
                     </div>
                 </div>
             )}

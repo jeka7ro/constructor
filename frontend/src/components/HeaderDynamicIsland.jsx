@@ -72,7 +72,11 @@ export default function HeaderDynamicIsland() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const [isOpen, setIsOpen] = useState(false)
-    // isPeeking = true when the island temporarily expands horizontally to show text, then shrinks back to icons-only
+    // On mobile (< 768px): stay strictly as a small circular icon, opening ONLY on click/tap
+    const [isMobileViewport, setIsMobileViewport] = useState(() => {
+        if (typeof window === 'undefined') return false
+        return window.innerWidth < 768
+    })
     const [isPeeking, setIsPeeking] = useState(false)
     // Keep displayedAlert data in state while isAlertVisible controls the emergence / return-to-island animation
     const [displayedAlert, setDisplayedAlert] = useState(null)
@@ -373,78 +377,88 @@ export default function HeaderDynamicIsland() {
         } catch (_) { }
     }
 
-    const showExpandedText = isPeeking || isOpen
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const onResize = () => setIsMobileViewport(window.innerWidth < 768)
+        window.addEventListener('resize', onResize)
+        return () => window.removeEventListener('resize', onResize)
+    }, [])
 
-    // Smooth CSS Grid 0fr -> 1fr interpolation (interpolates exact natural width with zero dead time or sliced letters)
-    const morphItemStyle = {
-        display: 'grid',
-        gridTemplateColumns: showExpandedText ? '1fr' : '0fr',
+    // On desktop: show expanded capsule text. On mobile: stay strictly as a small icon (no text on refresh), opening ONLY on click/tap.
+    const showExpandedText = !isMobileViewport && (true || isPeeking || isOpen)
+
+    // Smooth max-width interpolation: on mobile shrinks to a 32px circular icon after initial refresh broadcast
+    const morphTextWrapStyle = {
+        maxWidth: showExpandedText ? '250px' : '0px',
         opacity: showExpandedText ? 1 : 0,
-        marginLeft: showExpandedText ? '6px' : '0px',
-        filter: showExpandedText ? 'blur(0px)' : 'blur(2px)',
-        transform: showExpandedText ? 'translateX(0) scale(1)' : 'translateX(-4px) scale(0.94)',
+        transform: showExpandedText ? 'translateX(0) scale(1)' : 'translateX(6px) scale(0.95)',
         transition: showExpandedText
-            ? 'grid-template-columns 680ms cubic-bezier(0.22, 1, 0.36, 1), opacity 420ms ease-out 70ms, margin-left 680ms cubic-bezier(0.22, 1, 0.36, 1), filter 420ms ease-out, transform 680ms cubic-bezier(0.22, 1, 0.36, 1)'
-            : 'grid-template-columns 640ms cubic-bezier(0.32, 0.72, 0, 1), opacity 220ms ease-in, margin-left 640ms cubic-bezier(0.32, 0.72, 0, 1), filter 250ms ease-in, transform 640ms cubic-bezier(0.32, 0.72, 0, 1)',
+            ? 'max-width 520ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease-out 50ms, transform 520ms cubic-bezier(0.22, 1, 0.36, 1)'
+            : 'max-width 460ms cubic-bezier(0.32, 0.72, 0, 1), opacity 160ms ease-in, transform 460ms cubic-bezier(0.32, 0.72, 0, 1)',
     }
 
-    const morphDividerStyle = {
-        width: showExpandedText ? '1px' : '0px',
-        opacity: showExpandedText ? 1 : 0,
-        marginLeft: showExpandedText ? '10px' : '5px',
-        marginRight: showExpandedText ? '10px' : '5px',
-        transition: 'all 650ms cubic-bezier(0.22, 1, 0.36, 1)',
-    }
-
+    // Build broadcast notifications queue (prioritizing latest unread messages & latest pending quotes)
     const tickerItems = [
-        {
-            key: 'today_jobs',
-            dotClass: 'bg-[#34C759] shadow-[0_0_6px_rgba(52,199,89,0.45)]',
-            text: `${t('dynamic_island.today', "Aujourd'hui")}: ${summary.todayJobsCount} ${t('dynamic_island.jobs_short', 'chantiers')}`,
-        },
-        {
-            key: 'today_vol_sand',
-            dotClass: 'bg-sky-500 shadow-[0_0_6px_rgba(14,165,233,0.4)]',
-            text: `${summary.todayTotalM2} m² · ${summary.todaySandTons} T ${t('dynamic_island.sand_short', 'sable')}`,
-        },
-        {
-            key: 'today_est_km',
-            dotClass: 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.45)]',
-            text: `${t('dynamic_island.route_today_prefix', 'Traseu azi')}: ${summary.todayEstimatedKm} km ${t('dynamic_island.estimated_short', 'estimați')}`,
-        },
-        {
-            key: 'latest_quote',
-            dotClass: 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.45)]',
-            text: summary.latestQuote
-                ? `${t('dynamic_island.latest_quote_prefix', 'Dernier devis')}: ${summary.latestQuote.quote_number || ''}${summary.latestQuoteSqm > 0 ? ` · ${summary.latestQuoteSqm} m²` : ` · ${(summary.latestQuote.client_name || summary.latestQuote.title || '').slice(0, 14)}`}`
-                : `${t('dynamic_island.pending', 'En attente')}: ${summary.pendingQuotesTotal} ${t('dynamic_island.quotes_short', 'devis')}`,
-        },
-        {
-            key: 'pending_quotes',
-            dotClass: 'bg-violet-500 shadow-[0_0_6px_rgba(139,92,246,0.45)]',
-            text: `${t('dynamic_island.pending', 'En attente')}: ${summary.pendingQuotesTotal} ${t('dynamic_island.quotes_short', 'devis')}`,
-        },
+        ...(summary.unreadMessages.slice(0, 2).map((msg, idx) => ({
+            key: `msg_${msg.id || idx}`,
+            dotClass: 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.45)]',
+            text: `${msg.work_order_title || msg.sender_name || 'Client'}: ${(msg.message || '').slice(0, 26)}`,
+        }))),
         ...(summary.unreadMessagesCount > 0
             ? [{
-                key: 'unread_msgs',
+                key: 'unread_msgs_total',
                 dotClass: 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.45)]',
                 text: `${summary.unreadMessagesCount} ${t('dynamic_island.unread_msgs_short', 'messages non lus')}`,
             }]
             : []),
+        ...(summary.latestQuote
+            ? [{
+                key: 'latest_quote',
+                dotClass: 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.45)]',
+                text: `${t('dynamic_island.latest_quote_prefix', 'Dernier devis')}: ${summary.latestQuote.quote_number || ''}${summary.latestQuoteSqm > 0 ? ` · ${summary.latestQuoteSqm} m²` : ` · ${(summary.latestQuote.client_name || summary.latestQuote.title || '').slice(0, 14)}`}`,
+            }]
+            : []),
+        ...(summary.pendingQuotesTotal > 0
+            ? [{
+                key: 'pending_quotes',
+                dotClass: 'bg-violet-500 shadow-[0_0_6px_rgba(139,92,246,0.45)]',
+                text: `${t('dynamic_island.pending', 'En attente')}: ${summary.pendingQuotesTotal} ${t('dynamic_island.quotes_short', 'devis')}`,
+            }]
+            : []),
+        {
+            key: 'today_jobs',
+            dotClass: 'bg-[#34C759] shadow-[0_0_6px_rgba(52,199,89,0.45)]',
+            text: `${t('dynamic_island.today', "Aujourd'hui")}: ${summary.todayJobsCount} ${t('dynamic_island.jobs_short', 'chantiers')} · ${summary.todayTotalM2} m²`,
+        },
+        ...(summary.todayEstimatedKm > 0
+            ? [{
+                key: 'today_est_km',
+                dotClass: 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.45)]',
+                text: `${t('dynamic_island.route_today_prefix', 'Traseu azi')}: ${summary.todayEstimatedKm} km ${t('dynamic_island.estimated_short', 'estimați')}`,
+            }]
+            : []),
     ]
 
+    const tickerLenRef = useRef(tickerItems.length)
+    tickerLenRef.current = tickerItems.length
+
+    // On desktop: rotate ticker items every 5s. On mobile: remains a compact icon (opens only on click).
     useEffect(() => {
         const rotateTimer = setInterval(() => {
-            setTickerIndex(prev => (prev + 1) % tickerItems.length)
+            const len = tickerLenRef.current
+            if (len > 0) {
+                setTickerIndex(prev => (prev + 1) % len)
+            }
         }, 5000)
         return () => clearInterval(rotateTimer)
-    }, [tickerItems.length])
+    }, [])
 
     const currentTicker = tickerItems[tickerIndex % tickerItems.length] || tickerItems[0]
+    const totalBadgeCount = summary.unreadMessagesCount + summary.pendingQuotesTotal
 
     return (
         <div ref={islandRef} className="relative flex items-center justify-center z-50 select-none">
-            {/* State 1: Compact Apple Dynamic Island Capsule in the center of the Header Bar (Rotates live info every 5s) */}
+            {/* State 1: Starts as a compact circular icon (32px/34px), smoothly expands horizontally to broadcast latest notification, then retracts back to icon */}
             <button
                 type="button"
                 onClick={() => {
@@ -458,33 +472,35 @@ export default function HeaderDynamicIsland() {
                 title={isOpen ? undefined : t('dynamic_island.tooltip', 'Dynamic Island — Activité en direct, Messages & Devis')}
                 style={{
                     transform: isAbsorbing
-                        ? 'scale(1.06, 0.94)'
+                        ? 'scale(1.08, 0.92)'
                         : 'none',
                     transition: isAbsorbing
-                        ? 'transform 170ms cubic-bezier(0.22, 1, 0.36, 1), background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease'
-                        : 'transform 520ms cubic-bezier(0.22, 1.28, 0.36, 1), background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
+                        ? 'transform 170ms cubic-bezier(0.22, 1, 0.36, 1), padding 480ms cubic-bezier(0.22, 1, 0.36, 1), background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease'
+                        : 'transform 520ms cubic-bezier(0.22, 1.28, 0.36, 1), padding 480ms cubic-bezier(0.22, 1, 0.36, 1), background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
                 }}
-                className={`relative z-20 h-[30px] md:h-[34px] w-full max-w-[215px] sm:min-w-[210px] sm:max-w-[265px] px-2.5 md:px-3.5 rounded-full bg-white hover:bg-slate-50/95 dark:bg-[#1C1C1E] dark:hover:bg-[#242426] border border-slate-200/90 dark:border-white/15 text-slate-900 dark:text-white flex items-center justify-between cursor-pointer overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] transition-all duration-300 ${
+                className={`relative z-20 h-8 md:h-[34px] min-w-8 md:min-w-[34px] ${
+                    showExpandedText ? 'px-2.5 md:px-3.5' : 'px-2 md:px-[9px]'
+                } rounded-full bg-white hover:bg-slate-50/95 dark:bg-[#1C1C1E] dark:hover:bg-[#242426] border border-slate-200/90 dark:border-white/15 text-slate-900 dark:text-white inline-flex items-center justify-center cursor-pointer overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.16),0_1px_2px_rgba(15,23,42,0.08)] ${
                     isAlertVisible ? 'ring-2 ring-emerald-400/70' : isOpen ? 'ring-2 ring-white/50' : ''
                 }`}
             >
-                {/* Left: Status dot + 5-second rotating live info */}
-                <div key={currentTicker.key} className="flex items-center gap-1.5 md:gap-2 pr-2 md:pr-3 min-w-0 animate-[fadeIn_260ms_ease-out]">
-                    <span className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full shrink-0 transition-colors duration-300 ${currentTicker.dotClass}`} />
-                    <span className="text-[11.5px] md:text-[13px] font-bold text-slate-900 dark:text-white tabular-nums tracking-tight whitespace-nowrap truncate">
-                        {currentTicker.text}
-                    </span>
+                {/* Morphing Broadcast Section (0px when resting as icon, full text when broadcasting a notification) */}
+                <div style={morphTextWrapStyle} className="overflow-hidden flex items-center shrink-0">
+                    <div key={currentTicker.key} className="flex items-center gap-1.5 pr-2 mr-2 border-r border-slate-200 dark:border-white/15 whitespace-nowrap">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${currentTicker.dotClass}`} />
+                        <span className="text-[11.5px] md:text-[12.5px] font-bold text-slate-900 dark:text-white tabular-nums tracking-tight whitespace-nowrap">
+                            {currentTicker.text}
+                        </span>
+                    </div>
                 </div>
 
-                {/* Right: Vertical divider + Bell icon */}
-                <div className="flex items-center pl-2 md:pl-2.5 border-l border-slate-200 dark:border-white/15 shrink-0">
-                    <span className="relative flex items-center justify-center">
-                        <Bell className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-300 shrink-0" strokeWidth={1.85} />
-                        {(summary.unreadMessagesCount > 0 || summary.pendingQuotesTotal > 0 || isAlertVisible) && (
-                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#1C1C1E]" />
-                        )}
-                    </span>
-                </div>
+                {/* Always-visible Bell Icon (the resting icon state) */}
+                <span className="relative flex items-center justify-center shrink-0">
+                    <Bell className="w-4 h-4 text-slate-700 dark:text-slate-200 shrink-0" strokeWidth={2} />
+                    {(totalBadgeCount > 0 || isAlertVisible) && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#1C1C1E]" />
+                    )}
+                </span>
             </button>
 
             {/* State 2: Incoming Notification Bubble — Crisp Retina text when open, smooth spring emergence & suction return */}
@@ -506,7 +522,7 @@ export default function HeaderDynamicIsland() {
                         : 'translate3d(-50%, -24px, 0) scale3d(0.30, 0.25, 1)',
                     opacity: isAlertVisible ? 1 : 0,
                 }}
-                className={`absolute top-full left-1/2 z-[9998] w-[390px] max-w-[92vw] bg-[#F2F4F8] dark:bg-slate-900 text-slate-950 dark:text-white border-[1.5px] border-slate-300 dark:border-slate-600 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_24px_54px_-12px_rgba(15,23,42,0.38),0_6px_18px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_24px_54px_-12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.16)] p-2.5 cursor-pointer overflow-hidden antialiased ${isAlertVisible
+                className={`max-md:fixed max-md:top-[52px] md:absolute md:top-full left-1/2 z-[9998] w-[390px] max-w-[92vw] bg-[#F2F4F8] dark:bg-slate-900 text-slate-950 dark:text-white border-[1.5px] border-slate-300 dark:border-slate-600 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_24px_54px_-12px_rgba(15,23,42,0.38),0_6px_18px_-4px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_24px_54px_-12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.16)] p-2.5 cursor-pointer overflow-hidden antialiased ${isAlertVisible
                     ? 'pointer-events-auto'
                     : 'pointer-events-none'
                     }`}
@@ -570,7 +586,7 @@ export default function HeaderDynamicIsland() {
                         : 'translate3d(-50%, -24px, 0) scale3d(0.28, 0.20, 1)',
                     opacity: isOpen ? 1 : 0,
                 }}
-                className={`absolute top-full left-1/2 w-[420px] max-w-[94vw] bg-[#F2F4F8] dark:bg-slate-900 text-slate-950 dark:text-white border-[1.5px] border-slate-300 dark:border-slate-600 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.42),0_8px_24px_-4px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_28px_64px_-12px_rgba(0,0,0,0.9),0_8px_24px_-4px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.16)] p-3.5 z-[9999] overflow-hidden antialiased ${isOpen
+                className={`max-md:fixed max-md:top-[52px] md:absolute md:top-full left-1/2 w-[420px] max-w-[94vw] bg-[#F2F4F8] dark:bg-slate-900 text-slate-950 dark:text-white border-[1.5px] border-slate-300 dark:border-slate-600 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-[0_28px_64px_-12px_rgba(15,23,42,0.42),0_8px_24px_-4px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_28px_64px_-12px_rgba(0,0,0,0.9),0_8px_24px_-4px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.16)] p-3.5 z-[9999] overflow-hidden antialiased ${isOpen
                     ? 'pointer-events-auto'
                     : 'pointer-events-none'
                     }`}

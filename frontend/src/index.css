@@ -1078,13 +1078,40 @@ summary,
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 7.2 Prevent iOS Safari Auto-Zoom on Input Focus (< 16px triggers zoom on iPhone) */
+/* 7.2 Prevent iOS Safari Auto-Zoom on Input Focus (< 16px triggers zoom on iPhone) & Block Accidental Touch Drag on Scroll */
 @media (max-width: 767px) {
 
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
   select,
   textarea {
     font-size: max(16px, 1em) !important;
+  }
+
+  /* Prevent accidental native HTML5 drag-and-drop & horizontal card shifting while scrolling vertically on mobile */
+  img,
+  a,
+  button,
+  [draggable="true"] {
+    -webkit-user-drag: none !important;
+    user-drag: none !important;
+    -webkit-touch-callout: none;
+  }
+
+  .tps-main-workspace {
+    touch-action: pan-y;
+    overflow-x: hidden !important;
+  }
+
+  /* Prevent 90vh/95vh modals from overflowing under iOS Chrome/Safari top address bar (vh uses large viewport 100lvh > visible 100dvh) */
+  .h-\[95vh\],
+  .h-\[90vh\] {
+    height: calc(100dvh - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  .max-h-\[95vh\],
+  .max-h-\[90vh\] {
+    max-height: calc(100dvh - 24px) !important;
   }
 }
 

@@ -143,26 +143,33 @@ export default function BasesPage() {
     }
 
     return (
-        <div className="w-full space-y-5">
-            <div className="flex flex-wrap items-center gap-4">
-                <Link to="/admin/logistica" className="w-10 h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs">
-                    <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+        <div className="w-full space-y-3 md:space-y-5">
+            <div className="flex items-center gap-2.5 md:gap-4">
+                <Link to="/admin/logistica" className="w-8.5 h-8.5 md:w-10 md:h-10 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs shrink-0">
+                    <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-300" />
                 </Link>
-                <div>
-                    <div className="flex items-center gap-3.5">
-                        <h1 className="text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
-                            <MapPin className="w-6 h-6 text-[color:var(--tenant-bg)]" /> {t('logistics.bases_title', 'Baze (Puncte de plecare)')}
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 md:gap-3.5">
+                        <h1 className="text-[18px] md:text-[28px] font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2 truncate">
+                            <MapPin className="w-5 h-5 md:w-6 md:h-6 text-[color:var(--tenant-bg)] shrink-0" /> {t('logistics.bases_title', 'Bases de départ')}
                         </h1>
-                        <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 md:px-3.5 md:py-1.5 rounded-full text-[11.5px] md:text-[15px] font-extrabold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 shrink-0">
+                            <span className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                             Live
                         </span>
                     </div>
-                    <p className="text-slate-500 text-[15px] font-semibold mt-0.5">{t('logistics.bases_desc', 'Gestionează garajele/locațiile unde sunt parcate camioanele peste noapte.')}</p>
+                    <p className="hidden md:block text-slate-500 text-[15px] font-semibold mt-0.5">{t('logistics.bases_desc', 'Gérez les garages et emplacements où les camions stationnent la nuit.')}</p>
                 </div>
-                <div className="ml-auto">
-                    <button onClick={() => openModal()} className="px-6 h-11 rounded-full bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-[15px] font-extrabold flex items-center gap-2 shadow-xs transition-all cursor-pointer">
-                        <Plus className="w-4.5 h-4.5" /> {t('logistics.add_base', 'Ajouter Bază')}
+                <div className="ml-auto shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => openModal()}
+                        aria-label={t('logistics.add_base', 'Ajouter une base')}
+                        title={t('logistics.add_base', 'Ajouter une base')}
+                        className="w-9 h-9 md:w-auto md:px-6 md:h-11 rounded-full bg-[color:var(--tenant-bg)] hover:opacity-95 text-white text-[15px] font-extrabold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                    >
+                        <Plus className="w-4.5 h-4.5 shrink-0" />
+                        <span className="hidden md:inline">{t('logistics.add_base', 'Ajouter une base')}</span>
                     </button>
                 </div>
             </div>
@@ -236,10 +243,45 @@ export default function BasesPage() {
                             columns={columns}
                             data={bases}
                             loading={loading}
-                            emptyText={t('logistics.no_bases', 'Nu există baze configurate.')}
+                            emptyText={t('logistics.no_bases', 'Aucune base configurée.')}
                             searchable
                             searchPlaceholder={t('logistics.search_base', 'Rechercher une base...')}
                             defaultPageSize={25}
+                            mobileCard={(row) => {
+                                const baseTeams = teams.filter(tm => (row.team_ids || []).includes(tm.id))
+                                return (
+                                    <div className="bg-white dark:bg-slate-800/90 mx-2.5 my-1 px-3 py-2.5 rounded-2xl border border-slate-200/85 dark:border-slate-700/80 shadow-2xs flex items-center justify-between gap-2.5">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="text-[13.5px] font-extrabold text-slate-900 dark:text-white truncate">{row.name}</div>
+                                            {row.address && (
+                                                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{row.address}</div>
+                                            )}
+                                            {baseTeams.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                                    {baseTeams.map(tm => {
+                                                        const truck = vehicles.find(v => v.user_ids?.includes(tm.team_leader_id))
+                                                        return (
+                                                            <span key={tm.id} className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold rounded-md border border-slate-200/80 dark:border-slate-600 inline-flex items-center gap-1">
+                                                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tm.color || '#94a3b8' }} />
+                                                                <span>{tm.name}</span>
+                                                                {truck && <span className="text-blue-600 dark:text-blue-400">({truck.plate_number})</span>}
+                                                            </span>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); openModal(row); }} className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-blue-600 bg-slate-100 dark:bg-slate-700 rounded-full cursor-pointer">
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }} className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-red-600 bg-slate-100 dark:bg-slate-700 rounded-full cursor-pointer">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )
+                            }}
                         />
                     </div>
                 )
