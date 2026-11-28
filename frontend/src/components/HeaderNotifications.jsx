@@ -150,7 +150,7 @@ export default function HeaderNotifications() {
                 )}
             </button>
 
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative hidden md:block" ref={dropdownRef}>
                 <button 
                     onClick={() => setIsOpen(!isOpen)}
                     className={`w-8 h-8 flex items-center justify-center rounded-full border border-white/30 transition-colors relative shadow-sm ${isOpen ? 'bg-white/20 text-white' : 'text-white/90 hover:text-white hover:bg-white/10'}`} 

@@ -464,22 +464,22 @@ export default function HeaderDynamicIsland() {
                         ? 'transform 170ms cubic-bezier(0.22, 1, 0.36, 1), background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease'
                         : 'transform 520ms cubic-bezier(0.22, 1.28, 0.36, 1), background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease',
                 }}
-                className={`relative z-20 h-[34px] min-w-[180px] sm:min-w-[210px] max-w-[265px] px-3.5 rounded-full bg-white hover:bg-slate-50/95 dark:bg-[#1C1C1E] dark:hover:bg-[#242426] border border-slate-200/90 dark:border-white/15 text-slate-900 dark:text-white flex items-center justify-between cursor-pointer overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] transition-all duration-300 ${
+                className={`relative z-20 h-[30px] md:h-[34px] w-full max-w-[215px] sm:min-w-[210px] sm:max-w-[265px] px-2.5 md:px-3.5 rounded-full bg-white hover:bg-slate-50/95 dark:bg-[#1C1C1E] dark:hover:bg-[#242426] border border-slate-200/90 dark:border-white/15 text-slate-900 dark:text-white flex items-center justify-between cursor-pointer overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] transition-all duration-300 ${
                     isAlertVisible ? 'ring-2 ring-emerald-400/70' : isOpen ? 'ring-2 ring-white/50' : ''
                 }`}
             >
                 {/* Left: Status dot + 5-second rotating live info */}
-                <div key={currentTicker.key} className="flex items-center gap-2 pr-3 min-w-0 animate-[fadeIn_260ms_ease-out]">
-                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-colors duration-300 ${currentTicker.dotClass}`} />
-                    <span className="text-[13px] font-bold text-slate-900 dark:text-white tabular-nums tracking-tight whitespace-nowrap truncate">
+                <div key={currentTicker.key} className="flex items-center gap-1.5 md:gap-2 pr-2 md:pr-3 min-w-0 animate-[fadeIn_260ms_ease-out]">
+                    <span className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full shrink-0 transition-colors duration-300 ${currentTicker.dotClass}`} />
+                    <span className="text-[11.5px] md:text-[13px] font-bold text-slate-900 dark:text-white tabular-nums tracking-tight whitespace-nowrap truncate">
                         {currentTicker.text}
                     </span>
                 </div>
 
                 {/* Right: Vertical divider + Bell icon */}
-                <div className="flex items-center pl-2.5 border-l border-slate-200 dark:border-white/15 shrink-0">
+                <div className="flex items-center pl-2 md:pl-2.5 border-l border-slate-200 dark:border-white/15 shrink-0">
                     <span className="relative flex items-center justify-center">
-                        <Bell className="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" strokeWidth={1.85} />
+                        <Bell className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-300 shrink-0" strokeWidth={1.85} />
                         {(summary.unreadMessagesCount > 0 || summary.pendingQuotesTotal > 0 || isAlertVisible) && (
                             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#1C1C1E]" />
                         )}

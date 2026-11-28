@@ -1,5 +1,18 @@
 # Jurnal de modificări — Davide Chape (Antigravity ↔ Paperclip)
 
+### 2026-11-28 10:26 — Optimizare Maximă exclusiv pe Mobil (`< 768px`): Bară Inferioară Fină, Fără Margini, Semitransparentă cu Minimizare la Scroll + Decongestionare Header & Harta Live pe Mobil
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - **1. Bară de Navigare Inferioară pe Mobil (`AdminDashboard.jsx` — strict `md:hidden`):**
+    - Eliminat chenarul gros `border-4` și fundalul opac; aplicat sticlă semitransparentă Apple Liquid Glass (`color-mix(in srgb, var(--tenant-accent) 72%, transparent)` cu `backdrop-blur-2xl saturate-180 border-0`).
+    - La scroll în jos pe pagină (când tragi conținutul în sus), bara se micșorează automat (`isMobileNavCompact`): textul de sub iconițe dispare lin, iconițele devin mai mici (`16px`), butonul central `DC` coboară în linie cu bara (`28px`), iar transparența crește (`56%`). La scroll invers (înapoi în sus) sau atingere, textul și iconițele reapar automat.
+  - **2. Decongestionare Header Mobil fără Pierdere de Funcționalitate (`AdminDashboard.jsx`, `HeaderDynamicIsland.jsx`, `HeaderNotifications.jsx` — strict `< 768px`):**
+    - Pe mobil, capsula Dynamic Island nu mai este împinsă în afara ecranului: eliminat butonul Fullscreen inutil pe iOS și clopoțelul duplicat din dreapta (clopoțelul este deja integrat în dreapta capsulei Dynamic Island), iar selectorul de limbă și butonul de deconectare sunt accesibile direct în antetul meniului mobil.
+  - **3. Decongestionare Harta Live pe Mobil (`MiniLiveTrackingMap.jsx`, `liveWeatherCanvas.jsx` — strict `< 768px`):**
+    - Pe mobil, cardurile plutitoare `METEO` și `Légende` nu se mai deschid simultan unul peste altul acoperind 90% din hartă: pornesc închise pe mobil (harta este 100% vizibilă), sunt reciproc exclusive la atingerea butoanelor din toolbar și se ancorează compact în partea de jos a hărții (`max-h-[34vh]`), fără a acoperi butoanele de zoom `+ / -`.
+- **Fișiere:** `frontend/src/pages/admin/AdminDashboard.jsx`, `frontend/src/components/HeaderDynamicIsland.jsx`, `frontend/src/components/HeaderNotifications.jsx`, `frontend/src/components/MiniLiveTrackingMap.jsx`, `frontend/src/utils/liveWeatherCanvas.jsx`, `.agents/CHANGELOG.md`
+- **Build / Teste:** `npm run build` OK, Apple Tahoe Multi-Viewport Verification (`375px`, `390px`, `1440px`) 🟢 10/10 PASS, Audit Gatekeeper 🟢 VERDE (5/5 PASS)
+
 ### 2026-11-27 19:12 — Fix Suprapunere Dynamic Island peste Ceas în Header (`flex-1 justify-center` între Logo și Ceas)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

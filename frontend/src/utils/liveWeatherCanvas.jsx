@@ -970,10 +970,10 @@ export function LiveMapWeatherOverlay({ showCard, onToggleCard, showRadarFx, wor
                 />
             )}
 
-            {/* Left Weather Card — Ultra-Compact, No Scrollbar & Scales up in Full Screen alongside Zoom In/Out buttons */}
+            {/* Left Weather Card — Bottom docked on mobile so it never overlaps zoom controls or legend, top-left on desktop */}
             {showHud && (
                 <div
-                    className="absolute z-[1000] w-64 bg-white dark:bg-slate-900 p-2.5 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-700/90 pointer-events-auto flex flex-col gap-1 overflow-y-auto hide-scrollbar tabular-nums transition-transform duration-150"
+                    className="absolute z-[1000] max-md:!top-auto max-md:!bottom-2.5 max-md:!left-2.5 max-md:!right-2.5 max-md:w-auto max-md:!max-h-[34vh] md:w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-2.5 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-700/90 pointer-events-auto flex flex-col gap-1 overflow-y-auto hide-scrollbar tabular-nums transition-transform duration-150"
                     style={
                         isMapFull
                             ? {

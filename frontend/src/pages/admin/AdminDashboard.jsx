@@ -31,6 +31,41 @@ export default function AdminDashboard() {
     const location = useLocation()
     const { t, i18n } = useTranslation()
     const [now, setNow] = useState(new Date())
+    const [isMobileNavCompact, setIsMobileNavCompact] = useState(false)
+    const lastScrollYRef = useRef(0)
+
+    const handleWorkspaceScroll = useCallback((e) => {
+        if (typeof window !== 'undefined' && window.innerWidth >= 768) return
+        const el = e.currentTarget
+        const currentY = el ? el.scrollTop : (window.scrollY || 0)
+        const delta = currentY - lastScrollYRef.current
+        if (currentY < 16) {
+            setIsMobileNavCompact(false)
+        } else if (delta > 7) {
+            setIsMobileNavCompact(true)
+        } else if (delta < -7) {
+            setIsMobileNavCompact(false)
+        }
+        lastScrollYRef.current = currentY
+    }, [])
+
+    useEffect(() => {
+        const onWinScroll = () => {
+            if (window.innerWidth >= 768) return
+            const currentY = window.scrollY || document.documentElement.scrollTop || 0
+            const delta = currentY - lastScrollYRef.current
+            if (currentY < 16) {
+                setIsMobileNavCompact(false)
+            } else if (delta > 7) {
+                setIsMobileNavCompact(true)
+            } else if (delta < -7) {
+                setIsMobileNavCompact(false)
+            }
+            lastScrollYRef.current = currentY
+        }
+        window.addEventListener('scroll', onWinScroll, { passive: true, capture: true })
+        return () => window.removeEventListener('scroll', onWinScroll, { capture: true })
+    }, [])
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000)
         return () => clearInterval(timer)
@@ -673,13 +708,13 @@ export default function AdminDashboard() {
             
                 {/* Header Bar */}
                 <header 
-                    className={`apple-header-glass relative h-16 md:h-16 px-6 flex items-center justify-between z-40 shadow-md transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 ${
+                    className={`apple-header-glass relative h-12 md:h-16 px-2.5 md:px-6 flex items-center justify-between z-40 shadow-md transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 ${
                         darkMode
                             ? 'bg-[#1C1C1E] text-[#F5F5F7] border border-white/10'
                             : 'bg-[color:var(--tenant-accent)] text-[color:var(--tenant-accent-fg)]'
                     }`}
                 >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 md:gap-4 shrink-0">
                          <button 
                              type="button"
                              onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -702,9 +737,9 @@ export default function AdminDashboard() {
                                      }
                                  }}
                                  aria-label={t('common.back', 'Retour')}
-                                 className="md:hidden p-1 -ml-2 opacity-90 hover:opacity-100 transition-colors"
+                                 className="md:hidden p-1 -ml-1 opacity-90 hover:opacity-100 transition-colors"
                              >
-                                 <ChevronLeft className="w-7 h-7" />
+                                 <ChevronLeft className="w-6 h-6" />
                              </button>
                          )}
 
@@ -744,20 +779,20 @@ export default function AdminDashboard() {
                      {/* Mobile Logo Only */}
                      <div
                          onClick={() => navigate('/admin/planning')}
-                         className="md:hidden flex items-center justify-center mr-2 cursor-pointer"
+                         className="md:hidden flex items-center justify-center mr-1 cursor-pointer shrink-0"
                      >
                          {tenant ? (
                              (tenant.slug?.toLowerCase().includes('davide') || tenant.name?.toLowerCase().includes('davide') || (tenant.logo_url && tenant.logo_url.includes('davide_logo'))) ? (
                                  <img
                                      src="/davide_logo.svg?v=anim30s"
                                      alt={tenant.name || 'Davide Chape'}
-                                     className="h-8 max-h-10 w-auto object-contain bg-transparent"
+                                     className="h-6 max-h-7 w-auto object-contain bg-transparent"
                                  />
                              ) : tenant.logo_url ? (
                                  <img 
                                      src={getImageUrl(tenant.logo_url)} 
                                      alt={tenant.name || 'Logo'} 
-                                     className="h-8 max-h-10 w-auto object-contain bg-transparent"
+                                     className="h-6 max-h-7 w-auto object-contain bg-transparent"
                                      onError={(e) => {
                                          if (!e.currentTarget.dataset.failedOnce) {
                                              e.currentTarget.dataset.failedOnce = 'true';
@@ -766,10 +801,10 @@ export default function AdminDashboard() {
                                      }}
                                  />
                              ) : (
-                                 <div className="font-extrabold text-[15px] leading-tight tracking-tighter text-white truncate max-w-[150px]">{tenant.name || 'Tenant'}</div>
+                                 <div className="font-extrabold text-[13px] leading-tight tracking-tighter text-white truncate max-w-[90px]">{tenant.name || 'Tenant'}</div>
                              )
                          ) : (
-                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-8 object-contain opacity-70" />
+                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-6 object-contain opacity-70" />
                          )}
                      </div>
 
@@ -777,12 +812,12 @@ export default function AdminDashboard() {
 
                     {/* Apple Dynamic Island — Centered in the available header space between Logo and Clock so it never overlaps */}
                     {(isScreeds || currentSubdomain) && (
-                        <div className="flex-1 flex items-center justify-center px-2 md:px-4 min-w-0 z-50">
+                        <div className="flex-1 flex items-center justify-center px-1.5 md:px-4 min-w-0 z-50">
                             <HeaderDynamicIsland />
                         </div>
                     )}
 
-                    <div className="flex items-center gap-3 sm:gap-5">
+                    <div className="flex items-center gap-1.5 sm:gap-5 shrink-0">
                         {/* Stacked Clock (Time top, Date bottom, no capsule) + User Location Weather next to it */}
                         <div className="hidden md:flex items-center gap-4 text-white select-none">
                             {(() => {
@@ -845,9 +880,11 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Right side items: Language, Theme, Notifications */}
-                        <div className="flex items-center gap-2">
-                           <LanguageSelector variant="dark" className="!text-white !border-white/30 !bg-white/10 hover:!bg-white/20" />
-                           <div className="w-[1px] h-5 bg-white/20 mx-1 hidden sm:block"></div>
+                        <div className="flex items-center gap-1.5 md:gap-2">
+                           <div className="hidden md:block">
+                               <LanguageSelector variant="dark" className="!text-white !border-white/30 !bg-white/10 hover:!bg-white/20" />
+                           </div>
+                           <div className="w-[1px] h-5 bg-white/20 mx-1 hidden md:block"></div>
                            
                            {!(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && (
                                <>
@@ -856,9 +893,9 @@ export default function AdminDashboard() {
                                        onClick={() => setShowGlobalSearch(true)}
                                        title={t('search.placeholder', 'Rechercher (Cmd+K)')}
                                        aria-label={t('search.placeholder', 'Rechercher (Cmd+K)')}
-                                       className="w-9 h-9 rounded-full flex items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
+                                       className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
                                    >
-                                       <Search className="w-4 h-4 shrink-0" aria-hidden="true" />
+                                       <Search className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" aria-hidden="true" />
                                    </button>
                                </>
                            )}
@@ -869,7 +906,7 @@ export default function AdminDashboard() {
                                onClick={() => { void handleToggleFullscreen() }}
                                title={isAppFullscreen ? t('admin.exit_fullscreen', 'Quitter le mode Plein écran (Esc)') : t('admin.enter_fullscreen', 'Activer le mode Plein écran (5K / Ultra-Wide)')}
                                aria-label={isAppFullscreen ? t('admin.exit_fullscreen', 'Quitter le mode Plein écran') : t('admin.enter_fullscreen', 'Plein écran')}
-                               className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0 ${
+                               className={`hidden md:flex w-9 h-9 rounded-full items-center justify-center border transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0 ${
                                    isAppFullscreen
                                        ? 'bg-white text-[#111113] border-white shadow-md'
                                        : 'border-current/25 bg-black/10 hover:bg-black/20'
@@ -883,11 +920,11 @@ export default function AdminDashboard() {
                                onClick={() => setDarkMode(!darkMode)}
                                title={darkMode ? t('admin.light_mode', 'Mode Clair') : t('admin.dark_mode', 'Mode Sombre')}
                                aria-label={darkMode ? t('admin.light_mode', 'Mode Clair') : t('admin.dark_mode', 'Mode Sombre')}
-                               className="w-9 h-9 rounded-full flex items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
+                               className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center border border-current/25 bg-black/10 hover:bg-black/20 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
                            >
                                {darkMode
-                                   ? <Moon className="w-4 h-4 shrink-0" aria-hidden="true" />
-                                   : <Sun className="w-4 h-4 shrink-0" aria-hidden="true" />
+                                   ? <Moon className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" aria-hidden="true" />
+                                   : <Sun className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" aria-hidden="true" />
                                }
                            </button>
 
@@ -896,11 +933,11 @@ export default function AdminDashboard() {
                                    <button
                                        type="button"
                                        onClick={() => navigate('/admin/complaints')}
-                                       className="w-9 h-9 flex items-center justify-center rounded-full border border-current/25 bg-black/10 transition-colors relative hover:bg-black/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
+                                       className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full border border-current/25 bg-black/10 transition-colors relative hover:bg-black/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] cursor-pointer shrink-0"
                                        title={t('admin.new_complaints', 'Nouvelles plaintes')}
                                        aria-label={t('admin.new_complaints', 'Nouvelles plaintes')}
                                    >
-                                       <MessageSquareWarning className="w-4 h-4 shrink-0" aria-hidden="true" />
+                                       <MessageSquareWarning className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" aria-hidden="true" />
                                        {openComplaintsCount > 0 && (
                                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900 tabular-nums">
                                                {openComplaintsCount > 99 ? '99+' : openComplaintsCount}
@@ -918,7 +955,7 @@ export default function AdminDashboard() {
                         <div className="w-[1px] h-8 bg-current/20 hidden sm:block"></div>
 
                         {/* User Profile */}
-                        <div className="flex items-center gap-3">
+                        <div className="hidden sm:flex items-center gap-3">
                             <div className="text-right hidden sm:block">
                                 <p className="text-sm font-bold leading-none">{admin?.full_name}</p>
                                 <button type="button" onClick={handleLogout} className="text-xs opacity-85 hover:opacity-100 font-semibold flex items-center justify-end w-full gap-1 mt-1 cursor-pointer hover:underline group">
@@ -936,17 +973,6 @@ export default function AdminDashboard() {
                             <div className={`w-9 h-9 bg-black/15 rounded-full items-center justify-center font-bold shadow-sm cursor-pointer hover:bg-black/25 transition-all border border-current/25 ${admin?.avatar_path ? 'hidden' : 'hidden sm:flex'}`}>
                                 {admin?.full_name?.charAt(0)}
                             </div>
-                            
-                            {/* Mobile Logout Button */}
-                            <button 
-                                type="button"
-                                onClick={handleLogout} 
-                                className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-current/25 bg-black/10 hover:bg-red-500/80 transition-colors shadow-sm ml-0.5" 
-                                title={t('admin.logout', 'Déconnexion')}
-                                aria-label={t('admin.logout', 'Déconnexion')}
-                            >
-                                <LogOut className="w-4 h-4" />
-                            </button>
                         </div>
                     </div>
                 </header>
@@ -973,6 +999,19 @@ export default function AdminDashboard() {
                 md:mb-3 md:ml-4 md:h-[calc(100dvh-100px)] md:rounded-[24px] max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
             `}>
                 
+                {/* Mobile Quick Actions inside Sidebar (Language + Logout) */}
+                <div className="md:hidden px-3 pt-3 pb-2 border-b border-white/15 flex items-center justify-between gap-2">
+                    <LanguageSelector variant="dark" className="!text-white !border-white/30 !bg-white/10" />
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="h-8 px-3 rounded-full bg-white/10 hover:bg-rose-500/80 text-white text-xs font-bold flex items-center gap-1.5 border border-white/25 transition-colors"
+                    >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>{t('admin.logout', 'Déconnexion')}</span>
+                    </button>
+                </div>
+
                 {/* Navigation */}
                 <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {filteredCategories.map((cat, index) => (
@@ -1066,7 +1105,10 @@ export default function AdminDashboard() {
 
             {/* Main Content Area */}
                 {/* Main View Outlet */}
-                <main className={`tps-main-workspace flex-1 overflow-y-auto overflow-x-hidden relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                <main
+                    onScroll={handleWorkspaceScroll}
+                    className={`tps-main-workspace flex-1 overflow-y-auto overflow-x-hidden relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}
+                >
                     {/* Page Content with smooth fade transition */}
                     <div
                         key={location.pathname}
@@ -1088,7 +1130,7 @@ export default function AdminDashboard() {
                                 padding-top: 0 !important;
                             }
                         `}</style>
-                        <div className="tps-main-inner p-4 md:p-4 md:pt-0 pb-24 w-full">
+                        <div className="tps-main-inner p-2.5 md:p-4 md:pt-0 pb-16 md:pb-24 w-full">
                             <Suspense fallback={<div className="py-16 flex items-center justify-center"><div className="w-7 h-7 border-2 border-[color:var(--tenant-bg)] border-t-transparent rounded-full animate-spin" /></div>}>
                                 <Outlet />
                             </Suspense>
@@ -1097,42 +1139,67 @@ export default function AdminDashboard() {
                 </main>
             </div>
 
-            {/* Bottom Navigation Bar (Admin Mobile - Heavy Styling) */}
+            {/* Bottom Navigation Bar (Admin Mobile — Slim Borderless Translucent Apple Liquid Glass + Scroll Minimization) */}
             <nav 
-                className={`md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl border-4 border-b-0 border-white/20 px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.2)] z-[70] rounded-t-3xl transition-colors duration-300 ${darkMode ? 'bg-slate-900' : ''}`}
-                style={darkMode ? {} : { backgroundColor: tenant?.primary_color || '#2563EB' }}
+                onClick={() => { if (isMobileNavCompact) setIsMobileNavCompact(false) }}
+                className={`md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl saturate-180 border-0 px-3 flex justify-between items-center z-[70] rounded-t-[20px] transition-all duration-300 shadow-[0_-4px_20px_rgba(15,23,42,0.12)] ${
+                    isMobileNavCompact
+                        ? 'pt-1 pb-[calc(env(safe-area-inset-bottom)+3px)]'
+                        : 'pt-1.5 pb-[calc(env(safe-area-inset-bottom)+6px)]'
+                }`}
+                style={{
+                    backgroundColor: darkMode
+                        ? (isMobileNavCompact ? 'rgba(18, 18, 20, 0.54)' : 'rgba(22, 22, 24, 0.72)')
+                        : (isMobileNavCompact
+                            ? 'color-mix(in srgb, var(--tenant-accent) 56%, transparent)'
+                            : 'color-mix(in srgb, var(--tenant-accent) 72%, transparent)'),
+                }}
             >
                 {/* 1. Harta (Live Fleet) */}
                 <NavLink
                     to="/admin/tracking"
-                    className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
+                    className={({isActive}) => `flex flex-col items-center justify-center py-1 flex-1 transition-all duration-300 ${isActive ? 'text-white' : 'text-white/65'}`}
                 >
-                    <MapIcon className="w-7 h-7 mb-1.5" />
-                    <span className="text-[10px] font-bold text-center leading-tight">{t('live.fleet_map_short', 'Carte')}</span>
+                    <MapIcon className={`transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    <span className={`text-[10px] font-semibold text-center leading-tight transition-all duration-300 overflow-hidden ${isMobileNavCompact ? 'max-h-0 opacity-0 mt-0' : 'max-h-4 opacity-100 mt-0.5'}`}>
+                        {t('live.fleet_map_short', 'Carte')}
+                    </span>
                 </NavLink>
 
                 {/* 2. Devize */}
                 <NavLink
                     to="/admin/quotes"
-                    className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
+                    className={({isActive}) => `flex flex-col items-center justify-center py-1 flex-1 transition-all duration-300 ${isActive ? 'text-white' : 'text-white/65'}`}
                 >
-                    <Calculator className="w-7 h-7 mb-1.5" />
-                    <span className="text-[10px] font-bold text-center leading-tight">{t('nav.quotes', 'Devis')}</span>
+                    <Calculator className={`transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    <span className={`text-[10px] font-semibold text-center leading-tight transition-all duration-300 overflow-hidden ${isMobileNavCompact ? 'max-h-0 opacity-0 mt-0' : 'max-h-4 opacity-100 mt-0.5'}`}>
+                        {t('nav.quotes', 'Devis')}
+                    </span>
                 </NavLink>
 
-                {/* 3. Center Dashboard Button (Big Round) */}
-                <div className="relative flex justify-center w-[96px]">
+                {/* 3. Center Dashboard Button (Sleek Borderless Translucent Pill) */}
+                <div className="relative flex justify-center flex-1">
                     <button
+                        type="button"
                         onClick={() => navigate('/admin/planning')}
-                        style={darkMode ? {} : { backgroundColor: tenant?.primary_color || '#2563EB' }}
-                        className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white dark:border-slate-900 backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] ${location.pathname === '/admin/planning' ? 'scale-105' : ''} ${darkMode ? 'bg-slate-800' : ''}`}
+                        aria-label={t('nav.planning', 'Planning')}
+                        style={{
+                            backgroundColor: darkMode
+                                ? 'rgba(36, 36, 40, 0.85)'
+                                : 'color-mix(in srgb, var(--tenant-accent) 88%, black 12%)',
+                        }}
+                        className={`flex items-center justify-center text-white rounded-full transition-all duration-300 active:scale-95 border-0 backdrop-blur-xl shadow-[0_4px_14px_rgba(15,23,42,0.22)] ${
+                            isMobileNavCompact
+                                ? 'w-7 h-7 relative top-0'
+                                : 'w-11 h-11 -mt-4'
+                        }`}
                     >
                         {tenant?.favicon_url ? (
-                            <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
+                            <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className={`object-contain rounded-lg transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-6 h-6'}`} />
                         ) : tenant?.logo_url ? (
-                            <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
+                            <img src={getImageUrl(tenant.logo_url)} alt="Logo" className={`object-contain rounded-lg transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-6 h-6'}`} />
                         ) : (
-                            <LayoutDashboard className="w-8 h-8 drop-shadow-md text-white" />
+                            <LayoutDashboard className={`text-white transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
                         )}
                     </button>
                 </div>
@@ -1140,19 +1207,24 @@ export default function AdminDashboard() {
                 {/* 4. Chat */}
                 <NavLink
                     to="/admin/chats"
-                    className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
+                    className={({isActive}) => `flex flex-col items-center justify-center py-1 flex-1 transition-all duration-300 ${isActive ? 'text-white' : 'text-white/65'}`}
                 >
-                    <MessageSquare className="w-7 h-7 mb-1.5" />
-                    <span className="text-[10px] font-bold text-center leading-tight">Chat</span>
+                    <MessageSquare className={`transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    <span className={`text-[10px] font-semibold text-center leading-tight transition-all duration-300 overflow-hidden ${isMobileNavCompact ? 'max-h-0 opacity-0 mt-0' : 'max-h-4 opacity-100 mt-0.5'}`}>
+                        Chat
+                    </span>
                 </NavLink>
 
                 {/* 5. Menu */}
                 <button
+                    type="button"
                     onClick={() => setSidebarOpen(true)}
-                    className="flex flex-col items-center p-2 w-[80px] transition-all text-white/60 hover:text-white"
+                    className="flex flex-col items-center justify-center py-1 flex-1 transition-all duration-300 text-white/65 hover:text-white"
                 >
-                    <Menu className="w-7 h-7 mb-1.5" />
-                    <span className="text-[10px] font-bold text-center leading-tight">{t('nav.menu', 'Menu')}</span>
+                    <Menu className={`transition-all duration-300 ${isMobileNavCompact ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    <span className={`text-[10px] font-semibold text-center leading-tight transition-all duration-300 overflow-hidden ${isMobileNavCompact ? 'max-h-0 opacity-0 mt-0' : 'max-h-4 opacity-100 mt-0.5'}`}>
+                        {t('nav.menu', 'Menu')}
+                    </span>
                 </button>
 
             </nav>
